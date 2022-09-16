@@ -1,2 +1,1 @@
-# bsc_fw
-Battery safety controller
+# Battery safety controller (BSC)
