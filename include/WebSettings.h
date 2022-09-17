@@ -91,7 +91,7 @@ private:
 
   void getDefaultValuesFromNewKeys(const String *parameter, uint32_t jsonStartPos);
   void buildSendHtml(WebServer * server, const String *parameter, uint32_t jsonStartPos);
-  void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
+  //void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
 
   bool isKeyExist(uint32_t key);
   void setString(uint32_t name, String value);

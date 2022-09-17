@@ -358,7 +358,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 }
 
 /*not use*/
-void WebSettings::readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos)
+/*void WebSettings::readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos)
 {
   uint8_t g, optionGroupSize;
   String tmpStr = "";
@@ -406,7 +406,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
       }
     }
   }
-}
+}*/
 
 
 void WebSettings::buildSendHtml(WebServer * server, const String *parameter, uint32_t jsonStartPos)

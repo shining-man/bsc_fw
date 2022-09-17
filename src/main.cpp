@@ -28,7 +28,7 @@ WebServer server;
 BleHandler bleHanlder;
 BscSerial bscSerial1(0,1,16,17,18);  // Hw Serial 1
 BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
-BscSerial bscSerial3(2,23,25);    // Sw Serial
+BscSerial bscSerial3(2,23,25);       // Sw Serial
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -423,7 +423,7 @@ void setup() {
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
   webSettingsOnewire2.initWebSettings(&paramOnewire2, "Onewire II", "/WebSettings.conf",0);
 
-  webSettingsBmsToInverter.initWebSettings(&paramBmsToInverter, "BMS-Daten Wechselrichter", "/WebSettings.conf",0);
+  webSettingsBmsToInverter.initWebSettings(&paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
   /*webSettingsBmsToInverter.setButtons(BUTTON_1,"test1");
   webSettingsBmsToInverter.setButtons(BUTTON_2,"test2");
   webSettingsBmsToInverter.setButtons(BUTTON_3,"test3");
