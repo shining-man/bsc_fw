@@ -6,7 +6,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define BSC_SW_VERSION      "V0.1.1"
+#define BSC_SW_VERSION      "V0.1.2"
 
 //System
 #define WEBSERVER_PORT               80
