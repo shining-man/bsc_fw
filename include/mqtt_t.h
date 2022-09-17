@@ -15,6 +15,7 @@ void mqttLoop();
   
 void mqttConnect();
 void mqttDisconnect();
+bool mqttConnected();
 
 
 void mqttPublish(String topic, String value);
@@ -24,9 +25,6 @@ void mqttPublish(String topic, uint8_t value);
 void mqttPublish(String topic, int8_t value);
 void mqttPublish(String topic, float value);
 void mqttPublish(String topic, bool value);
-
-
-
 
 
 #endif

@@ -109,6 +109,12 @@ void mqttDisconnect()
 }
 
 
+bool mqttConnected()
+{
+  return bo_mIsConnected;
+}
+
+
 bool mqttPublishLoopFromTxBuffer()
 {
   if(millis()>(mqttPublishLoopTimmer+10))
