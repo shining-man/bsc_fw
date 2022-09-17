@@ -30,6 +30,7 @@ BscSerial bscSerial1(0,1,16,17,18);  // Hw Serial 1
 BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
 BscSerial bscSerial3(2,23,25);    // Sw Serial
 
+//Websettings
 WebSettings webSettingsSystem;
 WebSettings webSettingsBluetooth;
 WebSettings webSettingsSerial;
@@ -41,24 +42,36 @@ WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
 
-
+//Timer
 TimerHandle_t wifiReconnectTimer;
 
+//Tasks
 TaskHandle_t task_handle_ble = NULL;
 TaskHandle_t task_handle_alarmrules = NULL;
 TaskHandle_t task_handle_onewire = NULL;
 TaskHandle_t task_handle_canbusTx = NULL;
 TaskHandle_t task_handle_bscSerial = NULL;
 
+//Task semaphore
+SemaphoreHandle_t mutexTaskRunTime = NULL;
+
+//millis des letzten runs
+uint32_t lastTaskRun_ble = 0;
+uint32_t lastTaskRun_alarmrules = 0;
+uint32_t lastTaskRun_onewire = 0;
+uint32_t lastTaskRuncanbusTx = 0;
+uint32_t lastTaskRun_bscSerial = 0;
+
 RTC_DATA_ATTR static uint8_t bootCounter = 0;
 
 unsigned long currentMillis;
 unsigned long previousMillis10000;
 
-bool isBoot = true;
-bool wifiApMode = false;        //true, wenn AP Mode
-bool doConnectWiFi = false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
-bool firstWlanModeSTA = false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
+uint8_t u8_mTaskRunSate=false;     //Status ob alle Tasks laufen
+bool    isBoot=true;
+bool    wifiApMode=false;        //true, wenn AP Mode
+bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
+bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
 
 
 void free_dump() {
@@ -157,6 +170,9 @@ void task_ble(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     bleHanlder.run();
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRun_ble=millis();
+    xSemaphoreGive(mutexTaskRunTime);
   }
 }
 
@@ -166,6 +182,9 @@ void task_alarmRules(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     runAlarmRules();
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRun_alarmrules=millis();
+    xSemaphoreGive(mutexTaskRunTime);
   }
 }
 
@@ -175,6 +194,9 @@ void task_onewire(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     owCyclicRun();
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRun_onewire=millis();
+    xSemaphoreGive(mutexTaskRunTime);
   }
 }
 
@@ -186,6 +208,9 @@ void task_canbusTx(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     canTxCyclicRun();
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRuncanbusTx=millis();
+    xSemaphoreGive(mutexTaskRunTime);
   }
 }
 
@@ -197,6 +222,9 @@ void task_bscSerial(void *param)
     bscSerial1.cyclicRun();
     bscSerial2.cyclicRun();
     bscSerial3.cyclicRun();
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRun_bscSerial=millis();
+    xSemaphoreGive(mutexTaskRunTime);
   }
 }
 
@@ -205,7 +233,6 @@ void task_bscSerial(void *param)
   Handle WebPages
 */
 void handlePage_root(){server.send(200, "text/html", htmlPageRoot);}
-//void handlePage_update(){server.send(200, "text/html", htmlPageWebUpdate);}
 void handlePage_settings(){server.send(200, "text/html", htmlPageSettings);}
 void handlePage_alarm(){server.send(200, "text/html", htmlPageAlarm);}
 void handlePage_schnittstellen(){server.send(200, "text/html", htmlPageSchnittstellen);}
@@ -278,9 +305,12 @@ void handle_getData()
 
 void handle_getDashboardData()
 {
+  //1. Free Heap
   String tmp = String(xPortGetFreeHeapSize());
   tmp += "<br>";
   tmp += String(xPortGetMinimumEverFreeHeapSize());
+
+  //2. Alarme
   tmp += "|";
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -288,6 +318,14 @@ void handle_getDashboardData()
     if(i<CNT_ALARMS) tmp += "&nbsp;";
     if(i==4) tmp += "|";
   }
+
+  //3. mqtt state
+  tmp += "|";
+  tmp += mqttConnected();
+
+  //4. Task status
+  tmp += "|";
+  tmp += String(u8_mTaskRunSate);
   
   server.send(200, "text/html", tmp.c_str());
 }
@@ -323,7 +361,7 @@ void handle_getOnewireDeviceAdr() {
 }
 
 
-void btnTest1()
+/*void btnTest1()
 {
   Serial.println("TestBtn 1");
 }
@@ -336,6 +374,20 @@ void btnTest2()
 void btnTest3()
 {
   Serial.println("TestBtn 3");
+}*/
+
+
+uint8_t checkTaskRun()
+{
+  uint8_t ret = 0;
+  xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+  if(millis()-lastTaskRun_ble>3000) ret+=1;
+  if(millis()-lastTaskRun_alarmrules>2000) ret+=2;
+  if(millis()-lastTaskRun_onewire>2000) ret+=4;
+  if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
+  if(millis()-lastTaskRun_bscSerial>2000) ret+=16;
+  xSemaphoreGive(mutexTaskRunTime);
+  return ret;
 }
 
 
@@ -343,6 +395,8 @@ void setup() {
   if(bootCounter!=0xFF) bootCounter++;
 
   //esp_log_level_set("*", ESP_LOG_VERBOSE);   
+
+  mutexTaskRunTime = xSemaphoreCreateMutex();
 
   isBoot = true;
   Serial.begin(115200);
@@ -370,12 +424,12 @@ void setup() {
   webSettingsOnewire2.initWebSettings(&paramOnewire2, "Onewire II", "/WebSettings.conf",0);
 
   webSettingsBmsToInverter.initWebSettings(&paramBmsToInverter, "BMS-Daten Wechselrichter", "/WebSettings.conf",0);
-  webSettingsBmsToInverter.setButtons(BUTTON_1,"test1");
+  /*webSettingsBmsToInverter.setButtons(BUTTON_1,"test1");
   webSettingsBmsToInverter.setButtons(BUTTON_2,"test2");
   webSettingsBmsToInverter.setButtons(BUTTON_3,"test3");
   webSettingsBmsToInverter.registerOnButton1(&btnTest1);
   webSettingsBmsToInverter.registerOnButton2(&btnTest2);
-  webSettingsBmsToInverter.registerOnButton3(&btnTest3);
+  webSettingsBmsToInverter.registerOnButton3(&btnTest3);*/
 
 
 
@@ -469,8 +523,12 @@ void loop() {
   
   mqttLoop();
 
+  currentMillis = millis();
+
   if(currentMillis - previousMillis10000 >=10000)
   {
+    u8_mTaskRunSate = checkTaskRun();
+
     //Sende Daten via mqqtt, wenn aktiv
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {

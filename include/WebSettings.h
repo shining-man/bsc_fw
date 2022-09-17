@@ -22,12 +22,11 @@
 #define HTML_INPUTDATE         6
 #define HTML_INPUTTIME         7
 #define HTML_INPUTCOLOR        8
-//#define HTML_INPUTRADIO        9
-#define HTML_INPUTSELECT       10
-#define HTML_INPUTCHECKBOX     11
-#define HTML_INPUTMULTICHECK   12
-#define HTML_OPTIONGROUP       13
-#define HTML_SEPARATION        14
+#define HTML_INPUTSELECT       9
+#define HTML_INPUTCHECKBOX     10
+#define HTML_INPUTMULTICHECK   11
+#define HTML_OPTIONGROUP       12
+#define HTML_SEPARATION        13
 
 #define BACKGROUND_COLOR "#ffffff" 
 
@@ -118,7 +117,6 @@ private:
   void createHtmlFloat(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
   void createHtmlRange(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
   void createHtmlCheckbox(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  //void createHtmlRadio(char * buf, uint32_t *name, const String *parameter, uint8_t idx, uint32_t startPos, String value, uint8_t index);
   void createHtmlStartSelect(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos);
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
   void createHtmlStartMulti(char * buf, String *label, const String *parameter, uint8_t idx, uint32_t startPos);

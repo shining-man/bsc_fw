@@ -165,13 +165,6 @@ const char HTML_ENTRY_RANGE[] PROGMEM =
 "<td class='Ctd'>%i&nbsp;<input type='range' min='%i' max='%i' value='%s' name='%s'>&nbsp;%i</td><td class='t1'></td></tr>\n";
 const char HTML_ENTRY_CHECKBOX[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td><td class='Ctd'><input type='checkbox' %s name='%s'></td><td class='t1'></td></tr>\n"; 
-/*const char HTML_ENTRY_RADIO_TITLE[] PROGMEM =
-"<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
-"<td class='Ctd'>";
-const char HTML_ENTRY_RADIO[] PROGMEM =
-"<div class='Ctd'><input type='radio' name='%s' value='%s' %s>%s</div>\n";
-const char HTML_ENTRY_RADIO_END[] PROGMEM =
-"</td><td class='t1'></td></tr>\n";*/
 const char HTML_ENTRY_SELECT_START[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><select name='%s'>\n";
@@ -253,7 +246,7 @@ void WebSettings::sendContentHtml(WebServer *server, const char *buf, bool send)
   }
     
   if(send==true || st_mSendBuf.length()>2000){
-    Serial.printf("sende sendBuf size=%i\n",st_mSendBuf.length());
+    //Serial.printf("sende sendBuf size=%i\n",st_mSendBuf.length());
     server->sendContent(st_mSendBuf);
     st_mSendBuf="";
   }
@@ -406,18 +399,6 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
         if (server->hasArg(String(jsonName))){setString(jsonName,"1");}
         else{setString(jsonName,"0");}
       }  
-      /*else if (type == INPUTMULTICHECK)
-      {
-        settingValues[jsonName] = "";
-        for (a=0; a<optionCnt; a++) settingValues[jsonName] += "0"; //clear result
-        for (a=0; a< server->args(); a++) {
-          if (server->argName(a) == jsonName) {
-            val = server->arg(a);
-            v= val.toInt();
-            settingValues[jsonName].setCharAt(v,'1');
-          }
-        }
-      }*/
       else
       {
         tmpStr = server->arg(String(jsonName));
@@ -521,17 +502,6 @@ void WebSettings::buildSendHtml(WebServer * server, const String *parameter, uin
         case HTML_INPUTCHECKBOX: 
           createHtmlCheckbox(_buf,&jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(jsonName));
           break;
-        /*case HTML_INPUTRADIO: 
-          sprintf(_buf,HTML_ENTRY_RADIO_TITLE,jsonLabel);
-          optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-          for (uint8_t j = 0 ; j<optionsCnt; j++)
-          {
-          sendContentHtml(server,_buf,false);
-            createHtmlRadio(_buf,&jsonName,parameter,a,jsonStartPos,getString(jsonName),j);
-          }
-          sendContentHtml(server,_buf,false);
-          strcpy_P(_buf,HTML_ENTRY_RADIO_END);
-          break;*/
         case HTML_INPUTSELECT: 
           createHtmlStartSelect(_buf,&jsonName,&jsonLabel,parameter,a,jsonStartPos);
           optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
@@ -680,15 +650,6 @@ void WebSettings::createHtmlCheckbox(char * buf, uint32_t *name, String *label, 
     sprintf(buf,HTML_ENTRY_CHECKBOX,label->c_str(),"",String(*name).c_str());
   }
 }
-
-/*void WebSettings::createHtmlRadio(char * buf, uint32_t *name, const String *parameter, uint8_t idx, uint32_t startPos, String value, uint8_t index)
-{
-  if (value == getJsonOptionValues(parameter, idx, startPos)[index]){
-    sprintf(buf,HTML_ENTRY_RADIO,String(*name).c_str(),getJsonOptionValues(parameter, idx, startPos)[index].c_str(),"checked",getJsonOptionLabels(parameter, idx, startPos)[index].c_str());
-  } else {
-    sprintf(buf,HTML_ENTRY_RADIO,String(*name).c_str(),getJsonOptionValues(parameter, idx, startPos)[index].c_str(),"",getJsonOptionLabels(parameter, idx, startPos)[index].c_str());
-  }
-}*/
 
 void WebSettings::createHtmlStartSelect(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos)
 {
