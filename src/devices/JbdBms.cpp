@@ -30,6 +30,7 @@ uint16_t  JbdBms_calcCrc(uint8_t *recvMsg);
 
 bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 {
+  bool bo_lRet=true;
   mPort = port;
   u8_mDevNr = devNr-1;
   u8_mTxEnRS485pin = txEnRS485pin;
@@ -39,15 +40,18 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   if(JbdBms_recvAnswer(response))
   {
     JbdBms_parseBasicMessage(response);
+
+    //mqtt
+    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/totalVoltage", getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/totalCurrent", getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
   else
   {
     Serial.printf("sendReqBasicMessage checksum wrong\n");
-    //return false;
+    bo_lRet=false;
   }
  
   JbdBms_sendMessage(cellMsg);
-
   if(JbdBms_recvAnswer(response))
   {
     JbdBms_parseCellVoltageMessage(response);
@@ -55,11 +59,14 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   else
   {
     Serial.printf("sendCellMessage checksum wrong\n");
-    //return false;
+    bo_lRet=false;
   }
 
+  if(bo_lRet==false) return bo_lRet;
+  
   setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr,millis());
-  return true;  
+
+  return bo_lRet;  
 }
 
 

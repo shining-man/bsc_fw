@@ -247,42 +247,41 @@ void mqttDataToTxBuffer()
 void mqttPublishBmsData(uint8_t i)
 {
   if(bo_mIsConnected==false) return; //Wenn nicht verbunden, dann zurück
-
-  String topic = ""; //"/" + mqttDeviceName + "/";
   
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {
-    mqttPublish(topic+"bms/"+String(i)+"/cellVoltage/"+String(n), getBmsCellVoltage(i,n));
+    mqttPublish("bms/"+String(i)+"/cellVoltage/"+String(n), getBmsCellVoltage(i,n));
   }
 
   //Max. Cell Voltage
-  mqttPublish(topic+"bms/"+String(i)+"/cellVoltageMax", getBmsMaxCellVoltage(i));
+  mqttPublish("bms/"+String(i)+"/cellVoltageMax", getBmsMaxCellVoltage(i));
   
   //bmsTotalVoltage
-  mqttPublish(topic+"bms/"+String(i)+"/totalVoltage", getBmsTotalVoltage(i));
+  //Hier werden nur die Daten von den BT-Devices gesendet
+  if(i<=4) mqttPublish("bms/"+String(i)+"/totalVoltage", getBmsTotalVoltage(i));
 
   //maxCellDifferenceVoltage
-  mqttPublish(topic+"bms/"+String(i)+"/maxCellDifferenceVoltage", getBmsMaxCellDifferenceVoltage(i));
+  mqttPublish("bms/"+String(i)+"/maxCellDifferenceVoltage", getBmsMaxCellDifferenceVoltage(i));
 
   //totalCurrent
-  if(i>4) mqttPublish(topic+"bms/"+String(i)+"/totalCurrent", getBmsTotalCurrent(i));
+  //if(i>4) mqttPublish("bms/"+String(i)+"/totalCurrent", getBmsTotalCurrent(i));
 
   //balancingActive
-  if(i<=4) mqttPublish(topic+"bms/"+String(i)+"/balancingActive", getBmsIsBalancingActive(i));
+  if(i<=4) mqttPublish("bms/"+String(i)+"/balancingActive", getBmsIsBalancingActive(i));
 
   //balancingCurrent
-  if(i<=4) mqttPublish(topic+"bms/"+String(i)+"/balancingCurrent", getBmsBalancingCurrent(i));
+  if(i<=4) mqttPublish("bms/"+String(i)+"/balancingCurrent", getBmsBalancingCurrent(i));
 
   //tempature
-  if(i<=4) mqttPublish(topic+"bms/"+String(i)+"/tempature/0", getBmsTempature(i,0));
-  if(i<=4) mqttPublish(topic+"bms/"+String(i)+"/tempature/1", getBmsTempature(i,1));
+  /*if(i<=4)*/ mqttPublish("bms/"+String(i)+"/tempature/0", getBmsTempature(i,0));
+  /*if(i<=4)*/ mqttPublish("bms/"+String(i)+"/tempature/1", getBmsTempature(i,1));
 
   //chargePercent
-  if(i>4) mqttPublish(topic+"bms/"+String(i)+"/chargePercent", getBmsChargePercentage(i));
+  if(i>4) mqttPublish("bms/"+String(i)+"/chargePercent", getBmsChargePercentage(i));
 
   //Errors
-  mqttPublish(topic+"bms/"+String(i)+"/errors", getBmsErrors(i));
+  mqttPublish("bms/"+String(i)+"/errors", getBmsErrors(i));
 }
 
 

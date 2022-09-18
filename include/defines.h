@@ -6,7 +6,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define BSC_SW_VERSION      "V0.1.2"
+#define BSC_SW_VERSION      "V0.1.3"
 
 //System
 #define WEBSERVER_PORT               80
@@ -18,7 +18,6 @@
 #define OW_TEMP_AVG_CYCELS            3
 
 //Bluetooth
-//#define BT_SCAN_PASUSE_TIME       11
 #define BT_DEVICES_COUNT             5
 
 //Serial
