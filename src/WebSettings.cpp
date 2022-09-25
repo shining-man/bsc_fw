@@ -71,6 +71,23 @@ const char HTML_END_2[] PROGMEM = R"rawliteral(
 </div>
 <br><div id='data_div'></div>
 <script>
+function btnClick(btn) {
+  var xhttp = new XMLHttpRequest();
+  xhttp.open('POST','?'+btn+'=',true);
+  xhttp.send();  
+}
+
+function urlencode(str) {
+  str = (str + '').toString();
+  return encodeURIComponent(str)
+    .replace('!', '%21')
+    .replace('\'', '%27')
+    .replace('(', '%28')
+    .replace(')', '%29')
+    .replace('*', '%2A')
+    .replace('%20', '+');
+}
+
 const collection = document.getElementsByClassName("t1");
 for (let i = 0; i < collection.length; i++) {
   var button = document.createElement('button');
@@ -81,14 +98,10 @@ for (let i = 0; i < collection.length; i++) {
     let t1=this.parentNode.previousSibling.firstChild;
 
     if (t1.checkValidity() === false) {
-      alert("err");
+      alert('Fehler');
       return;
-      //event.preventDefault();
     }
-    else
-    {
 
-    }
     var name=t1.getAttribute("name");
     var val;
     if(t1.nodeName=='SELECT'){
@@ -112,16 +125,10 @@ for (let i = 0; i < collection.length; i++) {
         alert(this.responseText);
       }
     };
-    xhttp.open('GET','?SAVE=&'+name+'='+val,true);
+    xhttp.open('GET','?SAVE=&'+name+'='+urlencode(val),true);
     xhttp.send();
   });
   collection[i].appendChild(button);
-}
-
-function btnClick(btn) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.open('POST','?'+btn+'=',true);
-  xhttp.send();  
 }
 </script>
 )rawliteral";
@@ -279,13 +286,12 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
         String argName = server->argName(i);
         if(argName!="SAVE"){
           String argValue = server->arg(i);
-          Serial.printf("SAVE: %s, %s\n", argName, argValue);
+          //Serial.printf("SAVE: %s, %s\n", argName, argValue);
+
           if(isNumber(argName)) //Wenn keine Zahl, dann Fehler
           {
-            setString((uint32_t)argName.toInt(), argValue);
-            
+            setString((uint32_t)argName.toInt(), argValue); 
             writeConfig(); //Schreiben der Einstellungen in das Config file
-
             server->send(200, "text/html", "OK"); //Sende ok an Website (Rückmeldung, dass gespeichert wurde)
           }
         } 
