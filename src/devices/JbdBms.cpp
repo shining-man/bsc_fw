@@ -76,6 +76,7 @@ void JbdBms_sendMessage(uint8_t *sendMsg)
   usleep(20);
   mPort->write(sendMsg, 7);
   mPort->flush();  
+  //usleep(50);
   if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
 }
 
@@ -144,6 +145,9 @@ bool JbdBms_recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
+uint16_t u16_mBalanceCapacityOld;
+uint32_t u32_mChargeMAh=0;
+uint32_t u32_mDischargeMAh=0;
 uint32_t mqttSendeTimer=0;
 void JbdBms_parseBasicMessage(uint8_t * t_message)
 {
@@ -157,11 +161,31 @@ void JbdBms_parseBasicMessage(uint8_t * t_message)
     setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr,n, (((float)JbdBms_convertToUint16(t_message[JBD_BYTE_NTCn+n*2], t_message[JBD_BYTE_NTCn+n*2+1])) - 2731) / 10.00f);
   }
 
+  uint16_t u16_lBalanceCapacity = JbdBms_convertToUint16(t_message[JBD_BYTE_BALANCE_CAPACITY], t_message[JBD_BYTE_BALANCE_CAPACITY+1]); //10mAH
+
+  if(u16_mBalanceCapacityOld==0)u16_mBalanceCapacityOld=u16_lBalanceCapacity;
+  //Zähler zurücksetzen bevor sie ueberlaufen
+  if((u32_mChargeMAh+(u16_lBalanceCapacity-u16_mBalanceCapacityOld)>ULONG_MAX) ||
+    (u32_mDischargeMAh+(u16_mBalanceCapacityOld-u16_lBalanceCapacity)>ULONG_MAX))
+  {
+    u32_mChargeMAh=0;
+    u32_mDischargeMAh=0;
+  }
+  if(u16_lBalanceCapacity>u16_mBalanceCapacityOld) //charge
+  {
+    u32_mChargeMAh = u32_mChargeMAh+(u16_lBalanceCapacity-u16_mBalanceCapacityOld);  
+  }
+  else if(u16_lBalanceCapacity<u16_mBalanceCapacityOld) //discharge
+  {
+    u32_mDischargeMAh = u32_mDischargeMAh+(u16_mBalanceCapacityOld-u16_lBalanceCapacity);  
+  }
+  u16_mBalanceCapacityOld=u16_lBalanceCapacity;
+  
+
   if(millis()>(mqttSendeTimer+10000))
   {
-    uint16_t u16_lBalanceCapacity, u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
-    u16_lBalanceCapacity = JbdBms_convertToUint16(t_message[JBD_BYTE_BALANCE_CAPACITY], t_message[JBD_BYTE_BALANCE_CAPACITY+1])/100; //10mAH
-    u16_lFullCapacity = JbdBms_convertToUint16(t_message[JBD_BYTE_FULL_CAPACITY], t_message[JBD_BYTE_FULL_CAPACITY+1])/100; //10mAH
+    uint16_t /*u16_lBalanceCapacity,*/ u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
+    u16_lFullCapacity = JbdBms_convertToUint16(t_message[JBD_BYTE_FULL_CAPACITY], t_message[JBD_BYTE_FULL_CAPACITY+1]); //10mAH
     u16_lCycle = JbdBms_convertToUint16(t_message[JBD_BYTE_CYCLE], t_message[JBD_BYTE_CYCLE+1]); //
     u16_lBalanceStatus = JbdBms_convertToUint16(t_message[JBD_BYTE_BALANCE_STATUS], t_message[JBD_BYTE_BALANCE_STATUS+1]); 
     //uint16_t u16_lBalanceStatus2 = JbdBms_convertToUint16(t_message[JBD_BYTE_BALANCE_STATUS_2], t_message[JBD_BYTE_BALANCE_STATUS_2+1]); 
@@ -176,6 +200,9 @@ void JbdBms_parseBasicMessage(uint8_t * t_message)
     mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/Cycle", u16_lCycle);
     mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/BalanceStatus", u16_lBalanceStatus);
     mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/FetStatus", u16_lFetStatus);
+
+    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/ChargedEnergy", u32_mChargeMAh);
+    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/DischargedEnergy", u32_mDischargeMAh);
 
     mqttSendeTimer=millis();
   }

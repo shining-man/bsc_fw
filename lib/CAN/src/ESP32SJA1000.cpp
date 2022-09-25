@@ -131,28 +131,6 @@ int ESP32SJA1000Class::begin(long baudRate)
       break;
   }
 
- /*
-	double __tq;  //Time quantum
-
-	//select time quantum and set TSEG1
-	switch(baudRate)
-    {
-		case (long)1000E3:
-			modifyRegister(REG_BTR1, 0x0f, 0x0c); //BTR1,TSEG1
-			__tq = 0.125;
-			break;
-
-		default:
-			modifyRegister(REG_BTR1, 0x0f, 0x0c); //BTR1,TSEG1
-			__tq = ((float)1000.0f / (float)(baudRate/1000)) / 16.0f;
-	}
-
-	//set baud rate prescaler
-  //APB_CLK_FREQ should be 80M
-  modifyRegister(REG_BTR0, 0x3f, ((uint8_t)round((((APB_CLK_FREQ * __tq) / 2) - 1)/1000000)-1)); //BTR0,BRP
-	//MODULE_CAN->BTR0.B.BRP = (uint8_t)round((((APB_CLK_FREQ * __tq) / 2) - 1)/1000000)-1;
-*/
-
   modifyRegister(REG_BTR1, 0x80, 0x80); // SAM = 1
 
   //enable all interrupts (BUT NOT BIT 4 which has turned into a baud rate scalar!)

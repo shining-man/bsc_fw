@@ -27,8 +27,10 @@
 WebServer server;
 BleHandler bleHanlder;
 BscSerial bscSerial1(0,1,16,17,18);  // Hw Serial 1
-BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
-BscSerial bscSerial3(2,23,25);       // Sw Serial
+BscSerial bscSerial2(1,2,23,25,0);  // Hw Serial 2
+BscSerial bscSerial3(2,35,33,32);       // Sw Serial
+//BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
+//BscSerial bscSerial3(2,23,25,0);       // Sw Serial
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -332,7 +334,6 @@ void handle_getDashboardData()
 
 void handle_getBmsSpgData()
 {
-  Serial.println("handle_getBmsSpgData");
   String sendData = "";
   float onePer = (4-0.5)/100;
   for(uint8_t i=0;i<16;i++)
@@ -355,8 +356,8 @@ void handle_getBtDevices()
 }
 
 
-void handle_getOnewireDeviceAdr() {
-  Serial.println("handle_getOnewireDeviceAdr()");
+void handle_getOnewireDeviceAdr()
+{
   server.send(200, "text/html", getSensorAdr().c_str());
 }
 
