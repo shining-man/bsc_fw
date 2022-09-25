@@ -22,7 +22,7 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t hwUartNr, uint8_t rx, uint8_t
   u8_mSerialNr = u8_lSerialNr;
   u8_mTxEnRS485pin = txEnRS485pin;
 
-  pinMode(txEnRS485pin, OUTPUT);
+  if(txEnRS485pin!=0) pinMode(txEnRS485pin, OUTPUT);
 
   if(hwUartNr==0)
   {
@@ -41,11 +41,13 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t hwUartNr, uint8_t rx, uint8_t
   }
 }
 
-BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx)
+BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
 {
   mSerialMutex = xSemaphoreCreateMutex();
   u8_mSerialNr = u8_lSerialNr;
-  u8_mTxEnRS485pin = 0;
+  u8_mTxEnRS485pin = txEnRS485pin;
+
+  if(txEnRS485pin!=0) pinMode(txEnRS485pin, OUTPUT);
 
   SoftwareSerial mySwSerial(rx, tx);
   stream_mPort = &mySwSerial;

@@ -14,7 +14,7 @@ class BscSerial {
 public:
   BscSerial();
   BscSerial(uint8_t u8_lSerialNr, uint8_t uart_nr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
-  BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx);
+  BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
   
   void initSerial();
 
