@@ -31,8 +31,9 @@ uint8_t u8_mDoByte;
 void rules_Bms();
 void rules_Temperatur();
 void rules_CanInverter();
-bool temperatur_maxWertUeberwachung(uint8_t i);
-bool temperatur_maxWertUeberwachungReferenz(uint8_t i);
+bool temperatur_maxWertUeberwachung(uint8_t);
+bool temperatur_maxWertUeberwachungReferenz(uint8_t);
+bool temperatur_DifferenzUeberwachung(uint8_t);
 void runDigitalAusgaenge();
 void doOffPulse(TimerHandle_t xTimer);
 void getDIs();
@@ -330,6 +331,9 @@ void rules_Temperatur()
           if(temperatur_maxWertUeberwachungReferenz(i)){bo_lAlarm=true;}
           break;
 
+        case ID_TEMP_ALARM_FUNKTION_DIFFERENZ:
+          if(temperatur_DifferenzUeberwachung(i)){bo_lAlarm=true;}
+        
         default:
           break;
       }
@@ -409,6 +413,27 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
     {
       return true;
     }
+  }
+  return false;
+}
+
+
+bool temperatur_DifferenzUeberwachung(uint8_t i)
+{
+  float f_lTempMin = 0xFF;
+  float f_lTempMax = 0;
+
+  float f_lMaxTempDiff = WebSettings::getInt(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  
+  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
+  {
+    if(owGetTemp(n)>f_lTempMax) f_lTempMax=owGetTemp(n);
+    if(owGetTemp(n)<f_lTempMin) f_lTempMin=owGetTemp(n);
+  }
+
+  if(f_lTempMax-f_lTempMin>=f_lMaxTempDiff)
+  {
+    return true;
   }
   return false;
 }
