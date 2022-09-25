@@ -6,7 +6,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define BSC_SW_VERSION      "V0.1.3"
+#define BSC_SW_VERSION      "V0.1.4"
 
 //System
 #define WEBSERVER_PORT               80
@@ -111,9 +111,10 @@
 #define ID_CAN_DEVICE_SOLISRHI    1
 
 //Auswahl Temp.Alarm Funktionen
-#define ID_TEMP_ALARM_FUNKTION_NB  0
-#define ID_TEMP_ALARM_FUNKTION_MAXWERT 1
+#define ID_TEMP_ALARM_FUNKTION_NB               0
+#define ID_TEMP_ALARM_FUNKTION_MAXWERT          1
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT_REFERENZ 2
+#define ID_TEMP_ALARM_FUNKTION_DIFFERENZ        3
 
 
 
