@@ -145,7 +145,7 @@ bool JbdBms_recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-uint16_t u16_mBalanceCapacityOld;
+uint16_t u16_mBalanceCapacityOld=0xFFFF;
 uint32_t u32_mChargeMAh=0;
 uint32_t u32_mDischargeMAh=0;
 uint32_t mqttSendeTimer=0;
@@ -163,7 +163,7 @@ void JbdBms_parseBasicMessage(uint8_t * t_message)
 
   uint16_t u16_lBalanceCapacity = JbdBms_convertToUint16(t_message[JBD_BYTE_BALANCE_CAPACITY], t_message[JBD_BYTE_BALANCE_CAPACITY+1]); //10mAH
 
-  if(u16_mBalanceCapacityOld==0)u16_mBalanceCapacityOld=u16_lBalanceCapacity;
+  if(u16_mBalanceCapacityOld==0xFFFF)u16_mBalanceCapacityOld=u16_lBalanceCapacity;
   //Zähler zurücksetzen bevor sie ueberlaufen
   if((u32_mChargeMAh+(u16_lBalanceCapacity-u16_mBalanceCapacityOld)>ULONG_MAX) ||
     (u32_mDischargeMAh+(u16_mBalanceCapacityOld-u16_lBalanceCapacity)>ULONG_MAX))

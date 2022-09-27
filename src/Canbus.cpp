@@ -27,7 +27,7 @@ void sendCanMsg_374_375_376_377();
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
 
-char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ','T','o','H','i',' ',' ',' ',' '};
+char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
 uint8_t bmsDatasource;
 uint8_t u8_mSelCanInverter;
@@ -41,7 +41,6 @@ int16_t  i16_mAktualChargeCurrentSoll;
 uint8_t  u8_mTimerCalcMaxChareCurrent=0;
 uint16_t u16_mTimerChargeOff=0;
 uint16_t u16_mSperrzeitChargeOff;
-bool     bo_mDynLaderegelungSetSocToFull=false;
 
 struct data351
 {
@@ -392,7 +391,7 @@ void sendCanMsg_355()
 {
   data355 msgData;
 
-  if(alarmSetSocToFull || bo_mDynLaderegelungSetSocToFull)
+  if(alarmSetSocToFull)
   {
     //Serial.println("SOC aufgrund von Alarm auf 100%");
     msgData.soc = 100;
