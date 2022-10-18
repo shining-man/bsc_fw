@@ -86,7 +86,7 @@ void canSetup()
   u8_mTimerCalcMaxChareCurrent=0;
   u16_mTimerChargeOff=0;
 
-  u16_mSperrzeitChargeOff=60; //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
+  u16_mSperrzeitChargeOff=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_SPERRZEIT,0,0,0); //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
 
   loadCanSettings();
 
@@ -189,7 +189,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
       {
         //Serial.printf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
         if(i16_mMaxChargeCurrent>=50){
-          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-7;
+          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
         }else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50){
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-5;
         }else if(i16_mMaxChargeCurrent>=10 && i16_mMaxChargeCurrent<25){
@@ -296,6 +296,34 @@ int16_t calcLadestromBeiZelldrift(int16_t i16_pMaxChargeCurrent)
 
 
 
+/* */
+int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc)
+{
+  if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN,0,0,0)==true) //wenn enabled
+  {
+    uint8_t u8_lReduzierenAbSoc = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC,0,0,0);
+    if(u8_lSoc>=u8_lReduzierenAbSoc && u8_lSoc<100)
+    {
+      uint8_t u8_lReduzierenUmA = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC,0,0,0);
+
+      if(i16_lMaxChargeCurrent-((u8_lSoc-u8_lReduzierenAbSoc+1)*u8_lReduzierenUmA)>=0)
+      {
+        return i16_lMaxChargeCurrent-((u8_lSoc-u8_lReduzierenAbSoc+1)*u8_lReduzierenUmA);
+      }
+      else
+      {
+        return 0;
+      }
+    }
+
+    return i16_lMaxChargeCurrent;
+  }
+
+  return i16_lMaxChargeCurrent;
+}
+
+
+
 // Transmit hostname
 void sendCanMsg_370_371()
 {
@@ -346,10 +374,12 @@ void sendCanMsg_351()
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,0,0));
 
       int16_t i16_lMaxChargeCurrent1 = calcLadestromZellspanung(i16_lMaxChargeCurrent);
+      int16_t i16_lMaxChargeCurrent2 = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(bmsDatasource));
 
       i16_lMaxChargeCurrent = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
       
       if(i16_lMaxChargeCurrent>i16_lMaxChargeCurrent1) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent1;
+      if(i16_lMaxChargeCurrent2<i16_lMaxChargeCurrent) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent2;
 
       calcMaximalenLadestromSprung(i16_lMaxChargeCurrent); //calcMaximalenLadestromSprung schreibt den neuen Ausgangsstrom in i16_mMaxChargeCurrent
       //Serial.printf("Soll Ladestrom: %i, %i, %i\n",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
