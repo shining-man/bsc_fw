@@ -137,10 +137,10 @@ void runAlarmRules()
         {
           if(bo_Alarm[i]==true)
           {     
-            if(u8_DoVerzoegerungTimer[i]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
+            if(u8_DoVerzoegerungTimer[o]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
-              ESP_LOGD("AlarmRules", "Set DO VerzoegerungTimer (%i)", o);
-              u8_DoVerzoegerungTimer[i] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,o,0);
+              ESP_LOGD("AlarmRules", "Set DO VerzoegerungTimer (DoNr=%i)", o);
+              u8_DoVerzoegerungTimer[o] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,o,0);
             }
           }
           else
@@ -148,7 +148,7 @@ void runAlarmRules()
             uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              ESP_LOGD("AlarmRules", "Alarm geht (%i)", i);
+              ESP_LOGD("AlarmRules", "Alarm geht (AlarmNr=%i)", i);
               u8_mDoByte &= ~(1 << o); //bit loeschen
             }
           }
@@ -170,14 +170,14 @@ void setDOs()
     {
       u8_DoVerzoegerungTimer[o]=0xFF;
 
-      ESP_LOGD("AlarmRules", "Set DO (%i)", o);
+      ESP_LOGD("AlarmRules", "Set DO (DoNr=%i)", o);
       u8_mDoByte |= (1 << o); //bit setzen
 
       uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
       if(doPulseOrPermanent==1) //Wenn Impuls
       {
         uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,0,o,0);
-      ESP_LOGD("AlarmRules", "DO Impuls DO=%i Dauer=%i", o, pulseDuration);
+        ESP_LOGD("AlarmRules", "DO Impuls DO=%i Dauer=%i", o, pulseDuration);
               
         xSemaphoreTake(doMutex, portMAX_DELAY);
         bo_DoPulsOffCounter[o] = (pulseDuration/10);

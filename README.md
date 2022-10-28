@@ -32,5 +32,5 @@ Unterstütze Hardware:
 
 [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
 
-Weitere Informationen: siehe [Wiki](https://github.com/shining-man/bsc_fw/wiki)
+** Weitere Informationen/Doku: siehe [Wiki](https://github.com/shining-man/bsc_fw/wiki) **
 
