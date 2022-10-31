@@ -6,7 +6,7 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
-#define BSC_SW_VERSION      "V0.1.4"
+#define BSC_SW_VERSION      "V0.1.5"
 
 //System
 #define WEBSERVER_PORT               80
@@ -109,10 +109,12 @@
 //Auswahl Serial Geräte
 #define ID_SERIAL_DEVICE_NB       0
 #define ID_SERIAL_DEVICE_JBDBMS   1
+#define ID_SERIAL_DEVICE_JKBMS    2
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB          0
 #define ID_CAN_DEVICE_SOLISRHI    1
+#define ID_CAN_DEVICE_DEYE        2
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0

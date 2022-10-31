@@ -155,6 +155,7 @@ void sendBmsCanMessages()
 {
   switch (u8_mSelCanInverter)
   {
+    case ID_CAN_DEVICE_DEYE:
     case ID_CAN_DEVICE_SOLISRHI:
       sendCanMsg_351();
       vTaskDelay(pdMS_TO_TICKS(5));

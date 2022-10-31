@@ -7,6 +7,7 @@
 #include "BscSerial.h"
 #include "defines.h"
 #include "devices/JbdBms.h"
+#include "devices/JkBms.h"
 #include "WebSettings.h"
 #include "BmsData.h"
 
@@ -54,6 +55,27 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnR
   static_cast<SoftwareSerial*>(stream_mPort)->begin(9600);
 }
 
+void BscSerial::setSerialBaudrate(uint32_t baudrate)
+{
+  if(u8_mSerialNr==0)
+  {
+    Serial1.end();
+
+    Serial1.begin(baudrate);
+  }
+  else if(u8_mSerialNr==1)
+  {
+    Serial2.end();
+
+    Serial2.begin(baudrate);
+  }
+  else if(u8_mSerialNr==2)
+  {
+    static_cast<SoftwareSerial*>(stream_mPort)->end();
+
+    static_cast<SoftwareSerial*>(stream_mPort)->begin(baudrate);
+  }
+}
 
 void BscSerial::initSerial()
 {
@@ -73,10 +95,17 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       break;
 
     case ID_SERIAL_DEVICE_JBDBMS:
-      Serial.println("setReadBmsFunktion JBD");
+      Serial.println("setReadBmsFunktion JBD-BMS");
+      setSerialBaudrate(9600);
       readBms = &JbdBms_readBmsData;
       break;
-      
+
+    case ID_SERIAL_DEVICE_JKBMS:
+      Serial.println("setReadBmsFunktion JK-BMS");
+      setSerialBaudrate(115200);
+      readBms = &JkBms_readBmsData;
+      break;
+   
     default:
       readBms = 0;
   }
