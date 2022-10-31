@@ -31,6 +31,8 @@ private:
   uint8_t u8_mSerialNr;
   uint8_t u8_mTxEnRS485pin;
 
+  void setSerialBaudrate(uint32_t baudrate);
+
 };
 
 
