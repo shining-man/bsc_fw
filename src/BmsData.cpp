@@ -18,6 +18,7 @@ uint32_t   bmsMaxCellDifferenceVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT
 uint32_t   bmsAvgVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];               //    x    |   x    |   x    |
 float      bmsTotalCurrent[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];             //         |   x    |   x    |
 uint32_t   bmsMaxCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];           //    x    |   x    |   x    |
+uint32_t   bmsMinCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];           //    x    |   x    |   x    |
 uint8_t    bmsMaxVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];     //    x    |        |        |
 uint8_t    bmsMinVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];     //    x    |        |        |
 uint8_t    bmsIsBalancingActive[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];        //    x    |        |        |
@@ -164,6 +165,21 @@ void setBmsMaxCellVoltage(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsMaxCellVoltage[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+
+uint32_t getBmsMinCellVoltage(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  uint32_t ret = bmsMinCellVoltage[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsMinCellVoltage(uint8_t devNr, uint32_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsMinCellVoltage[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
 }
 

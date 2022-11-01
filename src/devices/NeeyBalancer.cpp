@@ -77,6 +77,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     setBmsMaxCellDifferenceVoltage(devNr, f_lMacZellVoltage-f_lMinZellVoltage);
 
     setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);
+    setBmsMinCellVoltage(devNr, f_lMinZellVoltage);
   }
   else if(length==59)
   {

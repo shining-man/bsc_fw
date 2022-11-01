@@ -30,12 +30,7 @@
 
 
 //Parameter IDs
-#define ID_PARAM_WLAN_SSID                      40
-#define ID_PARAM_WLAN_PWD                       41
-#define ID_PARAM_MQTT_SERVER_IP                 42
-#define ID_PARAM_MQTT_SERVER_PORT               43
-#define ID_PARAM_MQTT_SERVER_ENABLE             44
-#define ID_PARAM_MQTT_DEVICE_NAME               45
+
 
 #define ID_PARAM_SERIAL_CONNECT_DEVICE           1
 #define ID_PARAM_SERIAL_ALARM_AKTION             6          //0=AUS; 1-5=Alarm 1-5
@@ -56,8 +51,6 @@
 #define ID_PARAM_ALARM_BTDEV_ALARM_AKTION       17
 #define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION     18
 #define ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION   19          //0=AUS; 1-5=Alarm 1-5
-#define ID_PARAM_ALARM_BT_GESAMT_SPG_MIN            72
-#define ID_PARAM_ALARM_BT_GESAMT_SPG_MAX            73
 
 #define ID_PARAM_TEMP_ALARM                     20
 #define ID_PARAM_TEMP_ALARM_SENSOR_VON          21
@@ -76,6 +69,13 @@
 #define ID_PARAM_DI_INVERTIERT                  34
 #define ID_PARAM_DI_ALARM_NR                    35
 
+#define ID_PARAM_WLAN_SSID                      40
+#define ID_PARAM_WLAN_PWD                       41
+#define ID_PARAM_MQTT_SERVER_IP                 42
+#define ID_PARAM_MQTT_SERVER_PORT               43
+#define ID_PARAM_MQTT_SERVER_ENABLE             44
+#define ID_PARAM_MQTT_DEVICE_NAME               45
+
 #define ID_PARAM_ONWIRE_ENABLE                  50
 #define ID_PARAM_ONEWIRE_ADR                    51
 #define ID_PARAM_ONWIRE_TEMP_OFFSET             52
@@ -88,19 +88,27 @@
 #define ID_PARAM_BMS_MAX_DISCHARGE_CURRENT      65
 #define ID_PARAM_BMS_LADELEISTUNG_AUF_NULL      66
 #define ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL   67
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN      68
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG   69
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV          70
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE    71
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_EN        74
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG  75
-#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG    76
-#define ID_PARAM_BMS_SOC_AUF_FULL                                77
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN             68
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG          69
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV                 70
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE           71
+
+#define ID_PARAM_ALARM_BT_GESAMT_SPG_MIN                                72
+#define ID_PARAM_ALARM_BT_GESAMT_SPG_MAX                                73
+
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_EN               74
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG         75
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG           76
+#define ID_PARAM_BMS_SOC_AUF_FULL                                       77
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM    78
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN                   79
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC                   80
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC        81
 #define ID_PARAM_INVERTER_LADESTROM_SPERRZEIT                           82
+#define ID_PARAM_BMS_CAN_DATASOURCE_SS1                                 83
+#define ID_PARAM_BMS_CAN_DATASOURCE_SS2                                 84
+#define ID_PARAM_BMS_CAN_DATASOURCE_SS3                                 85
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB           0
@@ -115,6 +123,7 @@
 #define ID_CAN_DEVICE_NB          0
 #define ID_CAN_DEVICE_SOLISRHI    1
 #define ID_CAN_DEVICE_DEYE        2
+#define ID_CAN_DEVICE_VICTRON     3
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0

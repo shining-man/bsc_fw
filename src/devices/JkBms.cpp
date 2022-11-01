@@ -187,6 +187,7 @@ void JkBms_parseData(uint8_t * t_message)
         }
         
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellHigh);
+        setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellLow);
         setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, (float)(u16_lCellSum/u8_lNumOfCells));
         setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNrJk,(float)(u16_lZellDifferenceVoltage));
 
