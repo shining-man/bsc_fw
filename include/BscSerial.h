@@ -15,7 +15,10 @@ public:
   BscSerial();
   BscSerial(uint8_t u8_lSerialNr, uint8_t uart_nr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
   BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
-  
+
+  void setHwSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t hwUartNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
+  void setSoftSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
+
   void initSerial();
 
   void cyclicRun();
@@ -30,6 +33,8 @@ private:
   uint8_t u8_mHwUartNr;
   uint8_t u8_mSerialNr;
   uint8_t u8_mTxEnRS485pin;
+  uint8_t u8_mRx;
+  uint8_t u8_mTx;
 
   void setSerialBaudrate(uint32_t baudrate);
 
