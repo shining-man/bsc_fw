@@ -52,6 +52,9 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value);
 uint32_t getBmsMaxCellVoltage(uint8_t devNr);
 void setBmsMaxCellVoltage(uint8_t devNr, uint32_t value);
 
+uint32_t getBmsMinCellVoltage(uint8_t devNr);
+void setBmsMinCellVoltage(uint8_t devNr, uint32_t value);
+
 uint32_t getBmsErrors(uint8_t devNr);
 void setBmsErrors(uint8_t devNr, uint32_t value);
 

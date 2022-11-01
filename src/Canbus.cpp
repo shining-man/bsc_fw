@@ -29,7 +29,8 @@ void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
 char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
-uint8_t bmsDatasource;
+uint8_t u8_mBmsDatasource;
+uint8_t u8_mBmsDatasourceAdd;
 uint8_t u8_mSelCanInverter;
 
 bool alarmSetChargeCurrentToZero;
@@ -75,10 +76,17 @@ struct data35a
   uint8_t u8_b7;
 };
 
+struct data373
+{
+  uint16_t minCellColtage;
+  uint16_t maxCellVoltage;
+  uint16_t minCellTemp;
+  uint16_t maxCellTemp;
+};
 
 void canSetup()
 {
-  bmsDatasource=0;
+  u8_mBmsDatasource=0;
   alarmSetChargeCurrentToZero=false;
   alarmSetDischargeCurrentToZero=false;
   alarmSetSocToFull=false;
@@ -102,9 +110,26 @@ void canSetup()
 
 void loadCanSettings()
 {
-  bmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,0,0);
+  u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,0,0);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,0,0);
-  Serial.printf("loadCanSettings(): bmsDatasource=%i\n",bmsDatasource);
+  u8_mBmsDatasourceAdd=0;
+  
+  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,0,0)!=0)
+  {
+    if(u8_mBmsDatasource!=BT_DEVICES_COUNT) u8_mBmsDatasourceAdd=1;
+  }
+
+  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS2,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0)!=0)
+  {
+    if(u8_mBmsDatasource!=BT_DEVICES_COUNT+1) u8_mBmsDatasourceAdd |= (1<<1);
+  }  
+
+  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS3,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0)!=0)
+  {
+    if(u8_mBmsDatasource!=BT_DEVICES_COUNT+2) u8_mBmsDatasourceAdd |= (1<<2);
+  } 
+
+  Serial.printf("loadCanSettings(): u8_mBmsDatasource=%i\n",u8_mBmsDatasource);
 }
 
 //Ladeleistung auf 0 einstellen
@@ -155,6 +180,7 @@ void sendBmsCanMessages()
 {
   switch (u8_mSelCanInverter)
   {
+    
     case ID_CAN_DEVICE_DEYE:
     case ID_CAN_DEVICE_SOLISRHI:
       sendCanMsg_351();
@@ -166,6 +192,32 @@ void sendBmsCanMessages()
       sendCanMsg_35e();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_359();
+      break;
+
+    case ID_CAN_DEVICE_VICTRON:
+      // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
+
+      sendCanMsg_351();
+      vTaskDelay(pdMS_TO_TICKS(5));
+
+      sendCanMsg_370_371();
+      vTaskDelay(pdMS_TO_TICKS(5));
+      sendCanMsg_35e();
+      vTaskDelay(pdMS_TO_TICKS(5));
+      sendCanMsg_35a(); //Alarm Details
+      vTaskDelay(pdMS_TO_TICKS(5));
+
+      //victron_message_372();
+      //victron_message_35f();
+
+      sendCanMsg_355();
+      vTaskDelay(pdMS_TO_TICKS(5));
+      sendCanMsg_356();
+      vTaskDelay(pdMS_TO_TICKS(5));
+      sendCanMsg_373();
+      //victron_message_374_375_376_377();
+
+      //sendCanMsg_359();
       break;
 
     default:
@@ -233,7 +285,7 @@ int16_t calcLadestromZellspanung(int16_t i16_pMaxChargeCurrent)
 {
   if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_EN,0,0,0)==true) //wenn enabled
   {
-    uint16_t u16_lAktuelleMaxZellspg = getBmsMaxCellVoltage(bmsDatasource);
+    uint16_t u16_lAktuelleMaxZellspg = getBmsMaxCellVoltage(u8_mBmsDatasource);
     uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,0,0);
     if(u16_lStartSpg<=u16_lAktuelleMaxZellspg)
     {
@@ -278,12 +330,12 @@ int16_t calcLadestromBeiZelldrift(int16_t i16_pMaxChargeCurrent)
   if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN,0,0,0)==true) //wenn enabled
   {
     //Maximalen Ladestrom berechnen
-    uint32_t u32_lMaxCellDrift = getBmsMaxCellDifferenceVoltage(bmsDatasource);
+    uint32_t u32_lMaxCellDrift = getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource);
     if(u32_lMaxCellDrift>0)
     {
       if(u32_lMaxCellDrift>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,0,0)) //Wenn Drift groß genug ist
       {
-        if(getBmsMaxCellVoltage(bmsDatasource)>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,0,0)) //Wenn höchste Zellspannung groß genug ist
+        if(getBmsMaxCellVoltage(u8_mBmsDatasource)>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,0,0)) //Wenn höchste Zellspannung groß genug ist
         {
           i16_lMaxChargeCurrent = i16_lMaxChargeCurrent-(u32_lMaxCellDrift*WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,0,0));
           if(i16_lMaxChargeCurrent<0) i16_lMaxChargeCurrent=0;
@@ -375,7 +427,7 @@ void sendCanMsg_351()
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,0,0));
 
       int16_t i16_lMaxChargeCurrent1 = calcLadestromZellspanung(i16_lMaxChargeCurrent);
-      int16_t i16_lMaxChargeCurrent2 = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(bmsDatasource));
+      int16_t i16_lMaxChargeCurrent2 = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
 
       i16_lMaxChargeCurrent = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
       
@@ -429,7 +481,7 @@ void sendCanMsg_355()
   }
   else
   {
-    msgData.soc = getBmsChargePercentage(bmsDatasource); // SOC, uint16 1 %
+    msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
   }
 
   msgData.soh = 100; // SOH, uint16 1 %
@@ -449,9 +501,14 @@ void sendCanMsg_356()
 {
   data356 msgData;
 
-  msgData.current = (int16_t)(getBmsTotalCurrent(bmsDatasource)*10);
-  msgData.temperature = getBmsTempature(bmsDatasource,0);
-  msgData.voltage = (int16_t)(getBmsTotalVoltage(bmsDatasource)*100);
+  msgData.current = (int16_t)(getBmsTotalCurrent(u8_mBmsDatasource)*10);
+  msgData.temperature = getBmsTempature(u8_mBmsDatasource,0);
+  msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
+
+  //Wenn zusätzliche Datenquellen angegeben sind:
+  if((u8_mBmsDatasourceAdd & 0x01) == 0x01) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT)*10);
+  if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
+  if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
 
   //Serial.printf("CAN:\ncurrent=%i\ntemperature=%i\nvoltage=%i\n", msgData.current, msgData.temperature, msgData.voltage);
 
@@ -534,4 +591,50 @@ void sendCanMsg_35a()
   msgData.u8_b7=0;
 
   sendCanMsg(0x35a, (uint8_t *)&msgData, sizeof(data35a));
+}
+
+
+void sendCanMsg_373()
+{
+  data373 msgData;
+
+  uint16_t u16_lCellVoltageMax=getBmsMaxCellVoltage(u8_mBmsDatasource);
+  uint16_t u16_lCellVoltageMin=getBmsMinCellVoltage(u8_mBmsDatasource);
+
+
+  //Wenn zusätzliche Datenquellen angegeben sind:
+  if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
+  { 
+    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT); 
+  }
+  if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
+  { 
+    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT+1)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT+1); 
+  }
+  if((u8_mBmsDatasourceAdd & 0x04) == 0x04)
+  { 
+    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT+2)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT+2); 
+  }
+
+
+  if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
+  { 
+    if(getBmsMinCellVoltage(BT_DEVICES_COUNT)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT); 
+  }
+  if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
+  { 
+    if(getBmsMinCellVoltage(BT_DEVICES_COUNT+1)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT+1); 
+  }
+  if((u8_mBmsDatasourceAdd & 0x04) == 0x04)
+  { 
+    if(getBmsMinCellVoltage(BT_DEVICES_COUNT+2)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT+2); 
+  }
+
+
+  msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,0);
+  msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,0);
+  msgData.maxCellVoltage = u16_lCellVoltageMax;
+  msgData.minCellColtage = u16_lCellVoltageMin;
+
+  sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
 }

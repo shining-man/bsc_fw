@@ -256,6 +256,9 @@ void mqttPublishBmsData(uint8_t i)
 
   //Max. Cell Voltage
   mqttPublish("bms/"+String(i)+"/cellVoltageMax", getBmsMaxCellVoltage(i));
+
+  //Min. Cell Voltage
+  mqttPublish("bms/"+String(i)+"/cellVoltageMin", getBmsMinCellVoltage(i));
   
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
