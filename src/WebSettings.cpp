@@ -602,7 +602,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const String *parameter, uint32_t 
         {
           retStr_label="";
           json.getValue(parameter, a, "label", jsonStartPos, retStr_label, u32_tmp);
-          Serial.printf("New Parameter found: key=%i, default=%s, label=%s\n",jsonName,retStr_default.c_str(),retStr_label.c_str());
+          //Serial.printf("New Parameter found: key=%i, default=%s, label=%s\n",jsonName,retStr_default.c_str(),retStr_label.c_str());
           setString(jsonName, retStr_default);
         }
       }

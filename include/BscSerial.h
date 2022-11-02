@@ -16,8 +16,8 @@ public:
   BscSerial(uint8_t u8_lSerialNr, uint8_t uart_nr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
   BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
 
-  void setHwSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t hwUartNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
-  void setSoftSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
+  void setHwSerial(uint32_t baudrate);
+  void setSoftSerial(uint32_t baudrate);
 
   void initSerial();
 
@@ -28,6 +28,7 @@ public:
 private:
   SemaphoreHandle_t mSerialMutex = NULL;
 
+  bool isSoftSerial;
   bool (*readBms)(Stream*, uint8_t, uint8_t) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
   Stream * stream_mPort;
   uint8_t u8_mHwUartNr;
