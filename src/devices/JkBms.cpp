@@ -58,7 +58,7 @@ void JkBms_sendMessage(uint8_t *sendMsg)
 {
   if(u8_mTxEnRS485pinJk>0) digitalWrite(u8_mTxEnRS485pinJk, HIGH); 
   usleep(20);
-  mPortJk->write(sendMsg, 7);
+  mPortJk->write(sendMsg, 21);
   mPortJk->flush();  
   //usleep(50);
   if(u8_mTxEnRS485pinJk>0) digitalWrite(u8_mTxEnRS485pinJk, LOW); 
@@ -137,6 +137,7 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
   //Überprüfe Cheksum
 	uint8_t crcB3 = (crc >> 8) & 0xFF;  // Byte 3
   uint8_t crcB4 = crc & 0xFF;         // Byte 4
+  //Serial.printf("crc=%i %i\n", crcB3, crcB4);
   if(p_lRecvBytes[u16_mLastRecvBytesCntJk-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCntJk-1]!=crcB4) return false; 
 
   return true;
@@ -184,6 +185,8 @@ void JkBms_parseData(uint8_t * t_message)
           u16_lZellMinVoltage = u16_lCellLow;
           u16_lZellMaxVoltage = u16_lCellHigh;
           u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow; 
+
+          Serial.printf("V%i=%i\n",n, u32_lZellVoltage);
         }
         
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellHigh);

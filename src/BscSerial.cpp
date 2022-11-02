@@ -19,62 +19,70 @@ BscSerial::BscSerial()
 BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t hwUartNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
 {
   mSerialMutex = xSemaphoreCreateMutex();
-  setHwSerial(u8_lSerialNr, 9600, hwUartNr, rx, tx, txEnRS485pin);
+  isSoftSerial=false;
+  u8_mSerialNr = u8_lSerialNr;
+  u8_mHwUartNr = hwUartNr;
+  u8_mTxEnRS485pin = txEnRS485pin;
+  u8_mRx=rx;
+  u8_mTx=tx;
 }
 
 BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
 {
   mSerialMutex = xSemaphoreCreateMutex();
-  setSoftSerial(u8_lSerialNr, 9600, rx, tx, txEnRS485pin);
+  isSoftSerial=true;
+  u8_mSerialNr = u8_lSerialNr;
+  u8_mHwUartNr = 0;
+  u8_mTxEnRS485pin = txEnRS485pin;
+  u8_mRx=rx;
+  u8_mTx=tx;
 }
 
 
 void BscSerial::initSerial()
 {
+  if(isSoftSerial==true)
+  {
+    setSoftSerial(9600);
+  }
+  else
+  {
+    setHwSerial(9600);
+  }
+
   uint8_t funktionsTyp = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_mSerialNr,0);
   Serial.printf("initSerial u8_mSerialNr=%i, funktionsTyp=%i\n",u8_mSerialNr,funktionsTyp);
   setReadBmsFunktion(funktionsTyp);
 }
 
 
-void BscSerial::setHwSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t hwUartNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
+void BscSerial::setHwSerial(uint32_t baudrate)
 {
-  u8_mHwUartNr = hwUartNr;
-  u8_mSerialNr = u8_lSerialNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
-  u8_mRx=rx;
-  u8_mTx=tx;
+  if(u8_mTxEnRS485pin!=0) pinMode(u8_mTxEnRS485pin, OUTPUT);
 
-  if(txEnRS485pin!=0) pinMode(txEnRS485pin, OUTPUT);
-
-  if(hwUartNr==0)
+  if(u8_mHwUartNr==0)
   {
-    Serial.begin(baudrate,SERIAL_8N1,rx,tx);
+    Serial.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial;
   }
-  else if(hwUartNr==1)
+  else if(u8_mHwUartNr==1)
   {
-    Serial1.begin(baudrate,SERIAL_8N1,rx,tx);
+    Serial1.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial1;
   }
-  else if(hwUartNr==2)
+  else if(u8_mHwUartNr==2)
   {
-    Serial2.begin(baudrate,SERIAL_8N1,rx,tx);
+    Serial2.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial2;
   }
 }
 
 
-void BscSerial::setSoftSerial(uint8_t u8_lSerialNr, uint32_t baudrate, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
+void BscSerial::setSoftSerial(uint32_t baudrate)
 {
-  u8_mSerialNr = u8_lSerialNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
-  u8_mRx=rx;
-  u8_mTx=tx;
+  if(u8_mTxEnRS485pin!=0) pinMode(u8_mTxEnRS485pin, OUTPUT);
 
-  if(txEnRS485pin!=0) pinMode(txEnRS485pin, OUTPUT);
-
-  SoftwareSerial mySwSerial(rx, tx);
+  static SoftwareSerial mySwSerial(u8_mRx,u8_mTx,false);
   stream_mPort = &mySwSerial;
   static_cast<SoftwareSerial*>(stream_mPort)->begin(baudrate);
 }
@@ -85,17 +93,17 @@ void BscSerial::setSerialBaudrate(uint32_t baudrate)
   if(u8_mSerialNr==0)
   {
     Serial1.end();
-    setHwSerial(u8_mSerialNr, baudrate, u8_mHwUartNr, u8_mRx, u8_mTx, u8_mTxEnRS485pin);
+    setHwSerial(baudrate);
   }
   else if(u8_mSerialNr==1)
   {
     Serial2.end();
-    setHwSerial(u8_mSerialNr, baudrate, u8_mHwUartNr, u8_mRx, u8_mTx, u8_mTxEnRS485pin);
+    setHwSerial(baudrate);
   }
   else if(u8_mSerialNr==2)
   {
     static_cast<SoftwareSerial*>(stream_mPort)->end();
-    setSoftSerial(u8_mSerialNr, baudrate, u8_mRx, u8_mTx, u8_mTxEnRS485pin);
+    setSoftSerial(baudrate);
   }
 }
 

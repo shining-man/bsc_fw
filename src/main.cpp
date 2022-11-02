@@ -29,6 +29,7 @@ BleHandler bleHanlder;
 BscSerial bscSerial1(0,1,16,17,18);  // Hw Serial 1
 BscSerial bscSerial2(1,2,23,25,0);  // Hw Serial 2
 BscSerial bscSerial3(2,35,33,32);       // Sw Serial
+
 //BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
 //BscSerial bscSerial3(2,23,25,0);       // Sw Serial
 
@@ -125,7 +126,7 @@ boolean connectWiFi()
   if(!ssid.equals("") && !pwd.equals(""))
   {
     Serial.print("Verbindung zu ");
-    Serial.print(ssid);
+    Serial.println(ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pwd.c_str());
     uint8_t cnt = 0;
