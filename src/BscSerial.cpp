@@ -10,7 +10,7 @@
 #include "devices/JkBms.h"
 #include "WebSettings.h"
 #include "BmsData.h"
-
+#include "debug.h"
 
 BscSerial::BscSerial()
 {
@@ -25,6 +25,8 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t hwUartNr, uint8_t rx, uint8_t
   u8_mTxEnRS485pin = txEnRS485pin;
   u8_mRx=rx;
   u8_mTx=tx;
+
+  if(u8_mHwUartNr==0) Serial.end();
 }
 
 BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
@@ -51,7 +53,7 @@ void BscSerial::initSerial()
   }
 
   uint8_t funktionsTyp = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_mSerialNr,0);
-  Serial.printf("initSerial u8_mSerialNr=%i, funktionsTyp=%i\n",u8_mSerialNr,funktionsTyp);
+  debugPrintf("initSerial u8_mSerialNr=%i, funktionsTyp=%i\n",u8_mSerialNr,funktionsTyp);
   setReadBmsFunktion(funktionsTyp);
 }
 
@@ -102,8 +104,10 @@ void BscSerial::setSerialBaudrate(uint32_t baudrate)
   }
   else if(u8_mSerialNr==2)
   {
-    static_cast<SoftwareSerial*>(stream_mPort)->end();
-    setSoftSerial(baudrate);
+    Serial.end();
+    setHwSerial(baudrate);
+    //static_cast<SoftwareSerial*>(stream_mPort)->end();
+    //setSoftSerial(baudrate);
   }
 }
 
@@ -118,13 +122,13 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       break;
 
     case ID_SERIAL_DEVICE_JBDBMS:
-      Serial.println("setReadBmsFunktion JBD-BMS");
+      debugPrintln("setReadBmsFunktion JBD-BMS");
       setSerialBaudrate(9600);
       readBms = &JbdBms_readBmsData;
       break;
 
     case ID_SERIAL_DEVICE_JKBMS:
-      Serial.println("setReadBmsFunktion JK-BMS");
+      debugPrintln("setReadBmsFunktion JK-BMS");
       setSerialBaudrate(115200);
       readBms = &JkBms_readBmsData;
       break;
@@ -142,13 +146,13 @@ void BscSerial::cyclicRun()
 
   if(readBms==0){return;}    //Wenn nicht Initialisiert
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
-  if(readBms(stream_mPort, u8_mHwUartNr, u8_mTxEnRS485pin)) //Wenn kein Fehler beim Holen der Daten vom BMS
+  if(readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin)) //Wenn kein Fehler beim Holen der Daten vom BMS
   {
     bmsReadOk=true;
   }
   xSemaphoreGive(mSerialMutex);
   if(bmsReadOk)
   {
-    setBmsLastDataMillis(u8_mHwUartNr,millis());
+    setBmsLastDataMillis(u8_mSerialNr,millis());
   }
 }

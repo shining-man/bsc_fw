@@ -5,10 +5,12 @@
 
 
 #include "WebSettings.h"
+#include "defines.h"
 #include <Arduino.h>
 #include "SPIFFS.h"
 #include <WebServer.h>
 #include <FS.h>
+#include "debug.h"
 
 const char * tag = "websettings";
 
@@ -253,7 +255,7 @@ void WebSettings::sendContentHtml(WebServer *server, const char *buf, bool send)
   }
     
   if(send==true || st_mSendBuf.length()>2000){
-    //Serial.printf("sende sendBuf size=%i\n",st_mSendBuf.length());
+    //debugPrintf("sende sendBuf size=%i\n",st_mSendBuf.length());
     server->sendContent(st_mSendBuf);
     st_mSendBuf="";
   }
@@ -273,7 +275,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 
   if(json.getArraySize(parameterFile,0)==0)
   {
-    Serial.println("Error read json");
+    debugPrintln("Error read json");
   }
   else
   {
@@ -286,7 +288,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
         String argName = server->argName(i);
         if(argName!="SAVE"){
           String argValue = server->arg(i);
-          //Serial.printf("SAVE: %s, %s\n", argName, argValue);
+          //debugPrintf("SAVE: %s, %s\n", argName, argValue);
 
           if(isNumber(argName)) //Wenn keine Zahl, dann Fehler
           {
@@ -602,7 +604,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const String *parameter, uint32_t 
         {
           retStr_label="";
           json.getValue(parameter, a, "label", jsonStartPos, retStr_label, u32_tmp);
-          //Serial.printf("New Parameter found: key=%i, default=%s, label=%s\n",jsonName,retStr_default.c_str(),retStr_label.c_str());
+          //debugPrintf("New Parameter found: key=%i, default=%s, label=%s\n",jsonName,retStr_default.c_str(),retStr_label.c_str());
           setString(jsonName, retStr_default);
         }
       }
@@ -934,7 +936,7 @@ String WebSettings::getString(uint32_t name)
   String ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
   ret = settingValues[name];
-  //Serial.printf("getString A:%lu, val:%s\n",name, ret);
+  //debugPrintf("getString A:%lu, val:%s\n",name, ret);
   xSemaphoreGive(mParamMutex);
   return ret;
 }
@@ -943,7 +945,7 @@ String WebSettings::getString(uint32_t name, uint8_t settingNr, uint8_t groupNr,
   String ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
   ret = settingValues[getParmId(name,settingNr, groupNr, listNr)];
-  //Serial.printf("getString B:%lu, val:%s\n",name, ret);
+  //debugPrintf("getString B:%lu, val:%s\n",name, ret);
   xSemaphoreGive(mParamMutex);
   return ret;
 }
@@ -998,7 +1000,7 @@ boolean WebSettings::readConfig()
   uint8_t ui8_pos;
 
   if (!SPIFFS.exists(str_mConfigfile)) {
-    Serial.println("file not exist");
+    debugPrintln("file not exist");
     //wenn settingfile nicht vorhanden, dann schreibe default Werte
     writeConfig();
   }
@@ -1014,14 +1016,14 @@ boolean WebSettings::readConfig()
       str_value = str_line.substring(ui8_pos+1).c_str();
       str_value.replace("~","\n");
       setString(str_name, str_value);
-      //Serial.printf("readConfig key:%lu, val:%s\n",str_name, settingValues[str_name].c_str());
+      //debugPrintf("readConfig key:%lu, val:%s\n",str_name, settingValues[str_name].c_str());
     }
     f.close();
     return true;
   }
   else
   {
-    Serial.println(F("Cannot read configuration"));
+    debugPrintln(F("Cannot read configuration"));
     return false;
   }
 }
@@ -1043,7 +1045,7 @@ boolean WebSettings::writeConfig()
       val = iter->second;
       ++iter;
     
-      //Serial.printf("writeConfig key:%lu, val:%s\n",name,val.c_str());
+      //debugPrintf("writeConfig key:%lu, val:%s\n",name,val.c_str());
 
       //val = value; 
       val.replace("\n","~");
@@ -1055,7 +1057,7 @@ boolean WebSettings::writeConfig()
   }
   else
   {
-    Serial.println(F("Cannot write configuration"));
+    debugPrintln(F("Cannot write configuration"));
     return false;
   }
 }
@@ -1085,7 +1087,7 @@ void WebSettings::setButtons(uint8_t buttons, String btnLabel)
     u8_mButtons |= (1<<BUTTON_3);
   }
 
-  Serial.println(u8_mButtons);
+  debugPrintln(u8_mButtons);
 }
 
 //register callback for Buttons

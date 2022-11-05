@@ -23,6 +23,16 @@
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT     3
 
+#define SERIAL1_PIN_RX              16
+#define SERIAL1_PIN_TX              17
+#define SERIAL1_PIN_TX_EN           18
+#define SERIAL2_PIN_RX              23
+#define SERIAL2_PIN_TX              25
+#define SERIAL2_PIN_TX_EN            0
+#define SERIAL3_PIN_RX              35
+#define SERIAL3_PIN_TX              33
+#define SERIAL3_PIN_TX_EN           32
+
 //Temperatur
 #define COUNT_TEMP_RULES            10
 
@@ -130,6 +140,7 @@
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT          1
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT_REFERENZ 2
 #define ID_TEMP_ALARM_FUNKTION_DIFFERENZ        3
+
 
 
 

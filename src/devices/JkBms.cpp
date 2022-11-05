@@ -6,6 +6,9 @@
 #include "devices/JkBms.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
+#include "debug.h"
+
+//#define JK_DEBUG
 
 Stream *mPortJk;
 uint8_t u8_mDevNrJk, u8_mTxEnRS485pinJk;
@@ -14,7 +17,6 @@ uint16_t u16_mLastRecvBytesCntJk;
 enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, RECV_DATA};
 
 uint8_t getDataMsg[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
-
 
 void      JkBms_sendMessage(uint8_t *sendMsg);
 bool      JkBms_recvAnswer(uint8_t * t_outMessage);
@@ -26,10 +28,13 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 {
   bool bo_lRet=true;
   mPortJk = port;
-  u8_mDevNrJk = devNr-1;
+  u8_mDevNrJk = devNr;
   u8_mTxEnRS485pinJk = txEnRS485pin;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
+  #ifdef JK_DEBUG 
+  debugPrintf("Serial %i send\n",u8_mDevNrJk);
+  #endif
   JkBms_sendMessage(getDataMsg);
   if(JkBms_recvAnswer(response))
   {
@@ -41,7 +46,7 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   }
   else
   {
-    Serial.printf("bmsData checksum wrong\n");
+    debugPrintf("bmsData checksum wrong; Serial(%i)\n",u8_mDevNrJk);
     bo_lRet=false;
   }
 
@@ -80,13 +85,13 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 200) 
     {
-      Serial.printf("Timeout: u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u16_lRecvDataLen, u16_mLastRecvBytesCntJk);
+      debugPrintf("Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_mDevNrJk, u16_lRecvDataLen, u16_mLastRecvBytesCntJk);
       for(uint16_t x=0;x<u16_mLastRecvBytesCntJk;x++)
       {
-        Serial.print(String(p_lRecvBytes[x]));
-        Serial.print(" ");
+        debugPrint(String(p_lRecvBytes[x]));
+        debugPrint(" ");
       }
-      Serial.println("");
+      debugPrintln("");
       return false;
     }
 
@@ -137,7 +142,7 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
   //Überprüfe Cheksum
 	uint8_t crcB3 = (crc >> 8) & 0xFF;  // Byte 3
   uint8_t crcB4 = crc & 0xFF;         // Byte 4
-  //Serial.printf("crc=%i %i\n", crcB3, crcB4);
+  //debugPrintf("crc=%i %i\n", crcB3, crcB4);
   if(p_lRecvBytes[u16_mLastRecvBytesCntJk-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCntJk-1]!=crcB4) return false; 
 
   return true;
@@ -186,7 +191,9 @@ void JkBms_parseData(uint8_t * t_message)
           u16_lZellMaxVoltage = u16_lCellHigh;
           u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow; 
 
-          Serial.printf("V%i=%i\n",n, u32_lZellVoltage);
+          #ifdef JK_DEBUG 
+          debugPrintf("V%i=%i\n",n, u32_lZellVoltage);
+          #endif
         }
         
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellHigh);

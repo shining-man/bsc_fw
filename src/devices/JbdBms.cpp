@@ -6,6 +6,7 @@
 #include "devices/JbdBms.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
+#include "debug.h"
 
 Stream *mPort;
 uint8_t u8_mDevNr, u8_mTxEnRS485pin;
@@ -32,7 +33,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 {
   bool bo_lRet=true;
   mPort = port;
-  u8_mDevNr = devNr-1;
+  u8_mDevNr = devNr;
   u8_mTxEnRS485pin = txEnRS485pin;
   uint8_t response[JBDBMS_MAX_ANSWER_LEN];
 
@@ -47,7 +48,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   }
   else
   {
-    Serial.printf("sendReqBasicMessage checksum wrong\n");
+    debugPrintf("sendReqBasicMessage checksum wrong\n");
     bo_lRet=false;
   }
  
@@ -58,7 +59,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   }
   else
   {
-    Serial.printf("sendCellMessage checksum wrong\n");
+    debugPrintf("sendCellMessage checksum wrong\n");
     bo_lRet=false;
   }
 
@@ -94,15 +95,15 @@ bool JbdBms_recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 200) 
     {
-      Serial.printf("Timeout: u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_lRecvDataLen, u8_lRecvBytesCnt);
+      debugPrintf("Timeout: u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_lRecvDataLen, u8_lRecvBytesCnt);
       //p_lRecvBytes[u8_lRecvBytesCnt]=0;
-      //Serial.printf("buffer:%s",p_lRecvBytes);
+      //debugPrintf("buffer:%s",p_lRecvBytes);
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
       {
-        Serial.print(String(p_lRecvBytes[x]));
-        Serial.print(" ");
+        debugPrint(String(p_lRecvBytes[x]));
+        debugPrint(" ");
       }
-      Serial.println("");
+      debugPrintln("");
       return false;
     }
 
@@ -144,14 +145,23 @@ bool JbdBms_recvAnswer(uint8_t *p_lRecvBytes)
   return true;
 }
 
-
+float    f_mTotalVoltageOld=0xFFFF;
 uint16_t u16_mBalanceCapacityOld=0xFFFF;
 uint32_t u32_mChargeMAh=0;
 uint32_t u32_mDischargeMAh=0;
 uint32_t mqttSendeTimer=0;
 void JbdBms_parseBasicMessage(uint8_t * t_message)
 {
-  setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)JbdBms_convertToUint16(t_message[JBD_BYTE_TOTAL_VOLTAGE], t_message[JBD_BYTE_TOTAL_VOLTAGE+1])/100);
+  float f_lTotalVoltage = (float)JbdBms_convertToUint16(t_message[JBD_BYTE_TOTAL_VOLTAGE], t_message[JBD_BYTE_TOTAL_VOLTAGE+1])/100;
+  if(f_lTotalVoltage<(f_mTotalVoltageOld*0.9))
+  {
+    //Batteriespannung mehr als 10% gegenüber der letzten Messung gesunken
+    f_mTotalVoltageOld=f_lTotalVoltage;
+    return;
+  }
+  f_mTotalVoltageOld=f_lTotalVoltage;
+
+  setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, f_lTotalVoltage);
   setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, ((float)JbdBms_convertToInt16(t_message[JBD_BYTE_CURRENT], t_message[JBD_BYTE_CURRENT+1])/100));
   setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, t_message[JBD_BYTE_RSOC]);
   setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, JbdBms_convertToUint16(t_message[JBD_BYTE_CURRENT_ERRORS], t_message[JBD_BYTE_CURRENT_ERRORS+1]));
