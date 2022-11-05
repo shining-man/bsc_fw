@@ -8,9 +8,8 @@
 #include "defines.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
-
 #include <CAN.h>
-
+#include "debug.h"
 
 void sendBmsCanMessages();
 void sendCanMsg_370_371();
@@ -99,12 +98,12 @@ void canSetup()
   loadCanSettings();
 
   // start the CAN bus at 500 kbps
-  Serial.print("Init CAN...");
+  debugPrint("Init CAN...");
   CAN.setPins(5,4);
   if (!CAN.begin(500000)) {
-    Serial.println("failed!");
+    debugPrintln("failed!");
   }else{
-    Serial.println("ok");
+    debugPrintln("ok");
   } 
 }
 
@@ -129,7 +128,7 @@ void loadCanSettings()
     if(u8_mBmsDatasource!=BT_DEVICES_COUNT+2) u8_mBmsDatasourceAdd |= (1<<2);
   } 
 
-  Serial.printf("loadCanSettings(): u8_mBmsDatasource=%i\n",u8_mBmsDatasource);
+  debugPrintf("loadCanSettings(): u8_mBmsDatasource=%i\n",u8_mBmsDatasource);
 }
 
 //Ladeleistung auf 0 einstellen
@@ -240,7 +239,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
       * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
       if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
       {
-        //Serial.printf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        //debugPrintf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
         if(i16_mMaxChargeCurrent>=50){
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
         }else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50){
@@ -251,7 +250,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-1;
         }
         if(i16_pNewChargeCurrent<0)i16_pNewChargeCurrent=0;
-        //Serial.printf("Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        //debugPrintf("Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
 
         u8_mTimerCalcMaxChareCurrent=0;
         if(i16_pNewChargeCurrent==0 && i16_mMaxChargeCurrent>0) //Strom wurde auf 0 geregelt -> Sperrzeit für Aufwärtsregelung starten
@@ -270,7 +269,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
           {
             i16_pNewChargeCurrent=i16_mMaxChargeCurrent+10;
-            //Serial.printf("Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+            //debugPrintf("Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
           }
 
           i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
@@ -435,7 +434,7 @@ void sendCanMsg_351()
       if(i16_lMaxChargeCurrent2<i16_lMaxChargeCurrent) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent2;
 
       calcMaximalenLadestromSprung(i16_lMaxChargeCurrent); //calcMaximalenLadestromSprung schreibt den neuen Ausgangsstrom in i16_mMaxChargeCurrent
-      //Serial.printf("Soll Ladestrom: %i, %i, %i\n",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
+      //debugPrintf("Soll Ladestrom: %i, %i, %i\n",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
 
       //Soll-Ladestrom in die Ausgangs-Msg. schreiben
       msgData.maxchargecurrent = i16_mMaxChargeCurrent*10;
@@ -476,7 +475,7 @@ void sendCanMsg_355()
 
   if(alarmSetSocToFull)
   {
-    //Serial.println("SOC aufgrund von Alarm auf 100%");
+    //debugPrintln("SOC aufgrund von Alarm auf 100%");
     msgData.soc = 100;
   }
   else
@@ -510,7 +509,7 @@ void sendCanMsg_356()
   if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
   if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
 
-  //Serial.printf("CAN:\ncurrent=%i\ntemperature=%i\nvoltage=%i\n", msgData.current, msgData.temperature, msgData.voltage);
+  //debugPrintf("CAN:\ncurrent=%i\ntemperature=%i\nvoltage=%i\n", msgData.current, msgData.temperature, msgData.voltage);
 
   sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356));
 }

@@ -5,6 +5,7 @@
 
 
 #include "BleHandler.h"
+#include "debug.h"
 
 void scanEndedCB(NimBLEScanResults results);
 bool bleNeeyBalancerConnect(uint8_t deviceNr);
@@ -30,7 +31,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
 {
   void onConnect(NimBLEClient* pClient)
   {
-    Serial.println("Connected");
+    debugPrintln("Connected");
     /** After connection we should change the parameters if we don't need fast response times.
      *  These settings are 150ms interval, 0 latency, 450ms timout.
      *  Timeout should be a multiple of the interval, minimum is 100ms.
@@ -40,7 +41,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     pClient->updateConnParams(120,120,0,100);
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    Serial.println(devMacAdr);
+    debugPrintln(devMacAdr);
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
@@ -55,10 +56,10 @@ class ClientCallbacks : public NimBLEClientCallbacks
 
   void onDisconnect(NimBLEClient* pClient)
   {
-    Serial.println(" Disconnected");
+    debugPrintln(" Disconnected");
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    Serial.println(devMacAdr);
+    debugPrintln(devMacAdr);
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
@@ -78,7 +79,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
    */
   bool onConnParamsUpdateRequest(NimBLEClient* pClient, const ble_gap_upd_params* params)
   {
-    Serial.println("onConnParamsUpdateRequest()");
+    debugPrintln("onConnParamsUpdateRequest()");
     if(params->itvl_min < 24) { /** 1.25ms units */
       return false;
     } else if(params->itvl_max > 40) { /** 1.25ms units */
@@ -100,7 +101,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 
   void onResult(NimBLEAdvertisedDevice* advertisedDevice)
   {
-    Serial.printf("BT device found()\n");
+    debugPrintf("BT device found()\n");
 
     //Device gefunden
     devMacAdr = advertisedDevice->getAddress().toString();
@@ -111,10 +112,10 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
       {
         if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB))==false)
         {
-          Serial.print("Gesuchtes Device gefunden: ");
-          Serial.println(webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0));
+          debugPrint("Gesuchtes Device gefunden: ");
+          debugPrintln(webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0));
           
-          Serial.println("Scan stop");
+          debugPrintln("Scan stop");
           NimBLEDevice::getScan()->stop();
         
           advDevice = advertisedDevice;   
@@ -149,16 +150,16 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
     }
   }
 
-  /*Serial.print(": len=");
-  Serial.println(length);
-  Serial.print("data=");
-  //Serial.println((char*)pData);
+  /*debugPrint(": len=");
+  debugPrintln(length);
+  debugPrint("data=");
+  //debugPrintln((char*)pData);
   for(uint16_t i=0; i<length; i++)
   {
-    Serial.print(pData[i], HEX);
-    Serial.print(" ");
+    debugPrint(pData[i], HEX);
+    debugPrint(" ");
   }
-  Serial.println("");*/
+  debugPrintln("");*/
 }
 
 
@@ -166,7 +167,7 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
  * Callback invoked when scanning has completed.
  */
 void scanCompleteCB(NimBLEScanResults scanResults) {
-	//Serial.printf("Scan complete! %i Devices found\n",scanResults.getCount());
+	//debugPrintf("Scan complete! %i Devices found\n",scanResults.getCount());
 } 
 
 
@@ -175,7 +176,7 @@ static ClientCallbacks clientCB;
 
 bool bleNeeyBalancerConnect(uint8_t devNr)
 {
-  Serial.printf("bleNeeyBalancerConnect()\n");
+  debugPrintf("bleNeeyBalancerConnect()\n");
 
   NimBLEClient* pClient = nullptr;
 
@@ -192,10 +193,10 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
       //if(!pClient->connect(bleDevices[devNr].advDevice, false))
       if(!pClient->connect(advDevice, false))
       {
-        Serial.println("Reconnect failed");
+        debugPrintln("Reconnect failed");
         return false;
       }
-      Serial.println("Reconnected client");
+      debugPrintln("Reconnected client");
     }
     /** We don't already have a client that knows this device,
      *  we will check for a client that is disconnected that we can use.
@@ -211,12 +212,12 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
   {
     if(NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS)
     {
-      Serial.println("Max clients reached - no more connections available");
+      debugPrintln("Max clients reached - no more connections available");
       return false;
     }
 
     pClient = NimBLEDevice::createClient();
-    Serial.println("New client created");
+    debugPrintln("New client created");
     pClient->setClientCallbacks(&clientCB, false);
     /** Set initial connection parameters: These settings are 15ms interval, 0 latency, 120ms timout.
      *  These settings are safe for 3 clients to connect reliably, can go faster if you have less
@@ -234,7 +235,7 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     {
       /** Created a client but failed to connect, don't need to keep it as it has no data */
       NimBLEDevice::deleteClient(pClient);
-      Serial.println("Failed to connect, deleted client");
+      debugPrintln("Failed to connect, deleted client");
       return false;
     }
   }
@@ -243,15 +244,15 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     //if (!pClient->connect(bleDevices[devNr].advDevice))
     if (!pClient->connect(advDevice))
     {
-      Serial.println("Failed to connect");
+      debugPrintln("Failed to connect");
       return false;
     }
   }
 
-  Serial.print("Connected to: ");
-  Serial.println(pClient->getPeerAddress().toString().c_str());
-  Serial.print("RSSI: ");
-  Serial.println(pClient->getRssi());
+  debugPrint("Connected to: ");
+  debugPrintln(pClient->getPeerAddress().toString().c_str());
+  debugPrint("RSSI: ");
+  debugPrintln(pClient->getRssi());
 
   /** Now we can read/write/subscribe the charateristics of the services we are interested in */
   NimBLERemoteService* pSvc = nullptr;
@@ -268,18 +269,18 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     {     /** make sure it's not null */
       if(bleDevices[devNr].pChr->canRead())
       {
-          Serial.print(bleDevices[devNr].pChr->getUUID().toString().c_str());
-          Serial.print(" Value: ");
-          Serial.println(bleDevices[devNr].pChr->readValue().c_str());
+          debugPrint(bleDevices[devNr].pChr->getUUID().toString().c_str());
+          debugPrint(" Value: ");
+          debugPrintln(bleDevices[devNr].pChr->readValue().c_str());
       }
 
       if(bleDevices[devNr].pChr->canWrite())
       {
-        Serial.println("canWrite ok");
+        debugPrintln("canWrite ok");
           /*if(pChr->writeValue("Tasty"))
           {
-            Serial.print("Wrote new value to: ");
-            Serial.println(pChr->getUUID().toString().c_str());
+            debugPrint("Wrote new value to: ");
+            debugPrintln(pChr->getUUID().toString().c_str());
           }
           else
           {
@@ -290,10 +291,10 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
 
           if(pChr->canRead())
           {
-            Serial.print("The value of: ");
-            Serial.print(pChr->getUUID().toString().c_str());
-            Serial.print(" is now: ");
-            Serial.println(pChr->readValue().c_str());
+            debugPrint("The value of: ");
+            debugPrint(pChr->getUUID().toString().c_str());
+            debugPrint(" is now: ");
+            debugPrintln(pChr->readValue().c_str());
           }*/
       }
 
@@ -326,10 +327,10 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
   }
   else
   {
-    Serial.println("Service not found.");
+    debugPrintln("Service not found.");
   }
 
-  Serial.println("Done with this device!");
+  debugPrintln("Done with this device!");
   return true;
 }
 
@@ -348,7 +349,7 @@ BleHandler::BleHandler() {
 };
 
 void BleHandler::init() {
-  Serial.println("BleHandler::init()");
+  debugPrintln("BleHandler::init()");
   timer_startScan=0;
   startManualScan=false;
 
@@ -380,7 +381,7 @@ void BleHandler::init() {
 
   pBLEScan->clearResults();
   //pBLEScan->start(1);   
-  Serial.println("BleHandler::init() end");
+  debugPrintln("BleHandler::init() end");
 };
 
 void BleHandler::startScan()
@@ -449,12 +450,12 @@ void BleHandler::run() {
   //Wenn angefordert, dann starte neuen BT scan
   if(doStartBtScan && !btScanIsRunning)
   {
-    Serial.println("Starte BT Scan");
+    debugPrintln("Starte BT Scan");
     doStartBtScan = false;
     btScanIsRunning = true;
     if(pBLEScan->isScanning())
     {
-      Serial.println("scan läuft noch");
+      debugPrintln("scan läuft noch");
     }
     else
     {

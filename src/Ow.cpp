@@ -8,6 +8,7 @@
 #include "defines.h"
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include "debug.h"
 
 #define OW_PIN      19
 
@@ -44,8 +45,8 @@ uint8_t getSensorAdrFromParams()
         &owAddr[i][4], &owAddr[i][5], &owAddr[i][6], &owAddr[i][7]))
     {
       owAmount++;
-      //Serial.print("owAdr ok: ");
-      //Serial.println(owAdr);
+      //debugPrint("owAdr ok: ");
+      //debugPrintln(owAdr);
     }
     else
     {
@@ -71,7 +72,7 @@ precision | time
 */
 void owSetup()
 {
-  Serial.println("owSetup()");
+  debugPrintln("owSetup()");
   cycleCounter=0;
   firstMeasurement=true;
   owMutex = xSemaphoreCreateMutex();
@@ -145,7 +146,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
         tempC = sensors.getTempC(&owAddr[i][0]);
         if (tempC == DEVICE_DISCONNECTED_C)
         {
-          //Serial.printf("Error: Could not read temperature data [%i] r=%i\n",i,r);
+          //debugPrintf("Error: Could not read temperature data [%i] r=%i\n",i,r);
           owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
         }
         else

@@ -22,16 +22,16 @@
 #include "BscSerial.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
+#include "debug.h"
 
 
 WebServer server;
 BleHandler bleHanlder;
-BscSerial bscSerial1(0,1,16,17,18);  // Hw Serial 1
-BscSerial bscSerial2(1,2,23,25,0);  // Hw Serial 2
-BscSerial bscSerial3(2,35,33,32);       // Sw Serial
+BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);   // Hw Serial 1
+BscSerial bscSerial2(1,2,SERIAL2_PIN_RX,SERIAL2_PIN_TX,SERIAL2_PIN_TX_EN);   // Hw Serial 2
+BscSerial bscSerial3(2,0,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Hw Serial 0
+//BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
 
-//BscSerial bscSerial2(1,2,35,33,32);  // Hw Serial 2
-//BscSerial bscSerial3(2,23,25,0);       // Sw Serial
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -70,7 +70,7 @@ RTC_DATA_ATTR static uint8_t bootCounter = 0;
 unsigned long currentMillis;
 unsigned long previousMillis10000;
 
-uint8_t u8_mTaskRunSate=false;     //Status ob alle Tasks laufen
+uint8_t u8_mTaskRunSate=false;   //Status ob alle Tasks laufen
 bool    isBoot=true;
 bool    wifiApMode=false;        //true, wenn AP Mode
 bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
@@ -78,40 +78,42 @@ bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neu
 
 
 void free_dump() {
-  Serial.print(F("Heap free: "));
-  Serial.println(ESP.getFreeHeap());
+  debugPrint(F("Heap free: "));
+  debugPrintln(ESP.getFreeHeap());
 }
 
 
 void onWiFiEvent(WiFiEvent_t event) {
-    Serial.printf("[WiFi-event] event: %d\n", event);
+    debugPrintf("[WiFi-event] event: %d\n", event);
     switch(event) {
     case SYSTEM_EVENT_STA_CONNECTED:
       break;
+
     case SYSTEM_EVENT_STA_GOT_IP:
       //Webserver neu starten
         server.begin(WEBSERVER_PORT); 
 
-        //MQTT verbinden
-        if(WiFi.status() == WL_CONNECTED && webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
-        {
-          mqttConnect();
-        }
-        break;
+      //MQTT verbinden
+      if(WiFi.status() == WL_CONNECTED && webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+      {
+        mqttConnect();
+      }
+      break;
+        
     case SYSTEM_EVENT_STA_DISCONNECTED:
-        Serial.println("WiFi lost connection");
-        mqttDisconnect();
-        server.stop(); //Webserver beenden
+      debugPrintln("WiFi lost connection");
+      mqttDisconnect();
+      server.stop(); //Webserver beenden
 
-        if(!wifiApMode)
-        {
-          if(!doConnectWiFi) xTimerStart(wifiReconnectTimer, 0);
-        }
-        else
-        {
-          xTimerStop(wifiReconnectTimer, 0);
-        }
-        break;
+      if(!wifiApMode)
+      {
+        if(!doConnectWiFi) xTimerStart(wifiReconnectTimer, 0);
+      }
+      else
+      {
+        xTimerStop(wifiReconnectTimer, 0);
+      }
+      break;
     }
 }
 
@@ -125,20 +127,20 @@ boolean connectWiFi()
 
   if(!ssid.equals("") && !pwd.equals(""))
   {
-    Serial.print("Verbindung zu ");
-    Serial.println(ssid);
+    debugPrint("Verbindung zu ");
+    debugPrintln(ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pwd.c_str());
     uint8_t cnt = 0;
-    while ((WiFi.status() != WL_CONNECTED) && (cnt<20)){
-      delay(500);
-      Serial.print(":");
+    while ((WiFi.status() != WL_CONNECTED) && (cnt<30)){
+      delay(1000);
+      debugPrint(":");
       cnt++;
     }
-    Serial.println();
+    
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.print("IP-Adresse = ");
-      Serial.println(WiFi.localIP());
+      debugPrint("IP-Adresse = ");
+      debugPrintln(WiFi.localIP());
       connected=true;
       firstWlanModeSTA=true;
     }
@@ -146,7 +148,7 @@ boolean connectWiFi()
   
   if (!connected && !firstWlanModeSTA) {
     wifiApMode = true;
-    Serial.println("Wifi AP");
+    debugPrintln("Wifi AP");
     WiFi.mode(WIFI_AP);
     WiFi.softAP("BSC","",1);  
   }
@@ -346,7 +348,7 @@ void handle_getBmsSpgData()
     sendData += String(getBmsCellVoltage(1,i));
     sendData += ";";
   }
-  //Serial.println(sendData);
+  //debugPrintln(sendData);
   server.send(200, "text/html", sendData.c_str());
 }
 
@@ -363,22 +365,6 @@ void handle_getOnewireDeviceAdr()
 }
 
 
-/*void btnTest1()
-{
-  Serial.println("TestBtn 1");
-}
-
-void btnTest2()
-{
-  Serial.println("TestBtn 2");
-}
-
-void btnTest3()
-{
-  Serial.println("TestBtn 3");
-}*/
-
-
 uint8_t checkTaskRun()
 {
   uint8_t ret = 0;
@@ -393,17 +379,25 @@ uint8_t checkTaskRun()
 }
 
 
-void setup() {  
+void setup()
+{
   if(bootCounter!=0xFF) bootCounter++;
 
-  //esp_log_level_set("*", ESP_LOG_VERBOSE);   
+  esp_log_level_set("*", ESP_LOG_NONE);  //ESP_LOG_NONE, ESP_LOG_VERBOSE
 
   mutexTaskRunTime = xSemaphoreCreateMutex();
 
   isBoot = true;
-  Serial.begin(115200);
-  Serial.println("BSC");
-  Serial.printf("bootCounter=%i\n", bootCounter);
+
+  //Serial beenden um auf die Pins 3+1 die Softserial zu mappen
+  Serial.end();
+  Serial.setPins(SERIAL3_PIN_RX,SERIAL3_PIN_TX);
+
+  //Serielle Debugausgabe
+  debugInit();
+
+  debugPrintln("BSC");
+  debugPrintf("bootCounter=%i\n", bootCounter);
 
   //init DIO 
   if(bootCounter==1) initDio(false);
@@ -413,7 +407,6 @@ void setup() {
 
   //init WebSettings
   webSettingsSystem.initWebSettings(&paramSystem, "System", "/WebSettings.conf",0);
-
   webSettingsBluetooth.initWebSettings(&paramBluetooth, "Bluetooth", "/WebSettings.conf",0);
   webSettingsBluetooth.setTimerHandlerName("getBtDevices");
   webSettingsSerial.initWebSettings(&paramSerial, "Serial", "/WebSettings.conf",0);
@@ -424,16 +417,7 @@ void setup() {
   webSettingsOnewire.initWebSettings(&paramOnewireAdr, "Onewire", "/WebSettings.conf",0);
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
   webSettingsOnewire2.initWebSettings(&paramOnewire2, "Onewire II", "/WebSettings.conf",0);
-
   webSettingsBmsToInverter.initWebSettings(&paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
-  /*webSettingsBmsToInverter.setButtons(BUTTON_1,"test1");
-  webSettingsBmsToInverter.setButtons(BUTTON_2,"test2");
-  webSettingsBmsToInverter.setButtons(BUTTON_3,"test3");
-  webSettingsBmsToInverter.registerOnButton1(&btnTest1);
-  webSettingsBmsToInverter.registerOnButton2(&btnTest2);
-  webSettingsBmsToInverter.registerOnButton3(&btnTest3);*/
-
-
 
   //Erstelle Timer
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectWiFi));
@@ -442,15 +426,15 @@ void setup() {
   initMqtt();
 
   //init WLAN
-  Serial.println(F("Init WLAN..."));
+  debugPrintln(F("Init WLAN..."));
   WiFi.onEvent(onWiFiEvent);
   connectWiFi();
-  Serial.println(F("ok"));
+  debugPrintln(F("ok"));
   
   char dns[30] = {'b','s','c'};
   if (MDNS.begin(dns))
   {
-    Serial.println("MDNS responder gestartet");
+    debugPrintln("MDNS responder gestartet");
   }
 
   //ini WebPages
@@ -488,14 +472,14 @@ void setup() {
   });
 
   //starte webserver
-  Serial.print(F("Starte Webserver..."));
+  debugPrint(F("Starte Webserver..."));
   server.begin(WEBSERVER_PORT);
-  Serial.println(F("ok"));
+  debugPrintln(F("ok"));
 
   //init Bluetooth
-  Serial.print(F("Init BLE..."));
+  debugPrint(F("Init BLE..."));
   bleHanlder.init();
-  Serial.println(F("ok"));
+  debugPrintln(F("ok"));
 
   //init Onewire
   owSetup();
@@ -520,7 +504,8 @@ void setup() {
 }
 
 
-void loop() {
+void loop()
+{
   server.handleClient();
   
   mqttLoop();
@@ -549,8 +534,6 @@ void loop() {
 
     previousMillis10000 = currentMillis;
   }
-
-
 }
 
 

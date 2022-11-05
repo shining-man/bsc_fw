@@ -120,7 +120,7 @@ void runAlarmRules()
   {
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      //Serial.printf("Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
+      //debugPrintf("Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
@@ -238,7 +238,7 @@ void rules_Bms()
   {
     bool b_lBmsOnline=true;
     if((millis()-getBmsLastDataMillis(i))>2000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
-    //Serial.printf("i=%i, b_lBmsOnline=%i\n",i,b_lBmsOnline);
+    //debugPrintf("i=%i, b_lBmsOnline=%i\n",i,b_lBmsOnline);
 
     //Ist überhaupt ein Device parametriert?
     if((i<BT_DEVICES_COUNT && !WebSettings::getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB)) && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals("")) ||
@@ -251,7 +251,7 @@ void rules_Bms()
         if((millis()-getBmsLastDataMillis(i))>(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
         {
           //Alarm
-          //Serial.printf("BT Alarm (%i)\n",i);
+          //debugPrintf("BT Alarm (%i)\n",i);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,true);
         }
@@ -263,13 +263,13 @@ void rules_Bms()
       }
 
       //Überwachung Zellspannung
-      //Serial.printf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i\n",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
+      //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i\n",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
       if(b_lBmsOnline==true && WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0)) //BleHandler::bmsIsConnect(i)
       {
-      //Serial.printf("Zell Spg. Outside cellCnt=%i\n",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
+      //debugPrintf("Zell Spg. Outside cellCnt=%i\n",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
         {
-          //Serial.printf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i\n",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
+          //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i\n",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
           if(getBmsCellVoltage(i,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0) || getBmsCellVoltage(i,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0))
           {
             //Alarm
@@ -456,7 +456,7 @@ void doOffPulse(TimerHandle_t xTimer)
     }
     else if(bo_DoPulsOffCounter[i] == 1)
     {
-      //Serial.printf("DO off - Impuls(%i)\n",i);
+      //debugPrintf("DO off - Impuls(%i)\n",i);
 
       bo_DoPulsOffCounter[i]=0;
 

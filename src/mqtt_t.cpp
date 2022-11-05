@@ -13,6 +13,7 @@
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
+#include "debug.h"
 
 
 static const char* TAG = "mqqt_t";
@@ -103,7 +104,7 @@ void mqttDisconnect()
 
   if(mqttClient.connected())
   {
-    Serial.println("Disconnecting to MQTT...");
+    debugPrintln("Disconnecting to MQTT...");
     mqttClient.disconnect();
   }
 }

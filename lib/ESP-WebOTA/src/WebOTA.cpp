@@ -5,6 +5,7 @@
 #include "WebOTA.h"
 #include <Arduino.h>
 #include <Update.h>
+#include "./../../../include/debug.h"
 
 WebOTA webota;
 
@@ -106,7 +107,7 @@ int WebOTA::add_http_routes(WebServer *server, const char *path) {
 		HTTPUpload& upload = server->upload();
 
 		if (upload.status == UPLOAD_FILE_START) {
-			Serial.printf("Firmware update initiated: %s\r\n", upload.filename.c_str());
+			debugPrintf("Firmware update initiated: %s\r\n", upload.filename.c_str());
 
 			//uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			uint32_t maxSketchSpace = this->max_sketch_size();
@@ -126,12 +127,12 @@ int WebOTA::add_http_routes(WebServer *server, const char *path) {
 
 			// Check if we need to output a milestone (100k 200k 300k)
 			if (upload.totalSize >= next) {
-				Serial.printf("%dk ", next / 1024);
+				debugPrintf("%dk ", next / 1024);
 				next += chunk_size;
 			}
 		} else if (upload.status == UPLOAD_FILE_END) {
 			if (Update.end(true)) { //true to set the size to the current progress
-				Serial.printf("\r\nFirmware update successful: %u bytes\r\nRebooting...\r\n", upload.totalSize);
+				debugPrintf("\r\nFirmware update successful: %u bytes\r\nRebooting...\r\n", upload.totalSize);
 			} else {
 				Update.printError(Serial);
 			}
