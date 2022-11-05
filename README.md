@@ -27,8 +27,15 @@ Features:
 * WLAN
 
 Unterstütze Hardware:
-* Bluetooth: NEEY Balancer 4A
-* Serielle Schnittstelle (RS232, RS485): JBD BMS
+* Bluetooth:
+  * NEEY Balancer 4A
+* Serielle Schnittstelle (RS232, RS485): 
+  * JBD BMS
+  * JK-BMS
+* CAN (Inverter):
+  * Solis RHI 5G
+  * Solis S5-EH1P
+  * Victron [not tested]
 
 [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
 
