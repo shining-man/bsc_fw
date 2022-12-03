@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.0"
+#define BSC_SW_VERSION      "V0.2.1"
 
 //Debug
 #define DEBUG_ON_FS

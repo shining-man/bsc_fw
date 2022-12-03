@@ -50,26 +50,25 @@ void debugInit()
   if (SPIFFS.begin())
   {
     esp_log_set_vprintf(&vprintf_into_spiffs);
-    //ESP_LOGI(TAG, "Log started");
 
-    if(SPIFFS.exists("/log.txt"))
-    {
-      spiffsLogFile = SPIFFS.open("/log.txt", FILE_APPEND);
-    }
-    else
-    {
-      spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);
-    }
+    if(SPIFFS.exists("/log.txt")) spiffsLogFile=SPIFFS.open("/log.txt", FILE_APPEND);
+    else spiffsLogFile=SPIFFS.open("/log.txt", FILE_WRITE);
   }
   #endif
 
+
+  #ifdef DEBUG_ON_HW_SERIAL
+  esp_log_level_set("*", ESP_LOG_VERBOSE); //LOG all
+  #else
   esp_log_level_set("*", ESP_LOG_INFO); 
   esp_log_level_set("MAIN", ESP_LOG_VERBOSE); 
   esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
   esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
+  esp_log_level_set("ALARM", ESP_LOG_INFO); 
+  #endif
 
-  esp_log_level_set("*", ESP_LOG_VERBOSE); //LOG all
 
+  #ifdef DEBUG_ON_FS
   if(!SPIFFS.exists("/log.txt")) 
   {
     ESP_LOGE(TAG, "Error with the SPIFFS!");
@@ -79,6 +78,7 @@ void debugInit()
     spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);*/
   }
   ESP_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
+  #endif
 }
 
 #ifdef DEBUG_ON_FS

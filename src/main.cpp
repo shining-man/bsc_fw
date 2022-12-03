@@ -150,7 +150,7 @@ boolean connectWiFi()
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-      ESP_LOGI(TAG, "IP-Adresse = &s",WiFi.localIP());
+      ESP_LOGI(TAG, "IP-Adresse = %s",WiFi.localIP().toString().c_str());
       connected=true;
       firstWlanModeSTA=true;
       changeWlanData=true;
@@ -421,7 +421,7 @@ void setup()
   //Serielle Debugausgabe
   debugInit();
 
-  ESP_LOGI(TAG, "BSC");
+  ESP_LOGI(TAG, "BSC %s", BSC_SW_VERSION);
   ESP_LOGI(TAG, "bootCounter=%i", bootCounter);
 
   //init DIO 

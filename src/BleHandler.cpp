@@ -43,7 +43,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     pClient->updateConnParams(120,120,0,100);
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    ESP_LOGI(TAG, "%s", devMacAdr);
+    ESP_LOGI(TAG, "%s", devMacAdr.c_str());
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
@@ -114,7 +114,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
       {
         if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB))==false)
         {
-          ESP_LOGI(TAG, "Gesuchtes Device gefunden: %s", webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0));
+          ESP_LOGI(TAG, "Gesuchtes Device gefunden: %s", webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
           ESP_LOGI(TAG, "Scan stop");
 
           NimBLEDevice::getScan()->stop();
