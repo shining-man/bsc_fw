@@ -11,6 +11,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 
+static const char *TAG = "ALARM";
 
 TimerHandle_t timer_doOffPulse;
 static SemaphoreHandle_t doMutex = NULL;
@@ -150,7 +151,7 @@ void runAlarmRules()
           {     
             if(u8_DoVerzoegerungTimer[o]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
-              ESP_LOGD("AlarmRules", "Set DO VerzoegerungTimer (DoNr=%i)", o);
+              ESP_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", o);
               u8_DoVerzoegerungTimer[o] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,o,0);
             }
           }
@@ -159,7 +160,7 @@ void runAlarmRules()
             uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              ESP_LOGD("AlarmRules", "Alarm geht (AlarmNr=%i)", i);
+              ESP_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
               u8_mDoByte &= ~(1 << o); //bit loeschen
             }
           }
@@ -181,14 +182,14 @@ void setDOs()
     {
       u8_DoVerzoegerungTimer[o]=0xFF;
 
-      ESP_LOGD("AlarmRules", "Set DO (DoNr=%i)", o);
+      ESP_LOGI(TAG, "Set DO (DoNr=%i)", o);
       u8_mDoByte |= (1 << o); //bit setzen
 
       uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
       if(doPulseOrPermanent==1) //Wenn Impuls
       {
         uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,0,o,0);
-        ESP_LOGD("AlarmRules", "DO Impuls DO=%i Dauer=%i", o, pulseDuration);
+        ESP_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", o, pulseDuration);
               
         xSemaphoreTake(doMutex, portMAX_DELAY);
         bo_DoPulsOffCounter[o] = (pulseDuration/10);
@@ -229,13 +230,29 @@ void getDIs()
 
     if((u8_lDiData & (1<<i)) == (1<<i))
     {
-      if(!bo_lDiInvert) setAlarm(u8_lAlarmNr,true);
-      else setAlarm(u8_lAlarmNr,false);
+      if(!bo_lDiInvert)
+      {
+        setAlarm(u8_lAlarmNr,true); 
+        ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+      }
+      else
+      {
+        setAlarm(u8_lAlarmNr,false);
+        ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+      }
     }
     else
     {
-      if(!bo_lDiInvert) setAlarm(u8_lAlarmNr,false);
-      else setAlarm(u8_lAlarmNr,true);
+      if(!bo_lDiInvert)
+      {
+        setAlarm(u8_lAlarmNr,false);
+        ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+      }
+      else
+      {
+        setAlarm(u8_lAlarmNr,true);
+        ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+      }
     }
   }
 }
@@ -265,11 +282,13 @@ void rules_Bms()
           //debugPrintf("BT Alarm (%i)",i);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,true);
+          ESP_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
         }
         else
         {
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,false);
+          ESP_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
         }
       }
 
@@ -293,22 +312,25 @@ void rules_Bms()
           {
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,false);
+            ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
       }
 
-      //Überwachung Gesammtspannung
-      uint8_t u8_lAlarm = WebSettings::getBool(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
+      //Überwachung Gesamtspannung
+      uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
       if(b_lBmsOnline==true && u8_lAlarm>0) 
       {
         if(getBmsTotalVoltage(i) < WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(i) > WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
         {
           //Alarm
           setAlarm(u8_lAlarm,true);
+          ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
         }
         else
         {
           setAlarm(u8_lAlarm,false);
+          ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
         }
       }
     }
@@ -351,6 +373,7 @@ void rules_Temperatur()
 
       alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,0,i,0);
       setAlarm(alarmNr,bo_lAlarm);
+      ESP_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
 }
