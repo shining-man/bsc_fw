@@ -13,14 +13,10 @@
 #include "BleHandler.h"
 #include "defines.h"
 
-#define CNT_ALARMS        10
-#define CNT_DIGITALOUT     7
-#define CNT_DIGITALIN      4
-
-
 void initAlarmRules();
 void runAlarmRules();
 
 bool getAlarm(uint8_t alarmNr);
+uint16_t getAlarm();
 
 #endif

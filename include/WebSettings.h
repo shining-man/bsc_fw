@@ -39,7 +39,7 @@
 class WebSettings {
 public:
   WebSettings();
-  void initWebSettings(const String *parameter, String confName, String configfile, uint8_t settingNr);
+  void initWebSettings(const char *parameter, String confName, String configfile, uint8_t settingNr);
 
   //Parameterfile
   boolean deleteConfig();
@@ -71,7 +71,7 @@ public:
 
   
 private:
-  const String *parameterFile;
+  const char *parameterFile;
 
   String   str_mConfName;
   String   str_mConfigfile;
@@ -89,38 +89,38 @@ private:
   boolean readConfig();
   boolean writeConfig();
 
-  void getDefaultValuesFromNewKeys(const String *parameter, uint32_t jsonStartPos);
-  void buildSendHtml(WebServer * server, const String *parameter, uint32_t jsonStartPos);
+  void getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos);
+  void buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos);
   //void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
 
   bool isKeyExist(uint32_t key);
   void setString(uint32_t name, String value);
 
-  String   getJson_Key(const String *parameter, String key, uint8_t idx, uint32_t startPos); //Universal über parameter key
-  uint8_t  getJsonSize(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint8_t  getJsonGroupsize(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint32_t getJsonName(const String *parameter, uint8_t idx, uint32_t startPos);
-  String   getJsonLabel(const String *parameter, uint8_t idx, uint32_t startPos);
-  String   getJsonLabelEntry(const String *parameter, uint8_t idx, uint32_t startPos);
-  String   getJsonHelp(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint8_t  getJsonType(const String *parameter, uint8_t idx, uint32_t startPos);
-  String   getJsonDefault(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint8_t  getJsonOptionsCnt(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint32_t getJsonOptionsMin(const String *parameter, uint8_t idx, uint32_t startPos);
-  uint32_t getJsonOptionsMax(const String *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionValues(const String *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionLabels(const String *parameter, uint8_t idx, uint32_t startPos);
+  String   getJson_Key(const char *parameter, String key, uint8_t idx, uint32_t startPos); //Universal über parameter key
+  uint8_t  getJsonSize(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint8_t  getJsonGroupsize(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint32_t getJsonName(const char *parameter, uint8_t idx, uint32_t startPos);
+  String   getJsonLabel(const char *parameter, uint8_t idx, uint32_t startPos);
+  String   getJsonLabelEntry(const char *parameter, uint8_t idx, uint32_t startPos);
+  String   getJsonHelp(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint8_t  getJsonType(const char *parameter, uint8_t idx, uint32_t startPos);
+  String   getJsonDefault(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint8_t  getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint32_t getJsonOptionsMin(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint32_t getJsonOptionsMax(const char *parameter, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos);
 
-  void createHtmlTextfield(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
-  void createHtmlTextarea(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlNumber(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlFloat(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlRange(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlCheckbox(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlStartSelect(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos);
+  void createHtmlTextfield(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
+  void createHtmlTextarea(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlNumber(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlFloat(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlRange(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlCheckbox(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlStartSelect(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
-  void createHtmlStartMulti(char * buf, String *label, const String *parameter, uint8_t idx, uint32_t startPos);
-  void createHtmlAddMultiOption(char * buf, uint32_t *name, const String *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, String value);
+  void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
+  void createHtmlAddMultiOption(char * buf, uint32_t *name, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, String value);
 
   void (*fn_mOnButtonSave)() = NULL;
   void (*fn_mOnButton1)() = NULL;

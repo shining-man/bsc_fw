@@ -13,7 +13,7 @@
  **********************************************/
 
 /** @brief Un-comment to change the number of simultaneous connections (esp controller max is 9) */
- #define CONFIG_BT_NIMBLE_MAX_CONNECTIONS 5
+ #define CONFIG_BT_NIMBLE_MAX_CONNECTIONS 7
 
 /** @brief Un-comment to enable storing the timestamp when an attribute value is updated\n
  *  This allows for checking the last update time using getTimeStamp() or getValue(time_t*)\n

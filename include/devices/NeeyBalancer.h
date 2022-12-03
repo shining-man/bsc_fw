@@ -145,18 +145,6 @@
   // 299   1   0xFF
 
 
-//Globale Variablen
-extern float   bmsCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][24];
-extern float   bmsCellResistance[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][24];
-extern float   bmsTotalVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];
-extern float   bmsTotalCurrent[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT]; 
-extern uint8_t bmsMaxVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];
-extern uint8_t bmsMinVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];
-extern uint8_t bmsIsBalancingActive[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];
-extern float   bmsBalancingCurrent[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];
-extern float   bmsTempature[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][3];
-
-
 class NeeyBalancer {
 public:
   NeeyBalancer();

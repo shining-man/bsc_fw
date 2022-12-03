@@ -12,11 +12,11 @@ class Json {
 public:
   Json();
   
-  uint16_t getArraySize(const String *json, long startPos);
-  bool getValue(const String *json, int idx, String name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart);
+  uint16_t getArraySize(const char *json, long startPos);
+  bool getValue(const char *json, int idx, String name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart);
 
 private:
-  bool jsonIndexPos_Array(const String *json, int idx, long &startPos, long& endPos);
+  bool jsonIndexPos_Array(const char *json, int idx, long &startPos, long& endPos);
 
 };
 

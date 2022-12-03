@@ -5,12 +5,25 @@
 
 #include "Json.h"
 
-Json::Json() {
-  
+Json::Json()
+{  
 };
 
 
-bool Json::jsonIndexPos_Array(const String *json, int idx, long &startPos, long& endPos)
+int arrSize(const char *a)
+{
+    int it = 0;
+    int size = 0;
+    while(a[it] != '\0')
+    {
+        ++size;
+        ++it;
+    }
+    return size;
+}
+
+
+bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& endPos)
 {
     int32_t  posArrayFirstOpen = -1;
     uint32_t posElementOpen = 0;
@@ -20,9 +33,9 @@ bool Json::jsonIndexPos_Array(const String *json, int idx, long &startPos, long&
 
     uint8_t arrayNr = 0;
 
-    for (uint32_t i = startPos; i < json->length(); i++)
+    for (uint32_t i = startPos; i < arrSize(json); i++)
     {
-        char c = json->charAt(i);
+        char c = json[i];
         if (c == '{') 
         {
             if (elementOpenCnt == elementCloseCnt)
@@ -59,7 +72,7 @@ bool Json::jsonIndexPos_Array(const String *json, int idx, long &startPos, long&
 }
 
 
-uint16_t Json::getArraySize(const String *json, long startPos)
+uint16_t Json::getArraySize(const char *json, long startPos)
 {
     uint8_t arrayOpenCnt = 0;
     uint8_t arrayCloseCnt = 0;
@@ -70,9 +83,9 @@ uint16_t Json::getArraySize(const String *json, long startPos)
     uint8_t arrayCntMerker = 1;
 
 
-    for (uint32_t i = startPos; i < json->length(); i++)
+    for (uint32_t i = startPos; i < arrSize(json); i++)
     {
-        char c = json->charAt(i);
+        char c = json[i];
         if (c == '[') 
         { 
             arrayOpenCnt++; 
@@ -106,7 +119,7 @@ uint16_t Json::getArraySize(const String *json, long startPos)
     return arrayCnt;
 }
 
-bool Json::getValue(const String * json, int idx, String name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart)
+bool Json::getValue(const char * json, int idx, String name, uint32_t searchStartPos, String& retValue, uint32_t& arrayStart)
 {
     arrayStart = 0;
     retValue = "";
@@ -129,7 +142,7 @@ bool Json::getValue(const String * json, int idx, String name, uint32_t searchSt
         if (searchState == 0)
         {
       
-            if (json->charAt(p) == cName[cNameFoundToPos]) //Ersten Zeichen gefunden
+            if (json[p] == cName[cNameFoundToPos]) //Ersten Zeichen gefunden
             {
                 cNameFoundToPos++;
                 if (cNameLen == cNameFoundToPos)
@@ -144,7 +157,7 @@ bool Json::getValue(const String * json, int idx, String name, uint32_t searchSt
         }
         else if (searchState == 1)
         {
-            if (json->charAt(p) == '[') //Es kommt jetzt ein Array
+            if (json[p] == '[') //Es kommt jetzt ein Array
             {
                 searchState = 2;
             }
@@ -153,7 +166,7 @@ bool Json::getValue(const String * json, int idx, String name, uint32_t searchSt
                 //Wenn json[startPos-1] kein "'" ist dann startPos--
                 if (p > 0)
                 {
-                    if (json->charAt(p) != '\'')
+                    if (json[p] != '\'')
                     {
                         p--;
                     }
@@ -168,14 +181,14 @@ bool Json::getValue(const String * json, int idx, String name, uint32_t searchSt
         }
         else if (searchState == 3) //Kein Array
         {
-            if ((json->charAt(p) == '\'') || (json->charAt(p) == ',') || (json->charAt(p) == '}')) //String Ende
+            if ((json[p] == '\'') || (json[p] == ',') || (json[p] == '}')) //String Ende
             {
                 retValue = label;
                 return true;
             }
             else
             {
-                label += json->charAt(p);
+                label += json[p];
             }
         }
     }
