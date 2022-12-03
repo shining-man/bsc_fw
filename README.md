@@ -14,7 +14,7 @@ The BSC can also be used to send the data of the BMS/balancer to a MQTT broker.
 
 All settings can be freely parameterized via a web interface.
 
-**German**
+**German**<br>
 Der Battery Safety Controller (BSC) ist ein konfigurierbarer Controller zum Überwachen und Schützen von DIY (LiFePo4) Speichern. Zu beachten ist, dass der BSC kein BMS (Batteriemanagementsystem) ist. D.h. der BSC misst selber z.B. keine Zellspannungen. Diese müssen ihm über die serielle Schnittstelle oder über Bluetooth von z.B. einem BMS oder einem Balancer zur Verfügung gestellt werden. Diese Parameter können dann vom BSC überwacht werden.
 
 Der BSC verfügt auch über eine onewire Schnittstellen an der bis zu 64 Temperatursensoren (DS18B20) angeschlossen werden können. Diese können dann auch überwacht werden.
@@ -28,20 +28,20 @@ Der BSC kann aber auch genutzt werden um die Daten des BMS/Balancer an einen MQT
 Alle Einstellungen sind frei über eine Weboberfläche parametrierbar.
 
 **Features**
--- 6x relay outputs
--- 4x digital inputs (isolated)
--- 3x serial interface (isolated); RS232, RS485
--- Onewire (DS18B20)
--- CAN (isolated)
--- Bluetooth
--- WLAN
--- I2C for extensions
+* 6x relay outputs
+* 4x digital inputs (isolated)
+* 3x serial interface (isolated); RS232, RS485
+* Onewire (DS18B20)
+* CAN (isolated)
+* Bluetooth
+* WLAN
+* I2C for extensions
 
 **Supported Devices**
-[Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
+* [Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
 
 **Weitere Informationen**
--- [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
--- [Discussions](https://github.com/shining-man/bsc_fw/discussions)
--- [PCB](https://github.com/shining-man/bsc_hw)
--- [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
+* [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
+* [Discussions](https://github.com/shining-man/bsc_fw/discussions)
+* [PCB](https://github.com/shining-man/bsc_hw)
+* [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
