@@ -6,7 +6,9 @@
 #include "devices/JbdBms.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
-#include "debug.h"
+#include "log.h"
+
+static const char *TAG = "JBD_BMS";
 
 Stream *mPort;
 uint8_t u8_mDevNr, u8_mTxEnRS485pin;
@@ -43,12 +45,12 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
     JbdBms_parseBasicMessage(response);
 
     //mqtt
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/totalVoltage", getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/totalCurrent", getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
   else
   {
-    debugPrintf("sendReqBasicMessage checksum wrong\n");
+    ESP_LOGI(TAG,"sendReqBasicMessage checksum wrong");
     bo_lRet=false;
   }
  
@@ -59,7 +61,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   }
   else
   {
-    debugPrintf("sendCellMessage checksum wrong\n");
+    ESP_LOGI(TAG,"sendCellMessage checksum wrong");
     bo_lRet=false;
   }
 
@@ -95,15 +97,11 @@ bool JbdBms_recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 200) 
     {
-      debugPrintf("Timeout: u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_lRecvDataLen, u8_lRecvBytesCnt);
-      //p_lRecvBytes[u8_lRecvBytesCnt]=0;
-      //debugPrintf("buffer:%s",p_lRecvBytes);
+      ESP_LOGI(TAG,"Timeout: u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_lRecvDataLen, u8_lRecvBytesCnt);
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
       {
-        debugPrint(String(p_lRecvBytes[x]));
-        debugPrint(" ");
+        ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
       }
-      debugPrintln("");
       return false;
     }
 
@@ -205,14 +203,14 @@ void JbdBms_parseBasicMessage(uint8_t * t_message)
     //JBD_BYTE_SOFTWARE_VERSION
 
     //Nachrichten senden
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/BalanceCapacity", u16_lBalanceCapacity);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/FullCapacity", u16_lFullCapacity);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/Cycle", u16_lCycle);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/BalanceStatus", u16_lBalanceStatus);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/FetStatus", u16_lFetStatus);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
 
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/ChargedEnergy", u32_mChargeMAh);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNr)+"/DischargedEnergy", u32_mDischargeMAh);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
+    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
 
     mqttSendeTimer=millis();
   }

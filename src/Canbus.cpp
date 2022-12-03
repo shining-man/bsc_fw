@@ -9,7 +9,9 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include <CAN.h>
-#include "debug.h"
+#include "log.h"
+
+static const char *TAG = "CAN";
 
 void sendBmsCanMessages();
 void sendCanMsg_370_371();
@@ -19,12 +21,12 @@ void sendCanMsg_355();
 void sendCanMsg_356();
 void sendCanMsg_359();
 void sendCanMsg_35a();
-void sendCanMsg_35f();
-void sendCanMsg_372();
 void sendCanMsg_373();
-void sendCanMsg_374_375_376_377();
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
+
+static SemaphoreHandle_t mInverterDataMutex = NULL;
+static struct inverterData_s inverterData;
 
 char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
@@ -85,6 +87,8 @@ struct data373
 
 void canSetup()
 {
+  mInverterDataMutex = xSemaphoreCreateMutex();
+
   u8_mBmsDatasource=0;
   alarmSetChargeCurrentToZero=false;
   alarmSetDischargeCurrentToZero=false;
@@ -98,13 +102,30 @@ void canSetup()
   loadCanSettings();
 
   // start the CAN bus at 500 kbps
-  debugPrint("Init CAN...");
   CAN.setPins(5,4);
-  if (!CAN.begin(500000)) {
-    debugPrintln("failed!");
-  }else{
-    debugPrintln("ok");
+  if (!CAN.begin(500000))
+  {
+    ESP_LOGI(TAG,"Init CAN failed!");
+  }
+  else
+  {
+    ESP_LOGI(TAG,"Init CAN ok");
   } 
+}
+
+void inverterDataSemaphoreTake()
+{
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+}
+
+void inverterDataSemaphoreGive()
+{
+  xSemaphoreGive(mInverterDataMutex);
+}
+
+struct inverterData_s * getInverterData()
+{
+  return &inverterData;
 }
 
 void loadCanSettings()
@@ -128,7 +149,7 @@ void loadCanSettings()
     if(u8_mBmsDatasource!=BT_DEVICES_COUNT+2) u8_mBmsDatasourceAdd |= (1<<2);
   } 
 
-  debugPrintf("loadCanSettings(): u8_mBmsDatasource=%i\n",u8_mBmsDatasource);
+  ESP_LOGI(TAG,"loadCanSettings(): u8_mBmsDatasource=%i",u8_mBmsDatasource);
 }
 
 //Ladeleistung auf 0 einstellen
@@ -206,15 +227,15 @@ void sendBmsCanMessages()
       sendCanMsg_35a(); //Alarm Details
       vTaskDelay(pdMS_TO_TICKS(5));
 
-      //victron_message_372();
-      //victron_message_35f();
+      //372
+      //35f
 
       sendCanMsg_355();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_356();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_373();
-      //victron_message_374_375_376_377();
+      //374, 375, 376, 377
 
       //sendCanMsg_359();
       break;
@@ -239,7 +260,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
       * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
       if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
       {
-        //debugPrintf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        //debugPrintf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
         if(i16_mMaxChargeCurrent>=50){
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
         }else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50){
@@ -250,7 +271,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-1;
         }
         if(i16_pNewChargeCurrent<0)i16_pNewChargeCurrent=0;
-        //debugPrintf("Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        //debugPrintf("Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
 
         u8_mTimerCalcMaxChareCurrent=0;
         if(i16_pNewChargeCurrent==0 && i16_mMaxChargeCurrent>0) //Strom wurde auf 0 geregelt -> Sperrzeit für Aufwärtsregelung starten
@@ -269,7 +290,7 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
           {
             i16_pNewChargeCurrent=i16_mMaxChargeCurrent+10;
-            //debugPrintf("Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i\n",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+            //debugPrintf("Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
           }
 
           i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
@@ -329,7 +350,7 @@ int16_t calcLadestromBeiZelldrift(int16_t i16_pMaxChargeCurrent)
   if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN,0,0,0)==true) //wenn enabled
   {
     //Maximalen Ladestrom berechnen
-    uint32_t u32_lMaxCellDrift = getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource);
+    uint16_t u32_lMaxCellDrift = getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource);
     if(u32_lMaxCellDrift>0)
     {
       if(u32_lMaxCellDrift>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,0,0)) //Wenn Drift groß genug ist
@@ -434,7 +455,7 @@ void sendCanMsg_351()
       if(i16_lMaxChargeCurrent2<i16_lMaxChargeCurrent) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent2;
 
       calcMaximalenLadestromSprung(i16_lMaxChargeCurrent); //calcMaximalenLadestromSprung schreibt den neuen Ausgangsstrom in i16_mMaxChargeCurrent
-      //debugPrintf("Soll Ladestrom: %i, %i, %i\n",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
+      //debugPrintf("Soll Ladestrom: %i, %i, %i",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
 
       //Soll-Ladestrom in die Ausgangs-Msg. schreiben
       msgData.maxchargecurrent = i16_mMaxChargeCurrent*10;
@@ -442,7 +463,7 @@ void sendCanMsg_351()
       //Wenn sich der Wert geändert hat per mqqt senden
       if(i16_mMaxChargeCurrent!=i16_lMaxChargeCurrentOld)
       {
-        mqttPublish("sys/inverter/chargeCurrentSoll", getAktualChargeCurrentSoll());
+        mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
       }
     }
 
@@ -457,6 +478,11 @@ void sendCanMsg_351()
     }
 
   }
+
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  inverterData.inverterChargeCurrent = msgData.maxchargecurrent;
+  inverterData.inverterDischargeCurrent = msgData.maxdischargecurrent;
+  xSemaphoreGive(mInverterDataMutex);
 
   i16_mAktualChargeCurrentSoll=msgData.maxchargecurrent/10;
   sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
@@ -483,6 +509,10 @@ void sendCanMsg_355()
     msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
   }
 
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  inverterData.inverterSoc = msgData.soc;
+  xSemaphoreGive(mInverterDataMutex);
+
   msgData.soh = 100; // SOH, uint16 1 %
   sendCanMsg(0x355, (uint8_t *)&msgData, sizeof(data355));
 }
@@ -501,7 +531,7 @@ void sendCanMsg_356()
   data356 msgData;
 
   msgData.current = (int16_t)(getBmsTotalCurrent(u8_mBmsDatasource)*10);
-  msgData.temperature = getBmsTempature(u8_mBmsDatasource,0);
+  msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10);
   msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
 
   //Wenn zusätzliche Datenquellen angegeben sind:
@@ -509,7 +539,12 @@ void sendCanMsg_356()
   if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
   if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
 
-  //debugPrintf("CAN:\ncurrent=%i\ntemperature=%i\nvoltage=%i\n", msgData.current, msgData.temperature, msgData.voltage);
+  //debugPrintf("CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);
+
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  inverterData.inverterVoltage = msgData.voltage;
+  inverterData.inverterCurrent = msgData.current;
+  xSemaphoreGive(mInverterDataMutex);
 
   sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356));
 }
@@ -520,6 +555,55 @@ void sendCanMsg_359()
 {
   data35a msgData;
 
+  /*
+  Pylontech V1.2
+
+  Data 0 (Alarm)
+  0: -
+  1: Cell/module over voltage
+  2: Cell/module under voltage
+  3: Cell over temp
+  4: Cell under temp
+  5: -
+  6: -
+  7: Discharge over current 
+
+  Data 1 (Alarm)
+  0: Charge over current 
+  1: -
+  2: -
+  3: System error
+  4: -
+  5: -
+  6: -
+  7: -
+
+  Data 2 (Warning)
+  0: -
+  1: Cell/module high voltage
+  2: Cell/module low voltage
+  3: Cell high temp
+  4: Cell low temp
+  5: -
+  6: -
+  7: Discharg high current 
+
+  Data 3 (Warning)
+  0: Charge high current 
+  1: -
+  2: -
+  3: System error
+  4: -
+  5: -
+  6: -
+  7: -
+
+  Data 4: Pack number (data type : 8bit unsigned char)
+  Data 5: 0x50
+  Data 6: 0x4E
+  Data 6: -
+  */
+ 
   msgData.u8_b0=0;
   msgData.u8_b1=0;
   msgData.u8_b2=0;
@@ -600,7 +684,6 @@ void sendCanMsg_373()
   uint16_t u16_lCellVoltageMax=getBmsMaxCellVoltage(u8_mBmsDatasource);
   uint16_t u16_lCellVoltageMin=getBmsMinCellVoltage(u8_mBmsDatasource);
 
-
   //Wenn zusätzliche Datenquellen angegeben sind:
   if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
   { 
@@ -614,7 +697,6 @@ void sendCanMsg_373()
   { 
     if(getBmsMaxCellVoltage(BT_DEVICES_COUNT+2)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT+2); 
   }
-
 
   if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
   { 
@@ -630,10 +712,10 @@ void sendCanMsg_373()
   }
 
 
-  msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,0);
-  msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,0);
   msgData.maxCellVoltage = u16_lCellVoltageMax;
   msgData.minCellColtage = u16_lCellVoltageMin;
+  msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,1);
+  msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,2);
 
   sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
 }

@@ -18,13 +18,10 @@ void mqttDisconnect();
 bool mqttConnected();
 
 
-void mqttPublish(String topic, String value);
-void mqttPublish(String topic, uint32_t value);
-void mqttPublish(String topic, int32_t value);
-void mqttPublish(String topic, uint8_t value);
-void mqttPublish(String topic, int8_t value);
-void mqttPublish(String topic, float value);
-void mqttPublish(String topic, bool value);
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value);
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value);
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value);
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value);
 
 
 #endif

@@ -14,9 +14,12 @@ in das Ausgaberegister bzw. Ausgangsregister oder auch Speicherregister
 
 SPIClass * hspi = NULL;
 RTC_DATA_ATTR uint8_t doOutData;
+static uint8_t u8_mHwVersion;
 
 void initDio(bool restore)
 {
+  u8_mHwVersion=0;
+
   pinMode(IO_DO_PL, OUTPUT);
   pinMode(H_CLK, OUTPUT);
 
@@ -29,6 +32,8 @@ void initDio(bool restore)
   hspi->begin(H_CLK, H_MISO, H_MOSI);
 
   dioRwInOut();
+
+  u8_mHwVersion = ((dioRwInOut()&0xE0)>>5);
 }
 
 void setDoData(uint8_t data)
@@ -57,4 +62,9 @@ uint8_t dioRwInOut()
   digitalWrite(IO_DO_PL, HIGH);
   
   return receivedVal;
+}
+
+uint8_t getHwVersion()
+{
+  return u8_mHwVersion;
 }

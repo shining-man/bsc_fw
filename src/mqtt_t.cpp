@@ -13,7 +13,7 @@
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
-#include "debug.h"
+#include "log.h"
 
 
 static const char* TAG = "mqqt_t";
@@ -26,9 +26,16 @@ PubSubClient mqttClient(wifiClient);
 IPAddress   mqttIpAdr;
 
 uint32_t mqttPublishLoopTimmer=0;
-std::deque<std::array<String, 2>> txBuffer;
+struct mqttEntry_s {
+    int8_t t1;
+    int8_t t2;
+    int8_t t3;
+    int8_t t4;
+    String value;
+};
+std::deque<mqttEntry_s> txBuffer;
 
-SemaphoreHandle_t mMqttMutex = NULL;
+static SemaphoreHandle_t mMqttMutex = NULL;
 
 bool bo_mIsConnected=false; 
 
@@ -79,6 +86,8 @@ void mqttConnect()
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) return;
   
   mqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0,0,0);
+  String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0,0,0);
+  String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0,0,0);
 
   if(!mqttClient.connected())
   {
@@ -86,12 +95,19 @@ void mqttConnect()
     
     ESP_LOGD(TAG,"Connecting to MQTT");
     xTimerStart(mqttReconnectTimer, 0);
-    mqttClient.connect(mqttDeviceName.c_str()); 
+    if(mqttUser.equals("") || mqttPwd.equals("")) //Wenn kein User oder Pwd eingetragen, dann ohne verbinden
+    {
+      mqttClient.connect(mqttDeviceName.c_str()); 
+    }
+    else
+    {
+      mqttClient.connect(mqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
+    }
   }
   else
   {
     bo_mIsConnected=true;
-    ESP_LOGD(TAG,"MQTT connected");
+    ESP_LOGI(TAG,"MQTT connected");
   }
 }
 
@@ -104,7 +120,7 @@ void mqttDisconnect()
 
   if(mqttClient.connected())
   {
-    debugPrintln("Disconnecting to MQTT...");
+    ESP_LOGI(TAG,"Disconnecting to MQTT");
     mqttClient.disconnect();
   }
 }
@@ -127,8 +143,15 @@ bool mqttPublishLoopFromTxBuffer()
     {
       if(mqttClient.connected())
       {
-        String topic = mqttDeviceName + "/" + txBuffer.at(0)[0].c_str();
-        mqttClient.publish(topic.c_str(), txBuffer.at(0)[1].c_str());
+        struct mqttEntry_s mqttEntry = txBuffer.at(0);
+
+        String topic = mqttDeviceName + "/" + mqttTopics[mqttEntry.t1];
+        if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
+        if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
+        if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
+        //debugPrintln(topic);
+
+        mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
         txBuffer.pop_front();
       }
       else
@@ -148,47 +171,42 @@ bool mqttPublishLoopFromTxBuffer()
 }
 
 
-void mqttPublish(String topic, String value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 {
   if(bo_mIsConnected==false) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
 
+  struct mqttEntry_s mqttEntry;
+  mqttEntry.t1=t1;
+  mqttEntry.t2=t2;
+  mqttEntry.t3=t3;
+  mqttEntry.t4=t4;
+  mqttEntry.value=value;
+
   xSemaphoreTake(mMqttMutex, portMAX_DELAY);
-  txBuffer.push_back({{topic,value}});
+  txBuffer.push_back(mqttEntry);
   xSemaphoreGive(mMqttMutex);
 }
 
-void mqttPublish(String topic, uint32_t value)
+
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value)
 {
-  mqttPublish(topic, String(value));
+  mqttPublish(t1, t2, t3, t4, String(value));
 }
 
-void mqttPublish(String topic, int32_t value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 {
-  mqttPublish(topic, String(value));
+  mqttPublish(t1, t2, t3, t4, String(value));
 }
 
-void mqttPublish(String topic, uint8_t value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  mqttPublish(topic, String(value));
+  mqttPublish(t1, t2, t3, t4, String(value));
 }
 
-void mqttPublish(String topic, int8_t value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 {
-  mqttPublish(topic, String(value));
+  mqttPublish(t1, t2, t3, t4, String(value));
 }
-
-void mqttPublish(String topic, float value)
-{
-  mqttPublish(topic, String(value));
-}
-
-void mqttPublish(String topic, bool value)
-{
-  mqttPublish(topic, String(value));
-}
-
-
-
 
 
 uint32_t sendeTimerBmsMsg;
@@ -245,6 +263,8 @@ void mqttDataToTxBuffer()
 }
 
 
+
+
 void mqttPublishBmsData(uint8_t i)
 {
   if(bo_mIsConnected==false) return; //Wenn nicht verbunden, dann zurück
@@ -252,40 +272,41 @@ void mqttPublishBmsData(uint8_t i)
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {
-    mqttPublish("bms/"+String(i)+"/cellVoltage/"+String(n), getBmsCellVoltage(i,n));
+    mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE, n, getBmsCellVoltage(i,n));
   }
 
   //Max. Cell Voltage
-  mqttPublish("bms/"+String(i)+"/cellVoltageMax", getBmsMaxCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE_MAX, -1, getBmsMaxCellVoltage(i));
 
   //Min. Cell Voltage
-  mqttPublish("bms/"+String(i)+"/cellVoltageMin", getBmsMinCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN, -1, getBmsMinCellVoltage(i));
   
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
-  if(i<=4) mqttPublish("bms/"+String(i)+"/totalVoltage", getBmsTotalVoltage(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
 
   //maxCellDifferenceVoltage
-  mqttPublish("bms/"+String(i)+"/maxCellDifferenceVoltage", getBmsMaxCellDifferenceVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_MAXCELL_DIFFERENCE_VOLTAGE, -1, getBmsMaxCellDifferenceVoltage(i));
 
   //totalCurrent
   //if(i>4) mqttPublish("bms/"+String(i)+"/totalCurrent", getBmsTotalCurrent(i));
 
   //balancingActive
-  if(i<=4) mqttPublish("bms/"+String(i)+"/balancingActive", getBmsIsBalancingActive(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_BALANCING_ACTIVE, -1, getBmsIsBalancingActive(i));
 
   //balancingCurrent
-  if(i<=4) mqttPublish("bms/"+String(i)+"/balancingCurrent", getBmsBalancingCurrent(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_BALANCING_CURRENT, -1, getBmsBalancingCurrent(i));
 
   //tempature
-  /*if(i<=4)*/ mqttPublish("bms/"+String(i)+"/tempature/0", getBmsTempature(i,0));
-  /*if(i<=4)*/ mqttPublish("bms/"+String(i)+"/tempature/1", getBmsTempature(i,1));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 0, getBmsTempature(i,0));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 1, getBmsTempature(i,1));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 2, getBmsTempature(i,2));
 
   //chargePercent
-  if(i>4) mqttPublish("bms/"+String(i)+"/chargePercent", getBmsChargePercentage(i));
+  if(i>4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
 
   //Errors
-  mqttPublish("bms/"+String(i)+"/errors", getBmsErrors(i));
+  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_ERRORS, -1, getBmsErrors(i));
 }
 
 
@@ -300,7 +321,7 @@ void mqttPublishOwTemperatur(uint8_t i)
   {
     if(f_lOwTemp!=TEMP_IF_SENSOR_READ_ERROR /*&& f_lOwTemp!=0*/)
     {
-      mqttPublish("temperatur/"+String(i), owGetTemp(i));
+      mqttPublish(MQTT_TOPIC_TEMPERATUR, i, -1, -1, owGetTemp(i));
     }   
   }
   else

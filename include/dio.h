@@ -13,20 +13,11 @@
 #define H_MOSI      13
 #define H_MISO      12
 #define IO_DO_PL    26
-#define IO_DI_PL    26 //27
 
 
-
-
-  
 void    initDio(bool restore);
 void    setDoData(uint8_t data);
 uint8_t dioRwInOut();
-  
-
-
-
-
-
+uint8_t getHwVersion();
 
 #endif

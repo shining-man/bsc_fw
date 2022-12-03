@@ -5,7 +5,9 @@
 #include "WebOTA.h"
 #include <Arduino.h>
 #include <Update.h>
-#include "./../../../include/debug.h"
+#include "./../../../include/log.h"
+
+static const char *TAG = "WEBOTA";
 
 WebOTA webota;
 
@@ -107,18 +109,18 @@ int WebOTA::add_http_routes(WebServer *server, const char *path) {
 		HTTPUpload& upload = server->upload();
 
 		if (upload.status == UPLOAD_FILE_START) {
-			debugPrintf("Firmware update initiated: %s\r\n", upload.filename.c_str());
+			ESP_LOGI(TAG,"Firmware update initiated: %s",upload.filename.c_str());
 
 			//uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			uint32_t maxSketchSpace = this->max_sketch_size();
 
 			if (!Update.begin(maxSketchSpace)) { //start with max available size
-				Update.printError(Serial);
+				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 		} else if (upload.status == UPLOAD_FILE_WRITE) {
 			/* flashing firmware to ESP*/
 			if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-				Update.printError(Serial);
+				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 
 			// Store the next milestone to output
@@ -127,14 +129,14 @@ int WebOTA::add_http_routes(WebServer *server, const char *path) {
 
 			// Check if we need to output a milestone (100k 200k 300k)
 			if (upload.totalSize >= next) {
-				debugPrintf("%dk ", next / 1024);
+				ESP_LOGI(TAG,"%d k ",next/1024);
 				next += chunk_size;
 			}
 		} else if (upload.status == UPLOAD_FILE_END) {
 			if (Update.end(true)) { //true to set the size to the current progress
-				debugPrintf("\r\nFirmware update successful: %u bytes\r\nRebooting...\r\n", upload.totalSize);
+				ESP_LOGI(TAG,"Firmware update successful: %u bytes;\nRebooting...", upload.totalSize);
 			} else {
-				Update.printError(Serial);
+				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 		}
 	});

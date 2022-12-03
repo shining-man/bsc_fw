@@ -10,9 +10,9 @@
 #include "SPIFFS.h"
 #include <WebServer.h>
 #include <FS.h>
-#include "debug.h"
+#include "log.h"
 
-const char * tag = "websettings";
+static const char * TAG = "WEB_SETTINGS";
 
 static SemaphoreHandle_t mParamMutex = NULL;
 
@@ -215,7 +215,7 @@ WebSettings::WebSettings() {
   u16_mAjaxGetDataTimerSec = 0;
 };
 
-void WebSettings::initWebSettings(const String *parameter, String confName, String configfile, uint8_t settingNr)
+void WebSettings::initWebSettings(const char *parameter, String confName, String configfile, uint8_t settingNr)
 {
   u8_mJsonArraySize = 0;
   str_mConfName = confName.c_str();
@@ -275,7 +275,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 
   if(json.getArraySize(parameterFile,0)==0)
   {
-    debugPrintln("Error read json");
+    ESP_LOGI(TAG,"Error read json");
   }
   else
   {
@@ -417,7 +417,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 }*/
 
 
-void WebSettings::buildSendHtml(WebServer * server, const String *parameter, uint32_t jsonStartPos)
+void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos)
 {
   uint8_t g;
   uint8_t optionsCnt;
@@ -560,7 +560,7 @@ void WebSettings::buildSendHtml(WebServer * server, const String *parameter, uin
   }
 }
 
-void WebSettings::getDefaultValuesFromNewKeys(const String *parameter, uint32_t jsonStartPos)
+void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos)
 {
   uint8_t g, optionGroupSize;
   uint32_t u32_tmp;
@@ -604,7 +604,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const String *parameter, uint32_t 
         {
           retStr_label="";
           json.getValue(parameter, a, "label", jsonStartPos, retStr_label, u32_tmp);
-          //debugPrintf("New Parameter found: key=%i, default=%s, label=%s\n",jsonName,retStr_default.c_str(),retStr_label.c_str());
+          //debugPrintf("New Parameter found: key=%i, default=%s, label=%s",jsonName,retStr_default.c_str(),retStr_label.c_str());
           setString(jsonName, retStr_default);
         }
       }
@@ -613,19 +613,19 @@ void WebSettings::getDefaultValuesFromNewKeys(const String *parameter, uint32_t 
 }
 
 
-void WebSettings::createHtmlTextfield(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
+void WebSettings::createHtmlTextfield(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_TEXTFIELD,label->c_str(),type,value.c_str(),String(*name).c_str(),getJson_Key(parameter, "unit", idx, startPos).c_str());
 }
 
-void WebSettings::createHtmlTextarea(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlTextarea(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_AREA,label->c_str(),getJsonOptionsMax(parameter, idx, startPos),getJsonOptionsMin(parameter, idx, startPos),String(*name).c_str(), value.c_str());
 }
 
-void WebSettings::createHtmlNumber(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlNumber(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_NUMBER,label->c_str(),getJsonOptionsMin(parameter, idx, startPos),
@@ -633,7 +633,7 @@ void WebSettings::createHtmlNumber(char * buf, uint32_t *name, String *label, co
     getJson_Key(parameter, "unit", idx, startPos).c_str());
 }
 
-void WebSettings::createHtmlFloat(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlFloat(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_FLOAT,label->c_str(),getJsonOptionsMin(parameter, idx, startPos),
@@ -641,7 +641,7 @@ void WebSettings::createHtmlFloat(char * buf, uint32_t *name, String *label, con
     getJson_Key(parameter, "unit", idx, startPos).c_str());
 }
 
-void WebSettings::createHtmlRange(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlRange(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_RANGE, label->c_str(), getJsonOptionsMin(parameter, idx, startPos),
@@ -649,7 +649,7 @@ void WebSettings::createHtmlRange(char * buf, uint32_t *name, String *label, con
     value.c_str(), name,  getJsonOptionsMax(parameter, idx, startPos));
 }
 
-void WebSettings::createHtmlCheckbox(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlCheckbox(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   if (!value.equals("0")) {
@@ -659,7 +659,7 @@ void WebSettings::createHtmlCheckbox(char * buf, uint32_t *name, String *label, 
   }
 }
 
-void WebSettings::createHtmlStartSelect(char * buf, uint32_t *name, String *label, const String *parameter, uint8_t idx, uint32_t startPos)
+void WebSettings::createHtmlStartSelect(char * buf, uint32_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos)
 {
   sprintf(buf,HTML_ENTRY_SELECT_START,label->c_str(),String(*name).c_str());
 }
@@ -673,12 +673,12 @@ void WebSettings::createHtmlAddSelectOption(char * buf, String option, String la
   }
 }
 
-void WebSettings::createHtmlStartMulti(char * buf, String *label, const String *parameter, uint8_t idx, uint32_t startPos)
+void WebSettings::createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos)
 {
   sprintf(buf,HTML_ENTRY_MULTI_START,label->c_str());
 }
 
-void WebSettings::createHtmlAddMultiOption(char * buf, uint32_t *name, const String *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, String value)
+void WebSettings::createHtmlAddMultiOption(char * buf, uint32_t *name, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   if ((value.length() > option) && (value[option] == '1')) {
@@ -689,7 +689,7 @@ void WebSettings::createHtmlAddMultiOption(char * buf, uint32_t *name, const Str
 }
 
 
-uint8_t WebSettings::getJsonSize(const String *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonSize(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -713,7 +713,7 @@ uint8_t WebSettings::getJsonSize(const String *parameter, uint8_t idx, uint32_t 
   }
 }
 
-uint8_t WebSettings::getJsonGroupsize(const String *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonGroupsize(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
@@ -737,7 +737,7 @@ uint8_t WebSettings::getJsonGroupsize(const String *parameter, uint8_t idx, uint
   }
 }
 
-uint32_t WebSettings::getJsonName(const String *parameter, uint8_t idx, uint32_t startPos)
+uint32_t WebSettings::getJsonName(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -747,7 +747,7 @@ uint32_t WebSettings::getJsonName(const String *parameter, uint8_t idx, uint32_t
   return 0;
 }
 
-String WebSettings::getJsonLabel(const String *parameter, uint8_t idx, uint32_t startPos)
+String WebSettings::getJsonLabel(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -756,7 +756,7 @@ String WebSettings::getJsonLabel(const String *parameter, uint8_t idx, uint32_t 
   return "";
 }
 
-String WebSettings::getJsonLabelEntry(const String *parameter, uint8_t idx, uint32_t startPos)
+String WebSettings::getJsonLabelEntry(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -765,7 +765,7 @@ String WebSettings::getJsonLabelEntry(const String *parameter, uint8_t idx, uint
   return "";
 }
 
-String WebSettings::getJsonHelp(const String *parameter, uint8_t idx, uint32_t startPos)
+String WebSettings::getJsonHelp(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -774,7 +774,7 @@ String WebSettings::getJsonHelp(const String *parameter, uint8_t idx, uint32_t s
   return "";
 }
 
-uint8_t WebSettings::getJsonType(const String *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonType(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
@@ -797,7 +797,7 @@ uint8_t WebSettings::getJsonType(const String *parameter, uint8_t idx, uint32_t 
   }
 }
 
-String WebSettings::getJsonDefault(const String *parameter, uint8_t idx, uint32_t startPos)
+String WebSettings::getJsonDefault(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -806,7 +806,7 @@ String WebSettings::getJsonDefault(const String *parameter, uint8_t idx, uint32_
   return "0";
 }
 
-std::vector<String> WebSettings::getJsonOptionValues(const String *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> options;
   String retStr = "";
@@ -827,7 +827,7 @@ std::vector<String> WebSettings::getJsonOptionValues(const String *parameter, ui
   return options;
 }
 
-std::vector<String> WebSettings::getJsonOptionLabels(const String *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> labels;
   String retStr = "";
@@ -848,7 +848,7 @@ std::vector<String> WebSettings::getJsonOptionLabels(const String *parameter, ui
   return labels;
 }
 
-uint8_t WebSettings::getJsonOptionsCnt(const String *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -857,7 +857,7 @@ uint8_t WebSettings::getJsonOptionsCnt(const String *parameter, uint8_t idx, uin
   return 0;
 }
 
-uint32_t WebSettings::getJsonOptionsMin(const String *parameter, uint8_t idx, uint32_t startPos)
+uint32_t WebSettings::getJsonOptionsMin(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
@@ -880,7 +880,7 @@ uint32_t WebSettings::getJsonOptionsMin(const String *parameter, uint8_t idx, ui
   }
 }
 
-uint32_t WebSettings::getJsonOptionsMax(const String *parameter, uint8_t idx, uint32_t startPos)
+uint32_t WebSettings::getJsonOptionsMax(const char *parameter, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
@@ -904,7 +904,7 @@ uint32_t WebSettings::getJsonOptionsMax(const String *parameter, uint8_t idx, ui
 }
 
 //Universal
-String WebSettings::getJson_Key(const String *parameter, String key, uint8_t idx, uint32_t startPos)
+String WebSettings::getJson_Key(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0; 
@@ -936,7 +936,7 @@ String WebSettings::getString(uint32_t name)
   String ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
   ret = settingValues[name];
-  //debugPrintf("getString A:%lu, val:%s\n",name, ret);
+  //debugPrintf("getString A:%lu, val:%s",name, ret);
   xSemaphoreGive(mParamMutex);
   return ret;
 }
@@ -945,7 +945,7 @@ String WebSettings::getString(uint32_t name, uint8_t settingNr, uint8_t groupNr,
   String ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
   ret = settingValues[getParmId(name,settingNr, groupNr, listNr)];
-  //debugPrintf("getString B:%lu, val:%s\n",name, ret);
+  //debugPrintf("getString B:%lu, val:%s",name, ret);
   xSemaphoreGive(mParamMutex);
   return ret;
 }
@@ -999,17 +999,19 @@ boolean WebSettings::readConfig()
   uint32_t str_name;
   uint8_t ui8_pos;
 
-  if (!SPIFFS.exists(str_mConfigfile)) {
-    debugPrintln("file not exist");
+  if (!SPIFFS.exists(str_mConfigfile.c_str()))
+  {
     //wenn settingfile nicht vorhanden, dann schreibe default Werte
+    ESP_LOGI(TAG,"readConfig: file not exist");
     writeConfig();
   }
 
-  File f = SPIFFS.open(str_mConfigfile,"r");
+  File f = SPIFFS.open(str_mConfigfile.c_str(),"r");
   if (f)
   {
     uint32_t size = f.size();
-    while (f.position() < size) {
+    while (f.position() < size)
+    {
       str_line = f.readStringUntil(10);
       ui8_pos = str_line.indexOf('=');
       str_name = str_line.substring(0,ui8_pos).toInt();
@@ -1023,7 +1025,7 @@ boolean WebSettings::readConfig()
   }
   else
   {
-    debugPrintln(F("Cannot read configuration"));
+    ESP_LOGI(TAG,"Cannot read configuration");
     return false;
   }
 }
@@ -1033,10 +1035,15 @@ boolean WebSettings::writeConfig()
 {
   String val;
   uint32_t name;
-  File f = SPIFFS.open(str_mConfigfile,"w");
+
+  if (!SPIFFS.exists(str_mConfigfile.c_str()))
+  {
+    ESP_LOGI(TAG,"writeConfig: file not exist");
+  }
+
+  File f = SPIFFS.open(str_mConfigfile.c_str(),"w");
   if (f)
   {   
-    //uint8_t i = 0;
     xSemaphoreTake(mParamMutex, portMAX_DELAY);
     auto iter = settingValues.begin();
     while (iter != settingValues.end())
@@ -1044,20 +1051,18 @@ boolean WebSettings::writeConfig()
       name = iter->first;
       val = iter->second;
       ++iter;
-    
-      //debugPrintf("writeConfig key:%lu, val:%s\n",name,val.c_str());
 
-      //val = value; 
       val.replace("\n","~");
       f.printf("%lu=%s\n",name,val.c_str());
-      //i++;
     }
     xSemaphoreGive(mParamMutex);
+    f.flush();
+    f.close();
     return true;
   }
   else
   {
-    debugPrintln(F("Cannot write configuration"));
+    ESP_LOGI(TAG,"Cannot write configuration");
     return false;
   }
 }
@@ -1086,8 +1091,6 @@ void WebSettings::setButtons(uint8_t buttons, String btnLabel)
     str_mButton3Text = btnLabel;
     u8_mButtons |= (1<<BUTTON_3);
   }
-
-  debugPrintln(u8_mButtons);
 }
 
 //register callback for Buttons

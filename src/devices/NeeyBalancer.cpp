@@ -8,13 +8,16 @@
 #include "BmsData.h"
 
 
-NeeyBalancer::NeeyBalancer() {
+NeeyBalancer::NeeyBalancer()
+{
 };
 
-void NeeyBalancer::init() {
+void NeeyBalancer::init()
+{
 }
 
-void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length) {
+void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
+{
 
   if(length==241)
   {
@@ -23,16 +26,16 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     for(uint8_t i=0;i<24;i++)
     {
       memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_CELVOLTAGE+(i*4), 4);
-      setBmsCellVoltage(devNr,i,(uint32_t)(f_lTmpValue*1000));
+      setBmsCellVoltage(devNr,i,(uint16_t)(f_lTmpValue*1000));
     }
 
     //Avg. Voltage
     memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_AVERAGEVOLTAGE, 4);
-    setBmsAvgVoltage(devNr,(uint32_t)(f_lTmpValue*1000));
+    setBmsAvgVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
 
     //Delta Cell Voltage
     memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_DELTACELLVOLTAGE, 4);
-    setBmsMaxCellDifferenceVoltage(devNr,(uint32_t)(f_lTmpValue*1000));
+    setBmsMaxCellDifferenceVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
    
     /*
     Errors:
@@ -62,18 +65,19 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
     setBmsErrors(devNr, u32_lErrors);
  
+    struct bmsData_s *p_lBmsData = getBmsData();
     bmsDataSemaphoreTake();
-    memcpy(&bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24); 
-    memcpy(&bmsTotalVoltage[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_TOTALVOLTAGE, 4);
-    memcpy(&bmsMaxVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MAXVOLTCELLNR, 1);
-    memcpy(&bmsMinVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MINVOLTCELLNR, 1);
-    memcpy(&bmsIsBalancingActive[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCING, 1);
-    memcpy(&bmsBalancingCurrent[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCINGCUR, 4);
-    memcpy(&bmsTempature[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR, 4*2);
+    //memcpy(&p_lBmsData->bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24); 
+    memcpy(&p_lBmsData->bmsTotalVoltage[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_TOTALVOLTAGE, 4);
+    memcpy(&p_lBmsData->bmsMaxVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MAXVOLTCELLNR, 1);
+    memcpy(&p_lBmsData->bmsMinVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MINVOLTCELLNR, 1);
+    memcpy(&p_lBmsData->bmsIsBalancingActive[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCING, 1);
+    memcpy(&p_lBmsData->bmsBalancingCurrent[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCINGCUR, 4);
+    memcpy(&p_lBmsData->bmsTempature[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR, 4*2);
     bmsDataSemaphoreGive();
 
-    uint32_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
-    uint32_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));
+    uint16_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
+    uint16_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));
     setBmsMaxCellDifferenceVoltage(devNr, f_lMacZellVoltage-f_lMinZellVoltage);
 
     setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);

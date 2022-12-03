@@ -9,6 +9,7 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <WebOTA.h>
+#include <SPIFFS.h>
 
 #include "defines.h"
 #include "WebSettings.h"
@@ -22,16 +23,24 @@
 #include "BscSerial.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
-#include "debug.h"
+#include "log.h"
+#include "i2c.h"
+#include "webUtility.h"
+#include "bscTime.h"
 
+static const char *TAG = "MAIN";
 
 WebServer server;
 BleHandler bleHanlder;
+
+//Serial
 BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);   // Hw Serial 1
 BscSerial bscSerial2(1,2,SERIAL2_PIN_RX,SERIAL2_PIN_TX,SERIAL2_PIN_TX_EN);   // Hw Serial 2
+#ifndef DEBUG_ON_HW_SERIAL
 BscSerial bscSerial3(2,0,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Hw Serial 0
-//BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
-
+#else
+BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
+#endif
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -54,9 +63,10 @@ TaskHandle_t task_handle_alarmrules = NULL;
 TaskHandle_t task_handle_onewire = NULL;
 TaskHandle_t task_handle_canbusTx = NULL;
 TaskHandle_t task_handle_bscSerial = NULL;
+TaskHandle_t task_handle_i2c = NULL;
 
 //Task semaphore
-SemaphoreHandle_t mutexTaskRunTime = NULL;
+static SemaphoreHandle_t mutexTaskRunTime = NULL;
 
 //millis des letzten runs
 uint32_t lastTaskRun_ble = 0;
@@ -64,6 +74,7 @@ uint32_t lastTaskRun_alarmrules = 0;
 uint32_t lastTaskRun_onewire = 0;
 uint32_t lastTaskRuncanbusTx = 0;
 uint32_t lastTaskRun_bscSerial = 0;
+uint32_t lastTaskRun_i2c = 0;
 
 RTC_DATA_ATTR static uint8_t bootCounter = 0;
 
@@ -75,23 +86,24 @@ bool    isBoot=true;
 bool    wifiApMode=false;        //true, wenn AP Mode
 bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
 bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
-
+bool    changeWlanData=false;
 
 void free_dump() {
-  debugPrint(F("Heap free: "));
-  debugPrintln(ESP.getFreeHeap());
+  ESP_LOGI(TAG, "Free Heap: %i", ESP.getFreeHeap());
 }
 
 
 void onWiFiEvent(WiFiEvent_t event) {
-    debugPrintf("[WiFi-event] event: %d\n", event);
+    ESP_LOGI(TAG, "[WiFi-event] event: %d", event);
     switch(event) {
     case SYSTEM_EVENT_STA_CONNECTED:
       break;
 
     case SYSTEM_EVENT_STA_GOT_IP:
       //Webserver neu starten
-        server.begin(WEBSERVER_PORT); 
+      server.begin(WEBSERVER_PORT); 
+
+      initTime();
 
       //MQTT verbinden
       if(WiFi.status() == WL_CONNECTED && webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
@@ -101,7 +113,7 @@ void onWiFiEvent(WiFiEvent_t event) {
       break;
         
     case SYSTEM_EVENT_STA_DISCONNECTED:
-      debugPrintln("WiFi lost connection");
+    ESP_LOGI(TAG, "WiFi lost connection");
       mqttDisconnect();
       server.stop(); //Webserver beenden
 
@@ -127,30 +139,30 @@ boolean connectWiFi()
 
   if(!ssid.equals("") && !pwd.equals(""))
   {
-    debugPrint("Verbindung zu ");
-    debugPrintln(ssid);
+    ESP_LOGI(TAG, "Verbindung zu &s",ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pwd.c_str());
     uint8_t cnt = 0;
     while ((WiFi.status() != WL_CONNECTED) && (cnt<30)){
       delay(1000);
-      debugPrint(":");
+      //debugPrint(":");
       cnt++;
     }
     
     if (WiFi.status() == WL_CONNECTED) {
-      debugPrint("IP-Adresse = ");
-      debugPrintln(WiFi.localIP());
+      ESP_LOGI(TAG, "IP-Adresse = &s",WiFi.localIP());
       connected=true;
       firstWlanModeSTA=true;
+      changeWlanData=true;
     }
   }
   
   if (!connected && !firstWlanModeSTA) {
     wifiApMode = true;
-    debugPrintln("Wifi AP");
+    ESP_LOGI(TAG, "Wifi AP");
     WiFi.mode(WIFI_AP);
     WiFi.softAP("BSC","",1);  
+    changeWlanData=true;
   }
   
   doConnectWiFi=false;
@@ -229,6 +241,26 @@ void task_bscSerial(void *param)
     bscSerial3.cyclicRun();
     xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
     lastTaskRun_bscSerial=millis();
+    xSemaphoreGive(mutexTaskRunTime);
+  }
+}
+
+void task_i2c(void *param)
+{
+  for (;;)
+  {
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    i2cCyclicRun(); //Sende Daten zum Display
+
+    if(changeWlanData){
+      String ipAddr;
+      if(wifiApMode) ipAddr="192.168.4.1";
+      else ipAddr = WiFi.localIP().toString();
+      i2cSendData(BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+    }
+      
+    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    lastTaskRun_i2c=millis();
     xSemaphoreGive(mutexTaskRunTime);
   }
 }
@@ -373,7 +405,8 @@ uint8_t checkTaskRun()
   if(millis()-lastTaskRun_alarmrules>2000) ret+=2;
   if(millis()-lastTaskRun_onewire>2000) ret+=4;
   if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
-  if(millis()-lastTaskRun_bscSerial>2000) ret+=16;
+  if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
+  if(millis()-lastTaskRun_i2c>4000) ret+=32;
   xSemaphoreGive(mutexTaskRunTime);
   return ret;
 }
@@ -381,23 +414,15 @@ uint8_t checkTaskRun()
 
 void setup()
 {
-  if(bootCounter!=0xFF) bootCounter++;
-
-  esp_log_level_set("*", ESP_LOG_NONE);  //ESP_LOG_NONE, ESP_LOG_VERBOSE
-
   mutexTaskRunTime = xSemaphoreCreateMutex();
-
+  if(bootCounter!=0xFF) bootCounter++;
   isBoot = true;
-
-  //Serial beenden um auf die Pins 3+1 die Softserial zu mappen
-  Serial.end();
-  Serial.setPins(SERIAL3_PIN_RX,SERIAL3_PIN_TX);
 
   //Serielle Debugausgabe
   debugInit();
 
-  debugPrintln("BSC");
-  debugPrintf("bootCounter=%i\n", bootCounter);
+  ESP_LOGI(TAG, "BSC");
+  ESP_LOGI(TAG, "bootCounter=%i", bootCounter);
 
   //init DIO 
   if(bootCounter==1) initDio(false);
@@ -406,18 +431,18 @@ void setup()
   bmsDataInit();
 
   //init WebSettings
-  webSettingsSystem.initWebSettings(&paramSystem, "System", "/WebSettings.conf",0);
-  webSettingsBluetooth.initWebSettings(&paramBluetooth, "Bluetooth", "/WebSettings.conf",0);
+  webSettingsSystem.initWebSettings(paramSystem, "System", "/WebSettings.conf",0);
+  webSettingsBluetooth.initWebSettings(paramBluetooth, "Bluetooth", "/WebSettings.conf",0);
   webSettingsBluetooth.setTimerHandlerName("getBtDevices");
-  webSettingsSerial.initWebSettings(&paramSerial, "Serial", "/WebSettings.conf",0);
-  webSettingsAlarmBt.initWebSettings(&paramAlarmBms, "Alarm Bluetooth Ger&auml;te", "/WebSettings.conf",0);
-  webSettingsAlarmTemp.initWebSettings(&paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf",0);
-  webSettingsDitialOut.initWebSettings(&paramDigitalOut, "Digitalausg&auml;nge", "/WebSettings.conf",0);
-  webSettingsDitialIn.initWebSettings(&paramDigitalIn, "Digitaleing&auml;nge", "/WebSettings.conf",0);
-  webSettingsOnewire.initWebSettings(&paramOnewireAdr, "Onewire", "/WebSettings.conf",0);
+  webSettingsSerial.initWebSettings(paramSerial, "Serial", "/WebSettings.conf",0);
+  webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm Bluetooth Ger&auml;te", "/WebSettings.conf",0);
+  webSettingsAlarmTemp.initWebSettings(paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf",0);
+  webSettingsDitialOut.initWebSettings(paramDigitalOut, "Digitalausg&auml;nge", "/WebSettings.conf",0);
+  webSettingsDitialIn.initWebSettings(paramDigitalIn, "Digitaleing&auml;nge", "/WebSettings.conf",0);
+  webSettingsOnewire.initWebSettings(paramOnewireAdr, "Onewire", "/WebSettings.conf",0);
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
-  webSettingsOnewire2.initWebSettings(&paramOnewire2, "Onewire II", "/WebSettings.conf",0);
-  webSettingsBmsToInverter.initWebSettings(&paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
+  webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf",0);
+  webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
 
   //Erstelle Timer
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectWiFi));
@@ -426,15 +451,15 @@ void setup()
   initMqtt();
 
   //init WLAN
-  debugPrintln(F("Init WLAN..."));
+  ESP_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
   connectWiFi();
-  debugPrintln(F("ok"));
+  ESP_LOGI(TAG, "Init WLAN...ok");
   
   char dns[30] = {'b','s','c'};
   if (MDNS.begin(dns))
   {
-    debugPrintln("MDNS responder gestartet");
+    ESP_LOGI(TAG, "MDNS responder gestartet");
   }
 
   //ini WebPages
@@ -461,7 +486,17 @@ void setup()
   server.on("/getDashboardData",handle_getDashboardData);
   server.on("/bmsSpg/getBmsSpgData",handle_getBmsSpgData);
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
-  
+  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  /*server.on("/log", HTTP_GET, []() {
+    File f = SPIFFS.open("/log.txt");
+    if(f) server.streamFile(f, "text/txt");
+  });
+  server.on("/log1", HTTP_GET, []() {
+    File f = SPIFFS.open("/log1.txt");
+    if(f) server.streamFile(f, "text/plain");
+  });*/
+
   webota.init(&server, "/webota"); //webota
 
   server.on("/restart/", []() {
@@ -472,14 +507,14 @@ void setup()
   });
 
   //starte webserver
-  debugPrint(F("Starte Webserver..."));
+  ESP_LOGI(TAG, "Starte Webserver...");
   server.begin(WEBSERVER_PORT);
-  debugPrintln(F("ok"));
+  ESP_LOGI(TAG, "Starte Webserver...ok");
 
   //init Bluetooth
-  debugPrint(F("Init BLE..."));
+  ESP_LOGI(TAG, "Init BLE...");
   bleHanlder.init();
-  debugPrintln(F("ok"));
+  ESP_LOGI(TAG, "Init BLE...ok");
 
   //init Onewire
   owSetup();
@@ -488,6 +523,9 @@ void setup()
   bscSerial1.initSerial();
   bscSerial2.initSerial();
   bscSerial3.initSerial();
+
+  //init i2c
+  i2cInit();
 
   //init Alarmrules
   initAlarmRules();
@@ -498,6 +536,10 @@ void setup()
   xTaskCreate(task_onewire, "ow", 3100, nullptr, 5, &task_handle_onewire);
   xTaskCreate(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx);
   xTaskCreate(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial);
+  xTaskCreate(task_i2c, "i2c", 1400, nullptr, 3, &task_handle_i2c);
+
+  //uint64_t chipid=ESP.getEfuseMac();
+  //debugPrintf("chipid=%i",chipid);
 
   previousMillis10000=millis();
   free_dump();  
@@ -507,6 +549,7 @@ void setup()
 void loop()
 {
   server.handleClient();
+  timeRunCyclic();
   
   mqttLoop();
 
@@ -515,23 +558,32 @@ void loop()
   if(currentMillis - previousMillis10000 >=10000)
   {
     u8_mTaskRunSate = checkTaskRun();
+    if(u8_mTaskRunSate!=0) ESP_LOGI(TAG,"TaskRunSate=%i",u8_mTaskRunSate);
+
+    /*ESP_LOGD(TAG, "Free Heap: %i", xPortGetFreeHeapSize());
+    ESP_LOGD(TAG, "Highwater Heap BLE: %i", uxTaskGetStackHighWaterMark(task_handle_ble));
+    ESP_LOGD(TAG, "Highwater Heap Alarmrules: %i", uxTaskGetStackHighWaterMark(task_handle_alarmrules));
+    ESP_LOGD(TAG, "Highwater Heap OW: %i", uxTaskGetStackHighWaterMark(task_handle_onewire));
+    ESP_LOGD(TAG, "Highwater Heap CAN: %i", uxTaskGetStackHighWaterMark(task_handle_canbusTx));
+    ESP_LOGD(TAG, "Highwater Heap Serial: %i", uxTaskGetStackHighWaterMark(task_handle_bscSerial));*/
 
     //Sende Daten via mqqtt, wenn aktiv
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
-    {
-      mqttPublish("sys/esp32Temp", temperatureRead()); 
-      mqttPublish("inverter/chargeCurrentSoll", getAktualChargeCurrentSoll());
-
-      mqttPublish("sys/free_heap", xPortGetFreeHeapSize());
-      mqttPublish("sys/min_free_heap", xPortGetMinimumEverFreeHeapSize());
+    {      
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_ESP32_TEMP, -1, temperatureRead());
+      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
       
-      mqttPublish("sys/highWater_task_ble", uxTaskGetStackHighWaterMark(task_handle_ble));
-      mqttPublish("sys/highWater_task_alarmrules", uxTaskGetStackHighWaterMark(task_handle_alarmrules));
-      mqttPublish("sys/highWater_task_ow", uxTaskGetStackHighWaterMark(task_handle_onewire));
-      mqttPublish("sys/highWater_task_can", uxTaskGetStackHighWaterMark(task_handle_canbusTx));
-      mqttPublish("sys/highWater_task_serial", uxTaskGetStackHighWaterMark(task_handle_bscSerial));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_FREE_HEAP, -1, xPortGetFreeHeapSize());
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_MIN_FREE_HEAP, -1, xPortGetMinimumEverFreeHeapSize());
+      
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_BLE, -1, uxTaskGetStackHighWaterMark(task_handle_ble));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_ALARMRULES, -1, uxTaskGetStackHighWaterMark(task_handle_alarmrules));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_OW, -1, uxTaskGetStackHighWaterMark(task_handle_onewire));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_CAN, -1, uxTaskGetStackHighWaterMark(task_handle_canbusTx));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_SERIAL, -1, uxTaskGetStackHighWaterMark(task_handle_bscSerial));
     }
-
+    
+    //ESP_LOGD(TAG, "uptime=%i", millis()/1000);
     previousMillis10000 = currentMillis;
   }
 }

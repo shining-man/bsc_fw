@@ -10,7 +10,9 @@
 #include "devices/JkBms.h"
 #include "WebSettings.h"
 #include "BmsData.h"
-#include "debug.h"
+#include "log.h"
+
+static const char *TAG = "BSC_SERIAL";
 
 BscSerial::BscSerial()
 {
@@ -53,7 +55,7 @@ void BscSerial::initSerial()
   }
 
   uint8_t funktionsTyp = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_mSerialNr,0);
-  debugPrintf("initSerial u8_mSerialNr=%i, funktionsTyp=%i\n",u8_mSerialNr,funktionsTyp);
+  ESP_LOGI(TAG, "initSerial u8_mSerialNr=%i, funktionsTyp=%i",u8_mSerialNr,funktionsTyp);
   setReadBmsFunktion(funktionsTyp);
 }
 
@@ -104,10 +106,13 @@ void BscSerial::setSerialBaudrate(uint32_t baudrate)
   }
   else if(u8_mSerialNr==2)
   {
+    #ifndef DEBUG_ON_HW_SERIAL
     Serial.end();
     setHwSerial(baudrate);
-    //static_cast<SoftwareSerial*>(stream_mPort)->end();
-    //setSoftSerial(baudrate);
+    #else
+    static_cast<SoftwareSerial*>(stream_mPort)->end();
+    setSoftSerial(baudrate);
+    #endif
   }
 }
 
@@ -122,13 +127,13 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       break;
 
     case ID_SERIAL_DEVICE_JBDBMS:
-      debugPrintln("setReadBmsFunktion JBD-BMS");
+      ESP_LOGI(TAG,"setReadBmsFunktion JBD-BMS");
       setSerialBaudrate(9600);
       readBms = &JbdBms_readBmsData;
       break;
 
     case ID_SERIAL_DEVICE_JKBMS:
-      debugPrintln("setReadBmsFunktion JK-BMS");
+      ESP_LOGI(TAG,"setReadBmsFunktion JK-BMS");
       setSerialBaudrate(115200);
       readBms = &JkBms_readBmsData;
       break;

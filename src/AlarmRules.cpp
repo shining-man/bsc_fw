@@ -13,7 +13,7 @@
 
 
 TimerHandle_t timer_doOffPulse;
-SemaphoreHandle_t doMutex = NULL;
+static SemaphoreHandle_t doMutex = NULL;
 
 
 bool bo_Alarm[CNT_ALARMS];
@@ -52,7 +52,8 @@ void initAlarmRules()
     //Initialwerte per mqqt senden
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {
-      mqttPublish("alarm/"+String(i+1), bo_Alarm[i]);
+      mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
+      
     }  
   }
 
@@ -72,6 +73,16 @@ void initAlarmRules()
 bool getAlarm(uint8_t alarmNr)
 {
   return bo_Alarm[alarmNr];
+}
+
+uint16_t getAlarm()
+{
+  uint16_t u16_lAlm=0;
+  for(uint8_t i=0; i<10;i++)
+  {
+    u16_lAlm |= (bo_Alarm[i] << i);
+  }
+  return u16_lAlm;
 }
 
 void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
@@ -98,7 +109,7 @@ void runAlarmRules()
   uint8_t i,tmp;
 
   //Toggle LED
-  u8_mDoByte ^= (1 << 7); 
+  if(getHwVersion()==0) u8_mDoByte ^= (1 << 7); 
 
   //Merker vor jedem run auf false setzen
   for(i=0;i<CNT_ALARMS;i++){bo_alarmActivate[i]=false;}
@@ -126,7 +137,7 @@ void runAlarmRules()
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
       {
-        mqttPublish("alarm/"+String(i+1), bo_Alarm[i]);
+        mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
       //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut
@@ -238,7 +249,7 @@ void rules_Bms()
   {
     bool b_lBmsOnline=true;
     if((millis()-getBmsLastDataMillis(i))>2000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
-    //debugPrintf("i=%i, b_lBmsOnline=%i\n",i,b_lBmsOnline);
+    //debugPrintf("i=%i, b_lBmsOnline=%i",i,b_lBmsOnline);
 
     //Ist überhaupt ein Device parametriert?
     if((i<BT_DEVICES_COUNT && !WebSettings::getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB)) && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals("")) ||
@@ -251,7 +262,7 @@ void rules_Bms()
         if((millis()-getBmsLastDataMillis(i))>(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
         {
           //Alarm
-          //debugPrintf("BT Alarm (%i)\n",i);
+          //debugPrintf("BT Alarm (%i)",i);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,true);
         }
@@ -263,19 +274,19 @@ void rules_Bms()
       }
 
       //Überwachung Zellspannung
-      //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i\n",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
+      //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
       if(b_lBmsOnline==true && WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0)) //BleHandler::bmsIsConnect(i)
       {
-      //debugPrintf("Zell Spg. Outside cellCnt=%i\n",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
+      //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
         {
-          //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i\n",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
+          //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
           if(getBmsCellVoltage(i,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0) || getBmsCellVoltage(i,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0))
           {
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,true);
-            ESP_LOGD("AlarmRules", "Zell Spg. Outside (%i) alarmNr=%i\n", i,tmp);
+            ESP_LOGD("AlarmRules", "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
@@ -379,8 +390,6 @@ void rules_CanInverter()
         canSetSocToFull(false);
       }
   }
-
-  
 }
 
 
@@ -456,7 +465,7 @@ void doOffPulse(TimerHandle_t xTimer)
     }
     else if(bo_DoPulsOffCounter[i] == 1)
     {
-      //debugPrintf("DO off - Impuls(%i)\n",i);
+      //debugPrintf("DO off - Impuls(%i)",i);
 
       bo_DoPulsOffCounter[i]=0;
 
