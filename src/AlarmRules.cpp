@@ -161,6 +161,8 @@ void runAlarmRules()
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
               ESP_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
+              //esp_log_write(ESP_LOG_VERBOSE, TAG, F("(%u) %s: Alarm geht (AlarmNr=%i)"), i); //D (367438) ALARM: Alarm BMS Temperatur - 0; Alarm 0
+              //esp_log_write(ESP_LOG_VERBOSE, TAG, F("Alarm geht")); //D (367438) ALARM: Alarm BMS Temperatur - 0; Alarm 0
               u8_mDoByte &= ~(1 << o); //bit loeschen
             }
           }
