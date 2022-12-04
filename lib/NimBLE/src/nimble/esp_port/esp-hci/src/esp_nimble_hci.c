@@ -91,7 +91,7 @@ int ble_hci_trans_hs_cmd_tx(uint8_t *cmd)
     *cmd = BLE_HCI_UART_H4_CMD;
     len = BLE_HCI_CMD_HDR_LEN + cmd[3] + 1;
     if (!esp_vhci_host_check_send_available()) {
-        ESP_LOGD(TAG, "Controller not ready to receive packets");
+        ESP_LOGD(TAG, "Controller not ready to receive packets (cmd)");
     }
 
     if (xSemaphoreTake(vhci_send_sem, NIMBLE_VHCI_TIMEOUT_MS / portTICK_PERIOD_MS) == pdTRUE) {
@@ -146,7 +146,7 @@ int ble_hci_trans_hs_acl_tx(struct os_mbuf *om)
     }
 
     if (!esp_vhci_host_check_send_available()) {
-        ESP_LOGD(TAG, "Controller not ready to receive packets");
+        ESP_LOGD(TAG, "Controller not ready to receive packets (acl)");
     }
 
     len = 1 + OS_MBUF_PKTLEN(om);

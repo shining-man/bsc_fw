@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.1"
+#define BSC_SW_VERSION      "V0.2.2"
 
 //Debug
 #define DEBUG_ON_FS
@@ -35,6 +35,8 @@
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
+#define BT_SCAN_RESULTS               5
+#define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      3
