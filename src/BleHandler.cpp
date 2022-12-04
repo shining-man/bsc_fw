@@ -421,6 +421,7 @@ void BleHandler::run()
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
+          ESP_LOGD(TAG, "doStartBtScan -> Device %i",i);
           doStartBtScan = true;
         }
       }
@@ -476,6 +477,7 @@ void BleHandler::run()
   }
   if(u8_mScanAndNotConnectTimer==1)
   {
+    ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
     btScanIsRunning=false;
   }
