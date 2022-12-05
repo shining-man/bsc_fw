@@ -11,6 +11,6 @@
 void initTime();
 void timeRunCyclic();
 String getBscTime();
-String getBscLogTime();
+String getBscDateTime();
 
 #endif

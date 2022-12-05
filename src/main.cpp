@@ -543,6 +543,9 @@ void setup()
 
   previousMillis10000=millis();
   free_dump();  
+
+  timeRunCyclic(); //Hole 1x die Zeit
+  ESP_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
 }
 
 

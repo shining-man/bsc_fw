@@ -72,7 +72,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
         ESP_LOGI(TAG, "Disconnected Device %s", i);
         bleDevices[i].isConnect = false;
         bleDevices[i].doConnect = btDoConnectionIdle; 
-        bleDevices[i].deviceTyp = "";
+        bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
         bleDevices[i].macAdr = "";
       }
     }
@@ -126,7 +126,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
           NimBLEDevice::getScan()->stop();
         
           advDevice = advertisedDevice;   
-          bleDevices[i].deviceTyp = webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0);
+          bleDevices[i].deviceTyp = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
           bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0);
           bleDevices[i].doConnect = btDoConnect;
      
@@ -149,7 +149,7 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
     {
       setBmsLastDataMillis(i,millis());
 
-      if(bleDevices[i].deviceTyp.equals(String(ID_BT_DEVICE_NEEY4A)))
+      if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
       {
         //Daten kopieren
         NeeyBalancer::neeyBalancerCopyData(i, pData, length);
@@ -362,7 +362,7 @@ void BleHandler::init()
     bleDevices[i].doDisconnect = false;
     bleDevices[i].isConnect = false;
     bleDevices[i].macAdr = "";
-    bleDevices[i].deviceTyp = "";
+    bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
     setBmsLastDataMillis(i,0);
 
     for(uint8_t n=0;n<24;n++)
@@ -416,7 +416,7 @@ void BleHandler::run()
     if(!btScanIsRunning) 
     {
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
-      if(webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB))==false) //Wenn ein Device parametriert ist
+      if(webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
       {
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
@@ -428,7 +428,7 @@ void BleHandler::run()
 
       if(bleDevices[i].doConnect == btDoConnect)
       {
-        if(bleDevices[i].deviceTyp.equals(String(ID_BT_DEVICE_NEEY4A))) //Wenn ein NEEY Balancer 4A konfiguriert ist
+        if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A) //Wenn ein NEEY Balancer 4A konfiguriert ist
         {
           bleDevices[i].doConnect = btConnectionSetup; //Verbdinung wird hergestellt
 
@@ -477,6 +477,7 @@ void BleHandler::run()
   }
   if(u8_mScanAndNotConnectTimer==1)
   {
+    u8_mScanAndNotConnectTimer=0;
     ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
     btScanIsRunning=false;

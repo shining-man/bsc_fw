@@ -26,8 +26,9 @@ String getBscTime()
   return timeClient.getFormattedTime();
 }
 
-String getBscLogTime()
+String getBscDateTime()
 {
-  return timeClient.getFormattedTime() + "; ";
+  const time_t old = (time_t)timeClient.getEpochTime();
+  struct tm *oldt = gmtime(&old);
+  return asctime(oldt);
 }
-
