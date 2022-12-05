@@ -45,3 +45,10 @@ Alle Einstellungen sind frei über eine Weboberfläche parametrierbar.
 * [Discussions](https://github.com/shining-man/bsc_fw/discussions)
 * [PCB](https://github.com/shining-man/bsc_hw)
 * [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
+
+## Statusdisplay
+Um den Status des BSC und den verbundenen BMSen anzuzeigen gibt es für den BSC ein Statusdisplay.<br>
+Weitere Details dazu sind im Github Projekt des Displays.<br>
+[GitHub-Projekt Display](https://github.com/shining-man/bsc_display)<br>
+<br>
+![Picture_BSC_Display_Home](https://github.com/shining-man/bsc_display/blob/main/img/Disp_Home.jpg?raw=true)<br>
