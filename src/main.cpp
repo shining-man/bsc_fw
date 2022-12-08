@@ -175,6 +175,13 @@ boolean connectWiFi()
 */
 void task_ble(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_ble' runs on core %d", xPortGetCoreID());
+
+  //init Bluetooth
+  ESP_LOGI(TAG, "Init BLE...");
+  bleHanlder.init();
+  ESP_LOGI(TAG, "Init BLE...ok");
+
   for(;;)
   {
   vTaskDelay(pdMS_TO_TICKS(2000));
@@ -195,6 +202,11 @@ void task_ble(void *param)
 
 void task_alarmRules(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
+
+  //init Alarmrules
+  initAlarmRules();
+
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -207,6 +219,11 @@ void task_alarmRules(void *param)
 
 void task_onewire(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_onewire' runs on core %d", xPortGetCoreID());
+
+  //init Onewire
+  owSetup();
+
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -219,6 +236,8 @@ void task_onewire(void *param)
 
 void task_canbusTx(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_canbusTx' runs on core %d", xPortGetCoreID());
+
   canSetup();
 
   for (;;)
@@ -233,6 +252,13 @@ void task_canbusTx(void *param)
 
 void task_bscSerial(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_bscSerial' runs on core %d", xPortGetCoreID());
+
+  //init Serial
+  bscSerial1.initSerial();
+  bscSerial2.initSerial();
+  bscSerial3.initSerial();
+
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -247,6 +273,11 @@ void task_bscSerial(void *param)
 
 void task_i2c(void *param)
 {
+  ESP_LOGD(TAG, "-> 'task_i2c' runs on core %d", xPortGetCoreID());
+
+  //init i2c
+  i2cInit();
+
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
@@ -397,6 +428,14 @@ void handle_getOnewireDeviceAdr()
 }
 
 
+void btnSystemDeleteLog()
+{
+  SPIFFS.remove("/log.txt");
+  SPIFFS.remove("/log1.txt");
+  ESP_LOGI(TAG, "Logfiles deleted");
+}
+
+
 uint8_t checkTaskRun()
 {
   uint8_t ret = 0;
@@ -444,6 +483,9 @@ void setup()
   webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf",0);
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
 
+  webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
+  webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
+
   //Erstelle Timer
   wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectWiFi));
    
@@ -488,14 +530,6 @@ void setup()
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  /*server.on("/log", HTTP_GET, []() {
-    File f = SPIFFS.open("/log.txt");
-    if(f) server.streamFile(f, "text/txt");
-  });
-  server.on("/log1", HTTP_GET, []() {
-    File f = SPIFFS.open("/log1.txt");
-    if(f) server.streamFile(f, "text/plain");
-  });*/
 
   webota.init(&server, "/webota"); //webota
 
@@ -511,35 +545,17 @@ void setup()
   server.begin(WEBSERVER_PORT);
   ESP_LOGI(TAG, "Starte Webserver...ok");
 
-  //init Bluetooth
-  ESP_LOGI(TAG, "Init BLE...");
-  bleHanlder.init();
-  ESP_LOGI(TAG, "Init BLE...ok");
-
-  //init Onewire
-  owSetup();
-
-  //Serial
-  bscSerial1.initSerial();
-  bscSerial2.initSerial();
-  bscSerial3.initSerial();
-
-  //init i2c
-  i2cInit();
-
-  //init Alarmrules
-  initAlarmRules();
-
   //Erstelle Tasks
-  xTaskCreate(task_ble, "ble", 3000, nullptr, 5, &task_handle_ble);
-  xTaskCreate(task_alarmRules, "alarmrules", 2700, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules);
-  xTaskCreate(task_onewire, "ow", 3100, nullptr, 5, &task_handle_onewire);
-  xTaskCreate(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx);
-  xTaskCreate(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial);
-  xTaskCreate(task_i2c, "i2c", 1400, nullptr, 3, &task_handle_i2c);
+  xTaskCreatePinnedToCore(task_ble, "ble", 3000, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
+  xTaskCreatePinnedToCore(task_onewire, "ow", 3100, nullptr, 5, &task_handle_onewire, 1);
+  xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial, 1);
+  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2700, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
+  xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
+  xTaskCreatePinnedToCore(task_i2c, "i2c", 2000, nullptr, 3, &task_handle_i2c, 1);
 
-  //uint64_t chipid=ESP.getEfuseMac();
-  //debugPrintf("chipid=%i",chipid);
+ 
+  //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
+
 
   previousMillis10000=millis();
   free_dump();  
@@ -563,13 +579,6 @@ void loop()
     u8_mTaskRunSate = checkTaskRun();
     if(u8_mTaskRunSate!=0) ESP_LOGI(TAG,"TaskRunSate=%i",u8_mTaskRunSate);
 
-    /*ESP_LOGD(TAG, "Free Heap: %i", xPortGetFreeHeapSize());
-    ESP_LOGD(TAG, "Highwater Heap BLE: %i", uxTaskGetStackHighWaterMark(task_handle_ble));
-    ESP_LOGD(TAG, "Highwater Heap Alarmrules: %i", uxTaskGetStackHighWaterMark(task_handle_alarmrules));
-    ESP_LOGD(TAG, "Highwater Heap OW: %i", uxTaskGetStackHighWaterMark(task_handle_onewire));
-    ESP_LOGD(TAG, "Highwater Heap CAN: %i", uxTaskGetStackHighWaterMark(task_handle_canbusTx));
-    ESP_LOGD(TAG, "Highwater Heap Serial: %i", uxTaskGetStackHighWaterMark(task_handle_bscSerial));*/
-
     //Sende Daten via mqqtt, wenn aktiv
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
@@ -585,8 +594,7 @@ void loop()
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_CAN, -1, uxTaskGetStackHighWaterMark(task_handle_canbusTx));
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_SERIAL, -1, uxTaskGetStackHighWaterMark(task_handle_bscSerial));
     }
-    
-    //ESP_LOGD(TAG, "uptime=%i", millis()/1000);
+
     previousMillis10000 = currentMillis;
   }
 }
