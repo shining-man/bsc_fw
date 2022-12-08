@@ -161,8 +161,6 @@ void runAlarmRules()
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
               ESP_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
-              //esp_log_write(ESP_LOG_VERBOSE, TAG, F("(%u) %s: Alarm geht (AlarmNr=%i)"), i); //D (367438) ALARM: Alarm BMS Temperatur - 0; Alarm 0
-              //esp_log_write(ESP_LOG_VERBOSE, TAG, F("Alarm geht")); //D (367438) ALARM: Alarm BMS Temperatur - 0; Alarm 0
               u8_mDoByte &= ~(1 << o); //bit loeschen
             }
           }
@@ -235,12 +233,12 @@ void getDIs()
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,true); 
-        ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,false);
-        ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
       }
     }
     else
@@ -248,12 +246,12 @@ void getDIs()
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,false);
-        ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,true);
-        ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
       }
     }
   }
@@ -284,13 +282,13 @@ void rules_Bms()
           //debugPrintf("BT Alarm (%i)",i);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,true);
-          ESP_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
+          //ESP_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
         }
         else
         {
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,false);
-          ESP_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
+          //ESP_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
         }
       }
 
@@ -307,14 +305,14 @@ void rules_Bms()
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,true);
-            ESP_LOGD("AlarmRules", "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
+            //ESP_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
           {
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,false);
-            ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
+            //ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
       }
@@ -327,12 +325,12 @@ void rules_Bms()
         {
           //Alarm
           setAlarm(u8_lAlarm,true);
-          ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
+          //ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
         }
         else
         {
           setAlarm(u8_lAlarm,false);
-          ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
+          //ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
         }
       }
     }
@@ -375,7 +373,7 @@ void rules_Temperatur()
 
       alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,0,i,0);
       setAlarm(alarmNr,bo_lAlarm);
-      ESP_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
+      //ESP_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
 }
