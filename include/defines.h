@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.4"
+#define BSC_SW_VERSION      "V0.2.5"
 
 //Debug
 #define DEBUG_ON_FS
@@ -145,7 +145,12 @@
 #define ID_PARAM_MQTT_USERNAME  86
 #define ID_PARAM_MQTT_PWD       87
 
-//#define ID_PARAM_DISPLAY_ENABLE                                         
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN      88 
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG     89
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC     90
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME    91
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END 92
+
 
 
 
@@ -213,11 +218,12 @@
 /*********************************************
  * MQTT
  *********************************************/
-#define MQTT_TOPIC_BMS                           1
+#define MQTT_TOPIC_BMS_BT                        1
 #define MQTT_TOPIC_TEMPERATUR                    2
 #define MQTT_TOPIC_ALARM                         3
 #define MQTT_TOPIC_INVERTER                      4
 #define MQTT_TOPIC_SYS                           5
+#define MQTT_TOPIC_BMS_SERIAL                    6
 
 #define MQTT_TOPIC2_CELL_VOLTAGE                11
 #define MQTT_TOPIC2_CELL_VOLTAGE_MAX            12
@@ -249,12 +255,12 @@
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
-  "bms",           // 1
+  "bms/bt",        // 1
   "temperatur",    // 2
   "alarm",         // 3
   "inverter",      // 4
   "sys",           // 5
-  "", // 6
+  "bms/serial",    // 6
   "", // 7
   "", // 8
   "", // 9

@@ -181,7 +181,7 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
         }
         else if (searchState == 3) //Kein Array
         {
-            if ((json[p] == '\'') || (json[p] == ',') || (json[p] == '}')) //String Ende
+            if ((json[p]=='\'') || ((json[p]==',')&&(json[p+1]!=' ')) || (json[p]=='}')) //String Ende
             {
                 retValue = label;
                 return true;
