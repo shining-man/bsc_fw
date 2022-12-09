@@ -69,7 +69,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     {
       if(bleDevices[i].macAdr.equals(devMacAdr.c_str()))
       {
-        ESP_LOGI(TAG, "Disconnected Device %s", i);
+        ESP_LOGI(TAG, "Disconnected Device %i", i);
         bleDevices[i].isConnect = false;
         bleDevices[i].doConnect = btDoConnectionIdle; 
         bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
