@@ -64,7 +64,6 @@ public:
   
   void setTimerHandlerName(String handlerName, uint16_t timerSec=1000);
   void handleHtmlFormRequest(WebServer * server);
-  void sendContentHtml(WebServer *server, const char *buf, bool send);
 
   static uint32_t getParmId(uint16_t id, uint8_t settingNr, uint8_t groupIdx, uint8_t listIdx);
   static void     getIdFromParamId(uint32_t paramId, uint16_t &id, uint8_t &settingNr, uint8_t &groupIdx, uint8_t &listIdx);
@@ -91,6 +90,7 @@ private:
 
   void getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos);
   void buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos);
+  void sendContentHtml(WebServer *server, const char *buf, bool send);
   //void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
 
   bool isKeyExist(uint32_t key);

@@ -22,7 +22,7 @@ struct bleDevice {
   btDoConnectEnums doConnect;
   bool doDisconnect;
   String macAdr;
-  String deviceTyp;
+  uint8_t deviceTyp;
   NimBLERemoteCharacteristic* pChr;
 };
 

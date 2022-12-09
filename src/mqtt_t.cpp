@@ -175,6 +175,16 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 {
   if(bo_mIsConnected==false) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
 
+  //Wenn BMS msg, dann msg anpassen
+  if(t1==MQTT_TOPIC_BMS_BT)
+  {
+    if(t2>=BT_DEVICES_COUNT)
+    {
+      t1=MQTT_TOPIC_BMS_SERIAL;
+      t2=t2-BT_DEVICES_COUNT;
+    }
+  }
+
   struct mqttEntry_s mqttEntry;
   mqttEntry.t1=t1;
   mqttEntry.t2=t2;
@@ -269,44 +279,46 @@ void mqttPublishBmsData(uint8_t i)
 {
   if(bo_mIsConnected==false) return; //Wenn nicht verbunden, dann zurück
   
+
+
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {
-    mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE, n, getBmsCellVoltage(i,n));
+    mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE, n, getBmsCellVoltage(i,n));
   }
 
   //Max. Cell Voltage
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE_MAX, -1, getBmsMaxCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE_MAX, -1, getBmsMaxCellVoltage(i));
 
   //Min. Cell Voltage
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN, -1, getBmsMinCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN, -1, getBmsMinCellVoltage(i));
   
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
-  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS_BT, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
 
   //maxCellDifferenceVoltage
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_MAXCELL_DIFFERENCE_VOLTAGE, -1, getBmsMaxCellDifferenceVoltage(i));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_MAXCELL_DIFFERENCE_VOLTAGE, -1, getBmsMaxCellDifferenceVoltage(i));
 
   //totalCurrent
   //if(i>4) mqttPublish("bms/"+String(i)+"/totalCurrent", getBmsTotalCurrent(i));
 
   //balancingActive
-  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_BALANCING_ACTIVE, -1, getBmsIsBalancingActive(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_BALANCING_ACTIVE, -1, getBmsIsBalancingActive(i));
 
   //balancingCurrent
-  if(i<=4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_BALANCING_CURRENT, -1, getBmsBalancingCurrent(i));
+  if(i<=4) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_BALANCING_CURRENT, -1, getBmsBalancingCurrent(i));
 
   //tempature
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 0, getBmsTempature(i,0));
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 1, getBmsTempature(i,1));
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_TEMPERATURE, 2, getBmsTempature(i,2));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_TEMPERATURE, 0, getBmsTempature(i,0));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_TEMPERATURE, 1, getBmsTempature(i,1));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_TEMPERATURE, 2, getBmsTempature(i,2));
 
   //chargePercent
-  if(i>4) mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
+  if(i>4) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
 
   //Errors
-  mqttPublish(MQTT_TOPIC_BMS, i, MQTT_TOPIC2_ERRORS, -1, getBmsErrors(i));
+  mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_ERRORS, -1, getBmsErrors(i));
 }
 
 
