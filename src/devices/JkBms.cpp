@@ -39,8 +39,8 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
     JkBms_parseData(response);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJk));
-    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNrJk));
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJk));
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNrJk));
   }
   else
   {
@@ -84,10 +84,10 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
     if(millis()-u32_lStartTime > 200) 
     {
       ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNrJk, u16_lRecvDataLen, u16_mLastRecvBytesCntJk);
-      for(uint16_t x=0;x<u16_mLastRecvBytesCntJk;x++)
+      /*for(uint16_t x=0;x<u16_mLastRecvBytesCntJk;x++)
       {
         ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
-      }
+      }*/
       return false;
     }
 
@@ -393,8 +393,8 @@ bit12 software lock MOS                               |  x  |    |
   if(millis()>(mqttSendeTimer_jk+10000))
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
     mqttSendeTimer_jk=millis();
   }

@@ -134,7 +134,7 @@
 // #define CONFIG_BT_NIMBLE_MEM_ALLOC_MODE_EXTERNAL 1
 
 /** @brief Un-comment to change the core NimBLE host runs on */
- #define CONFIG_BT_NIMBLE_PINNED_TO_CORE 1
+// #define CONFIG_BT_NIMBLE_PINNED_TO_CORE 1
 
 /** @brief Un-comment to change the stack size for the NimBLE host task */
 // #define CONFIG_BT_NIMBLE_HOST_TASK_STACK_SIZE 5120
