@@ -395,6 +395,15 @@ void handle_getDashboardData()
   tmp += "|";
   tmp += String(u8_mTaskRunSate);
   
+  //5. BT-Devices
+  tmp += "|";
+  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  {
+    tmp += bleHanlder.bmsIsConnect(i);
+    if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
+    if(i==4) tmp += "|";
+  }
+
   server.send(200, "text/html", tmp.c_str());
 }
 
