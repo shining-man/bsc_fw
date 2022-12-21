@@ -233,6 +233,7 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);

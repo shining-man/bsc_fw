@@ -95,6 +95,9 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
     if (mPortJk->available() > 0)
     {
       u8_lRecvByte = mPortJk->read();
+
+      ESP_LOGD(TAG,"%02x ",u8_lRecvByte);
+
       if(u16_mLastRecvBytesCntJk<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
 
       switch (SMrecvState)  {

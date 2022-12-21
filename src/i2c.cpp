@@ -9,7 +9,7 @@
 #include "log.h"
 #include "WebSettings.h"
 #include "Canbus.h"
-#include "Alarmrules.h"
+#include "AlarmRules.h"
 #include "BmsData.h"
 
 static const char *TAG = "I2C";

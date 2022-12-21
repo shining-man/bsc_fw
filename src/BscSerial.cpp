@@ -8,9 +8,11 @@
 #include "defines.h"
 #include "devices/JbdBms.h"
 #include "devices/JkBms.h"
+#include "devices/JkBmsV13.h"
 #include "WebSettings.h"
 #include "BmsData.h"
 #include "log.h"
+
 
 static const char *TAG = "BSC_SERIAL";
 
@@ -137,6 +139,12 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       setSerialBaudrate(115200);
       readBms = &JkBms_readBmsData;
       break;
+
+    case ID_SERIAL_DEVICE_JKBMS_V13:
+      ESP_LOGI(TAG,"setReadBmsFunktion JK-BMS V1.3");
+      setSerialBaudrate(9600);
+      readBms = &JkBmsV13_readBmsData;
+      break;      
    
     default:
       readBms = 0;
