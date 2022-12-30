@@ -81,12 +81,16 @@ RTC_DATA_ATTR static uint8_t bootCounter = 0;
 unsigned long currentMillis;
 unsigned long previousMillis10000;
 
-uint8_t u8_mTaskRunSate=false;   //Status ob alle Tasks laufen
+uint8_t u8_mTaskRunSate=0;   //Status ob alle Tasks laufen
 bool    isBoot=true;
 bool    wifiApMode=false;        //true, wenn AP Mode
 bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
 bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
 bool    changeWlanData=false;
+
+//
+void task_ble(void *param);
+
 
 void free_dump() {
   ESP_LOGI(TAG, "Free Heap: %i", ESP.getFreeHeap());
@@ -113,7 +117,7 @@ void onWiFiEvent(WiFiEvent_t event) {
       break;
         
     case SYSTEM_EVENT_STA_DISCONNECTED:
-    ESP_LOGI(TAG, "WiFi lost connection");
+      //ESP_LOGI(TAG, "WiFi lost connection");
       mqttDisconnect();
       server.stop(); //Webserver beenden
 
@@ -136,16 +140,15 @@ boolean connectWiFi()
   boolean connected = false;
   String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
   String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
-
+  
   if(!ssid.equals("") && !pwd.equals(""))
   {
-    ESP_LOGI(TAG, "Verbindung zu &s",ssid);
+    ESP_LOGI(TAG, "Verbindung zu %s",ssid);
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pwd.c_str());
     uint8_t cnt = 0;
     while ((WiFi.status() != WL_CONNECTED) && (cnt<30)){
       delay(1000);
-      //debugPrint(":");
       cnt++;
     }
     
@@ -157,7 +160,7 @@ boolean connectWiFi()
     }
   }
   
-  if (!connected && !firstWlanModeSTA) {
+  if (!connected /*&& !firstWlanModeSTA*/) {
     wifiApMode = true;
     ESP_LOGI(TAG, "Wifi AP");
     WiFi.mode(WIFI_AP);
@@ -441,6 +444,12 @@ void btnSystemDeleteLog()
 {
   SPIFFS.remove("/log.txt");
   SPIFFS.remove("/log1.txt");
+  if(SPIFFS.exists("/log.txt")) //Wenn Log-Datei immer noch vorhanden
+  {
+    SPIFFS.format();
+    delay(100);
+    webSettingsSystem.writeConfig();
+  }
   ESP_LOGI(TAG, "Logfiles deleted");
 }
 
@@ -539,6 +548,7 @@ void setup()
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   webota.init(&server, "/webota"); //webota
 
@@ -560,7 +570,7 @@ void setup()
   xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial, 1);
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2700, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
-  xTaskCreatePinnedToCore(task_i2c, "i2c", 2000, nullptr, 3, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
 
  
   //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
@@ -577,16 +587,20 @@ void setup()
 void loop()
 {
   server.handleClient();
-  timeRunCyclic();
+  //timeRunCyclic();
   
   mqttLoop();
 
   currentMillis = millis();
 
-  if(currentMillis - previousMillis10000 >=10000)
+  if(currentMillis-previousMillis10000>=10000)
   {
-    u8_mTaskRunSate = checkTaskRun();
-    if(u8_mTaskRunSate!=0) ESP_LOGI(TAG,"TaskRunSate=%i",u8_mTaskRunSate);
+    uint8_t u8_lTaskRunSate=checkTaskRun();
+    if(u8_mTaskRunSate!=u8_lTaskRunSate)
+    {
+      ESP_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
+      u8_mTaskRunSate=u8_lTaskRunSate;
+    }
 
     //Sende Daten via mqqtt, wenn aktiv
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
