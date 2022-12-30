@@ -18,9 +18,7 @@ NimBLEAdvertisedDevice* advDevice;
 
 WebSettings webSettings;
 
-//static boolean doStartBtScan   = false; 
 static boolean btScanIsRunning = false; 
-
 uint8_t u8_mScanAndNotConnectTimer;
 
 NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
@@ -29,7 +27,6 @@ NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
 byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
 
 std::string notifyMacAdr;
-
 
 class ClientCallbacks : public NimBLEClientCallbacks
 {
@@ -52,7 +49,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
       if(bleDevices[i].macAdr.equals(devMacAdr))
       {
         bleDevices[i].isConnect = true;
-        bleDevices[i].doConnect = btDoConnectionIdle; 
+        bleDevices[i].doConnect = btDoConnectionWaitStart; 
         setBmsLastDataMillis(i,millis());
       }
     }
@@ -176,7 +173,6 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
 void scanCompleteCB(NimBLEScanResults scanResults) {
 	//debugPrintf("Scan complete! %i Devices found",scanResults.getCount());
 } 
-
 
 /** Create a single global instance of the callback class to be used by all clients */
 static ClientCallbacks clientCB;
@@ -386,6 +382,13 @@ void BleHandler::init()
   //pBLEScan->start(1);   
 };
 
+/*void BleHandler::stop()
+{
+  pBLEScan->stop();
+  pBLEScan->clearResults();
+  NimBLEDevice::deinit(true);
+}*/
+
 void BleHandler::startScan()
 {
   startManualScan=true;
@@ -403,60 +406,83 @@ bool BleHandler::isScanFinish()
   }
 }
 
-
+static uint8_t reConTimer=0;
 void BleHandler::run()
 {
   static uint8_t i;
-  boolean doStartBtScan=false; 
+  boolean bo_lDoStartBtScan=false; 
+  uint8_t u8_lBtConnStatus=0;
 
-  //BT Devices verbinden 
-  for(i=0;i<BT_DEVICES_COUNT;i++)
+  //Nur wenn nicht nach BT Devices gesucht wird
+  if(!btScanIsRunning) 
   {
-    //Nur wenn nicht nach BT Devices gesucht wird
-    if(!btScanIsRunning) 
+    //BT Devices verbinden 
+    for(i=0;i<BT_DEVICES_COUNT;i++)
     {
+      uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
-      if(webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
+      if(u8_lBtDevType>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
       {
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
-          ESP_LOGD(TAG, "doStartBtScan -> Device %i",i);
-          doStartBtScan = true;
+          ESP_LOGD(TAG, "bo_lDoStartBtScan -> Device %i",i);
+          bo_lDoStartBtScan = true;
         }
       }
 
       if(bleDevices[i].doConnect == btDoConnect)
       {
-        if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A) //Wenn ein NEEY Balancer 4A konfiguriert ist
-        {
-          bleDevices[i].doConnect = btConnectionSetup; //Verbdinung wird hergestellt
+        bleDevices[i].doConnect = btConnectionSetup; //Verbdinung wird hergestellt
 
-          if(bleNeeyBalancerConnect(i))
+        if(bleNeeyBalancerConnect(i))
+        {
+          //bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
+          u8_lBtConnStatus|=(1<<i);
+        }
+        else //Wenn Verbingungsversuch fehgeschlagen
+        {
+          bleDevices[i].doConnect = btDoConnectionIdle; 
+        }
+      }
+      else //Wenn keine Verbindungsaufforderung besteht
+      {
+        if((u8_lBtDevType==ID_BT_DEVICE_NB) || (u8_lBtDevType>ID_BT_DEVICE_NB && bleDevices[i].isConnect)){u8_lBtConnStatus|=(1<<i);}
+      }
+    }
+
+    //Wenn alle Geräte verbunden sind
+    //ESP_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
+    if(u8_lBtConnStatus==0x7F)
+    {
+      for(i=0;i<BT_DEVICES_COUNT;i++)
+      {
+        if(bleDevices[i].doConnect==btDoConnectionWaitStart)
+        {
+          if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
           {
+            ESP_LOGI(TAG,"BT write dev=%i",i);
             bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
-          }
-          else //Wenn Verbingungsversuch fehgeschlagen
-          {
             bleDevices[i].doConnect = btDoConnectionIdle; 
-          }
+          }  
         }
       }
     }
   }
-  
+
+
   //Manuellen scan starten
   if(startManualScan)
   {
     startManualScan=false;
-    if(!btScanIsRunning) doStartBtScan=true;
+    if(!btScanIsRunning) bo_lDoStartBtScan=true;
   }
 
   //Wenn angefordert, dann starte neuen BT scan
-  if(doStartBtScan && !btScanIsRunning)
+  if(bo_lDoStartBtScan && !btScanIsRunning)
   {
     ESP_LOGI(TAG, "Starte BT Scan");
-    doStartBtScan = false;
+    bo_lDoStartBtScan = false;
     btScanIsRunning = true;
     if(pBLEScan->isScanning())
     {

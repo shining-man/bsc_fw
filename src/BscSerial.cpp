@@ -6,11 +6,14 @@
 
 #include "BscSerial.h"
 #include "defines.h"
-#include "devices/JbdBms.h"
-#include "devices/JkBms.h"
 #include "WebSettings.h"
 #include "BmsData.h"
 #include "log.h"
+
+//include Devices
+#include "devices/JbdBms.h"
+#include "devices/JkBms.h"
+#include "devices/SeplosBms.h"
 
 static const char *TAG = "BSC_SERIAL";
 
@@ -137,6 +140,12 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       setSerialBaudrate(115200);
       readBms = &JkBms_readBmsData;
       break;
+      
+    case ID_SERIAL_DEVICE_SEPLOSBMS:
+      ESP_LOGI(TAG,"setReadBmsFunktion SEPLOS");
+      setSerialBaudrate(19200);
+      readBms = &SeplosBms_readBmsData;
+      break;
    
     default:
       readBms = 0;
@@ -148,8 +157,8 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
 void BscSerial::cyclicRun()
 {
   bool bmsReadOk=false;
-
   if(readBms==0){return;}    //Wenn nicht Initialisiert
+
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   if(readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin)) //Wenn kein Fehler beim Holen der Daten vom BMS
   {

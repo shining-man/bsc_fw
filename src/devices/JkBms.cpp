@@ -8,73 +8,75 @@
 #include "mqtt_t.h"
 #include "log.h"
 
-const char *TAG = "JK_BMS";
+static const char *TAG = "JK_BMS";
 
-Stream *mPortJk;
-uint8_t u8_mDevNrJk, u8_mTxEnRS485pinJk;
-uint16_t u16_mLastRecvBytesCntJk;
+static Stream *mPort;
+static uint8_t u8_mDevNr, u8_mTxEnRS485pin;
+static uint16_t u16_mLastRecvBytesCnt;
 
-enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, RECV_DATA};
+enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, SEARCH_END};
 
-uint8_t getDataMsg[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
+static uint8_t getDataMsg[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
 
-void      JkBms_sendMessage(uint8_t *sendMsg);
-bool      JkBms_recvAnswer(uint8_t * t_outMessage);
-void      JkBms_parseData(uint8_t * t_message);
-
+//
+static void sendMessage(uint8_t *sendMsg);
+static bool recvAnswer(uint8_t * t_outMessage);
+static void parseData(uint8_t * t_message);
 
 
 bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 {
   bool bo_lRet=true;
-  mPortJk = port;
-  u8_mDevNrJk = devNr;
-  u8_mTxEnRS485pinJk = txEnRS485pin;
+  mPort = port;
+  u8_mDevNr = devNr;
+  u8_mTxEnRS485pin = txEnRS485pin;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
-  ESP_LOGD(TAG,"Serial %i send",u8_mDevNrJk);
-  JkBms_sendMessage(getDataMsg);
-  if(JkBms_recvAnswer(response))
+  #ifdef JK_DEBUG 
+  ESP_LOGD(TAG,"Serial %i send",u8_mDevNr);
+  #endif
+  sendMessage(getDataMsg);
+  if(recvAnswer(response))
   {
-    JkBms_parseData(response);
+    parseData(response);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJk));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNrJk));
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
   else
   {
-    ESP_LOGI(TAG,"bmsData checksum wrong; Serial(%i)",u8_mDevNrJk);
+    ESP_LOGI(TAG,"bmsData checksum wrong; Serial(%i)",u8_mDevNr);
     bo_lRet=false;
   }
 
 
   if(bo_lRet==false) return bo_lRet;
   
-  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNrJk,millis());
+  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr,millis());
 
   return bo_lRet;  
 }
 
 
-void JkBms_sendMessage(uint8_t *sendMsg)
+static void sendMessage(uint8_t *sendMsg)
 {
-  if(u8_mTxEnRS485pinJk>0) digitalWrite(u8_mTxEnRS485pinJk, HIGH); 
+  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, HIGH); 
   usleep(20);
-  mPortJk->write(sendMsg, 21);
-  mPortJk->flush();  
+  mPort->write(sendMsg, 21);
+  mPort->flush();  
   //usleep(50);
-  if(u8_mTxEnRS485pinJk>0) digitalWrite(u8_mTxEnRS485pinJk, LOW); 
+  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
 }
 
 
-bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
+static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
   uint8_t SMrecvState, u8_lRecvByte;
   uint16_t u16_lRecvDataLen;
   uint32_t u32_lStartTime=millis();
   SMrecvState=SEARCH_START_BYTE1;
-  u16_mLastRecvBytesCntJk=0;
+  u16_mLastRecvBytesCnt=0;
   u16_lRecvDataLen=0xFFFF;
   uint16_t crc=0;
 
@@ -83,8 +85,8 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 200) 
     {
-      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNrJk, u16_lRecvDataLen, u16_mLastRecvBytesCntJk);
-      /*for(uint16_t x=0;x<u16_mLastRecvBytesCntJk;x++)
+      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
+      /*for(uint16_t x=0;x<u16_mLastRecvBytesCnt;x++)
       {
         ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
       }*/
@@ -92,10 +94,10 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
     }
 
     //Überprüfen ob Zeichen verfügbar
-    if (mPortJk->available() > 0)
+    if (mPort->available() > 0)
     {
-      u8_lRecvByte = mPortJk->read();
-      if(u16_mLastRecvBytesCntJk<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
+      u8_lRecvByte = mPort->read();
+      if(u16_mLastRecvBytesCnt<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
 
       switch (SMrecvState)  {
         case SEARCH_START_BYTE1:
@@ -107,22 +109,22 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
           break;
 
         case LEN1:
-          p_lRecvBytes[u16_mLastRecvBytesCntJk]=u8_lRecvByte;
-          u16_mLastRecvBytesCntJk++;
+          p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
+          u16_mLastRecvBytesCnt++;
           u16_lRecvDataLen=(u8_lRecvByte<<8);
           SMrecvState=LEN2;
           break;
 
         case LEN2:
-          p_lRecvBytes[u16_mLastRecvBytesCntJk]=u8_lRecvByte;
-          u16_mLastRecvBytesCntJk++;
+          p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
+          u16_mLastRecvBytesCnt++;
           u16_lRecvDataLen|=u8_lRecvByte;
-          SMrecvState=RECV_DATA;
+          SMrecvState=SEARCH_END;
           break;
 
-        case RECV_DATA:
-          p_lRecvBytes[u16_mLastRecvBytesCntJk]=u8_lRecvByte;
-          u16_mLastRecvBytesCntJk++;
+        case SEARCH_END:
+          p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
+          u16_mLastRecvBytesCnt++;
           break;
       
         default:
@@ -130,19 +132,19 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
         }
     }
 
-    if(u16_mLastRecvBytesCntJk==u16_lRecvDataLen) break; //Recv Pakage complete
+    if(u16_mLastRecvBytesCnt==u16_lRecvDataLen) break; //Recv Pakage complete
   }
 
   
   #ifdef JK_DEBUG 
-  if(u16_mLastRecvBytesCntJk>5)
+  if(u16_mLastRecvBytesCnt>5)
   {
-    ESP_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCntJk, p_lRecvBytes[u16_mLastRecvBytesCntJk-5], p_lRecvBytes[u16_mLastRecvBytesCntJk-4],
-      p_lRecvBytes[u16_mLastRecvBytesCntJk-3], p_lRecvBytes[u16_mLastRecvBytesCntJk-2], p_lRecvBytes[u16_mLastRecvBytesCntJk-1]);
+    ESP_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
+      p_lRecvBytes[u16_mLastRecvBytesCnt-3], p_lRecvBytes[u16_mLastRecvBytesCnt-2], p_lRecvBytes[u16_mLastRecvBytesCnt-1]);
   }
   #endif
 
-  if(p_lRecvBytes[u16_mLastRecvBytesCntJk-5]!=0x68) return false; //letztes Byte vor der crc muss 0x68 sein
+  if(p_lRecvBytes[u16_mLastRecvBytesCnt-5]!=0x68) return false; //letztes Byte vor der crc muss 0x68 sein
 
   //Überprüfe Cheksum
 	uint8_t crcB3 = (crc >> 8) & 0xFF;  // Byte 3
@@ -151,7 +153,7 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
   #ifdef JK_DEBUG 
   ESP_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
   #endif
-  if(p_lRecvBytes[u16_mLastRecvBytesCntJk-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCntJk-1]!=crcB4) return false; 
+  if(p_lRecvBytes[u16_mLastRecvBytesCnt-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCnt-1]!=crcB4) return false; 
 
   return true;
 }
@@ -160,7 +162,7 @@ bool JkBms_recvAnswer(uint8_t *p_lRecvBytes)
 
 
 uint32_t mqttSendeTimer_jk=0;
-void JkBms_parseData(uint8_t * t_message)
+void parseData(uint8_t * t_message)
 {
   uint32_t u32_lBalanceCapacity=0;
   uint16_t u16_lCycle=0;
@@ -175,7 +177,7 @@ void JkBms_parseData(uint8_t * t_message)
   uint16_t u16_lCellLow = 0xFFFF; 
   uint16_t u16_lCellHigh = 0x0;
 
-  for(uint16_t i=9; i<u16_mLastRecvBytesCntJk-5;)
+  for(uint16_t i=9; i<u16_mLastRecvBytesCnt-5;)
   {
     switch (t_message[i])  {
       case 0x79: //Cell voltage
@@ -195,7 +197,7 @@ void JkBms_parseData(uint8_t * t_message)
             break;
           }
           u16_lZellVoltage = ((t_message[i+1]<<8) | t_message[i+2]);
-          setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk,n, u16_lZellVoltage);
+          setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr,n, u16_lZellVoltage);
           i+=3;
 
           u16_lCellSum += u16_lZellVoltage;
@@ -212,15 +214,15 @@ void JkBms_parseData(uint8_t * t_message)
           #endif
         }
         
-        setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellHigh);
-        setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, u16_lCellLow);
-        setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, (float)(u16_lCellSum/u8_lNumOfCells));
-        setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNrJk,(float)(u16_lZellDifferenceVoltage));
+        setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
+        setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
+        setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
+        setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
 
         break;
 
       case 0x80: // Read tube temp. 
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNrJk, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
         ESP_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -228,7 +230,7 @@ void JkBms_parseData(uint8_t * t_message)
         break; 
 
       case 0x81: // Battery inside temp
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNrJk, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
         ESP_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -236,7 +238,7 @@ void JkBms_parseData(uint8_t * t_message)
         break; 
 
       case 0x82: // Battery temp
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNrJk, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
         ESP_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -244,17 +246,17 @@ void JkBms_parseData(uint8_t * t_message)
         break;   
 
       case 0x83: // Total Batery Voltage
-        setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJk, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         i+=3;
         break; 
 
       case 0x84: // Current
-        setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNrJk, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
+        setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
         i+=3;
         break; 
 
       case 0x85: // Remaining Battery Capazity 
-        setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNrJk, t_message[i+1]); //in %
+        setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, t_message[i+1]); //in %
         i+=2;
         break;
 
@@ -305,7 +307,7 @@ bit12 software lock MOS                               |  x  |    |
         Bit 15: Reserved
         */
        
-        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNrJk, (((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
+        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, (((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
         i+=3;
         break;  
 
@@ -393,8 +395,8 @@ bit12 software lock MOS                               |  x  |    |
   if(millis()>(mqttSendeTimer_jk+10000))
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJk, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
     mqttSendeTimer_jk=millis();
   }

@@ -15,7 +15,7 @@
 #include "BmsData.h"
 
 
-enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle};
+enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoConnectionWaitStart};
 
 struct bleDevice {
   bool isConnect;

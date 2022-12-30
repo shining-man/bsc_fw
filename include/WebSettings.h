@@ -43,6 +43,7 @@ public:
 
   //Parameterfile
   boolean deleteConfig();
+  boolean writeConfig();
   
   static String   getString(uint32_t name);
   static String   getString(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
@@ -86,7 +87,6 @@ private:
 
   //Parameterfile
   boolean readConfig();
-  boolean writeConfig();
 
   void getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos);
   void buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos);

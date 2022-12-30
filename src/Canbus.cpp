@@ -403,6 +403,45 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
 }
 
 
+/* */
+uint16_t calcDynamicReduzeChargeVolltage(uint16_t u16_lChargeVoltage)
+{
+  if(WebSettings::getBool(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN,0,0,0)==true) //wenn enabled
+  {
+    uint16_t u16_lStartZellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG,0,0,0);
+    uint16_t u16_lDeltaCellVoltage= WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA,0,0,0);
+
+    if(getBmsMaxCellVoltage(u8_mBmsDatasource)>u16_lStartZellVoltage &&
+      getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource)>u16_lDeltaCellVoltage)
+    {
+      uint8_t u8_lNumOfCells=16;
+
+      uint16_t u16_lAvgVoltage=getBmsAvgVoltage(u8_mBmsDatasource);
+      uint16_t u16_lCellVoltage=0;
+      uint16_t u16_lNewTotalVoltage=0;
+
+      /*for(uint8_t i=0;i<u8_lNumOfCells;i++)
+      {
+        u16_lCellVoltage=getBmsCellVoltage(u8_mBmsDatasource,i);
+        if(u16_lCellVoltage>(u16_lAvgVoltage+u16_lDeltaCellVoltage))
+        {
+          u16_lNewTotalVoltage+=u16_lAvgVoltage;
+        }
+        else
+        {
+          u16_lNewTotalVoltage+=u16_lCellVoltage;
+        }
+      }*/
+
+      u16_lChargeVoltage=getBmsTotalVoltage(u8_mBmsDatasource);
+      return u16_lChargeVoltage;
+    }
+  }
+
+  return u16_lChargeVoltage;
+}
+
+
 /* *******************************************************************************************
  * getNewSocByMinCellVoltage() 
  * Wenn die eingestellte mindest-Zellspannung unterschritten wird, dann kann ein belibiger SoC 
@@ -485,16 +524,21 @@ void sendCanMsg_351()
 
   if (errors!=0) //wenn Fehler
   {    
-    msgData.chargevoltagelimit  = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0,0,0)*10.0); // 55200/100;
+    msgData.chargevoltagelimit  = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0,0,0)*10.0);
     msgData.maxchargecurrent    = 0;
     msgData.maxdischargecurrent = 0;
     msgData.dischargevoltage    = 0; //not use
   }
   else
   {
-    msgData.chargevoltagelimit  = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0,0,0)*10.0); //55200/100;
     msgData.dischargevoltage    = 0; //not use
 
+    //Ladespannung
+    uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0,0,0)*10.0); 
+    u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(u16_lChargeVoltage);
+    msgData.chargevoltagelimit = u16_lChargeVoltage;
+
+    //Ladestrom
     if(alarmSetChargeCurrentToZero)
     {
       msgData.maxchargecurrent=0;
@@ -567,8 +611,11 @@ void sendCanMsg_355()
   {
     msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
 
-    //Wenn Zellspannung unterschritten wird, dann SoC x an Inverter senden
-    msgData.soc = getNewSocByMinCellVoltage(msgData.soc);
+    if(WebSettings::getBool(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN,0,0,0)==true)
+    {
+      //Wenn Zellspannung unterschritten wird, dann SoC x an Inverter senden
+      msgData.soc = getNewSocByMinCellVoltage(msgData.soc);
+    }
   }
 
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);

@@ -283,12 +283,13 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 
     if (server->hasArg(F("SAVE")))
     {
+      //ESP_LOGD(TAG,"Arg: SAVE");
       for(uint8_t i=0; i<server->args(); i++)
       {
         String argName = server->argName(i);
         if(argName!="SAVE"){
           String argValue = server->arg(i);
-          //debugPrintf("SAVE: %s, %s\n", argName, argValue);
+          //ESP_LOGD(TAG, "SAVE: name:%s, val:%s", argName, argValue);
 
           if(isNumber(argName)) //Wenn keine Zahl, dann Fehler
           {
@@ -1036,9 +1037,11 @@ boolean WebSettings::writeConfig()
   String val;
   uint32_t name;
 
+  //ESP_LOGD(TAG, "writeConfig()");
+
   if (!SPIFFS.exists(str_mConfigfile.c_str()))
   {
-    ESP_LOGI(TAG,"writeConfig: file not exist");
+    ESP_LOGI(TAG,"writeConfig(): file not exist");
   }
 
   File f = SPIFFS.open(str_mConfigfile.c_str(),"w");

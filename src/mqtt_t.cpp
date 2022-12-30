@@ -16,7 +16,7 @@
 #include "log.h"
 
 
-static const char* TAG = "mqqt_t";
+static const char* TAG = "MQTT";
 
 TimerHandle_t mqttReconnectTimer;
 
@@ -25,7 +25,7 @@ PubSubClient mqttClient(wifiClient);
 
 IPAddress   mqttIpAdr;
 
-uint32_t mqttPublishLoopTimmer=0;
+uint32_t u32_mMqttPublishLoopTimmer=0;
 struct mqttEntry_s {
     int8_t t1;
     int8_t t2;
@@ -85,7 +85,7 @@ void mqttConnect()
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals("")) return;
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) return;
   
-  mqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0,0,0);
+  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0,0,0);
   String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0,0,0);
   String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0,0,0);
 
@@ -97,11 +97,11 @@ void mqttConnect()
     xTimerStart(mqttReconnectTimer, 0);
     if(mqttUser.equals("") || mqttPwd.equals("")) //Wenn kein User oder Pwd eingetragen, dann ohne verbinden
     {
-      mqttClient.connect(mqttDeviceName.c_str()); 
+      mqttClient.connect(str_mMqttDeviceName.c_str()); 
     }
     else
     {
-      mqttClient.connect(mqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
+      mqttClient.connect(str_mMqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
     }
   }
   else
@@ -134,7 +134,7 @@ bool mqttConnected()
 
 bool mqttPublishLoopFromTxBuffer()
 {
-  if(millis()>(mqttPublishLoopTimmer+10))
+  if(millis()>(u32_mMqttPublishLoopTimmer+10))
   {
     if(bo_mIsConnected==false) return false;
     xSemaphoreTake(mMqttMutex, portMAX_DELAY);
@@ -145,7 +145,7 @@ bool mqttPublishLoopFromTxBuffer()
       {
         struct mqttEntry_s mqttEntry = txBuffer.at(0);
 
-        String topic = mqttDeviceName + "/" + mqttTopics[mqttEntry.t1];
+        String topic = str_mMqttDeviceName + "/" + mqttTopics[mqttEntry.t1];
         if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
         if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
         if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
@@ -157,7 +157,7 @@ bool mqttPublishLoopFromTxBuffer()
       else
       {
         ESP_LOGD(TAG,"mqttPublish: MQTT not connected");
-        mqttPublishLoopTimmer=millis();
+        u32_mMqttPublishLoopTimmer=millis();
         bo_mIsConnected=false;
         mqttConnect();
         return false;
@@ -165,7 +165,7 @@ bool mqttPublishLoopFromTxBuffer()
     }
 
     xSemaphoreGive(mMqttMutex);
-    mqttPublishLoopTimmer=millis();
+    u32_mMqttPublishLoopTimmer=millis();
   }
   return true;
 }
