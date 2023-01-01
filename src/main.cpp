@@ -100,13 +100,11 @@ void free_dump() {
 void onWiFiEvent(WiFiEvent_t event) {
     ESP_LOGI(TAG, "[WiFi-event] event: %d", event);
     switch(event) {
-    case SYSTEM_EVENT_STA_CONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       break;
 
-    case SYSTEM_EVENT_STA_GOT_IP:
-      //Webserver neu starten
-      server.begin(WEBSERVER_PORT); 
-
+    case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      server.begin(WEBSERVER_PORT);  //Webserver starten
       initTime();
 
       //MQTT verbinden
@@ -116,8 +114,8 @@ void onWiFiEvent(WiFiEvent_t event) {
       }
       break;
         
-    case SYSTEM_EVENT_STA_DISCONNECTED:
-      //ESP_LOGI(TAG, "WiFi lost connection");
+    case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+    case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       mqttDisconnect();
       server.stop(); //Webserver beenden
 
@@ -160,7 +158,7 @@ boolean connectWiFi()
     }
   }
   
-  if (!connected /*&& !firstWlanModeSTA*/) {
+  if (!connected && !firstWlanModeSTA) {
     wifiApMode = true;
     ESP_LOGI(TAG, "Wifi AP");
     WiFi.mode(WIFI_AP);
