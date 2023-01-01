@@ -17,7 +17,7 @@
 
 //BMS
 //#define JK_DEBUG
-#define SEPLOS_DEBUG
+//#define SEPLOS_DEBUG
 
 //System
 #define WEBSERVER_PORT               80

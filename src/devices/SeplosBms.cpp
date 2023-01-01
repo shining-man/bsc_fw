@@ -37,13 +37,14 @@ static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
 bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 {
-  bool bo_lRet=true;
   mPort = port;
   u8_mDevNr = devNr;
   u8_mTxEnRS485pin = txEnRS485pin;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
+  #ifdef SEPLOS_DEBUG
   ESP_LOGI(TAG,"SeplosBms_readBmsData()");
+  #endif
 
   getDataFromBms(0, 0x42);
   if(recvAnswer(response))
@@ -56,16 +57,13 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
   }
   else
   {
-    ESP_LOGI(TAG,"Checksum wrong");
-    bo_lRet=false;
+    ESP_LOGE(TAG,"Checksum wrong");
+    return false;
   }
- 
-
-  if(bo_lRet==false) return bo_lRet;
   
   setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr,millis());
 
-  return bo_lRet;  
+  return true;  
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
@@ -92,7 +90,9 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
   uint16_t crc = calcCrc(&u8_lSendData[1], frame_len*2);
+  #ifdef SEPLOS_DEBUG
   ESP_LOGD(TAG,"crc=%i", crc);
+  #endif
   u8_lData[7]=(crc >> 8);  // CHKSUM (0xFD)
   u8_lData[8]=(crc >> 0);  // CHKSUM (0x37)
   convertByteToAsciiHex(&u8_lSendData[15], &u8_lData[7], 2); 
@@ -108,14 +108,6 @@ static void getDataFromBms(uint8_t address, uint8_t function)
     recvBytes+=" ";
   }
   ESP_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
-  
-  /*recvBytes="";
-  for(uint8_t x=0;x<20;x++)
-  {
-    recvBytes+=String(u8_lSendData[x]);
-    recvBytes+=" ";
-  }
-  ESP_LOGD(TAG,"sendBytes2: %s", recvBytes.c_str());*/
   #endif
 
   
@@ -142,7 +134,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 200) 
     {
-      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      ESP_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       #ifdef SEPLOS_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -164,8 +156,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
         case SEARCH_START:
           if (u8_lRecvByte == 0x7E)
           {
-            p_lRecvBytes[u8_lRecvBytesCnt]=u8_lRecvByte;
-            u8_lRecvBytesCnt++;
             SMrecvState=SEARCH_END;
           }
           break;
@@ -202,12 +192,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   //Überprüfe Cheksum
   if(!checkCrc(p_lRecvBytes,u8_lRecvBytesCnt)) return false;
 
-
-  for (uint16_t i=1; i<(u8_lRecvBytesCnt/2); i++)
-  {
-    p_lRecvBytes[i]=convertAsciiHexToByte(p_lRecvBytes[i*2], p_lRecvBytes[i*2+1]);
-  }
-
   return true;
 }
 
@@ -224,19 +208,20 @@ static void checkMsgLen(uint8_t * t_message)
     this->on_telemetry_data_(data);
     return;
   }
-
-  ESP_LOGW(TAG, "Unhandled data received: %s", format_hex_pretty(&data.front(), data.size()).c_str());
 }
 */
 
 static void parseMessage(uint8_t * t_message)
 {
   //lambda get16bitFromMsg(i)
-  auto get16bitFromMsg = [&](size_t i) -> uint16_t {
-    return (uint16_t(t_message[i + 0]) << 8) | (uint16_t(t_message[i + 1]) << 0);
-  };
+	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
+		return (uint16_t(convertAsciiHexToByte(t_message[i * 2], t_message[(i * 2) + 1])) << 8) | 
+           (uint16_t(convertAsciiHexToByte(t_message[(i * 2)+2], t_message[(i * 2) + 3])) << 0);
+	};
 
+  #ifdef SEPLOS_DEBUG
   ESP_LOGI(TAG, "parseMessage()");
+  #endif
 
   uint8_t u8_lNumOfCells = 0;
   uint16_t u16_lZellVoltage = 0;
@@ -251,10 +236,7 @@ static void parseMessage(uint8_t * t_message)
 
   uint8_t u8_lMsgoffset=0;
 
-  // ->
-  // 0x20 00 46 00 10 96 00 01 10 0C D70CE90CF40CD60CEF0CE50CE10CDC0CE90CF00CE80CEF0CEA0CDA0CDE0CD8060BA60BA00B970BA60BA50BA2FD5C14A0344E0A426803134650004603E8149F0000000000000000
-  //
-  // *Data*
+  // 0x20 00 46 00 10 96 00 01 10 0C D7 0C E9 0C F4 0C D6 0C EF0CE50CE10CDC0CE90CF00CE80CEF0CEA0CDA0CDE0CD8060BA60BA00B970BA60BA50BA2FD5C14A0344E0A426803134650004603E8149F0000000000000000
   //
   // Byte   Address Content: Description                      Decoded content               Coeff./Unit
   //   0    0x20             Protocol version      VER        2.0
@@ -265,18 +247,18 @@ static void parseMessage(uint8_t * t_message)
   //   5    0x96             Data length           LENID      150 / 2 = 75
   //   6    0x00             Data flag
   //   7    0x01             Command group
-  //   8    0x10             Number of cells                  16
-
-  uint8_t u8_lCellCnt = t_message[8];
-  ESP_LOGI(TAG, "Number of cells: %d", u8_lCellCnt);
-  
+  //   8    0x10             Number of cells                  16  
   //   9      0x0C 0xD7      Cell voltage 1                   3287 * 0.001f = 3.287         V
   //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
   //   ...    ...            ...
   //   39     0x0C 0xD8      Cell voltage 16         
-  u8_lNumOfCells = t_message[8];  //Number of cells
 
-  for (byte i=0; i<u8_lNumOfCells; i++) 
+	u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
+  #ifdef SEPLOS_DEBUG
+  ESP_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
+  #endif
+
+  for (uint8_t i=0; i<u8_lNumOfCells; i++) 
   {
     u16_lZellVoltage = get16bitFromMsg(9+(i*2));
     setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr,i, (float)(u16_lZellVoltage));
@@ -297,11 +279,13 @@ static void parseMessage(uint8_t * t_message)
   setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
   
 
-  u8_lMsgoffset=9+(u8_lNumOfCells*2);
+  u8_lMsgoffset = 9+(u8_lNumOfCells*2);
 
-  //   41     0x06           Number of temperatures           6                             V
-  uint8_t u8_lCntTempSensors = t_message[u8_lMsgoffset];
-  ESP_LOGI(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+  //   41     0x06           Number of temperatures           6                                    V
+  uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
+  #ifdef SEPLOS_DEBUG
+  ESP_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+  #endif
 
   //   42     0x0B 0xA6      Temperature sensor 1             (2982 - 2731) * 0.1f = 25.1          °C
   //   44     0x0B 0xA0      Temperature sensor 2             (2976 - 2731) * 0.1f = 24.5          °C
@@ -309,10 +293,12 @@ static void parseMessage(uint8_t * t_message)
   //   48     0x0B 0xA6      Temperature sensor 4             (2982 - 2731) * 0.1f = 25.1          °C
   //   50     0x0B 0xA5      Environment temperature          (2981 - 2731) * 0.1f = 25.0          °C
   //   52     0x0B 0xA2      Mosfet temperature               (2978 - 2731) * 0.1f = 24.7          °C
-  for (uint8_t i=0; i<3; i++)
+  float fl_lBmsTemps[3]; //Hier werden die ketzten drei Temperaturen zwischengespeichert
+  for (uint8_t i=0; i<u8_lCntTempSensors; i++)
   {
-    float f_lTemp = (float)get16bitFromMsg(u8_lMsgoffset+1+(i*2)*0.1);
-    setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr,i,f_lTemp);
+    fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset+1+(i*2))-0xAAB)*0.1;
+    if(i<3) setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr,i,fl_lBmsTemps[2]);
+    else if(i>=3 && i<5)fl_lBmsTemps[i-3]=fl_lBmsTemps[2];
   }
 
   u8_lMsgoffset=u8_lMsgoffset+1+(u8_lCntTempSensors*2);
@@ -325,7 +311,7 @@ static void parseMessage(uint8_t * t_message)
   float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset+2)*0.01f;
   setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, f_lTotalVoltage);
 
-  //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90        Ah
+  //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90         Ah
   uint16_t u16_lBalanceCapacity=get16bitFromMsg(u8_lMsgoffset+4)/100;
 
   //   60     0x0A           Custom number                    10
@@ -357,9 +343,14 @@ static void parseMessage(uint8_t * t_message)
   if(millis()>(mqttSendeTimer+10000))
   {
     //Nachrichten senden
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
 
@@ -403,22 +394,22 @@ uint16_t lCrc(const uint16_t len)
 
   if (len == 0) return 0x0000;
 
-  u16_lLcrc = (len & 0xf) + ((len >> 4) & 0xf) + ((len >> 8) & 0xf);
+  u16_lLcrc = (len&0xf) + ((len>>4)&0xf) + ((len>>8)&0xf);
   u16_lLcrc = ~(u16_lLcrc % 16) + 1;
 
-  return (u16_lLcrc << 12) + len;  // 4 byte checksum + 12 bytes length
+  return (u16_lLcrc<<12) + len;  // 4 byte checksum + 12 bytes length
 }
 
 
 static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt)
 {
-  uint16_t u16_lCrc = calcCrc(recvMsg + 1, u8_lRecvBytesCnt-5);
-  uint16_t u16_lRemoteCrc = convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1] |
-                           (convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-4], recvMsg[u8_lRecvBytesCnt-3]))<<8);
+  uint16_t u16_lCrc = calcCrc(recvMsg, u8_lRecvBytesCnt-4);
+ 	uint16_t u16_lRemoteCrc = (uint16_t)convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1]) |	
+    (uint16_t)(convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-4], recvMsg[u8_lRecvBytesCnt-3]))<<8;
 
   if (u16_lCrc != u16_lRemoteCrc)
   {
-    ESP_LOGW(TAG, "CRC failed: %04X != %04X", u16_lCrc, u16_lRemoteCrc);
+    ESP_LOGE(TAG, "CRC failed: %04X != %04X", u16_lCrc, u16_lRemoteCrc);
     return false;
   }
 
