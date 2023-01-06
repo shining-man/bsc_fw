@@ -167,6 +167,6 @@ void BscSerial::cyclicRun()
   xSemaphoreGive(mSerialMutex);
   if(bmsReadOk)
   {
-    setBmsLastDataMillis(u8_mSerialNr,millis());
+    setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mSerialNr,millis());
   }
 }

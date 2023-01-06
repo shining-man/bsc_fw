@@ -15,6 +15,7 @@ static const char *TAG = "ALARM";
 
 TimerHandle_t timer_doOffPulse;
 static SemaphoreHandle_t doMutex = NULL;
+static SemaphoreHandle_t alarmSettingsChangeMutex = NULL;
 
 
 bool bo_Alarm[CNT_ALARMS];
@@ -25,6 +26,8 @@ uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
 
 bool bo_alarmActivate[CNT_ALARMS]; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
 bool bo_timerPulseOffIsRunning;
+
+bool bo_mChangeAlarmSettings;
 
 uint8_t u8_mDoByte;
 
@@ -44,6 +47,7 @@ void initAlarmRules()
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
+  bo_mChangeAlarmSettings=false;
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -65,6 +69,7 @@ void initAlarmRules()
   }
 
   doMutex = xSemaphoreCreateMutex();
+  alarmSettingsChangeMutex = xSemaphoreCreateMutex();
 
   timer_doOffPulse = xTimerCreate("doPulse", pdMS_TO_TICKS(10), pdFALSE, (void *)1, &doOffPulse);
   assert(timer_doOffPulse);
@@ -130,6 +135,15 @@ void runAlarmRules()
   //Bearbeiten der Alarme
   for(i=0; i<CNT_ALARMS; i++)
   {
+    xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
+    if(bo_mChangeAlarmSettings)
+    {
+      bo_Alarm[i]=false;
+      bo_Alarm_old[i]=true;
+      //setAlarm(i+1, false); //Alarm zurücksetzen
+    }
+    xSemaphoreGive(alarmSettingsChangeMutex);
+
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
       //debugPrintf("Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
@@ -168,8 +182,22 @@ void runAlarmRules()
       }
     }
   }
+  xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
+  bo_mChangeAlarmSettings=false;
+  xSemaphoreGive(alarmSettingsChangeMutex);
 
   setDOs();
+}
+
+
+/* Wenn Einstellungen geändert werden, die auf einen Alarm auswirkung haben können, 
+ * dann müssen die Alarme erst einmal zurück gesetzt werden
+ */
+void changeAlarmSettings()
+{  
+  xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
+  bo_mChangeAlarmSettings=true;
+  xSemaphoreGive(alarmSettingsChangeMutex);
 }
 
 
@@ -265,18 +293,18 @@ void rules_Bms()
   for(i=0; i<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT; i++)
   {
     bool b_lBmsOnline=true;
-    if((millis()-getBmsLastDataMillis(i))>2000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
+    //if((millis()-getBmsLastDataMillis(i))>10000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
     //debugPrintf("i=%i, b_lBmsOnline=%i",i,b_lBmsOnline);
 
     //Ist überhaupt ein Device parametriert?
-    if((i<BT_DEVICES_COUNT && !WebSettings::getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB)) && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals("")) ||
+    if((i<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,0,i,0)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals("")) ||
       (i>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,i-BT_DEVICES_COUNT,0)!=0 ) )
     {
       //Wenn Alram für das Device aktiv ist
       if(WebSettings::getBool(ID_PARAM_ALARM_BTDEV_ALARM_ON,0,i,0)) 
       {      
         //Alarm wenn keine Daten mehr vom BT-Device kommen
-        if((millis()-getBmsLastDataMillis(i))>(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
+        if((millis()-getBmsLastDataMillis(i))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
         {
           //Alarm
           //debugPrintf("BT Alarm (%i)",i);
@@ -294,7 +322,7 @@ void rules_Bms()
 
       //Überwachung Zellspannung
       //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
-      if(b_lBmsOnline==true && WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0)) //BleHandler::bmsIsConnect(i)
+      if(/*b_lBmsOnline==true &&*/ WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0)) //BleHandler::bmsIsConnect(i)
       {
       //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
@@ -319,7 +347,7 @@ void rules_Bms()
 
       //Überwachung Gesamtspannung
       uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
-      if(b_lBmsOnline==true && u8_lAlarm>0) 
+      if(/*b_lBmsOnline==true &&*/ u8_lAlarm>0) 
       {
         if(getBmsTotalVoltage(i) < WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(i) > WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
         {

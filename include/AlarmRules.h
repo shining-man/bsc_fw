@@ -15,6 +15,7 @@
 
 void initAlarmRules();
 void runAlarmRules();
+void changeAlarmSettings();
 
 bool getAlarm(uint8_t alarmNr);
 uint16_t getAlarm();

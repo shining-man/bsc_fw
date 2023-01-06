@@ -98,7 +98,7 @@ void free_dump() {
 
 
 void onWiFiEvent(WiFiEvent_t event) {
-    ESP_LOGI(TAG, "[WiFi-event] event: %d", event);
+    ESP_LOGI(TAG, "[WiFi] event: %d", event);
     switch(event) {
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       break;
@@ -139,6 +139,8 @@ boolean connectWiFi()
   String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
   String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
   
+  ESP_LOGI(TAG, "[WiFi] status (a): %i", WiFi.status());
+
   if(!ssid.equals("") && !pwd.equals(""))
   {
     ESP_LOGI(TAG, "Verbindung zu %s",ssid);
@@ -167,6 +169,7 @@ boolean connectWiFi()
   }
   
   doConnectWiFi=false;
+  ESP_LOGI(TAG, "[WiFi] status (b): %i", WiFi.status());
   return connected;
 }
 
@@ -312,12 +315,53 @@ void handlePage_status(){server.send(200, "text/html", htmlPageStatus);}
 /*
   Handle WebSettings
 */
-void handle_paramAlarmBt(){webSettingsAlarmBt.handleHtmlFormRequest(&server);}
-void handle_paramAlarmTemp(){webSettingsAlarmTemp.handleHtmlFormRequest(&server);}
-void handle_paramDigitalOut(){webSettingsDitialOut.handleHtmlFormRequest(&server);}
-void handle_paramDigitalIn(){webSettingsDitialIn.handleHtmlFormRequest(&server);}
-void handle_paramBluetooth(){webSettingsBluetooth.handleHtmlFormRequest(&server);}
+void handle_paramAlarmBt()
+{
+  webSettingsAlarmBt.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    changeAlarmSettings();
+  }
+}
+
+void handle_paramAlarmTemp()
+{
+  webSettingsAlarmTemp.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    changeAlarmSettings();
+  }
+}
+
+void handle_paramDigitalOut()
+{
+  webSettingsDitialOut.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    changeAlarmSettings();
+  }
+}
+
+void handle_paramDigitalIn()
+{
+  webSettingsDitialIn.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    changeAlarmSettings();
+  }
+}
+
+void handle_paramBluetooth()
+{
+  webSettingsBluetooth.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    changeAlarmSettings();
+  }
+}
+
 void handle_paramOnewire2(){webSettingsOnewire2.handleHtmlFormRequest(&server);}
+
 void handle_paramBmsToInverter()
 {
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
@@ -335,6 +379,7 @@ void handle_paramSerial()
     bscSerial1.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,0,0));
     bscSerial2.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0));
     bscSerial3.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0));
+    changeAlarmSettings();
   }
 }
 

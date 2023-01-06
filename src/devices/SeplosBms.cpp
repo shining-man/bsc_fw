@@ -60,8 +60,6 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
     ESP_LOGE(TAG,"Checksum wrong");
     return false;
   }
-  
-  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr,millis());
 
   return true;  
 }

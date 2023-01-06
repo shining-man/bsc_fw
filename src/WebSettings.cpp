@@ -308,6 +308,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
         fn_mOnButtonSave();
         exit = true;
       }
+      return;
     }
     if (server->hasArg(F("BTN1")) && fn_mOnButton1)
     {
