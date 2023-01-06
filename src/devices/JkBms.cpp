@@ -53,8 +53,6 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
 
   if(bo_lRet==false) return bo_lRet;
   
-  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr,millis());
-
   return bo_lRet;  
 }
 

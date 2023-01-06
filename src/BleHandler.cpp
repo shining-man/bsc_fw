@@ -39,7 +39,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
      *  I find a multiple of 3-5 * the interval works best for quick response/reconnect.
      *  Min interval: 120 * 1.25ms = 150, Max interval: 120 * 1.25ms = 150, 0 latency, 60 * 10ms = 600ms timeout
      */
-    pClient->updateConnParams(120,120,0,150);
+    pClient->updateConnParams(120,120,5,150);
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
     ESP_LOGI(TAG, "%s", devMacAdr.c_str());
@@ -144,6 +144,7 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
+      //ESP_LOGI(TAG,"RX Dev=%i", i);
       setBmsLastDataMillis(i,millis());
 
       if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
@@ -227,8 +228,8 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
      *  connections. Timeout should be a multiple of the interval, minimum is 100ms.
      *  Min interval: 12 * 1.25ms = 15, Max interval: 12 * 1.25ms = 15, 0 latency, 51 * 10ms = 510ms timeout
      */
-    //pClient->setConnectionParams(12,12,0,51);
-    pClient->setConnectionParams(12,12,0,150);
+    pClient->setConnectionParams(12,12,0,51);
+    
     /** Set how long we are willing to wait for the connection to complete (seconds), default is 30. */
     pClient->setConnectTimeout(5);
 
@@ -457,8 +458,10 @@ void BleHandler::run()
     {
       for(i=0;i<BT_DEVICES_COUNT;i++)
       {
+        //ESP_LOGI(TAG,"BT write (%i) doC=%i",i,bleDevices[i].doConnect);
         if(bleDevices[i].doConnect==btDoConnectionWaitStart)
         {
+          //ESP_LOGI(TAG,"BT write (%i) typ=%i",i,bleDevices[i].deviceTyp);
           if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
           {
             ESP_LOGI(TAG,"BT write dev=%i",i);
