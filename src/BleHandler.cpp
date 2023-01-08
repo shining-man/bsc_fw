@@ -32,17 +32,13 @@ class ClientCallbacks : public NimBLEClientCallbacks
 {
   void onConnect(NimBLEClient* pClient)
   {
-    ESP_LOGI(TAG, "Connected");
-    /** After connection we should change the parameters if we don't need fast response times.
-     *  These settings are 150ms interval, 0 latency, 450ms timout.
-     *  Timeout should be a multiple of the interval, minimum is 100ms.
-     *  I find a multiple of 3-5 * the interval works best for quick response/reconnect.
-     *  Min interval: 120 * 1.25ms = 150, Max interval: 120 * 1.25ms = 150, 0 latency, 60 * 10ms = 600ms timeout
-     */
-    pClient->updateConnParams(120,120,5,150);
+    // interval 1,25ms; timeout 10ms
+    //pClient->updateConnParams(120,120,5,150);
+    //pClient->updateConnParams(180,180,10,720); //Funtioniert mit dem Testaufbau
+    pClient->updateConnParams(800,800,5,1500); 
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    ESP_LOGI(TAG, "%s", devMacAdr.c_str());
+    ESP_LOGI(TAG, "onConnect() %s", devMacAdr.c_str());
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
@@ -60,13 +56,15 @@ class ClientCallbacks : public NimBLEClientCallbacks
   void onDisconnect(NimBLEClient* pClient)
   {
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    ESP_LOGI(TAG, "Disconnected: %s", devMacAdr.c_str());
+    #ifdef BT_DEBUG
+    ESP_LOGI(TAG, "onDisconnect() %s", devMacAdr.c_str());
+    #endif
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
       if(bleDevices[i].macAdr.equals(devMacAdr.c_str()))
       {
-        ESP_LOGI(TAG, "Disconnected Device %i", i);
+        ESP_LOGI(TAG, "onDisconnect() dev=%i, mac=%s", i, devMacAdr.c_str());
         bleDevices[i].isConnect = false;
         bleDevices[i].doConnect = btDoConnectionIdle; 
         bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
@@ -75,26 +73,29 @@ class ClientCallbacks : public NimBLEClientCallbacks
     }
   }
 
-  /** Called when the peripheral requests a change to the connection parameters.
-   *  Return true to accept and apply them or false to reject and keep
-   *  the currently used parameters. Default will return true.
-   */
+
   bool onConnParamsUpdateRequest(NimBLEClient* pClient, const ble_gap_upd_params* params)
   {
+    #ifdef BT_DEBUG
     ESP_LOGD(TAG, "onConnParamsUpdateRequest(): itvl_min=%i itvl_max=%i latency=%i supervision_timeout=%i",
       params->itvl_min,params->itvl_max,params->latency,params->supervision_timeout);
+    #endif
 
-    if(params->itvl_min < 24) { /** 1.25ms units */
+    return false; //Änderung ablehnen
+
+    if(params->itvl_min < 24) { 
       return false;
-    } else if(params->itvl_max > 40) { /** 1.25ms units */
+    } else if(params->itvl_max > 40) { 
       return false;
-    } else if(params->latency > 2) { /** Number of intervals allowed to skip */
+    } else if(params->latency > 2) { 
       return false;
-    } else if(params->supervision_timeout > 150) { /** 10ms units */
+    } else if(params->supervision_timeout > 150) {
       return false;
     }
 
+    #ifdef BT_DEBUG
     ESP_LOGD(TAG, "onConnParamsUpdateRequest(): true");
+    #endif
     return true;
   };
 };
@@ -106,7 +107,9 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 
   void onResult(NimBLEAdvertisedDevice* advertisedDevice)
   {
+    #ifdef BT_DEBUG
     ESP_LOGI(TAG, "BT device found()");
+    #endif
 
     //Device gefunden
     devMacAdr = advertisedDevice->getAddress().toString();
@@ -117,13 +120,12 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
       {
         if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB))==false)
         {
-          ESP_LOGI(TAG, "Gesuchtes Device gefunden: %s", webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
-          ESP_LOGI(TAG, "Scan stop");
+          ESP_LOGI(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
 
           NimBLEDevice::getScan()->stop();
         
           advDevice = advertisedDevice;   
-          bleDevices[i].deviceTyp = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
+          bleDevices[i].deviceTyp = (uint8_t)webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
           bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0);
           bleDevices[i].doConnect = btDoConnect;
      
@@ -144,13 +146,14 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
-      //ESP_LOGI(TAG,"RX Dev=%i", i);
+      //ESP_LOGI(TAG,"RX len=%i", length);
       setBmsLastDataMillis(i,millis());
 
       if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
       {
         //Daten kopieren
         NeeyBalancer::neeyBalancerCopyData(i, pData, length);
+        //ESP_LOGI(TAG,"RX len=%i F", length);
       }
     }
   }
@@ -180,7 +183,9 @@ static ClientCallbacks clientCB;
 
 bool bleNeeyBalancerConnect(uint8_t devNr)
 {
+  #ifdef BT_DEBUG
   ESP_LOGI(TAG, "bleNeeyBalancerConnect()");
+  #endif
 
   NimBLEClient* pClient = nullptr;
 
@@ -197,10 +202,12 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
       //if(!pClient->connect(bleDevices[devNr].advDevice, false))
       if(!pClient->connect(advDevice, false))
       {
-        ESP_LOGI(TAG, "Reconnect failed");
+        ESP_LOGW(TAG, "Reconnect failed: dev=%i",devNr);
         return false;
       }
-      ESP_LOGI(TAG, "Reconnect client");
+      #ifdef BT_DEBUG
+      ESP_LOGI(TAG, "Reconnect: dev=%i",devNr);
+      #endif
     }
     /** We don't already have a client that knows this device,
      *  we will check for a client that is disconnected that we can use.
@@ -216,12 +223,14 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
   {
     if(NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS)
     {
-      ESP_LOGI(TAG, "Max clients reached - no more connections available");
+      ESP_LOGW(TAG, "Max clients reached - no more connections available");
       return false;
     }
 
     pClient = NimBLEDevice::createClient();
+    #ifdef BT_DEBUG
     ESP_LOGI(TAG, "New client created");
+    #endif
     pClient->setClientCallbacks(&clientCB, false);
     /** Set initial connection parameters: These settings are 15ms interval, 0 latency, 120ms timout.
      *  These settings are safe for 3 clients to connect reliably, can go faster if you have less
@@ -238,7 +247,7 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     if (!pClient->connect(advDevice))
     {
       /** Created a client but failed to connect, don't need to keep it as it has no data */
-      ESP_LOGI(TAG, "Failed to connect, deleted client");
+      ESP_LOGW(TAG, "Failed to connect, deleted client; dev=%i",devNr);
       NimBLEDevice::deleteClient(pClient);
       return false;
     }
@@ -248,12 +257,13 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     //if (!pClient->connect(bleDevices[devNr].advDevice))
     if (!pClient->connect(advDevice))
     {
-      ESP_LOGI(TAG, "Failed to connect");
+      ESP_LOGW(TAG, "Failed to connect; dev=%i", devNr);
       return false;
     }
   }
-
+  #ifdef BT_DEBUG
   ESP_LOGI(TAG, "Connected to: %s, RSSI: %i",pClient->getPeerAddress().toString().c_str(),pClient->getRssi());
+  #endif
 
   /** Now we can read/write/subscribe the charateristics of the services we are interested in */
   NimBLERemoteService* pSvc = nullptr;
@@ -270,12 +280,16 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     {     /** make sure it's not null */
       if(bleDevices[devNr].pChr->canRead())
       {
+        #ifdef BT_DEBUG
         ESP_LOGI(TAG, "%s, Value: %s",bleDevices[devNr].pChr->getUUID().toString().c_str(),bleDevices[devNr].pChr->readValue().c_str());
+        #endif
       }
 
       if(bleDevices[devNr].pChr->canWrite())
       {
+        #ifdef BT_DEBUG
         ESP_LOGI(TAG, "can write");
+        #endif
         /*if(pChr->writeValue("Tasty"))
         {
           debugPrint("Wrote new value to: ");
@@ -326,10 +340,12 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
   }
   else
   {
-    ESP_LOGI(TAG, "Service not found.");
+    ESP_LOGW(TAG, "Service not found.");
   }
 
-  ESP_LOGI(TAG, "Done with this device!");
+  #ifdef BT_DEBUG
+  ESP_LOGI(TAG, "Device connected; dev=%i",devNr);
+  #endif
   return true;
 }
 
@@ -374,13 +390,12 @@ void BleHandler::init()
 
   pBLEScan = NimBLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(45);
-  pBLEScan->setWindow(15);
+  pBLEScan->setInterval(300); //45
+  pBLEScan->setWindow(50); //15
   pBLEScan->setActiveScan(true);
   pBLEScan->setMaxResults(BT_SCAN_RESULTS);
 
   pBLEScan->clearResults();
-  //pBLEScan->start(1);   
 };
 
 /*void BleHandler::stop()
@@ -407,6 +422,11 @@ bool BleHandler::isScanFinish()
   }
 }
 
+bool BleHandler::isScanRuning()
+{
+  return btScanIsRunning;
+}
+
 static uint8_t reConTimer=0;
 void BleHandler::run()
 {
@@ -421,13 +441,14 @@ void BleHandler::run()
     for(i=0;i<BT_DEVICES_COUNT;i++)
     {
       uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
+      //ESP_LOGI(TAG, "run(): %i, u8_lBtDevType=%i, isConnect=%i, doConnect=%i", i, u8_lBtDevType, bleDevices[i].isConnect, bleDevices[i].doConnect);
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
       if(u8_lBtDevType>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
       {
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
-          ESP_LOGD(TAG, "bo_lDoStartBtScan -> Device %i",i);
+          ESP_LOGD(TAG, "Suche device %i",i);
           bo_lDoStartBtScan = true;
         }
       }
@@ -509,6 +530,10 @@ void BleHandler::run()
     u8_mScanAndNotConnectTimer=0;
     ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
+    
+    NimBLEDevice::deinit(true);
+    init();
+
     btScanIsRunning=false;
   }
 } 

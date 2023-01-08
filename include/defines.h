@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.6"
+#define BSC_SW_VERSION      "V0.2.7"
 
 //Debug
 #define DEBUG_ON_FS
@@ -35,6 +35,7 @@
 #define OW_TEMP_AVG_CYCELS            3
 
 //Bluetooth
+//#define BT_DEBUG
 #define BT_DEVICES_COUNT              7
 #define BT_SCAN_RESULTS               5
 #define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
@@ -278,8 +279,8 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "maxCellDifferenceVoltage",  // 15
   "balancingActive",           // 16
   "balancingCurrent",          // 17
-  "tempature",                 // 18
-  "chargePercent",             // 19
+  "temperature",               // 18
+  "SoC",                       // 19
   "errors",                    // 20
   "BalanceCapacity",           // 21
   "Cycle",                     // 22

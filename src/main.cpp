@@ -501,8 +501,8 @@ uint8_t checkTaskRun()
 {
   uint8_t ret = 0;
   xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
-  if(millis()-lastTaskRun_ble>3000) ret+=1;
-  if(millis()-lastTaskRun_alarmrules>2000) ret+=2;
+  if(millis()-lastTaskRun_ble>5000) ret+=1;
+  if(millis()-lastTaskRun_alarmrules>3000) ret+=2;
   if(millis()-lastTaskRun_onewire>2000) ret+=4;
   if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
   if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
@@ -627,6 +627,7 @@ void setup()
 }
 
 
+uint8_t u8_lTaskRunSate;
 void loop()
 {
   server.handleClient();
@@ -634,17 +635,16 @@ void loop()
   
   mqttLoop();
 
-  currentMillis = millis();
+  u8_lTaskRunSate=checkTaskRun();
+  if(u8_mTaskRunSate!=u8_lTaskRunSate)
+  {
+    ESP_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
+    u8_mTaskRunSate=u8_lTaskRunSate;
+  }
 
+  currentMillis = millis();
   if(currentMillis-previousMillis10000>=10000)
   {
-    uint8_t u8_lTaskRunSate=checkTaskRun();
-    if(u8_mTaskRunSate!=u8_lTaskRunSate)
-    {
-      ESP_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
-      u8_mTaskRunSate=u8_lTaskRunSate;
-    }
-
     //Sende Daten via mqqtt, wenn aktiv
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
