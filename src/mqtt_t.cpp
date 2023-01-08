@@ -14,6 +14,7 @@
 #include "BmsData.h"
 #include "Ow.h"
 #include "log.h"
+#include "BleHandler.h"
 
 
 static const char* TAG = "MQTT";
@@ -37,6 +38,7 @@ std::deque<mqttEntry_s> txBuffer;
 
 static SemaphoreHandle_t mMqttMutex = NULL;
 
+bool bo_mMqttEnable=false; 
 bool bo_mIsConnected=false; 
 
 bool mqttPublishLoopFromTxBuffer();
@@ -50,6 +52,9 @@ void initMqtt()
 
   mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(5000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(mqttConnect));
 
+  bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0);
+  if(!bo_mMqttEnable) return;
+
   if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals(""))
   {
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).c_str());
@@ -60,6 +65,9 @@ void initMqtt()
 
 void mqttLoop()
 {
+  if(!bo_mMqttEnable) return;
+  if(BleHandler::isScanRuning()) {return;}
+
   if(!mqttClient.connected())
   {
     if(bo_mIsConnected) mqttConnect();
@@ -79,8 +87,11 @@ void mqttLoop()
 
 void mqttConnect()
 {
+  if(!bo_mMqttEnable) return;
+
   //Nur wenn WLAN-Verbindung besteht
   if(WiFi.status() != WL_CONNECTED) return;
+  if(BleHandler::isScanRuning()) return;
 
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals("")) return;
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) return;
@@ -134,7 +145,7 @@ bool mqttConnected()
 
 bool mqttPublishLoopFromTxBuffer()
 {
-  if(millis()>(u32_mMqttPublishLoopTimmer+10))
+  if(millis()>(u32_mMqttPublishLoopTimmer+15))
   {
     if(bo_mIsConnected==false) return false;
     xSemaphoreTake(mMqttMutex, portMAX_DELAY);
@@ -149,7 +160,6 @@ bool mqttPublishLoopFromTxBuffer()
         if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
         if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
         if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
-        //debugPrintln(topic);
 
         mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
         txBuffer.pop_front();
@@ -221,7 +231,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 
 uint32_t sendeTimerBmsMsg;
 uint32_t sendeDelayTimer10ms;
-uint32_t sendeDelayTimer100ms;
+uint32_t sendeDelayTimer500ms;
 uint8_t sendBmsData_mqtt_sendeCounter=0;
 bool bmsDataSendFinsh=false;
 uint8_t sendOwTemperatur_mqtt_sendeCounter=0;
@@ -235,20 +245,20 @@ void mqttDataToTxBuffer()
   //Sende Daten via mqtt, wenn aktiv
   if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
   {
-    if(millis()-sendeTimerBmsMsg>=10000)
+    if(millis()-sendeTimerBmsMsg>=15000)
     {
       sendeTimerBmsMsg = millis();
       sendeDelayTimer10ms = millis();
-      sendeDelayTimer100ms = millis();
+      sendeDelayTimer500ms = millis();
       bmsDataSendFinsh=false;
       sendBmsData_mqtt_sendeCounter=0;
       owDataSendFinsh=false;
       sendOwTemperatur_mqtt_sendeCounter=0;
     }
 
-    if(millis()-sendeDelayTimer100ms>=500) //Sende alle 100ms eine Nachricht
+    if(millis()-sendeDelayTimer500ms>=500) //Sende alle 500ms eine Nachricht
     {
-      sendeDelayTimer100ms = millis();
+      sendeDelayTimer500ms = millis();
 
       if(!bmsDataSendFinsh)
       {
@@ -295,7 +305,7 @@ void mqttPublishBmsData(uint8_t i)
   
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
-  if(i<=4) mqttPublish(MQTT_TOPIC_BMS_BT, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
+  if(i<=6) mqttPublish(MQTT_TOPIC_BMS_BT, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
 
   //maxCellDifferenceVoltage
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_MAXCELL_DIFFERENCE_VOLTAGE, -1, getBmsMaxCellDifferenceVoltage(i));

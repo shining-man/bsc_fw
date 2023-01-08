@@ -19,7 +19,7 @@ enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoC
 
 struct bleDevice {
   bool isConnect;
-  btDoConnectEnums doConnect;
+  uint8_t doConnect; //btDoConnectEnums
   bool doDisconnect;
   String macAdr;
   uint8_t deviceTyp;
@@ -38,6 +38,7 @@ public:
 
   void startScan();
   bool isScanFinish();
+  static bool isScanRuning();
 
 private:
   uint8_t timer_startScan;
