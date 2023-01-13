@@ -19,7 +19,7 @@ enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoC
 
 struct bleDevice {
   bool isConnect;
-  uint8_t doConnect; //btDoConnectEnums
+  btDoConnectEnums doConnect;
   bool doDisconnect;
   String macAdr;
   uint8_t deviceTyp;
@@ -32,6 +32,7 @@ public:
   BleHandler();
   
   void init();
+  void stop();
   void run();
   std::string getBtScanResult();
   static bool bmsIsConnect(uint8_t devNr);

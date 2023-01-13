@@ -9,7 +9,6 @@
 
 static const char *TAG = "BLE_HANDLER";
 
-//void scanEndedCB(NimBLEScanResults results);
 bool bleNeeyBalancerConnect(uint8_t deviceNr);
 
 static bleDevice bleDevices[BT_DEVICES_COUNT];
@@ -18,6 +17,7 @@ NimBLEAdvertisedDevice* advDevice;
 
 WebSettings webSettings;
 
+static boolean bleHandlerRunning = false; 
 static boolean btScanIsRunning = false; 
 uint8_t u8_mScanAndNotConnectTimer;
 
@@ -34,7 +34,6 @@ class ClientCallbacks : public NimBLEClientCallbacks
   {
     // interval 1,25ms; timeout 10ms
     //pClient->updateConnParams(120,120,5,150);
-    //pClient->updateConnParams(180,180,10,720); //Funtioniert mit dem Testaufbau
     pClient->updateConnParams(800,800,5,1500); 
 
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
@@ -83,6 +82,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
 
     return false; //Änderung ablehnen
 
+    #if 0
     if(params->itvl_min < 24) { 
       return false;
     } else if(params->itvl_max > 40) { 
@@ -97,6 +97,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     ESP_LOGD(TAG, "onConnParamsUpdateRequest(): true");
     #endif
     return true;
+    #endif
   };
 };
 
@@ -137,7 +138,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 };
 
 
-/** Notification / Indication receiving handler callback */
+// Notification / Indication receiving handler callback
 void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
 {
   notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
@@ -157,28 +158,18 @@ void notifyCB(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData,
       }
     }
   }
-
-  /*debugPrint(": len=");
-  debugPrintln(length);
-  debugPrint("data=");
-  //debugPrintln((char*)pData);
-  for(uint16_t i=0; i<length; i++)
-  {
-    debugPrint(pData[i], HEX);
-    debugPrint(" ");
-  }
-  debugPrintln("");*/
 }
 
 
 /**
  * Callback invoked when scanning has completed.
  */
-void scanCompleteCB(NimBLEScanResults scanResults) {
-	//debugPrintf("Scan complete! %i Devices found",scanResults.getCount());
+void scanCompleteCB(NimBLEScanResults scanResults)
+{
+	
 } 
 
-/** Create a single global instance of the callback class to be used by all clients */
+// Create a single global instance of the callback class to be used by all clients
 static ClientCallbacks clientCB;
 
 bool bleNeeyBalancerConnect(uint8_t devNr)
@@ -189,7 +180,7 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
 
   NimBLEClient* pClient = nullptr;
 
-  /** Check if we have a client we should reuse first **/
+  // Check if we have a client we should reuse first 
   if(NimBLEDevice::getClientListSize())
   {
     /** Special case when we already know this device, we send false as the
@@ -199,7 +190,6 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     pClient = NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
     if(pClient)
     {
-      //if(!pClient->connect(bleDevices[devNr].advDevice, false))
       if(!pClient->connect(advDevice, false))
       {
         ESP_LOGW(TAG, "Reconnect failed: dev=%i",devNr);
@@ -218,7 +208,7 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     }
   }
 
-  /** No client to reuse? Create a new one. */
+  // No client to reuse? Create a new one.
   if(!pClient)
   {
     if(NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS)
@@ -232,29 +222,24 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
     ESP_LOGI(TAG, "New client created");
     #endif
     pClient->setClientCallbacks(&clientCB, false);
-    /** Set initial connection parameters: These settings are 15ms interval, 0 latency, 120ms timout.
-     *  These settings are safe for 3 clients to connect reliably, can go faster if you have less
-     *  connections. Timeout should be a multiple of the interval, minimum is 100ms.
-     *  Min interval: 12 * 1.25ms = 15, Max interval: 12 * 1.25ms = 15, 0 latency, 51 * 10ms = 510ms timeout
-     */
+
+    // Interval *1.25ms; timeout *10ms
     pClient->setConnectionParams(12,12,0,51);
     
-    /** Set how long we are willing to wait for the connection to complete (seconds), default is 30. */
+    // Set how long we are willing to wait for the connection to complete (seconds)
     pClient->setConnectTimeout(5);
 
-
-    //if (!pClient->connect(bleDevices[devNr].advDevice))
     if (!pClient->connect(advDevice))
     {
-      /** Created a client but failed to connect, don't need to keep it as it has no data */
+      // Created a client but failed to connect, don't need to keep it as it has no data
       ESP_LOGW(TAG, "Failed to connect, deleted client; dev=%i",devNr);
       NimBLEDevice::deleteClient(pClient);
       return false;
     }
   }
 
-  if(!pClient->isConnected()) {
-    //if (!pClient->connect(bleDevices[devNr].advDevice))
+  if(!pClient->isConnected())
+  {
     if (!pClient->connect(advDevice))
     {
       ESP_LOGW(TAG, "Failed to connect; dev=%i", devNr);
@@ -265,23 +250,22 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
   ESP_LOGI(TAG, "Connected to: %s, RSSI: %i",pClient->getPeerAddress().toString().c_str(),pClient->getRssi());
   #endif
 
-  /** Now we can read/write/subscribe the charateristics of the services we are interested in */
+  // Now we can read/write/subscribe the charateristics of the services we are interested in 
   NimBLERemoteService* pSvc = nullptr;
-  //NimBLERemoteCharacteristic* pChr = nullptr;
   bleDevices[devNr].pChr = nullptr;
   NimBLERemoteDescriptor* pDsc = nullptr;
 
   pSvc = pClient->getService(NeyyBalancer4A_serviceUUID);
-  if(pSvc)  /** make sure it's not null */
+  if(pSvc)  // make sure it's not null
   {     
     bleDevices[devNr].pChr = pSvc->getCharacteristic(NeyyBalancer4A_charUUID);
 
-    if(bleDevices[devNr].pChr)
-    {     /** make sure it's not null */
+    if(bleDevices[devNr].pChr) // make sure it's not null
+    {     
       if(bleDevices[devNr].pChr->canRead())
       {
         #ifdef BT_DEBUG
-        ESP_LOGI(TAG, "%s, Value: %s",bleDevices[devNr].pChr->getUUID().toString().c_str(),bleDevices[devNr].pChr->readValue().c_str());
+        ESP_LOGI(TAG, "can read: %s, Value: %s",bleDevices[devNr].pChr->getUUID().toString().c_str(),bleDevices[devNr].pChr->readValue().c_str());
         #endif
       }
 
@@ -290,48 +274,24 @@ bool bleNeeyBalancerConnect(uint8_t devNr)
         #ifdef BT_DEBUG
         ESP_LOGI(TAG, "can write");
         #endif
-        /*if(pChr->writeValue("Tasty"))
-        {
-          debugPrint("Wrote new value to: ");
-          debugPrintln(pChr->getUUID().toString().c_str());
-        }
-        else
-        {
-          // Disconnect if write failed 
-          pClient->disconnect();
-          return false;
-        }
-
-        if(pChr->canRead())
-        {
-          debugPrint("The value of: ");
-          debugPrint(pChr->getUUID().toString().c_str());
-          debugPrint(" is now: ");
-          debugPrintln(pChr->readValue().c_str());
-        }*/
       }
 
-      /** registerForNotify() has been deprecated and replaced with subscribe() / unsubscribe().
-       *  Subscribe parameter defaults are: notifications=true, notifyCallback=nullptr, response=false.
-       *  Unsubscribe parameter defaults are: response=false.
-       */
+      //Subscribe
       if(bleDevices[devNr].pChr->canNotify())
       {
-        //if(!pChr->registerForNotify(notifyCB))
         if(!bleDevices[devNr].pChr->subscribe(true, notifyCB))
         {
-          /** Disconnect if subscribe failed */
+          // Disconnect if subscribe failed
           pClient->disconnect();
           return false;
         }
       }
       else if(bleDevices[devNr].pChr->canIndicate())
       {
-        /** Send false as first argument to subscribe to indications instead of notifications */
-        //if(!pChr->registerForNotify(notifyCB, false))
+        // Send false as first argument to subscribe to indications instead of notifications
         if(!bleDevices[devNr].pChr->subscribe(false, notifyCB))
         {
-          /** Disconnect if subscribe failed */
+          // Disconnect if subscribe failed
           pClient->disconnect();
           return false;
         }
@@ -365,9 +325,12 @@ BleHandler::BleHandler()
 
 void BleHandler::init()
 {
+  if(bleHandlerRunning)return;
+
   u8_mScanAndNotConnectTimer=0;
   timer_startScan=0;
   startManualScan=false;
+  btScanIsRunning=false;
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
@@ -390,20 +353,23 @@ void BleHandler::init()
 
   pBLEScan = NimBLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
-  pBLEScan->setInterval(300); //45
-  pBLEScan->setWindow(50); //15
+  pBLEScan->setInterval(45); //45
+  pBLEScan->setWindow(15); //15
   pBLEScan->setActiveScan(true);
   pBLEScan->setMaxResults(BT_SCAN_RESULTS);
 
   pBLEScan->clearResults();
+
+  bleHandlerRunning=true;
 };
 
-/*void BleHandler::stop()
+void BleHandler::stop()
 {
+  bleHandlerRunning=false;
   pBLEScan->stop();
   pBLEScan->clearResults();
   NimBLEDevice::deinit(true);
-}*/
+}
 
 void BleHandler::startScan()
 {
@@ -427,12 +393,19 @@ bool BleHandler::isScanRuning()
   return btScanIsRunning;
 }
 
+
 static uint8_t reConTimer=0;
 void BleHandler::run()
 {
+  if(!bleHandlerRunning)return;
+
   static uint8_t i;
   boolean bo_lDoStartBtScan=false; 
   uint8_t u8_lBtConnStatus=0;
+
+  #ifdef BT_DEBUG
+  ESP_LOGD(TAG, "run() btScanIsRunning=%i",btScanIsRunning);
+  #endif
 
   //Nur wenn nicht nach BT Devices gesucht wird
   if(!btScanIsRunning) 
@@ -441,7 +414,6 @@ void BleHandler::run()
     for(i=0;i<BT_DEVICES_COUNT;i++)
     {
       uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
-      //ESP_LOGI(TAG, "run(): %i, u8_lBtDevType=%i, isConnect=%i, doConnect=%i", i, u8_lBtDevType, bleDevices[i].isConnect, bleDevices[i].doConnect);
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
       if(u8_lBtDevType>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
       {
@@ -459,7 +431,6 @@ void BleHandler::run()
 
         if(bleNeeyBalancerConnect(i))
         {
-          //bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
           u8_lBtConnStatus|=(1<<i);
         }
         else //Wenn Verbingungsversuch fehgeschlagen
@@ -474,7 +445,9 @@ void BleHandler::run()
     }
 
     //Wenn alle Geräte verbunden sind
-    //ESP_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
+    #ifdef BT_DEBUG
+    ESP_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
+    #endif
     if(u8_lBtConnStatus==0x7F)
     {
       for(i=0;i<BT_DEVICES_COUNT;i++)
@@ -520,6 +493,10 @@ void BleHandler::run()
     }
   }
 
+  #ifdef BT_DEBUG
+  ESP_LOGD(TAG, "run() u8_mScanAndNotConnectTimer=%i, btScanIsRunning=%i, scanResCount=%i",u8_mScanAndNotConnectTimer,btScanIsRunning,pBLEScan->getResults().getCount());
+  #endif
+
   //Stop den Scan, wenn die Ergebnisliste voll ist und x Sekunden kein Device mehr verbunden wurde
   if(u8_mScanAndNotConnectTimer>0 && btScanIsRunning && pBLEScan->getResults().getCount()>=BT_SCAN_RESULTS)
   {
@@ -530,10 +507,6 @@ void BleHandler::run()
     u8_mScanAndNotConnectTimer=0;
     ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
-    
-    NimBLEDevice::deinit(true);
-    init();
-
     btScanIsRunning=false;
   }
 } 

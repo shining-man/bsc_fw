@@ -88,6 +88,8 @@ bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindu
 bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
 bool    changeWlanData=false;
 
+bool    WlanStaApOk=false;
+
 //
 void task_ble(void *param);
 
@@ -104,8 +106,10 @@ void onWiFiEvent(WiFiEvent_t event) {
       break;
 
     case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      WlanStaApOk=true;
       server.begin(WEBSERVER_PORT);  //Webserver starten
       initTime();
+      bleHanlder.init();
 
       //MQTT verbinden
       if(WiFi.status() == WL_CONNECTED && webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
@@ -116,8 +120,10 @@ void onWiFiEvent(WiFiEvent_t event) {
         
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
+      WlanStaApOk=false;
       mqttDisconnect();
       server.stop(); //Webserver beenden
+      bleHanlder.stop();
 
       if(!wifiApMode)
       {
@@ -128,6 +134,11 @@ void onWiFiEvent(WiFiEvent_t event) {
         xTimerStop(wifiReconnectTimer, 0);
       }
       break;
+
+    case ARDUINO_EVENT_WIFI_AP_START:
+      WlanStaApOk=true;
+      bleHanlder.init();
+      break;
     }
 }
 
@@ -135,11 +146,14 @@ void onWiFiEvent(WiFiEvent_t event) {
 boolean connectWiFi()
 {
   doConnectWiFi=true;
+  //WlanStaApOk=false;
   boolean connected = false;
   String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
   String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
   
+  #ifdef WLAN_DEBUG
   ESP_LOGI(TAG, "[WiFi] status (a): %i", WiFi.status());
+  #endif
 
   if(!ssid.equals("") && !pwd.equals(""))
   {
@@ -169,7 +183,9 @@ boolean connectWiFi()
   }
   
   doConnectWiFi=false;
+  #ifdef WLAN_DEBUG
   ESP_LOGI(TAG, "[WiFi] status (b): %i", WiFi.status());
+  #endif
   return connected;
 }
 
@@ -197,7 +213,9 @@ void task_ble(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    bleHanlder.run();
+    
+    if(WlanStaApOk) bleHanlder.run();
+
     xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
     lastTaskRun_ble=millis();
     xSemaphoreGive(mutexTaskRunTime);
@@ -310,6 +328,7 @@ void handlePage_alarm(){server.send(200, "text/html", htmlPageAlarm);}
 void handlePage_schnittstellen(){server.send(200, "text/html", htmlPageSchnittstellen);}
 void handle_htmlPageBmsSpg(){server.send(200, "text/html", htmlPageBmsSpg);}
 void handlePage_status(){server.send(200, "text/html", htmlPageStatus);}
+void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
 
 
 /*
@@ -470,6 +489,17 @@ void handle_getBmsSpgData()
   server.send(200, "text/html", sendData.c_str());
 }
 
+void handle_getOwTempData()
+{
+  String sendData = "";
+  for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
+  {
+    sendData += String(owGetTemp(i));
+    sendData += ";";
+  }
+  server.send(200, "text/html", sendData.c_str());
+}
+
 void handle_getBtDevices()
 {
   bleHanlder.startScan(); //BT Scan starten
@@ -548,7 +578,7 @@ void setup()
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
 
   //Erstelle Timer
-  wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(2000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectWiFi));
+  wifiReconnectTimer = xTimerCreate("wifiTimer", pdMS_TO_TICKS(5000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(connectWiFi));
    
   //mqtt
   initMqtt();
@@ -556,6 +586,7 @@ void setup()
   //init WLAN
   ESP_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
+  WiFi.setAutoReconnect(false);
   connectWiFi();
   ESP_LOGI(TAG, "Init WLAN...ok");
   
@@ -588,6 +619,8 @@ void setup()
   server.on("/settings/schnittstellen/bt/getBtDevices",handle_getBtDevices);
   server.on("/getDashboardData",handle_getDashboardData);
   server.on("/bmsSpg/getBmsSpgData",handle_getBmsSpgData);
+  server.on("/owTempLive",handlePage_htmlPageOwTempLive);
+  server.on("/getOwTempData",handle_getOwTempData);
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
@@ -630,10 +663,10 @@ void setup()
 uint8_t u8_lTaskRunSate;
 void loop()
 {
-  server.handleClient();
+  if(WlanStaApOk) server.handleClient();
   //timeRunCyclic();
   
-  mqttLoop();
+  if(WlanStaApOk /*&& bleHanlder.isAllDeviceConnected()*/) mqttLoop();
 
   u8_lTaskRunSate=checkTaskRun();
   if(u8_mTaskRunSate!=u8_lTaskRunSate)
@@ -646,7 +679,7 @@ void loop()
   if(currentMillis-previousMillis10000>=10000)
   {
     //Sende Daten via mqqtt, wenn aktiv
-    if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+    if(WlanStaApOk /*&& bleHanlder.isAllDeviceConnected()*/ && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_ESP32_TEMP, -1, temperatureRead());
       mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
