@@ -7,17 +7,21 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.7"
+#define BSC_SW_VERSION      "V0.2.8"
+static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
-#define DEBUG_ON_FS
-//#define DEBUG_ON_HW_SERIAL
+//#define DEBUG_ON_FS
+#define DEBUG_ON_HW_SERIAL
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
-//BMS
+//Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define SEPLOS_DEBUG
+#define BT_DEBUG        //Bluetooth
+#define MQTT_DEBUG        
+#define WLAN_DEBUG        
 
 //System
 #define WEBSERVER_PORT               80
@@ -35,7 +39,6 @@
 #define OW_TEMP_AVG_CYCELS            3
 
 //Bluetooth
-//#define BT_DEBUG
 #define BT_DEVICES_COUNT              7
 #define BT_SCAN_RESULTS               5
 #define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds

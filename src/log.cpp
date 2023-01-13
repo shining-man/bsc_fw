@@ -66,6 +66,7 @@ void debugInit()
   esp_log_level_set("ALARM", ESP_LOG_INFO); 
   esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
   esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
+  esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
   
   esp_log_level_set("OW", ESP_LOG_INFO); //onewire    ESP_LOG_DEBUG
   #else
