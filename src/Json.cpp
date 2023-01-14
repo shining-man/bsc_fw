@@ -62,8 +62,6 @@ bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& e
                 arrayNr++;
             }
         }
-
-
     }
 
     startPos = 0;
@@ -74,14 +72,13 @@ bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& e
 
 uint16_t Json::getArraySize(const char *json, long startPos)
 {
-    uint8_t arrayOpenCnt = 0;
-    uint8_t arrayCloseCnt = 0;
-    uint8_t elementOpenCnt = 0;
-    uint8_t elementCloseCnt = 0;
+    uint8_t  arrayOpenCnt = 0;
+    uint8_t  arrayCloseCnt = 0;
+    uint8_t  elementOpenCnt = 0;
+    uint8_t  elementCloseCnt = 0;
 
     uint16_t arrayCnt = 0;
-    uint8_t arrayCntMerker = 1;
-
+    uint8_t  arrayCntMerker = 1;
 
     for (uint32_t i = startPos; i < arrSize(json); i++)
     {

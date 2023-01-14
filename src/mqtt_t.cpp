@@ -19,14 +19,26 @@
 
 static const char* TAG = "MQTT";
 
+static SemaphoreHandle_t mMqttMutex = NULL;
 TimerHandle_t mqttReconnectTimer;
 
-WiFiClient  wifiClient;
+WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
-
-IPAddress   mqttIpAdr;
+IPAddress    mqttIpAdr;
 
 uint32_t u32_mMqttPublishLoopTimmer=0;
+
+bool     bo_mMqttEnable=false; 
+uint8_t  u8_mWaitConnectCounter; 
+
+uint32_t sendeTimerBmsMsg;
+uint32_t sendeDelayTimer10ms;
+uint32_t sendeDelayTimer500ms;
+uint8_t  sendBmsData_mqtt_sendeCounter=0;
+bool     bmsDataSendFinsh=false;
+uint8_t  sendOwTemperatur_mqtt_sendeCounter=0;
+bool     owDataSendFinsh=false;
+
 struct mqttEntry_s {
     int8_t t1;
     int8_t t2;
@@ -36,11 +48,6 @@ struct mqttEntry_s {
 };
 std::deque<mqttEntry_s> txBuffer;
 
-static SemaphoreHandle_t mMqttMutex = NULL;
-
-bool bo_mMqttEnable=false; 
-uint8_t u8_mWaitConnectCounter; 
-
 enum enum_smMqttConnectState {SM_MQTT_WAIT_CONNECTION, SM_MQTT_CONNECTED, SM_MQTT_DISCONNECTED};
 enum_smMqttConnectState smMqttConnectState;
 enum_smMqttConnectState smMqttConnectStateOld;
@@ -49,6 +56,7 @@ bool mqttPublishLoopFromTxBuffer();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
+
 
 void initMqtt()
 {
@@ -301,14 +309,6 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 }
 
 
-uint32_t sendeTimerBmsMsg;
-uint32_t sendeDelayTimer10ms;
-uint32_t sendeDelayTimer500ms;
-uint8_t sendBmsData_mqtt_sendeCounter=0;
-bool bmsDataSendFinsh=false;
-uint8_t sendOwTemperatur_mqtt_sendeCounter=0;
-bool owDataSendFinsh=false;
-
 //Nicht alle mqtt Nachrichten auf einmal senden um RAM zu sparen
 void mqttDataToTxBuffer()
 { 
@@ -355,14 +355,10 @@ void mqttDataToTxBuffer()
 }
 
 
-
-
 void mqttPublishBmsData(uint8_t i)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
   
-
-
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {

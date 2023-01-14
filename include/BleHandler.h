@@ -20,7 +20,7 @@ enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoC
 struct bleDevice {
   bool isConnect;
   btDoConnectEnums doConnect;
-  bool doDisconnect;
+  //uint16_t u16_zyclicWriteTimer;
   String macAdr;
   uint8_t deviceTyp;
   NimBLERemoteCharacteristic* pChr;
