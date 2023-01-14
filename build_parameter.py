@@ -18,6 +18,10 @@ for zeile in datei:
             defines_dict.update({defs[1].strip(): defs[2].strip().replace('"', '')})
 datei.close()
 
+
+########################################################
+# Build params.h
+########################################################
 dateiOut = open('./include/params.h','w')
 datei = open('./include/params_py.h','r')
 pyVar = 0
@@ -76,6 +80,54 @@ for zeile in datei:
                     zeileNeu=zeile
 
         dateiOut.write(zeileNeu)
+ 
+    if pyVar == 1:
+        pyVar=2
+
+    if pyVar == 4:
+        pyVar=0
+
+datei.close()
+dateiOut.close()
+
+
+########################################################
+# Build webpages.h
+########################################################
+dateiOut = open('./include/webpages.h','w')
+datei = open('./include/webpages_py.h','r')
+pyVar = 0
+pyVarVarName=""
+pyVarValue=""
+for zeile in datei:
+    zeileNeu = ""
+
+    defFoundStart = zeile.find("/*//PY_VAR_ANF")
+    if defFoundStart >= 0:
+        pyVar=1
+        pyVarVarName=""
+        pyVarValue=""
+
+    defFoundStart = zeile.find("//PY_VAR_END*/")
+    if defFoundStart >= 0:
+        pyVar=4
+        defines_dict.update({pyVarVarName:pyVarValue})
+        #print(pyVarVarName)
+        pyVarVarName=""
+        pyVarValue=""
+    
+    if pyVar == 3:
+        pyVarValue += zeile.strip().strip("\"").rstrip(";").rstrip("\"")
+            
+    if pyVar == 2:
+        pyVar=3
+        pyVarVarName = zeile.strip().split(' ',3)[0].strip()
+
+    if pyVar == 0:
+        for key,value in defines_dict.items():
+            zeile = zeile.replace("__"+key+"__", value)
+
+        dateiOut.write(zeile)
  
     if pyVar == 1:
         pyVar=2

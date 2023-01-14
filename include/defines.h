@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.8"
+#define BSC_SW_VERSION      "V0.2.9"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -19,9 +19,10 @@ static const char COMPILE_DATE_TIME[] = "";
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define SEPLOS_DEBUG
-#define BT_DEBUG        //Bluetooth
-#define MQTT_DEBUG        
-#define WLAN_DEBUG        
+//#define BT_DEBUG        //Bluetooth
+//#define MQTT_DEBUG        
+//#define WLAN_DEBUG        
+//#define CAN_DEBUG
 
 //System
 #define WEBSERVER_PORT               80

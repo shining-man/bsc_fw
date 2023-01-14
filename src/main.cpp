@@ -86,20 +86,22 @@ bool    isBoot=true;
 bool    wifiApMode=false;        //true, wenn AP Mode
 bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
 bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
-bool    changeWlanData=false;
+bool    WlanStaApOk=false;       //true, wenn Wlan verbunden oder AP erstellt
 
-bool    WlanStaApOk=false;
+bool    changeWlanDataForI2C=false; //true, wenn sich die WLAN Verbindung geändert hat
 
 //
 void task_ble(void *param);
 
 
-void free_dump() {
+void free_dump()
+{
   ESP_LOGI(TAG, "Free Heap: %i", ESP.getFreeHeap());
 }
 
 
-void onWiFiEvent(WiFiEvent_t event) {
+void onWiFiEvent(WiFiEvent_t event)
+{
     ESP_LOGI(TAG, "[WiFi] event: %d", event);
     switch(event) {
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
@@ -146,7 +148,6 @@ void onWiFiEvent(WiFiEvent_t event) {
 boolean connectWiFi()
 {
   doConnectWiFi=true;
-  //WlanStaApOk=false;
   boolean connected = false;
   String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
   String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
@@ -170,7 +171,7 @@ boolean connectWiFi()
       ESP_LOGI(TAG, "IP-Adresse = %s",WiFi.localIP().toString().c_str());
       connected=true;
       firstWlanModeSTA=true;
-      changeWlanData=true;
+      changeWlanDataForI2C=true;
     }
   }
   
@@ -179,7 +180,7 @@ boolean connectWiFi()
     ESP_LOGI(TAG, "Wifi AP");
     WiFi.mode(WIFI_AP);
     WiFi.softAP("BSC","",1);  
-    changeWlanData=true;
+    changeWlanDataForI2C=true;
   }
   
   doConnectWiFi=false;
@@ -226,7 +227,6 @@ void task_alarmRules(void *param)
 {
   ESP_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
 
-  //init Alarmrules
   initAlarmRules();
 
   for (;;)
@@ -297,7 +297,6 @@ void task_i2c(void *param)
 {
   ESP_LOGD(TAG, "-> 'task_i2c' runs on core %d", xPortGetCoreID());
 
-  //init i2c
   i2cInit();
 
   for (;;)
@@ -305,7 +304,9 @@ void task_i2c(void *param)
     vTaskDelay(pdMS_TO_TICKS(2000));
     i2cCyclicRun(); //Sende Daten zum Display
 
-    if(changeWlanData){
+    if(changeWlanDataForI2C)
+    {
+      changeWlanDataForI2C=false;
       String ipAddr;
       if(wifiApMode) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
@@ -485,7 +486,6 @@ void handle_getBmsSpgData()
     sendData += String(getBmsCellVoltage(1,i));
     sendData += ";";
   }
-  //debugPrintln(sendData);
   server.send(200, "text/html", sendData.c_str());
 }
 
@@ -557,6 +557,7 @@ void setup()
   //init DIO 
   if(bootCounter==1) initDio(false);
   else initDio(true);
+  ESP_LOGI(TAG, "HW: %i", getHwVersion());
 
   bmsDataInit();
 
@@ -565,7 +566,7 @@ void setup()
   webSettingsBluetooth.initWebSettings(paramBluetooth, "Bluetooth", "/WebSettings.conf",0);
   webSettingsBluetooth.setTimerHandlerName("getBtDevices");
   webSettingsSerial.initWebSettings(paramSerial, "Serial", "/WebSettings.conf",0);
-  webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm Bluetooth Ger&auml;te", "/WebSettings.conf",0);
+  webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm BMS (BT + Serial)", "/WebSettings.conf",0);
   webSettingsAlarmTemp.initWebSettings(paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf",0);
   webSettingsDitialOut.initWebSettings(paramDigitalOut, "Digitalausg&auml;nge", "/WebSettings.conf",0);
   webSettingsDitialIn.initWebSettings(paramDigitalIn, "Digitaleing&auml;nge", "/WebSettings.conf",0);
@@ -626,7 +627,7 @@ void setup()
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
-  webota.init(&server, "/webota"); //webota
+  webota.init(&server, "/settings/webota/"); //webota
 
   server.on("/restart/", []() {
     server.sendHeader("Connection", "close");
@@ -663,11 +664,14 @@ void setup()
 uint8_t u8_lTaskRunSate;
 void loop()
 {
-  if(WlanStaApOk) server.handleClient();
-  //timeRunCyclic();
-  
-  if(WlanStaApOk /*&& bleHanlder.isAllDeviceConnected()*/) mqttLoop();
+  if(WlanStaApOk)
+  {
+    server.handleClient();
+    mqttLoop();
+    //timeRunCyclic();
+  }
 
+  //Taskrun state
   u8_lTaskRunSate=checkTaskRun();
   if(u8_mTaskRunSate!=u8_lTaskRunSate)
   {
@@ -675,11 +679,12 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
+  //10s Intervall
   currentMillis = millis();
   if(currentMillis-previousMillis10000>=10000)
   {
     //Sende Daten via mqqtt, wenn aktiv
-    if(WlanStaApOk /*&& bleHanlder.isAllDeviceConnected()*/ && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+    if(WlanStaApOk && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_ESP32_TEMP, -1, temperatureRead());
       mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
@@ -697,5 +702,3 @@ void loop()
     previousMillis10000 = currentMillis;
   }
 }
-
-

@@ -268,7 +268,10 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
       * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
       if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
       {
-        //debugPrintf("Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        #ifdef CAN_DEBUG
+        ESP_LOGD(TAG,"Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        #endif
+
         if(i16_mMaxChargeCurrent>=50){
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
         }else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50){
@@ -279,7 +282,9 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           i16_pNewChargeCurrent=i16_mMaxChargeCurrent-1;
         }
         if(i16_pNewChargeCurrent<0)i16_pNewChargeCurrent=0;
-        //debugPrintf("Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        #ifdef CAN_DEBUG
+        ESP_LOGD(TAG,"Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+        #endif
 
         u8_mTimerCalcMaxChareCurrent=0;
         if(i16_pNewChargeCurrent==0 && i16_mMaxChargeCurrent>0) //Strom wurde auf 0 geregelt -> Sperrzeit für Aufwärtsregelung starten
@@ -298,7 +303,9 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
           {
             i16_pNewChargeCurrent=i16_mMaxChargeCurrent+10;
-            //debugPrintf("Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+            #ifdef CAN_DEBUG
+            ESP_LOGD(TAG,"Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+            #endif
           }
 
           i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
@@ -545,20 +552,27 @@ void sendCanMsg_351()
     }
     else
     {
-
       int16_t i16_lMaxChargeCurrentOld=i16_mMaxChargeCurrent;
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,0,0));
+      int16_t i16_lMaxChargeCurrentList[3];
 
-      int16_t i16_lMaxChargeCurrent1 = calcLadestromZellspanung(i16_lMaxChargeCurrent);
-      int16_t i16_lMaxChargeCurrent2 = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
+      i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(i16_lMaxChargeCurrent);
+      i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
+      i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
 
-      i16_lMaxChargeCurrent = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
-      
-      if(i16_lMaxChargeCurrent>i16_lMaxChargeCurrent1) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent1;
-      if(i16_lMaxChargeCurrent2<i16_lMaxChargeCurrent) i16_lMaxChargeCurrent=i16_lMaxChargeCurrent2;
+      //Bestimmt kleinsten Ladestrom aller Optionen
+      for(uint8_t i=0;i<sizeof(i16_lMaxChargeCurrentList)/sizeof(i16_lMaxChargeCurrentList[0]);i++)
+      {
+        if(i16_lMaxChargeCurrentList[i] < i16_lMaxChargeCurrent)
+        {
+          i16_lMaxChargeCurrent = i16_lMaxChargeCurrentList[i];
+        }
+      }
 
       calcMaximalenLadestromSprung(i16_lMaxChargeCurrent); //calcMaximalenLadestromSprung schreibt den neuen Ausgangsstrom in i16_mMaxChargeCurrent
-      //debugPrintf("Soll Ladestrom: %i, %i, %i",i16_lMaxChargeCurrent1, i16_lMaxChargeCurrent, i16_mMaxChargeCurrent);
+      #ifdef CAN_DEBUG
+      ESP_LOGD(TAG, "Soll Ladestrom: %i, %i, %i",i16_lMaxChargeCurrentList[0], i16_lMaxChargeCurrentList[1], i16_lMaxChargeCurrentList[2]);
+      #endif
 
       //Soll-Ladestrom in die Ausgangs-Msg. schreiben
       msgData.maxchargecurrent = i16_mMaxChargeCurrent*10;
@@ -604,7 +618,9 @@ void sendCanMsg_355()
 
   if(alarmSetSocToFull)
   {
-    //debugPrintln("SOC aufgrund von Alarm auf 100%");
+    #ifdef CAN_DEBUG
+    ESP_LOGD(TAG,"SOC aufgrund von Alarm auf 100%");
+    #endif
     msgData.soc = 100;
   }
   else
@@ -648,7 +664,9 @@ void sendCanMsg_356()
   if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
   if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
 
-  //debugPrintf("CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);
+  #ifdef CAN_DEBUG
+  ESP_LOGD(TAG, "CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);
+  #endif
 
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
   inverterData.inverterVoltage = msgData.voltage;

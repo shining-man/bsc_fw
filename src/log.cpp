@@ -57,7 +57,6 @@ void debugInit()
   #endif
 
 
-  #ifdef DEBUG_ON_HW_SERIAL
   //esp_log_level_set("*", ESP_LOG_VERBOSE); //LOG all
   esp_log_level_set("*", ESP_LOG_INFO); 
   esp_log_level_set("MAIN", ESP_LOG_VERBOSE); 
@@ -67,29 +66,13 @@ void debugInit()
   esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
   esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
   esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
-  
-  esp_log_level_set("OW", ESP_LOG_INFO); //onewire    ESP_LOG_DEBUG
-  #else
-  esp_log_level_set("*", ESP_LOG_INFO); 
-  esp_log_level_set("MAIN", ESP_LOG_VERBOSE); 
-  esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
-  esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
-  esp_log_level_set("ALARM", ESP_LOG_INFO); 
-  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
-  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
-  
-  esp_log_level_set("OW", ESP_LOG_INFO); //onewire    ESP_LOG_DEBUG
-  #endif
+  esp_log_level_set("OW", ESP_LOG_INFO); //onewire  
 
 
   #ifdef DEBUG_ON_FS
   if(!SPIFFS.exists("/log.txt")) 
   {
     ESP_LOGE(TAG, "Error with the SPIFFS!");
-    /*ESP_LOGE(TAG, "Format SPIFFS!");
-    ESP_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
-    SPIFFS.format();
-    spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);*/
   }
   ESP_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
   #endif
