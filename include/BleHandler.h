@@ -43,8 +43,9 @@ public:
 
 private:
   uint8_t timer_startScan;
-  bool startManualScan;
+  bool bo_mStartManualScan;
   
+  bool handleConnectionToDevices();
 };
 
 #endif
