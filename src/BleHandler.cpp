@@ -19,6 +19,7 @@ WebSettings webSettings;
 
 static boolean bo_mBleHandlerRunning = false; 
 static boolean bo_mBtScanIsRunning = false; 
+static boolean bo_mBtNotAllDeviceConnectedOrScanRunning = false;
 uint8_t u8_mScanAndNotConnectTimer;
 
 
@@ -327,6 +328,38 @@ bool btDeviceConnect(uint8_t devNr)
 }
 
 
+void btDeviceDisconnect(uint8_t devNr)
+{
+  //#ifdef BT_DEBUG
+  ESP_LOGI(TAG, "btDeviceDisconnect() devNr=%i",devNr);
+  //#endif
+
+  NimBLEClient* pClient = nullptr;
+
+  for(uint8_t i=0;i<7;i++)
+  {
+    if(NimBLEDevice::getClientListSize())
+    {
+      //uint8_t address[6] = bleDevices[i].macAdr;
+      std::string adrStr = std::string(bleDevices[i].macAdr.c_str());
+      NimBLEAddress adr = NimBLEAddress(adrStr);
+
+      pClient = NimBLEDevice::getClientByPeerAddress(adr);
+      if(pClient)
+      {
+        pClient->disconnect();
+      }
+    }
+    else
+    {
+      break;
+    }
+  }
+}
+
+
+
+
 
 
 
@@ -337,6 +370,8 @@ BleHandler::BleHandler()
 {
 };
 
+
+//NimBLEAdvertisedDeviceCallbacks* myAdvertisedDeviceCallback;
 void BleHandler::init()
 {
   if(bo_mBleHandlerRunning)return;
@@ -345,6 +380,7 @@ void BleHandler::init()
   timer_startScan=0;
   bo_mStartManualScan=false;
   bo_mBtScanIsRunning=false;
+  bo_mBtNotAllDeviceConnectedOrScanRunning=false;
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
@@ -373,18 +409,32 @@ void BleHandler::init()
   pBLEScan->setMaxResults(BT_SCAN_RESULTS);
   pBLEScan->clearResults();
 
-  bo_mBleHandlerRunning=true;
+  //bo_mBleHandlerRunning=true;
 };
+
+void BleHandler::start()
+{
+  bo_mBleHandlerRunning=true;
+}
 
 void BleHandler::stop()
 {
-  if(bo_mBleHandlerRunning)
+  btDeviceDisconnect(0);
+  
+  /*if(bo_mBleHandlerRunning)
   {
     pBLEScan->stop();
     pBLEScan->clearResults();
-    NimBLEDevice::deinit(true);
-  }
+    pBLEScan->clearDuplicateCache();
+    NimBLEDevice::deinit(false);
+  }*/
+  /*for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  {
+    bleDevices[i].pChr=nullptr;
+  }*/
+
   bo_mBleHandlerRunning=false;
+  bo_mBtNotAllDeviceConnectedOrScanRunning=false;
 }
 
 void BleHandler::startScan()
@@ -404,9 +454,9 @@ bool BleHandler::isScanFinish()
   }
 }
 
-bool BleHandler::isScanRuning()
+bool BleHandler::isNotAllDeviceConnectedOrScanRunning()
 {
-  return bo_mBtScanIsRunning;
+  return bo_mBtNotAllDeviceConnectedOrScanRunning;
 }
 
 
@@ -432,6 +482,7 @@ void BleHandler::run()
   if(bo_lDoStartBtScan && !bo_mBtScanIsRunning)
   {
     ESP_LOGI(TAG, "Starte BT Scan");
+    bo_mBtNotAllDeviceConnectedOrScanRunning=true;
     bo_lDoStartBtScan = false;
     bo_mBtScanIsRunning = true;
     if(pBLEScan->isScanning())
@@ -460,6 +511,7 @@ void BleHandler::run()
     u8_mScanAndNotConnectTimer=0;
     ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
+    bo_mBtNotAllDeviceConnectedOrScanRunning=false;
     bo_mBtScanIsRunning=false;
   }
 } 
@@ -517,6 +569,7 @@ bool BleHandler::handleConnectionToDevices()
     #endif
     if(u8_lBtConnStatus==0x7F)
     {
+      bool bo_lAllDevWrite=false;
       for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
       {
         //ESP_LOGI(TAG,"BT write (%i) doC=%i",i,bleDevices[i].doConnect);
@@ -534,19 +587,10 @@ bool BleHandler::handleConnectionToDevices()
               bleDevices[i].doConnect = btDoConnectionIdle; 
               break;
           }
+          bo_lAllDevWrite=true; 
         }
-        /*else if(bleDevices[i].isConnect && bleDevices[i].u16_zyclicWriteTimer==1)
-        {
-          if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A)
-          {
-            bleDevices[i].u16_zyclicWriteTimer=NEEY_ZYCLIC_SEND_TIME;
-            #ifdef BT_DEBUG
-            ESP_LOGI(TAG,"BT write zyclic dev=%i",i);
-            #endif
-            bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
-          }
-        }*/
       }
+      if(bo_lAllDevWrite)bo_mBtNotAllDeviceConnectedOrScanRunning=false; 
     }
   }
 

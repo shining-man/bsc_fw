@@ -32,6 +32,7 @@ public:
   BleHandler();
   
   void init();
+  void start();
   void stop();
   void run();
   std::string getBtScanResult();
@@ -39,7 +40,7 @@ public:
 
   void startScan();
   bool isScanFinish();
-  static bool isScanRuning();
+  static bool isNotAllDeviceConnectedOrScanRunning();
 
 private:
   uint8_t timer_startScan;
