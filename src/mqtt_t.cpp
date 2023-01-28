@@ -20,7 +20,7 @@
 static const char* TAG = "MQTT";
 
 static SemaphoreHandle_t mMqttMutex = NULL;
-TimerHandle_t mqttReconnectTimer;
+//TimerHandle_t mqttReconnectTimer;
 
 WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -66,9 +66,6 @@ void initMqtt()
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
   
-
-  mqttReconnectTimer = xTimerCreate("mqttTimer", pdMS_TO_TICKS(5000), pdFALSE, (void*)0, reinterpret_cast<TimerCallbackFunction_t>(mqttConnect));
-
   bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0);
   if(!bo_mMqttEnable) return;
 
@@ -76,18 +73,22 @@ void initMqtt()
   {
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).c_str());
     mqttClient.setServer(mqttIpAdr, WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,0,0));
+
+    mqttClient.setKeepAlive(30);
   }
 }
 
 
 bool bo_mBTisScanRuningOld=false;
-void mqttLoop()
+bool mqttLoop()
 {
   //Is MQTT Enabled?
-  if(!bo_mMqttEnable) return;
+  if(!bo_mMqttEnable) return true;
+
+  bool ret=false;
 
   //Running Bluetooth scan?
-  bool bo_lBTisScanRuning=BleHandler::isScanRuning();
+  bool bo_lBTisScanRuning=BleHandler::isNotAllDeviceConnectedOrScanRunning();
   #ifdef BT_DEBUG
   if(bo_lBTisScanRuning!=bo_mBTisScanRuningOld)
   {
@@ -95,25 +96,24 @@ void mqttLoop()
     bo_mBTisScanRuningOld=bo_lBTisScanRuning;
   }
   #endif
-  if(bo_lBTisScanRuning){return;}
+  if(bo_lBTisScanRuning){return true;}
 
   //Mqtt connect SM
   switch(smMqttConnectState)
   {
     case SM_MQTT_WAIT_CONNECTION:
-      /* Warte auf Verbindung zum Broker.
-       * Geregelt wird der Verbindungsaufbau durch den Aufruf von mqttConnect().
-       * Wenn kein Verbinungsaufbau zustande kommt, dann startet mqttConnect() einen Timer
-       * der alles x Sekunden versucht einer Verbindung aufzubauen.
-      **/
+      // Warte auf Verbindung zum Broker
       break;
 
     case SM_MQTT_CONNECTED:
       if(!mqttClient.connected())
       {
         smMqttConnectState=SM_MQTT_DISCONNECTED;
+        ret=false;
         break;
       }
+
+      if(BleHandler::isNotAllDeviceConnectedOrScanRunning())break;
 
       mqttClient.loop();
 
@@ -122,15 +122,18 @@ void mqttLoop()
 
       //Sende Diverse MQTT Daten
       mqttDataToTxBuffer();
+
+      ret=true;
       break;
 
     case SM_MQTT_DISCONNECTED:
       smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
-      mqttConnect();
+      ret=false;
       break;
 
     default:
       smMqttConnectState=SM_MQTT_DISCONNECTED;
+      ret=false;
       break;
   }
 
@@ -140,13 +143,16 @@ void mqttLoop()
     ESP_LOGD(TAG,"smMqttConnectState=%i",smMqttConnectState);
     smMqttConnectStateOld=smMqttConnectState;
   }
+
+  return ret;
 }
 
 
-void mqttConnect()
+bool mqttConnect()
 {
-  bool bo_lBreak=false;
-  if(!bo_mMqttEnable) return;
+  bool ret=false;
+  uint8_t bo_lBreak=0;
+  if(!bo_mMqttEnable) return true;
 
   #ifdef MQTT_DEBUG
   ESP_LOGD(TAG,"mqttConnect() u8_mWaitConnectCounter=%i",u8_mWaitConnectCounter);
@@ -155,19 +161,18 @@ void mqttConnect()
   smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
 
   //Nur wenn WLAN-Verbindung besteht
-  if(WiFi.status() != WL_CONNECTED) bo_lBreak=true;
-  if(BleHandler::isScanRuning()) bo_lBreak=true;
+  if(WiFi.status() != WL_CONNECTED) bo_lBreak+=1;
+  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) bo_lBreak+=2;
 
-  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals("")) bo_lBreak=true;
-  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) bo_lBreak=true;
+  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals("")) bo_lBreak+=4;
+  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) bo_lBreak+=8;
   
-  if(bo_lBreak)
+  if(bo_lBreak!=0)
   {
     #ifdef MQTT_DEBUG
-    ESP_LOGD(TAG,"mqttConnect() break");
+    ESP_LOGD(TAG,"mqttConnect() break (%i)",bo_lBreak);
     #endif
-    xTimerStart(mqttReconnectTimer, 0);
-    return;
+    return false;
   }
 
   str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0,0,0);
@@ -184,7 +189,7 @@ void mqttConnect()
       u8_mWaitConnectCounter=0;
       mqttClient.disconnect();
       smMqttConnectState=SM_MQTT_DISCONNECTED;
-      return;
+      return false;
     }
 
     u8_mWaitConnectCounter++;
@@ -192,36 +197,38 @@ void mqttConnect()
     #ifdef MQTT_DEBUG
     ESP_LOGD(TAG,"Connecting to MQTT Broker...");
     #endif
-    xTimerStart(mqttReconnectTimer, 0);
     if(mqttUser.equals("") || mqttPwd.equals("")) //Wenn kein User oder Pwd eingetragen, dann ohne verbinden
     {
-      mqttClient.connect(str_mMqttDeviceName.c_str()); 
+      ret=mqttClient.connect(str_mMqttDeviceName.c_str()); 
     }
     else
     {
-      mqttClient.connect(str_mMqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
+      ret=mqttClient.connect(str_mMqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
     }
   }
   else
   {
     u8_mWaitConnectCounter=0;
     smMqttConnectState=SM_MQTT_CONNECTED;
+    ret=true;
     ESP_LOGI(TAG,"MQTT Broker connected");
   }
+
+  return ret;
 }
 
 
 void mqttDisconnect()
 {
   smMqttConnectState=SM_MQTT_DISCONNECTED;
-  
-  xTimerStop(mqttReconnectTimer, 0); 
 
   if(mqttClient.connected())
   {
     ESP_LOGI(TAG,"MQTT Broker disconnected");
     mqttClient.disconnect();
   }
+
+  txBuffer.clear();
 }
 
 
@@ -231,6 +238,10 @@ bool mqttConnected()
   else return false;
 }
 
+uint16_t getTxBufferSize()
+{
+  return txBuffer.size();
+}
 
 bool mqttPublishLoopFromTxBuffer()
 {
@@ -262,8 +273,10 @@ bool mqttPublishLoopFromTxBuffer()
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
+  if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
+  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) return;  //Wenn nicht alle BT-Devices verbunedn sind
 
-  if(txBuffer.size()>500)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
+  if(txBuffer.size()>400)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
   //Wenn BMS msg, dann msg anpassen
   if(t1==MQTT_TOPIC_BMS_BT)

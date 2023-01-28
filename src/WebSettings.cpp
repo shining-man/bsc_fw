@@ -76,6 +76,7 @@ const char HTML_END_2[] PROGMEM = R"rawliteral(
 function btnClick(btn) {
   var xhttp = new XMLHttpRequest();
   xhttp.open('POST','?'+btn+'=',true);
+  xhttp.timeout=1000;
   xhttp.send();  
 }
 
@@ -148,6 +149,7 @@ function getData() {
     }
   };
   xhttp.open('GET', '%s', true);
+  xhttp.timeout=1000;
   xhttp.send();
   var timer = window.setTimeout('getData()', %i);
 }

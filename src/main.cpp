@@ -31,7 +31,7 @@
 static const char *TAG = "MAIN";
 
 WebServer server;
-BleHandler bleHanlder;
+BleHandler* bleHanlder;
 
 //Serial
 BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);   // Hw Serial 1
@@ -125,7 +125,7 @@ void onWiFiEvent(WiFiEvent_t event)
 
     case ARDUINO_EVENT_WIFI_AP_START:
       WlanStaApOk=true;
-      bleHanlder.init();
+      bleHanlder->init();
       break;
     }
 }
@@ -135,8 +135,8 @@ boolean connectWiFi()
 {
   doConnectWiFi=true;
   boolean connected = false;
-  String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
-  String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
+  static String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
+  static String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
   
   #ifdef WLAN_DEBUG
   ESP_LOGI(TAG, "[WiFi] status (a): %i", WiFi.status());
@@ -148,8 +148,9 @@ boolean connectWiFi()
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid.c_str(), pwd.c_str());
     uint8_t cnt = 0;
-    while ((WiFi.status() != WL_CONNECTED) && (cnt<30)){
-      delay(1000);
+    while ((WiFi.status() != WL_CONNECTED) && (cnt<30))
+    {
+      vTaskDelay(pdMS_TO_TICKS(1000));
       cnt++;
     }
     
@@ -182,91 +183,151 @@ boolean connectWiFi()
 */
 void task_ConnectWiFi(void *param)
 {
-  enum connectStateEnums {ConnState_noWlanConn, ConnState_wlanConnecting, ConnState_wlanDisconnecting, ConnState_wlanConnect, 
-    ConnState_wlanApMode, ConnState_connectMQTT, ConnState_connectBT, ConnState_idle};
+  enum connectStateEnums {ConnState_wifiDisconnected, ConnState_noWifiConnection, ConnState_connectWifi, ConnState_wifiConnected, 
+    ConnState_wlanApMode, ConnState_connectMQTTstart, ConnState_connectMQTT, ConnState_connectBT, ConnState_connectBT2, ConnState_idle};
 
-  connectStateEnums mConnectStateEnums=ConnState_noWlanConn;
-  connectStateEnums mConnectStateEnumsOld=ConnState_noWlanConn;
+  connectStateEnums mConnectStateEnums=ConnState_noWifiConnection;
+  connectStateEnums mConnectStateEnumsOld=ConnState_noWifiConnection;
   uint8_t u8_mWaitConnCounter=0;
+  unsigned long connectMqttTimer; //Timeout MQTT Verbindungsaufbau
+
+  unsigned long tConnWifiHelpTimer=0;
 
   ESP_LOGD(TAG, "-> 'task_ConnectWiFi' runs on core %d", xPortGetCoreID());
   ESP_LOGD(TAG, "mConnectState=%i", mConnectStateEnums);
+
+  tConnWifiHelpTimer=millis();
 
   for(;;)
   {
     switch(mConnectStateEnums)
     {
-      case ConnState_noWlanConn: //kein Wlan
+      case ConnState_wifiDisconnected:
+        WlanStaApOk=false;
+        mqttDisconnect();
+        server.stop(); //Webserver beenden
+        bleHanlder->stop();
+        mConnectStateEnums=ConnState_noWifiConnection;
+        break;
+
+      case ConnState_noWifiConnection: //kein Wlan
         //if(!wifiApMode)
         connectWiFi();
         if(WiFi.getMode()==WIFI_MODE_AP) mConnectStateEnums=ConnState_wlanApMode;
-        else mConnectStateEnums=ConnState_wlanConnecting;
+        else mConnectStateEnums=ConnState_connectWifi;
         break;
 
-      case ConnState_wlanConnecting: //Wlan Verbindug aufbauen
+      case ConnState_connectWifi: //Wlan Verbindug aufbauen
         if(WiFi.status()==WL_CONNECTED && wlanEventStaConnect)
         {
           u8_mWaitConnCounter=0;
           wlanEventStaConnect=false;
-          mConnectStateEnums=ConnState_wlanConnect;
+          mConnectStateEnums=ConnState_wifiConnected;
         }
         else
         {
           if(u8_mWaitConnCounter>5)
           {
             u8_mWaitConnCounter=0;
-            mConnectStateEnums=ConnState_noWlanConn;
+            mConnectStateEnums=ConnState_noWifiConnection;
           }
           u8_mWaitConnCounter++;
         }
         break;
 
-      case ConnState_wlanConnect: //Wlan verbunden
+      case ConnState_wifiConnected: //Wlan verbunden
         WlanStaApOk=true;
         server.begin(WEBSERVER_PORT);  //Webserver starten
-        initTime();
+        ////initTime();
         
-        mConnectStateEnums=ConnState_connectMQTT;
-        break;
-
-      case ConnState_wlanDisconnecting:
-        WlanStaApOk=false;
-        mqttDisconnect();
-        server.stop(); //Webserver beenden
-        bleHanlder.stop();
-
-        mConnectStateEnums=ConnState_noWlanConn;
+        mConnectStateEnums=ConnState_connectMQTTstart;
         break;
 
       case ConnState_wlanApMode:
-        mConnectStateEnums=ConnState_idle;
-        break;
-
-      case ConnState_connectMQTT: //MQTT verbinden
-        if(webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
-        {
-          mqttConnect();
-        }
         mConnectStateEnums=ConnState_connectBT;
         break;
 
+
+      case ConnState_connectMQTTstart: //MQTT verbinden
+        connectMqttTimer=millis();
+        mConnectStateEnums=ConnState_connectMQTT;
+        break;
+
+
+      case ConnState_connectMQTT: //MQTT verbinden
+        //Wenn 30s keine Verbindung möglich, dann Verbindungsversuch abbrechen
+        if(millis()-connectMqttTimer>=30000)
+        {
+          ESP_LOGI(TAG,"No Mqtt connection!");
+          connectMqttTimer=millis();
+          mConnectStateEnums=ConnState_connectBT;
+          break;
+        }
+
+        if(wlanEventStaDisonnect==true)
+        {
+          wlanEventStaDisonnect=false;
+          mConnectStateEnums=ConnState_wifiDisconnected;
+          break;
+        }
+
+        if(webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+        {
+          if(mqttConnect())
+          {
+            mConnectStateEnums=ConnState_connectBT;
+          }
+        }
+        else
+        {
+          mConnectStateEnums=ConnState_connectBT;
+        }
+        break;
+
       case ConnState_connectBT: //BT verbinden
-        bleHanlder.init();
-        mConnectStateEnums=ConnState_idle;
+        if(wlanEventStaDisonnect==true)
+        {
+          wlanEventStaDisonnect=false;
+          mConnectStateEnums=ConnState_wifiDisconnected;
+          break;
+        }
+
+        bleHanlder->start();
+        mConnectStateEnums=ConnState_connectBT2;
+        break;
+
+      case ConnState_connectBT2: //BT verbinden
+        //ToDo: Timeout einbauen
+
+        if(wlanEventStaDisonnect==true)
+        {
+          wlanEventStaDisonnect=false;
+          mConnectStateEnums=ConnState_wifiDisconnected;
+          break;
+        }
+
+        if(bleHanlder->isNotAllDeviceConnectedOrScanRunning()==false)mConnectStateEnums=ConnState_idle;
         break;
 
       case ConnState_idle: //Idle; Wenn alle Verbindungen stehen
         if(wlanEventStaDisonnect==true)
         {
           wlanEventStaDisonnect=false;
-          mConnectStateEnums=ConnState_wlanDisconnecting;
+          mConnectStateEnums=ConnState_wifiDisconnected;
+          break;
+        }
+        //Wenn MQTT Disconnected -> mConnectStateEnums=ConnState_connectMQTT
+        else if(!mqttLoop())
+        {
+          mConnectStateEnums=ConnState_connectMQTT;
+          break;
         }
 
         break;
 
       default:
-        ESP_LOGE(TAG, "Errir: mConnectState=%i", mConnectStateEnums);
-        mConnectStateEnums=ConnState_wlanDisconnecting;
+        ESP_LOGE(TAG, "Error: mConnectState=%i", mConnectStateEnums);
+        mConnectStateEnums=ConnState_wifiDisconnected;
     }
 
     if(mConnectStateEnums!=mConnectStateEnumsOld)
@@ -275,8 +336,14 @@ void task_ConnectWiFi(void *param)
       mConnectStateEnumsOld=mConnectStateEnums;
     }
     
+    if(millis()>tConnWifiHelpTimer+1000)
+    {
+      tConnWifiHelpTimer=millis();
+      ESP_LOGD(TAG, "FreeHeap=%i, MinFreeHeap=%i, mqttTxBuffSize=%i", xPortGetFreeHeapSize(),xPortGetMinimumEverFreeHeapSize(),getTxBufferSize());
+    }
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    //Wenn nicht im Idle, dann 1000ms warten
+    if(mConnectStateEnums!=ConnState_idle)vTaskDelay(pdMS_TO_TICKS(1000));
   }
 }
 
@@ -286,13 +353,14 @@ void task_ble(void *param)
 
   //init Bluetooth
   ESP_LOGI(TAG, "Init BLE...");
-  bleHanlder.init();
+  bleHanlder = new BleHandler();
+  bleHanlder->init();
   ESP_LOGI(TAG, "Init BLE...ok");
 
   for(;;)
   {
-  vTaskDelay(pdMS_TO_TICKS(2000));
-  if(doConnectWiFi==false) break;
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    if(doConnectWiFi==false) break;
   }
 
   vTaskDelay(pdMS_TO_TICKS(3000));
@@ -301,8 +369,8 @@ void task_ble(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     
-    if(WlanStaApOk) bleHanlder.run();
-
+    if(bleHanlder!=nullptr) if(WlanStaApOk) bleHanlder->run();
+    
     xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
     lastTaskRun_ble=millis();
     xSemaphoreGive(mutexTaskRunTime);
@@ -551,7 +619,7 @@ void handle_getDashboardData()
   tmp += "|";
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    tmp += bleHanlder.bmsIsConnect(i);
+    if(bleHanlder!=nullptr) tmp += bleHanlder->bmsIsConnect(i);
     if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
     if(i==4) tmp += "|";
   }
@@ -588,8 +656,11 @@ void handle_getOwTempData()
 
 void handle_getBtDevices()
 {
-  bleHanlder.startScan(); //BT Scan starten
-  server.send(200, "text/html", bleHanlder.getBtScanResult().c_str());
+  if(bleHanlder!=nullptr)
+  {
+  bleHanlder->startScan(); //BT Scan starten
+  server.send(200, "text/html", bleHanlder->getBtScanResult().c_str());
+  }
 }
 
 
@@ -731,7 +802,7 @@ void setup()
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2700, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
   xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
-  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wlanConn, 0);
+  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wlanConn, 1);
 
  
   //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
@@ -740,18 +811,18 @@ void setup()
   previousMillis10000=millis();
   free_dump();  
 
+  initTime();
   timeRunCyclic(); //Hole 1x die Zeit
   ESP_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
 }
 
-
+unsigned long testtimer;
 uint8_t u8_lTaskRunSate;
 void loop()
 {
   if(WlanStaApOk)
   {
     server.handleClient();
-    mqttLoop();
     //timeRunCyclic();
   }
 
@@ -766,7 +837,7 @@ void loop()
   //10s Intervall
   currentMillis = millis();
   if(currentMillis-previousMillis10000>=10000)
-  {
+  {    
     //Sende Daten via mqqtt, wenn aktiv
     if(WlanStaApOk && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
@@ -785,4 +856,13 @@ void loop()
 
     previousMillis10000 = currentMillis;
   }
+
+
+  /*if(millis()-testtimer>=60000)
+  {
+    ESP_LOGI(TAG,"Reconnect!");
+    testtimer=millis();
+    mConnectStateEnums=ConnState_wlanDisconnecting;
+  }*/
+  
 }
