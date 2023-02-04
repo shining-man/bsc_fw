@@ -276,7 +276,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
   if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) return;  //Wenn nicht alle BT-Devices verbunedn sind
 
-  if(txBuffer.size()>400)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
+  if(txBuffer.size()>300)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
   //Wenn BMS msg, dann msg anpassen
   if(t1==MQTT_TOPIC_BMS_BT)
