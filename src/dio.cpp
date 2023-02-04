@@ -4,6 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 #include "dio.h"
+#include "defines.h"
 
 
 /*
@@ -34,6 +35,11 @@ void initDio(bool restore)
   dioRwInOut();
 
   u8_mHwVersion = ((dioRwInOut()&0xE0)>>5);
+
+  if(u8_mHwVersion>0)
+  {
+    pinMode(GPIO_LED1_HW1, OUTPUT);
+  }
 }
 
 void setDoData(uint8_t data)

@@ -7,12 +7,12 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.11"
+#define BSC_SW_VERSION      "V0.2.12"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
-//#define DEBUG_ON_FS
-#define DEBUG_ON_HW_SERIAL
+#define DEBUG_ON_FS
+//#define DEBUG_ON_HW_SERIAL
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
@@ -31,8 +31,20 @@ static const char COMPILE_DATE_TIME[] = "";
 #define CNT_ALARMS                   10
 
 //DI/DO
+#define H_CLK                        14
+#define H_MOSI                       13
+#define H_MISO                       12
+#define IO_DO_PL                     26
 #define CNT_DIGITALOUT                6
 #define CNT_DIGITALIN                 4
+#define GPIO_LED1_HW1                 0
+
+//Tcho
+#define TACHO_ADDR0                   6
+#define TACHO_ADDR1                   7
+#define TACHO_ADDR2                  15
+#define TACHO_GPIO                   27
+#define TACHO_MEAS_TIME            3000
 
 //Onewire
 #define MAX_ANZAHL_OW_SENSOREN       64
@@ -161,6 +173,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG  94
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA    95
 
+#define ID_PARAM_WLAN_CONNECT_TIMEOUT 96
 
 
 
@@ -263,6 +276,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_HIGHWATER_TASK_OW           35
 #define MQTT_TOPIC2_HIGHWATER_TASK_CAN          36
 #define MQTT_TOPIC2_HIGHWATER_TASK_SERIAL       37
+#define MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN     38
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -303,9 +317,14 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "highWater_task_ow",         // 35
   "highWater_task_can",        // 36
   "highWater_task_serial",     // 37
-  "",                          // 38
+  "highWater_task_wifi",       // 38
   "",                          // 39
   "",                          // 40
+  "",                          // 41
+  "",                          // 42
+  "",                          // 43
+  "",                          // 44
+  "",                          // 45
   };
 
 #endif

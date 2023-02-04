@@ -304,16 +304,6 @@ bool btDeviceConnect(uint8_t devNr)
           return false;
         }
       }
-      /*else if(bleDevices[devNr].pChr->canIndicate())
-      {
-        // Send false as first argument to subscribe to indications instead of notifications
-        if(!bleDevices[devNr].pChr->subscribe(false, notifyCB_NEEY))
-        {
-          // Disconnect if subscribe failed
-          pClient->disconnect();
-          return false;
-        }
-      }*/
     }
   }
   else
@@ -340,7 +330,6 @@ void btDeviceDisconnect(uint8_t devNr)
   {
     if(NimBLEDevice::getClientListSize())
     {
-      //uint8_t address[6] = bleDevices[i].macAdr;
       std::string adrStr = std::string(bleDevices[i].macAdr.c_str());
       NimBLEAddress adr = NimBLEAddress(adrStr);
 

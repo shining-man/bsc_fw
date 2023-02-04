@@ -127,6 +127,7 @@ for (let i = 0; i < collection.length; i++) {
       }
     };
     xhttp.open('GET','?SAVE=&'+name+'='+urlencode(val),true);
+    xhttp.timeout=1000;
     xhttp.send();
   });
   collection[i].appendChild(button);

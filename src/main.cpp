@@ -54,9 +54,6 @@ WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
 
-//Timer
-TimerHandle_t wifiReconnectTimer;
-
 //Tasks
 TaskHandle_t task_handle_ble = NULL;
 TaskHandle_t task_handle_alarmrules = NULL;
@@ -64,10 +61,16 @@ TaskHandle_t task_handle_onewire = NULL;
 TaskHandle_t task_handle_canbusTx = NULL;
 TaskHandle_t task_handle_bscSerial = NULL;
 TaskHandle_t task_handle_i2c = NULL;
-TaskHandle_t task_handle_wlanConn = NULL;
+TaskHandle_t task_handle_wifiConn = NULL;
 
 //Task semaphore
-static SemaphoreHandle_t mutexTaskRunTime = NULL;
+SemaphoreHandle_t mutexTaskRunTime_ble = NULL;
+SemaphoreHandle_t mutexTaskRunTime_alarmrules = NULL;
+SemaphoreHandle_t mutexTaskRunTime_ow = NULL;
+SemaphoreHandle_t mutexTaskRunTime_can = NULL;
+SemaphoreHandle_t mutexTaskRunTime_serial = NULL;
+SemaphoreHandle_t mutexTaskRunTime_i2c = NULL;
+SemaphoreHandle_t mutexTaskRunTime_wifiConn = NULL;
 
 //millis des letzten runs
 uint32_t lastTaskRun_ble = 0;
@@ -76,19 +79,30 @@ uint32_t lastTaskRun_onewire = 0;
 uint32_t lastTaskRuncanbusTx = 0;
 uint32_t lastTaskRun_bscSerial = 0;
 uint32_t lastTaskRun_i2c = 0;
+uint32_t lastTaskRun_wifiConn = 0;
 
 RTC_DATA_ATTR static uint8_t bootCounter = 0;
 
 unsigned long currentMillis;
 unsigned long previousMillis10000;
 
-uint8_t u8_mTaskRunSate=0;   //Status ob alle Tasks laufen
-bool    isBoot=true;
-bool    doConnectWiFi=false;     //true, wenn gerade versucht wird eine Verbindung aufzubauen
-bool    firstWlanModeSTA=false;  //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
-bool    WlanStaApOk=false;       //true, wenn Wlan verbunden oder AP erstellt
+uint8_t    u8_mTaskRunSate=0;           //Status ob alle Tasks laufen
+bool       isBoot=true;
+bool       doConnectWiFi=false;         //true, wenn gerade versucht wird eine Verbindung aufzubauen
+bool       firstWlanModeSTA=false;      //true, wenn der erste WLAN-Mode nach einem Neustart STA ist
+WiFiMode_t WlanStaApOk=WIFI_OFF;        //WIFI_OFF, wenn Wlan verbunden oder AP erstellt
+bool       wlanEventStaDisonnect=false;
+bool       wlanEventStaConnect=false;
 
-bool    changeWlanDataForI2C=false; //true, wenn sich die WLAN Verbindung geändert hat
+bool       changeWlanDataForI2C=false;  //true, wenn sich die WLAN Verbindung geändert hat
+
+// Variablen für connectWifi()
+static boolean bo_mWifiConnected;
+static String str_lWlanSsid;
+static String str_lWlanPwd;
+static uint16_t u16_lWlanConnTimeout;
+static boolean bo_lWlanNeverAp;
+static unsigned long wlanConnectTimer;
 
 //
 void task_ble(void *param);
@@ -100,10 +114,6 @@ void free_dump()
   ESP_LOGI(TAG, "Free Heap: %i", ESP.getFreeHeap());
 }
 
-
-
-static bool wlanEventStaDisonnect=false;
-static bool wlanEventStaConnect=false;
 
 void onWiFiEvent(WiFiEvent_t event)
 {
@@ -120,51 +130,85 @@ void onWiFiEvent(WiFiEvent_t event)
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       wlanEventStaConnect=false;
-      wlanEventStaDisonnect=true;
+      if(WlanStaApOk!=WIFI_AP)
+        wlanEventStaDisonnect=true;
       break;
 
     case ARDUINO_EVENT_WIFI_AP_START:
-      WlanStaApOk=true;
-      bleHanlder->init();
+      WlanStaApOk=WIFI_AP;
+      //bleHanlder->init();
       break;
     }
 }
 
 
+
 boolean connectWiFi()
 {
   doConnectWiFi=true;
-  boolean connected = false;
-  static String ssid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
-  static String pwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
+
+  bo_mWifiConnected=false;
+  str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0,0,0);
+  str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0,0,0);
+  u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,0,0);
+  bo_lWlanNeverAp=false;
+
+  if(u16_lWlanConnTimeout==0)
+  {
+    if(firstWlanModeSTA) bo_lWlanNeverAp=true;
+    u16_lWlanConnTimeout=30;
+  }
   
   #ifdef WLAN_DEBUG
   ESP_LOGI(TAG, "[WiFi] status (a): %i", WiFi.status());
   #endif
 
-  if(!ssid.equals("") && !pwd.equals(""))
+  if(!str_lWlanSsid.equals("") && !str_lWlanPwd.equals(""))
   {
-    ESP_LOGI(TAG, "Verbindung zu %s",ssid);
+    ESP_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid);
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid.c_str(), pwd.c_str());
-    uint8_t cnt = 0;
-    while ((WiFi.status() != WL_CONNECTED) && (cnt<30))
+    WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
+
+    wlanConnectTimer=millis()+(u16_lWlanConnTimeout*1000);
+    #ifdef WLAN_DEBUG
+    ESP_LOGI(TAG, "wlanConnectTimer=%i",wlanConnectTimer);
+    #endif
+    uint8_t cnt=0;
+    while ((WiFi.status() != WL_CONNECTED))
     {
-      vTaskDelay(pdMS_TO_TICKS(1000));
+      #ifdef WLAN_DEBUG
+      ESP_LOGI(TAG, "wlanConnectTimer=%i",wlanConnectTimer);
+      #endif
+      if(!bo_lWlanNeverAp && millis()>wlanConnectTimer) break;
+
+      if(cnt>15)
+      {
+        cnt=0;
+        WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
+      }
       cnt++;
+
+      vTaskDelay(pdMS_TO_TICKS(1000));
+
+      //Lebenszeichen des Tasks
+      xSemaphoreTake(mutexTaskRunTime_wifiConn, portMAX_DELAY);
+      lastTaskRun_wifiConn=millis();
+      xSemaphoreGive(mutexTaskRunTime_wifiConn);
     }
     
-    if (WiFi.status() == WL_CONNECTED) {
+    if (WiFi.status() == WL_CONNECTED)
+    {
       ESP_LOGI(TAG, "IP-Adresse = %s",WiFi.localIP().toString().c_str());
-      connected=true;
+      bo_mWifiConnected=true;
       firstWlanModeSTA=true;
       changeWlanDataForI2C=true;
     }
   }
   
-  if (!connected && !firstWlanModeSTA) {
-    //wifiApMode = true;
+  if (!bo_mWifiConnected && (!firstWlanModeSTA || !bo_lWlanNeverAp))
+  {
     ESP_LOGI(TAG, "Wifi AP");
+    WlanStaApOk=WIFI_AP;
     WiFi.mode(WIFI_AP);
     WiFi.softAP("BSC","",1);  
     changeWlanDataForI2C=true;
@@ -174,7 +218,7 @@ boolean connectWiFi()
   ESP_LOGI(TAG, "[WiFi] status (b): %i", WiFi.status());
   #endif
   doConnectWiFi=false;
-  return connected;
+  return bo_mWifiConnected;
 }
 
 
@@ -191,19 +235,20 @@ void task_ConnectWiFi(void *param)
   uint8_t u8_mWaitConnCounter=0;
   unsigned long connectMqttTimer; //Timeout MQTT Verbindungsaufbau
 
+  #ifdef WLAN_DEBUG
   unsigned long tConnWifiHelpTimer=0;
+  tConnWifiHelpTimer=millis();
+  #endif
 
   ESP_LOGD(TAG, "-> 'task_ConnectWiFi' runs on core %d", xPortGetCoreID());
   ESP_LOGD(TAG, "mConnectState=%i", mConnectStateEnums);
-
-  tConnWifiHelpTimer=millis();
 
   for(;;)
   {
     switch(mConnectStateEnums)
     {
       case ConnState_wifiDisconnected:
-        WlanStaApOk=false;
+        WlanStaApOk=WIFI_OFF;
         mqttDisconnect();
         server.stop(); //Webserver beenden
         bleHanlder->stop();
@@ -211,9 +256,8 @@ void task_ConnectWiFi(void *param)
         break;
 
       case ConnState_noWifiConnection: //kein Wlan
-        //if(!wifiApMode)
         connectWiFi();
-        if(WiFi.getMode()==WIFI_MODE_AP) mConnectStateEnums=ConnState_wlanApMode;
+        if(WlanStaApOk==WIFI_AP) mConnectStateEnums=ConnState_wlanApMode;
         else mConnectStateEnums=ConnState_connectWifi;
         break;
 
@@ -229,21 +273,22 @@ void task_ConnectWiFi(void *param)
           if(u8_mWaitConnCounter>5)
           {
             u8_mWaitConnCounter=0;
-            mConnectStateEnums=ConnState_noWifiConnection;
+            mConnectStateEnums=ConnState_connectBT;
           }
           u8_mWaitConnCounter++;
         }
         break;
 
       case ConnState_wifiConnected: //Wlan verbunden
-        WlanStaApOk=true;
+        WlanStaApOk=WIFI_STA;
         server.begin(WEBSERVER_PORT);  //Webserver starten
-        ////initTime();
+        //initTime();
         
         mConnectStateEnums=ConnState_connectMQTTstart;
         break;
 
       case ConnState_wlanApMode:
+        server.begin(WEBSERVER_PORT);  //Webserver starten
         mConnectStateEnums=ConnState_connectBT;
         break;
 
@@ -264,7 +309,7 @@ void task_ConnectWiFi(void *param)
           break;
         }
 
-        if(wlanEventStaDisonnect==true)
+        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
         {
           wlanEventStaDisonnect=false;
           mConnectStateEnums=ConnState_wifiDisconnected;
@@ -285,7 +330,7 @@ void task_ConnectWiFi(void *param)
         break;
 
       case ConnState_connectBT: //BT verbinden
-        if(wlanEventStaDisonnect==true)
+        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
         {
           wlanEventStaDisonnect=false;
           mConnectStateEnums=ConnState_wifiDisconnected;
@@ -299,7 +344,7 @@ void task_ConnectWiFi(void *param)
       case ConnState_connectBT2: //BT verbinden
         //ToDo: Timeout einbauen
 
-        if(wlanEventStaDisonnect==true)
+        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
         {
           wlanEventStaDisonnect=false;
           mConnectStateEnums=ConnState_wifiDisconnected;
@@ -310,19 +355,21 @@ void task_ConnectWiFi(void *param)
         break;
 
       case ConnState_idle: //Idle; Wenn alle Verbindungen stehen
-        if(wlanEventStaDisonnect==true)
+        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
         {
           wlanEventStaDisonnect=false;
           mConnectStateEnums=ConnState_wifiDisconnected;
           break;
         }
         //Wenn MQTT Disconnected -> mConnectStateEnums=ConnState_connectMQTT
-        else if(!mqttLoop())
+        else if(WlanStaApOk==WIFI_STA)
         {
-          mConnectStateEnums=ConnState_connectMQTT;
-          break;
+          if(!mqttLoop())
+          {
+            mConnectStateEnums=ConnState_connectMQTT;
+            break;
+          }
         }
-
         break;
 
       default:
@@ -336,14 +383,20 @@ void task_ConnectWiFi(void *param)
       mConnectStateEnumsOld=mConnectStateEnums;
     }
     
+    #ifdef WLAN_DEBUG
     if(millis()>tConnWifiHelpTimer+1000)
     {
       tConnWifiHelpTimer=millis();
       ESP_LOGD(TAG, "FreeHeap=%i, MinFreeHeap=%i, mqttTxBuffSize=%i", xPortGetFreeHeapSize(),xPortGetMinimumEverFreeHeapSize(),getTxBufferSize());
     }
+    #endif
 
     //Wenn nicht im Idle, dann 1000ms warten
-    if(mConnectStateEnums!=ConnState_idle)vTaskDelay(pdMS_TO_TICKS(1000));
+    if(mConnectStateEnums!=ConnState_idle) vTaskDelay(pdMS_TO_TICKS(1000));
+
+    xSemaphoreTake(mutexTaskRunTime_wifiConn, portMAX_DELAY);
+    lastTaskRun_wifiConn=millis();
+    xSemaphoreGive(mutexTaskRunTime_wifiConn);
   }
 }
 
@@ -369,11 +422,11 @@ void task_ble(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     
-    if(bleHanlder!=nullptr) if(WlanStaApOk) bleHanlder->run();
+    if(bleHanlder!=nullptr) if(WlanStaApOk!=WIFI_OFF) bleHanlder->run();
     
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_ble, portMAX_DELAY);
     lastTaskRun_ble=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_ble);
   }
 }
 
@@ -387,9 +440,9 @@ void task_alarmRules(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     runAlarmRules();
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_alarmrules, portMAX_DELAY);
     lastTaskRun_alarmrules=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_alarmrules);
   }
 }
 
@@ -404,9 +457,9 @@ void task_onewire(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     owCyclicRun();
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_ow, portMAX_DELAY);
     lastTaskRun_onewire=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_ow);
   }
 }
 
@@ -420,9 +473,9 @@ void task_canbusTx(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
     canTxCyclicRun();
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_can, portMAX_DELAY);
     lastTaskRuncanbusTx=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_can);
   }
 }
 
@@ -441,9 +494,9 @@ void task_bscSerial(void *param)
     bscSerial1.cyclicRun();
     bscSerial2.cyclicRun();
     bscSerial3.cyclicRun();
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_serial, portMAX_DELAY);
     lastTaskRun_bscSerial=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_serial);
   }
 }
 
@@ -467,9 +520,9 @@ void task_i2c(void *param)
       i2cSendData(BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
     }
       
-    xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
+    xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
     lastTaskRun_i2c=millis();
-    xSemaphoreGive(mutexTaskRunTime);
+    xSemaphoreGive(mutexTaskRunTime_i2c);
   }
 }
 
@@ -687,21 +740,62 @@ void btnSystemDeleteLog()
 uint8_t checkTaskRun()
 {
   uint8_t ret = 0;
-  xSemaphoreTake(mutexTaskRunTime, portMAX_DELAY);
-  if(millis()-lastTaskRun_ble>10000) ret+=1;
-  if(millis()-lastTaskRun_alarmrules>3000) ret+=2;
-  if(millis()-lastTaskRun_onewire>2000) ret+=4;
-  if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
-  if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
-  if(millis()-lastTaskRun_i2c>4000) ret+=32;
-  xSemaphoreGive(mutexTaskRunTime);
+  if(xSemaphoreTake( mutexTaskRunTime_ble,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_ble>10000) ret+=1;
+    xSemaphoreGive(mutexTaskRunTime_ble);
+  }
+
+  if(xSemaphoreTake( mutexTaskRunTime_alarmrules,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_alarmrules>3000) ret+=2;
+    xSemaphoreGive(mutexTaskRunTime_alarmrules);
+  }
+  
+  if(xSemaphoreTake( mutexTaskRunTime_ow,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_onewire>2000) ret+=4;
+    xSemaphoreGive(mutexTaskRunTime_ow);
+  }
+  
+  if(xSemaphoreTake( mutexTaskRunTime_can,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
+    xSemaphoreGive(mutexTaskRunTime_can);
+  }
+  
+  if(xSemaphoreTake( mutexTaskRunTime_serial,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
+    xSemaphoreGive(mutexTaskRunTime_serial);
+  }
+  
+  if(xSemaphoreTake( mutexTaskRunTime_i2c,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_i2c>4000) ret+=32;
+    xSemaphoreGive(mutexTaskRunTime_i2c);
+  }
+
+  if(xSemaphoreTake( mutexTaskRunTime_wifiConn,(TickType_t)10)==pdTRUE)
+  {
+    if(millis()-lastTaskRun_wifiConn>4000) ret+=64;
+    xSemaphoreGive(mutexTaskRunTime_wifiConn);
+  }
+
   return ret;
 }
 
 
 void setup()
 {
-  mutexTaskRunTime = xSemaphoreCreateMutex();
+  mutexTaskRunTime_ble = xSemaphoreCreateMutex();
+  mutexTaskRunTime_alarmrules = xSemaphoreCreateMutex();
+  mutexTaskRunTime_ow = xSemaphoreCreateMutex();
+  mutexTaskRunTime_can = xSemaphoreCreateMutex();
+  mutexTaskRunTime_serial = xSemaphoreCreateMutex();
+  mutexTaskRunTime_i2c = xSemaphoreCreateMutex();
+  mutexTaskRunTime_wifiConn = xSemaphoreCreateMutex();
+
   if(bootCounter!=0xFF) bootCounter++;
   isBoot = true;
 
@@ -796,13 +890,13 @@ void setup()
   ESP_LOGI(TAG, "Starte Webserver...ok");
 
   //Erstelle Tasks
-  xTaskCreatePinnedToCore(task_ble, "ble", 3000, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
-  xTaskCreatePinnedToCore(task_onewire, "ow", 3100, nullptr, 5, &task_handle_onewire, 1);
-  xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial, 1);
-  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2700, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
+  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
+  xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
+  xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, 5, &task_handle_bscSerial, 1);
+  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
   xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
-  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wlanConn, 1);
+  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2000, nullptr, 1, &task_handle_wifiConn, 1);
 
  
   //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
@@ -816,11 +910,13 @@ void setup()
   ESP_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
 }
 
-unsigned long testtimer;
+
 uint8_t u8_lTaskRunSate;
 void loop()
 {
-  if(WlanStaApOk)
+  writeLogToFS();
+
+  if(WlanStaApOk!=WIFI_OFF)
   {
     server.handleClient();
     //timeRunCyclic();
@@ -839,7 +935,7 @@ void loop()
   if(currentMillis-previousMillis10000>=10000)
   {    
     //Sende Daten via mqqtt, wenn aktiv
-    if(WlanStaApOk && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+    if(WlanStaApOk==WIFI_STA && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
     {      
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_ESP32_TEMP, -1, temperatureRead());
       mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
@@ -852,17 +948,9 @@ void loop()
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_OW, -1, uxTaskGetStackHighWaterMark(task_handle_onewire));
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_CAN, -1, uxTaskGetStackHighWaterMark(task_handle_canbusTx));
       mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_SERIAL, -1, uxTaskGetStackHighWaterMark(task_handle_bscSerial));
+      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN, -1, uxTaskGetStackHighWaterMark(task_handle_wifiConn));
     }
 
     previousMillis10000 = currentMillis;
-  }
-
-
-  /*if(millis()-testtimer>=60000)
-  {
-    ESP_LOGI(TAG,"Reconnect!");
-    testtimer=millis();
-    mConnectStateEnums=ConnState_wlanDisconnecting;
-  }*/
-  
+  }  
 }

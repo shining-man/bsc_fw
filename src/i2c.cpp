@@ -29,7 +29,7 @@ void i2cInit()
   p_lBmsData = getBmsData();
   p_lInverterData = getInverterData();
   bool i2cBegin = I2C.begin(I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQUENCY);
-  ESP_LOGI(TAG,"I2C begin=%d",i2cBegin);
+  ESP_LOGD(TAG,"I2C begin=%d",i2cBegin);
 
   isDisplayConn();
 }
@@ -48,7 +48,7 @@ void isDisplayConn()
     else
     {
       bo_mDisplayEnabled = false;
-      ESP_LOGI(TAG,"Display not found");
+      ESP_LOGI(TAG,"Display not found (%i)",u8_lErr);
     }    
 }
 
