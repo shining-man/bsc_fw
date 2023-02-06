@@ -9,11 +9,6 @@
 #include <Arduino.h>
 #include <SPI.h>
 
-#define H_CLK       14
-#define H_MOSI      13
-#define H_MISO      12
-#define IO_DO_PL    26
-
 
 void    initDio(bool restore);
 void    setDoData(uint8_t data);

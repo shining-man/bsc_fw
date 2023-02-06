@@ -1,0 +1,11 @@
+# classes
+_FreqCountESP KEYWORD1
+
+# instances
+FreqCountESP  KEYWORD2
+
+# methods
+begin         KEYWORD2
+read          KEYWORD2
+available     KEYWORD2
+end           KEYWORD2

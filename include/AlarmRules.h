@@ -4,14 +4,14 @@
 // https://opensource.org/licenses/MIT
 
 
-#ifndef AlarmRules_h
-#define AlarmRules_h
-
+#ifndef ALARMRULES_H
+#define ALARMRULES_H
 
 #include "Arduino.h"
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "defines.h"
+
 
 void initAlarmRules();
 void runAlarmRules();

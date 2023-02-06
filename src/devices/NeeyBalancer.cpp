@@ -18,9 +18,10 @@ void NeeyBalancer::init()
 
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
-
   if(length==241)
   {
+    if((getBmsLastDataMillis(devNr)+500)>millis()) return; //Nur alle 500ms eine neue Nachricht akzeptieren
+
     float f_lTmpValue;
     //Cellspannung
     for(uint8_t i=0;i<24;i++)
@@ -82,6 +83,8 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
     setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);
     setBmsMinCellVoltage(devNr, f_lMinZellVoltage);
+
+    setBmsLastDataMillis(devNr,millis());
   }
   else if(length==59)
   {
