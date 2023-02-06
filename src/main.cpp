@@ -672,7 +672,13 @@ void handle_getDashboardData()
   tmp += "|";
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    if(bleHanlder!=nullptr) tmp += bleHanlder->bmsIsConnect(i);
+    if(bleHanlder!=nullptr)
+    {
+      uint8_t u8_lBtDevConnState=bleHanlder->bmsIsConnect(i);
+      if(u8_lBtDevConnState==0) tmp += "&ndash;";
+      else if(u8_lBtDevConnState==1) tmp += "n";
+      else if(u8_lBtDevConnState==2) tmp += "c";
+    } 
     if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
     if(i==4) tmp += "|";
   }
