@@ -413,38 +413,29 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
 /* */
 uint16_t calcDynamicReduzeChargeVolltage(uint16_t u16_lChargeVoltage)
 {
+  static uint16_t u16_lDynamicChargeVoltage = u16_lChargeVoltage;
+
   if(WebSettings::getBool(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN,0,0,0)==true) //wenn enabled
   {
     uint16_t u16_lStartZellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG,0,0,0);
     uint16_t u16_lDeltaCellVoltage= WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA,0,0,0);
 
-    if(getBmsMaxCellVoltage(u8_mBmsDatasource)>u16_lStartZellVoltage &&
-      getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource)>u16_lDeltaCellVoltage)
+    if(getBmsMaxCellVoltage(u8_mBmsDatasource)>u16_lStartZellVoltage)
     {
-      uint8_t u8_lNumOfCells=16;
-
-      uint16_t u16_lAvgVoltage=getBmsAvgVoltage(u8_mBmsDatasource);
-      uint16_t u16_lCellVoltage=0;
-      uint16_t u16_lNewTotalVoltage=0;
-
-      /*for(uint8_t i=0;i<u8_lNumOfCells;i++)
+      if(getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource)>u16_lDeltaCellVoltage)
       {
-        u16_lCellVoltage=getBmsCellVoltage(u8_mBmsDatasource,i);
-        if(u16_lCellVoltage>(u16_lAvgVoltage+u16_lDeltaCellVoltage))
-        {
-          u16_lNewTotalVoltage+=u16_lAvgVoltage;
-        }
-        else
-        {
-          u16_lNewTotalVoltage+=u16_lCellVoltage;
-        }
-      }*/
-
-      u16_lChargeVoltage=getBmsTotalVoltage(u8_mBmsDatasource);
-      return u16_lChargeVoltage;
+        u16_lDynamicChargeVoltage-=1; //1=100mV
+        if(u16_lDynamicChargeVoltage<0)u16_lDynamicChargeVoltage=0;
+        return u16_lDynamicChargeVoltage;
+      }
+      else if(getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource)<u16_lDeltaCellVoltage)
+      {
+        u16_lDynamicChargeVoltage+=1; //1=100mV
+        if(u16_lDynamicChargeVoltage>u16_lChargeVoltage)u16_lDynamicChargeVoltage=u16_lChargeVoltage;
+        return u16_lDynamicChargeVoltage;
+      }
     }
   }
-
   return u16_lChargeVoltage;
 }
 

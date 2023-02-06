@@ -749,11 +749,12 @@ const String paramBmsToInverter PROGMEM = "["
   "}," 
 
   /* Wenn eine Zelle z.B. >3.4V ist und das Delta zwischen größter und kleinster größer als z.B. 5mV ist, 
-  dann Ladespannung begrenzen (auf aktuelle Gesamtspannung). */
-  /*"{"
-    "'label':'Dynamische Ladespannungsbegrenzung',"
+  dann Ladespannung reduzieren. */
+  "{"
+    "'label':'Dynamische Ladespannungsbegrenzung (Beta!)',"
     "'type':"+String(HTML_SEPARATION)+","
-    "'help':'Ladespannung begrenzen, wenn die Spannung einer Zelle und das Delta zwischen niedrigster und höchster Zellenspannung zu groß ist. NOCH NICHT FERTIG!!!'"
+    "'help':'Sobald die Spannung einer Zelle und das Delta zwischen der niedrigsten und der höchsten Zellenspannung größer als eingestellt werden, "
+      "wird die Ladespannung dynamisch angepasst, um die maximale Ladeleistung zu erreichen, ohne dass die Zellen weiter auseinander driften.'"
   "},"
   "{"
     "'name':"+String(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN)+","
@@ -793,6 +794,6 @@ const String paramBmsToInverter PROGMEM = "["
     "'default':'1800',"
     "'min':0,"
     "'max':65000"
-  "}"*/
+  "}"
   "]";
 

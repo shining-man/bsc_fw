@@ -36,7 +36,7 @@ public:
   void stop();
   void run();
   std::string getBtScanResult();
-  static bool bmsIsConnect(uint8_t devNr);
+  static uint8_t bmsIsConnect(uint8_t devNr);
 
   void startScan();
   bool isScanFinish();

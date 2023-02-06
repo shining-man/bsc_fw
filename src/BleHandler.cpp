@@ -119,9 +119,9 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
     {    
       if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(""))
       {
-        if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getString(ID_PARAM_SS_BTDEV,0,i,0).equals(String(ID_BT_DEVICE_NB))==false)
+        if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)!=ID_BT_DEVICE_NB)
         {
-          ESP_LOGI(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
+          ESP_LOGD(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
 
           NimBLEDevice::getScan()->stop();
         
@@ -470,7 +470,7 @@ void BleHandler::run()
   //Wenn angefordert, dann starte neuen BT scan
   if(bo_lDoStartBtScan && !bo_mBtScanIsRunning)
   {
-    ESP_LOGI(TAG, "Starte BT Scan");
+    ESP_LOGD(TAG, "Starte BT Scan");
     bo_mBtNotAllDeviceConnectedOrScanRunning=true;
     bo_lDoStartBtScan = false;
     bo_mBtScanIsRunning = true;
@@ -528,7 +528,7 @@ bool BleHandler::handleConnectionToDevices()
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
-          ESP_LOGI(TAG, "Suche device %i",i);
+          ESP_LOGD(TAG, "Suche device %i",i);
           bo_lDoStartBtScan = true;
         }
       }
@@ -570,7 +570,7 @@ bool BleHandler::handleConnectionToDevices()
           switch(bleDevices[i].deviceTyp)
           {
             case ID_BT_DEVICE_NEEY4A:
-              ESP_LOGI(TAG,"BT write dev=%i",i);
+              ESP_LOGD(TAG,"BT write dev=%i",i);
               //bleDevices[i].u16_zyclicWriteTimer=NEEY_ZYCLIC_SEND_TIME;
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
               bleDevices[i].doConnect = btDoConnectionIdle; 
@@ -624,7 +624,15 @@ std::string BleHandler::getBtScanResult()
 }
 
 
-bool BleHandler::bmsIsConnect(uint8_t devNr)
+uint8_t BleHandler::bmsIsConnect(uint8_t devNr)
 {
-  return bleDevices[devNr].isConnect;
+  if(bleDevices[devNr].isConnect)
+  {
+    return 2;
+  }
+  else
+  {
+    if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,devNr,0).equals("") && webSettings.getInt(ID_PARAM_SS_BTDEV,0,devNr,0)!=ID_BT_DEVICE_NB) return 1;
+  }
+  return 0;
 }
