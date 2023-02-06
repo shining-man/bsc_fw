@@ -7,7 +7,8 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.2.6"
+#define BSC_SW_VERSION      "V0.3.0"
+static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
 #define DEBUG_ON_FS
@@ -15,9 +16,13 @@
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
-//BMS
+//Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define SEPLOS_DEBUG
+//#define BT_DEBUG        //Bluetooth
+//#define MQTT_DEBUG        
+//#define WLAN_DEBUG        
+//#define CAN_DEBUG
 
 //System
 #define WEBSERVER_PORT               80
@@ -26,8 +31,20 @@
 #define CNT_ALARMS                   10
 
 //DI/DO
+#define H_CLK                        14
+#define H_MOSI                       13
+#define H_MISO                       12
+#define IO_DO_PL                     26
 #define CNT_DIGITALOUT                6
 #define CNT_DIGITALIN                 4
+#define GPIO_LED1_HW1                 0
+
+//Tcho
+#define TACHO_ADDR0                   6
+#define TACHO_ADDR1                   7
+#define TACHO_ADDR2                  15
+#define TACHO_GPIO                   27
+#define TACHO_MEAS_TIME            3000
 
 //Onewire
 #define MAX_ANZAHL_OW_SENSOREN       64
@@ -47,7 +64,7 @@
 #define SERIAL1_PIN_TX_EN            18
 #define SERIAL2_PIN_RX               23
 #define SERIAL2_PIN_TX               25
-#define SERIAL2_PIN_TX_EN             0
+#define SERIAL2_PIN_TX_EN             2
 #define SERIAL3_PIN_RX               35
 #define SERIAL3_PIN_TX               33
 #define SERIAL3_PIN_TX_EN            32
@@ -156,6 +173,7 @@
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG  94
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA    95
 
+#define ID_PARAM_WLAN_CONNECT_TIMEOUT 96
 
 
 
@@ -258,6 +276,7 @@
 #define MQTT_TOPIC2_HIGHWATER_TASK_OW           35
 #define MQTT_TOPIC2_HIGHWATER_TASK_CAN          36
 #define MQTT_TOPIC2_HIGHWATER_TASK_SERIAL       37
+#define MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN     38
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -278,8 +297,8 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "maxCellDifferenceVoltage",  // 15
   "balancingActive",           // 16
   "balancingCurrent",          // 17
-  "tempature",                 // 18
-  "chargePercent",             // 19
+  "temperature",               // 18
+  "SoC",                       // 19
   "errors",                    // 20
   "BalanceCapacity",           // 21
   "Cycle",                     // 22
@@ -298,9 +317,14 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "highWater_task_ow",         // 35
   "highWater_task_can",        // 36
   "highWater_task_serial",     // 37
-  "",                          // 38
+  "highWater_task_wifi",       // 38
   "",                          // 39
   "",                          // 40
+  "",                          // 41
+  "",                          // 42
+  "",                          // 43
+  "",                          // 44
+  "",                          // 45
   };
 
 #endif

@@ -20,7 +20,7 @@ enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoC
 struct bleDevice {
   bool isConnect;
   btDoConnectEnums doConnect;
-  bool doDisconnect;
+  //uint16_t u16_zyclicWriteTimer;
   String macAdr;
   uint8_t deviceTyp;
   NimBLERemoteCharacteristic* pChr;
@@ -32,17 +32,21 @@ public:
   BleHandler();
   
   void init();
+  void start();
+  void stop();
   void run();
   std::string getBtScanResult();
-  static bool bmsIsConnect(uint8_t devNr);
+  static uint8_t bmsIsConnect(uint8_t devNr);
 
   void startScan();
   bool isScanFinish();
+  static bool isNotAllDeviceConnectedOrScanRunning();
 
 private:
   uint8_t timer_startScan;
-  bool startManualScan;
+  bool bo_mStartManualScan;
   
+  bool handleConnectionToDevices();
 };
 
 #endif

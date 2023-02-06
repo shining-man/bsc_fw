@@ -193,7 +193,7 @@ static void parseBasicMessage(uint8_t * t_message)
 
   if(millis()>(mqttSendeTimer+10000))
   {
-    uint16_t /*u16_lBalanceCapacity,*/ u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
+    uint16_t u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
     u16_lFullCapacity = convertToUint16(t_message[JBD_BYTE_FULL_CAPACITY], t_message[JBD_BYTE_FULL_CAPACITY+1]); //10mAH
     u16_lCycle = convertToUint16(t_message[JBD_BYTE_CYCLE], t_message[JBD_BYTE_CYCLE+1]); //
     u16_lBalanceStatus = convertToUint16(t_message[JBD_BYTE_BALANCE_STATUS], t_message[JBD_BYTE_BALANCE_STATUS+1]); 

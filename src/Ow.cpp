@@ -45,8 +45,6 @@ uint8_t getSensorAdrFromParams()
         &owAddr[i][4], &owAddr[i][5], &owAddr[i][6], &owAddr[i][7]))
     {
       owAmount++;
-      //debugPrint("owAdr ok: ");
-      //debugPrintln(owAdr);
     }
     else
     {
@@ -124,13 +122,14 @@ void owCyclicRun()
 }
 
 
+#if 0
 #define FILTER_WEIGHT  0.5 //Gewicht von 0.01 bis 1.0; Ein Gewicht von 1 glättet am wenigsten
 //Exponential-Filter
 void filter(uint8_t sensNr, float fNew) //fCurrent
 {
   owTempsC[sensNr] = (float)FILTER_WEIGHT * fNew + (1.0 - (float)FILTER_WEIGHT) * owTempsC[sensNr];
 }
-
+#endif
 
 
 void getTempC_allDevices(bool tempToOutBuffer)

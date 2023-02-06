@@ -11,11 +11,12 @@
 static String str_mMqttDeviceName;
 
 void initMqtt();
-void mqttLoop();
+bool mqttLoop();
   
-void mqttConnect();
+bool mqttConnect();
 void mqttDisconnect();
 bool mqttConnected();
+uint16_t getTxBufferSize();
 
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value);

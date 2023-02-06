@@ -37,18 +37,24 @@ const char HTML_START[] PROGMEM = R"rawliteral(
 <style>
 html {font-family:Helvetica; display:inline-block; margin:0px auto; text-align:left;}
 body {margin: 0; background-color: %s;}
-.content {padding:20px;}
-.topnav {overflow: hidden;position:sticky;top:0;background-color:#6E6E6E;color:white;padding:5px;}
+.content {padding:20px; max-width:600px;}
+.topnav {overflow: hidden;position:sticky;top:0;background-color:#6E6E6E;color:white;padding:5px;cursor:default;}
 .topnav span {float: left; padding: 14px 16px; text-decoration: none; font-size:1.7rem;}
 .btnBack:hover {background-color:#555555;color:white;}
 .hl {flex:1;font-size:2rem;}
 .titel {font-weight:bold; text-align:left; padding:5px;}
-.Ctr {width:100%%; padding:5px; text-align: left;}
-.Ctd {width:150; padding:5px; text-align: left; vertical-align: top;}
-.Ctr tr:nth-child(even) {background-color: #f0f0f0;}
-.Ctr tr:nth-child(odd) {background-color: #d0d0d0;}
-button {font-size:100%%; width:150px; margin:5px;}
-.sb {font-size:100%%; width:30px; margin:5px;}
+.Ctr {text-align: left;}
+.Ctd {width:150; padding:10px 5px 0 5px; text-align: left; vertical-align: top;}
+.td0 {padding: 0 5px 0 5px;}
+.help {border-left:2px solid black; 
+  border-bottom: 1px solid #fff0;
+  border-image: linear-gradient(90deg, #000, #000 1%% ,#FFF 1.5%%, #fff 100%%);
+  border-image-slice: 1;
+  padding:0 0 0 2px; margin:0 0 0 5px;
+  text-align:left; vertical-align:top;}
+.sep {padding:2px; border-top:15px solid #fff; background: linear-gradient(90deg, #f0f0f0 40%%, #fff0 80%%);}
+button {font-size:100%%; width:150px; padding:0px; margin:10px 0 0 0;}
+.sb {font-size:100%%; width:25px; height:25px; padding:0px; margin:5px 0 0 0;}
 input:invalid {border:1px solid red;}
 input:valid {border:1px solid green;}
 
@@ -76,6 +82,7 @@ const char HTML_END_2[] PROGMEM = R"rawliteral(
 function btnClick(btn) {
   var xhttp = new XMLHttpRequest();
   xhttp.open('POST','?'+btn+'=',true);
+  xhttp.timeout=1000;
   xhttp.send();  
 }
 
@@ -118,8 +125,6 @@ for (let i = 0; i < collection.length; i++) {
     }else{
       val=t1.value;
     }
-    //alert(name);
-    //alert(val);
 
     var xhttp = new XMLHttpRequest();
     xhttp.onreadystatechange = function() {
@@ -128,6 +133,7 @@ for (let i = 0; i < collection.length; i++) {
       }
     };
     xhttp.open('GET','?SAVE=&'+name+'='+urlencode(val),true);
+    xhttp.timeout=1000;
     xhttp.send();
   });
   collection[i].appendChild(button);
@@ -150,6 +156,7 @@ function getData() {
     }
   };
   xhttp.open('GET', '%s', true);
+  xhttp.timeout=1000;
   xhttp.send();
   var timer = window.setTimeout('getData()', %i);
 }
@@ -192,7 +199,7 @@ const char HTML_ENTRY_MULTI_END[] PROGMEM =
 const char HTML_GROUP_START[] PROGMEM = "</table><details open><summary><b>%s</b></summary><table>\n";
 const char HTML_GROUP_END[]   PROGMEM = "</table></details><table>\n";
 
-const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='Ctd' colspan='3'><b><u>%s</u></b></td></tr>\n";
+const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
 
 const char HTML_BUTTON[] PROGMEM = "<div class='Ctd'><button onclick='btnClick(\"%s\")'>%s</button></div>\n";
 
@@ -254,7 +261,8 @@ void WebSettings::sendContentHtml(WebServer *server, const char *buf, bool send)
     st_mSendBuf += buf;
   }
     
-  if(send==true || st_mSendBuf.length()>2000){
+  if(send==true || st_mSendBuf.length()>2000)
+  {
     //debugPrintf("sende sendBuf size=%i\n",st_mSendBuf.length());
     server->sendContent(st_mSendBuf);
     st_mSendBuf="";
@@ -368,7 +376,8 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 }
 
 /*not use*/
-/*void WebSettings::readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos)
+#if 0
+void WebSettings::readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos)
 {
   uint8_t g, optionGroupSize;
   String tmpStr = "";
@@ -416,14 +425,15 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
       }
     }
   }
-}*/
-
+}
+#endif
 
 void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos)
 {
   uint8_t g;
   uint8_t optionsCnt;
   uint8_t optionGroupSize;
+  boolean bo_lIsGroup=false;
   
   uint32_t jsonName;
   String jsonLabel;
@@ -453,6 +463,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       switch (getJsonType(parameter, a, jsonStartPos))
       {
         case HTML_OPTIONGROUP:
+          bo_lIsGroup=true;
           st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
           optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
           if(optionGroupSize>1 && !jsonLabel.equals(""))
@@ -551,12 +562,15 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       }
 
       //Help einfügen
+      if(!bo_lIsGroup)
+      {
       strlHelp = getJsonHelp(parameter, a, jsonStartPos);
       if(!strlHelp.equals(""))
       {
         strlHelp.replace("\n","<br>");
-        sprintf(_buf,"<tr><td colspan='3'>%s</td></tr>",strlHelp.c_str());
+        sprintf(_buf,"<tr><td colspan='3' class='td0'><div class='help'>%s</div></td></tr>",strlHelp.c_str());
         sendContentHtml(server,_buf,false);
+      }
       }
     }
   }

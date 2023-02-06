@@ -10,6 +10,7 @@
 #include "Canbus.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
+#include "FreqCountESP.h"
 
 static const char *TAG = "ALARM";
 
@@ -30,11 +31,12 @@ bool bo_timerPulseOffIsRunning;
 bool bo_mChangeAlarmSettings;
 
 uint8_t u8_mDoByte;
-
+uint8_t u8_mTachoChannel;
 
 void rules_Bms();
 void rules_Temperatur();
 void rules_CanInverter();
+void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
 bool temperatur_DifferenzUeberwachung(uint8_t);
@@ -42,6 +44,10 @@ void runDigitalAusgaenge();
 void doOffPulse(TimerHandle_t xTimer);
 void getDIs();
 void setDOs();
+void tachoInit();
+bool tachoRead(uint16_t &tachoRpm);
+void tachoSetMux(uint8_t channel);
+
 
 void initAlarmRules()
 {
@@ -74,6 +80,10 @@ void initAlarmRules()
   timer_doOffPulse = xTimerCreate("doPulse", pdMS_TO_TICKS(10), pdFALSE, (void *)1, &doOffPulse);
   assert(timer_doOffPulse);
 
+  if(getHwVersion()>=1)
+  {
+    //tachoInit();
+  }
 }
 
 bool getAlarm(uint8_t alarmNr)
@@ -115,7 +125,8 @@ void runAlarmRules()
   uint8_t i,tmp;
 
   //Toggle LED
-  if(getHwVersion()==0) u8_mDoByte ^= (1 << 7); 
+  if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
+  else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
 
   //Merker vor jedem run auf false setzen
   for(i=0;i<CNT_ALARMS;i++){bo_alarmActivate[i]=false;}
@@ -131,6 +142,9 @@ void runAlarmRules()
 
   //Digitaleingänge
   getDIs();
+
+  //Tacho auswerten
+  //rules_Tacho();
 
   //Bearbeiten der Alarme
   for(i=0; i<CNT_ALARMS; i++)
@@ -281,6 +295,104 @@ void getDIs()
         setAlarm(u8_lAlarmNr,true);
         //ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
       }
+    }
+  }
+}
+
+void tachoInit()
+{
+  u8_mTachoChannel=0;
+
+  pinMode(TACHO_ADDR2, OUTPUT);
+  digitalWrite(TACHO_ADDR2, LOW);
+
+  u8_mDoByte &= ~(1 << TACHO_ADDR0); //bit loeschen
+  u8_mDoByte &= ~(1 << TACHO_ADDR1); //bit loeschen
+
+  FreqCountESP.begin(TACHO_GPIO, TACHO_MEAS_TIME);
+  tachoSetMux(u8_mTachoChannel);
+  FreqCountESP.runMeasure(); //Erste Messung starten
+}
+
+bool tachoRead(uint16_t &tachoRpm)
+{
+  bool ret=false;
+  if (FreqCountESP.available())
+  {
+    tachoRpm = FreqCountESP.read() * (60000/TACHO_MEAS_TIME);
+    ESP_LOGD(TAG,"chan=%i, RPM=%i",u8_mTachoChannel,tachoRpm);
+    u8_mTachoChannel++;
+    tachoSetMux(u8_mTachoChannel);
+    FreqCountESP.runMeasure(); //nächste Messung starten
+    ret=true;
+  }
+  return ret;
+}
+
+void tachoSetMux(uint8_t channel)
+{
+  if(channel>5)return;
+
+  switch(channel)
+  {
+    case 0: //0 0 0
+      u8_mDoByte &= ~(1 << TACHO_ADDR0); //bit loeschen
+      u8_mDoByte &= ~(1 << TACHO_ADDR1); //bit loeschen
+      digitalWrite(TACHO_ADDR2, LOW);
+      break;
+    case 1: //1 0 0
+      u8_mDoByte |=  (1 << TACHO_ADDR0); //bit setzen
+      u8_mDoByte &= ~(1 << TACHO_ADDR1); //bit loeschen
+      digitalWrite(TACHO_ADDR2, LOW);
+      break;
+    case 2: //0 1 0
+      u8_mDoByte &= ~(1 << TACHO_ADDR0); //bit loeschen
+      u8_mDoByte |=  (1 << TACHO_ADDR1); //bit setzen
+      digitalWrite(TACHO_ADDR2, LOW);
+      break;
+    case 3: //1 1 0
+      u8_mDoByte |= (1 << TACHO_ADDR0); //bit setzen
+      u8_mDoByte |= (1 << TACHO_ADDR1); //bit setzen
+      digitalWrite(TACHO_ADDR2, LOW);
+      break;
+    case 4: //0 0 1
+      u8_mDoByte &= ~(1 << TACHO_ADDR0); //bit loeschen
+      u8_mDoByte &= ~(1 << TACHO_ADDR1); //bit loeschen
+      digitalWrite(TACHO_ADDR2, HIGH);
+      break;
+    case 5: //1 0 1
+      u8_mDoByte |=  (1 << TACHO_ADDR0); //bit setzen
+      u8_mDoByte &= ~(1 << TACHO_ADDR1); //bit loeschen
+      digitalWrite(TACHO_ADDR2, HIGH);
+      break;
+    default:
+      break;
+  }
+
+  xSemaphoreTake(doMutex, portMAX_DELAY);
+  setDoData(u8_mDoByte);
+  xSemaphoreGive(doMutex);
+}
+
+void rules_Tacho()
+{
+  if(getHwVersion()==0) return;
+  
+  uint16_t u16_lTachoRpm=0;
+  if(tachoRead(u16_lTachoRpm))
+  {
+    //ToDo: Settings laden; z.B. Alarmregeln/Lüfter
+    //uint16_t u16_lTachoRpmUpperLimit;  //u8_mTachoChannel
+    uint16_t u16_lTachoRpmLowerLimit;  //u8_mTachoChannel
+    uint8_t u8_lTachAlarmNr;           //u16_lTachoRpm
+
+    if(u16_lTachoRpm<u16_lTachoRpmLowerLimit /*|| u16_lTachoRpm>u16_lTachoRpmUpperLimit*/)
+    {
+      setAlarm(u8_lTachAlarmNr,true);
+    }
+    else
+    {
+      setAlarm(u8_lTachAlarmNr,false);
     }
   }
 }
