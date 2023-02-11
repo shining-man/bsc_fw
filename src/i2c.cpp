@@ -37,9 +37,12 @@ void i2cInit()
 void isDisplayConn()
 {
     uint8_t u8_lErr;
+    uint8_t txBuf[1];
+    txBuf[0]=0;
 
-    Wire.beginTransmission(I2C_DEV_ADDR_DISPLAY);
-    u8_lErr = Wire.endTransmission();
+    I2C.beginTransmission(I2C_DEV_ADDR_DISPLAY);
+    I2C.write(txBuf,1);
+    u8_lErr = I2C.endTransmission();
     if (u8_lErr == 0)
     {
       bo_mDisplayEnabled = true;
