@@ -400,26 +400,31 @@ void rules_Tacho()
 
 void rules_Bms()
 {
-  uint8_t i,tmp;
+  uint8_t i,tmp,u8_lAlarmruleBmsNr;
 
-  for(i=0; i<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT; i++)
+  for(i=0; i<CNT_BT_ALARMS_RULES; i++)
   {
-    bool b_lBmsOnline=true;
+    u8_lAlarmruleBmsNr=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,0,i,0);
+
+    if(u8_lAlarmruleBmsNr<=0) continue;
+    u8_lAlarmruleBmsNr--;
+
+    //bool b_lBmsOnline=true;
     //if((millis()-getBmsLastDataMillis(i))>10000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
     //debugPrintf("i=%i, b_lBmsOnline=%i",i,b_lBmsOnline);
 
     //Ist überhaupt ein Device parametriert?
-    if((i<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,0,i,0)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals("")) ||
-      (i>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,i-BT_DEVICES_COUNT,0)!=0 ) )
+    if((u8_lAlarmruleBmsNr<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,0,u8_lAlarmruleBmsNr,0)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,u8_lAlarmruleBmsNr,0).equals("")) ||
+      (u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,0)!=0 ) )
     {
       //Wenn Alram für das Device aktiv ist
       if(WebSettings::getBool(ID_PARAM_ALARM_BTDEV_ALARM_ON,0,i,0)) 
       {      
         //Alarm wenn keine Daten mehr vom BT-Device kommen
-        if((millis()-getBmsLastDataMillis(i))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
+        if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
         {
           //Alarm
-          //debugPrintf("BT Alarm (%i)",i);
+          //debugPrintf("BT Alarm (%i)",u8_lAlarmruleBmsNr);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
           setAlarm(tmp,true);
           //ESP_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
@@ -434,13 +439,13 @@ void rules_Bms()
 
       //Überwachung Zellspannung
       //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
-      if(/*b_lBmsOnline==true &&*/ WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0)) //BleHandler::bmsIsConnect(i)
+      if(/*b_lBmsOnline==true &&*/ WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0))
       {
       //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
         {
           //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
-          if(getBmsCellVoltage(i,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0) || getBmsCellVoltage(i,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0))
+          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0) || getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0))
           {
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
@@ -461,7 +466,7 @@ void rules_Bms()
       uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
       if(/*b_lBmsOnline==true &&*/ u8_lAlarm>0) 
       {
-        if(getBmsTotalVoltage(i) < WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(i) > WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
+        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
         {
           //Alarm
           setAlarm(u8_lAlarm,true);

@@ -7,6 +7,7 @@
 #include "WebSettings.h"
 #include "defines.h"
 #include "BmsData.h"
+#include "Ow.h"
 #include "mqtt_t.h"
 #include <CAN.h>
 #include "log.h"
@@ -647,13 +648,43 @@ void sendCanMsg_356()
   data356 msgData;
 
   msgData.current = (int16_t)(getBmsTotalCurrent(u8_mBmsDatasource)*10);
-  msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10);
   msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
 
   //Wenn zusätzliche Datenquellen angegeben sind:
   if((u8_mBmsDatasourceAdd & 0x01) == 0x01) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT)*10);
   if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
   if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
+
+  //Temperatur
+  uint8_t u8_lBmsTempQuelle=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_QUELLE,0,0,0);
+  uint8_t u8_lBmsTempSensorNr=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_SENSOR,0,0,0);
+  if(u8_lBmsTempQuelle==1)
+  {
+    if(u8_lBmsTempSensorNr<3)
+    {
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,u8_lBmsTempQuelle)*10);
+    }
+    else
+    {
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+    }
+  }
+  else if(u8_lBmsTempQuelle==2)
+  {
+    if(u8_lBmsTempSensorNr<MAX_ANZAHL_OW_SENSOREN)
+    {
+      msgData.temperature = (int16_t)(owGetTemp(u8_lBmsTempSensorNr)*10);
+    }
+    else
+    {
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+    }
+  }
+  else
+  {
+    msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+  }
+
 
   #ifdef CAN_DEBUG
   ESP_LOGD(TAG, "CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);

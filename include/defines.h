@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.0"
+#define BSC_SW_VERSION      "V0.3.1"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -29,6 +29,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Alarmrules
 #define CNT_ALARMS                   10
+#define CNT_BT_ALARMS_RULES          10
 
 //DI/DO
 #define H_CLK                        14
@@ -93,6 +94,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_SS_BTDEV                            4
 #define ID_PARAM_SS_BTDEVMAC                         5
 
+#define ID_PARAM_ALARM_BTDEV_BMS_SELECT              9
 #define ID_PARAM_ALARM_BT                           10
 #define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
 #define ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT         12
@@ -175,6 +177,8 @@ static const char COMPILE_DATE_TIME[] = "";
 
 #define ID_PARAM_WLAN_CONNECT_TIMEOUT 96
 
+#define ID_PARAM_INVERTER_BATT_TEMP_QUELLE 97
+#define ID_PARAM_INVERTER_BATT_TEMP_SENSOR 98
 
 
 //Auswahl Bluetooth Geräte
