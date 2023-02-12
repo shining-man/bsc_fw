@@ -71,11 +71,15 @@ for zeile in datei:
                     zeileNeu=zeile
             else:
                 defFoundStart = zeile.find("+")
+                defFoundPlus = zeile.find("\+")
+                if (defFoundPlus+1) == defFoundStart:
+                    defFoundStart=-1
+                    zeile=zeile.replace("\+","+")
+                    
                 if defFoundStart >= 0:
                     varName2 = zeile.split("+")[1]
                     if varName2 in defines_dict:
                         zeileNeu = zeile.replace("+"+varName2+"+","\""+defines_dict.get(varName2)+"\"");
-
                 else:
                     zeileNeu=zeile
 
