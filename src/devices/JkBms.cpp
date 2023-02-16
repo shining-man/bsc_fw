@@ -162,6 +162,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 uint32_t mqttSendeTimer_jk=0;
 void parseData(uint8_t * t_message)
 {
+  int16_t  i16_lTmpValue;
   uint32_t u32_lBalanceCapacity=0;
   uint16_t u16_lCycle=0;
 
@@ -245,11 +246,21 @@ void parseData(uint8_t * t_message)
 
       case 0x83: // Total Batery Voltage
         setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        #ifdef JK_DEBUG 
+        ESP_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        #endif
         i+=3;
         break; 
 
       case 0x84: // Current
-        setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
+      	i16_lTmpValue = (uint16_t)(t_message[i+1]<<8)|t_message[i+2];
+        if (i16_lTmpValue & 0x8000){i16_lTmpValue = (i16_lTmpValue & 0x7fff);}
+        else {i16_lTmpValue *= -1;} // Wenn negativ
+
+        setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)i16_lTmpValue*0.01);
+        #ifdef JK_DEBUG 
+        ESP_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
+        #endif
         i+=3;
         break; 
 
