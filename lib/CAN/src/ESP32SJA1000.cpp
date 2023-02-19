@@ -179,16 +179,29 @@ void ESP32SJA1000Class::end()
 
 int ESP32SJA1000Class::endPacket()
 {
-  if (!CANControllerClass::endPacket()) {
-    return 0;
+  unsigned long canTxErrTimer=0;
+
+  if (!CANControllerClass::endPacket())
+  {
+    return 1;
   }
+
   // wait for TX buffer to free
-  while ((readRegister(REG_SR) & 0x04) != 0x04) {
+  canTxErrTimer=millis()+200;
+  while ((readRegister(REG_SR) & 0x04) != 0x04)
+  {
+    //Timeout
+    if(millis()>canTxErrTimer)
+    {
+      return 1;
+    }
+
     yield();
   }
   int dataReg;
 
-  if (_txExtended) {
+  if (_txExtended)
+  {
     writeRegister(REG_EFF, 0x80 | (_txRtr ? 0x40 : 0x00) | (0x0f & _txLength));
     writeRegister(REG_EFF + 1, _txId >> 21);
     writeRegister(REG_EFF + 2, _txId >> 13);
@@ -196,48 +209,70 @@ int ESP32SJA1000Class::endPacket()
     writeRegister(REG_EFF + 4, _txId << 3);
 
     dataReg = REG_EFF + 5;
-  } else {
+  }
+  else
+  {
     writeRegister(REG_SFF, (_txRtr ? 0x40 : 0x00) | (0x0f & _txLength));
     writeRegister(REG_SFF + 1, _txId >> 3);
     writeRegister(REG_SFF + 2, _txId << 5);
 
     dataReg = REG_SFF + 3;
   }
-  for (int i = 0; i < _txLength; i++) {
+  for (int i = 0; i < _txLength; i++)
+  {
     writeRegister(dataReg + i, _txData[i]);
   }
-  if ( _loopback) {
+  if ( _loopback)
+  {
     // self reception request
     modifyRegister(REG_CMR, 0x1f, 0x10);
-  } else {
+  }
+  else
+  {
     // transmit request
     modifyRegister(REG_CMR, 0x1f, 0x01);
   }
 
+  //https://www.nxp.com/docs/en/data-sheet/SJA1000.pdf
   // wait for TX complete
-  while ((readRegister(REG_SR) & 0x08) != 0x08) {
-    //Serial.printf("reg=%i\n",readRegister(REG_SR));
-    if (readRegister(REG_ECC) == 0xd9) {
+  canTxErrTimer=millis()+200; //Timeout
+  uint8_t u8_lRegSR=0;
+  uint8_t u8_lRegECC=0;
+  while ((readRegister(REG_SR) & 0x08) != 0x08)
+  {
+    u8_lRegSR=readRegister(REG_SR);
+    u8_lRegECC=readRegister(REG_ECC);
+    //Serial.printf("REG_SR=%i, REG_ECC=%i\n",u8_lRegSR,u8_lRegECC);
+
+    //Timeout
+    if(millis()>canTxErrTimer)
+    {
+      return (((uint16_t)u8_lRegECC<<8) | u8_lRegSR);
+    }
+
+    if (u8_lRegECC == 0xd9)
+    {
       modifyRegister(REG_CMR, 0x1f, 0x02); // error, abort
-      return 0;
+      return (((uint16_t)u8_lRegECC<<8) | u8_lRegSR);
     }
     
     //bus-off; the SJA1000 is not involved in bus activities
-    if ((readRegister(REG_SR) & 0x80) == 0x80) {
+    if ((u8_lRegSR & 0x80) == 0x80)
+    {
       modifyRegister(REG_CMR, 0x1f, 0x02); // error, abort
-      return 0;
+      return (((uint16_t)u8_lRegECC<<8) | u8_lRegSR);
     }
 
     //212
-    if (readRegister(REG_SR) == 0x30) {   // e.g. if no transceiver is connected REG_SR=48 (0b00110000) ECC=0
-      Serial.print(F("D225 abort ")); Serial.println(readRegister(REG_SR));
+    if (u8_lRegSR == 0x30)  // e.g. if no transceiver is connected REG_SR=48 (0b00110000) ECC=0
+    {  
       modifyRegister(REG_CMR, 0x1f, 0x02); // error, abort
-      return 0;
+      return (((uint16_t)u8_lRegECC<<8) | u8_lRegSR);
     }
 
     yield();
   }
-  return 1;
+  return 0;
 }
 
 int ESP32SJA1000Class::parsePacket()

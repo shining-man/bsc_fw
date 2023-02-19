@@ -199,9 +199,10 @@ void canTxCyclicRun()
 
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
 {
-  uint16_t ret = CAN.beginPacket(identifier); //11 bit Id
-  ret = CAN.write(buffer, length);
-  ret = CAN.endPacket();
+  uint32_t err = CAN.beginPacket(identifier); //11 bit Id
+  err = CAN.write(buffer, length);
+  err = CAN.endPacket();
+  if(err>0) ESP_LOGE(TAG,"TX error: REG_ECC=%i, REG_SR=%i", ((err>>8)&0xff), (err&0xff));
 }
 
 
@@ -225,10 +226,8 @@ void sendBmsCanMessages()
 
     case ID_CAN_DEVICE_VICTRON:
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
-
       sendCanMsg_351();
       vTaskDelay(pdMS_TO_TICKS(5));
-
       sendCanMsg_370_371();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35e();
@@ -244,9 +243,9 @@ void sendBmsCanMessages()
       sendCanMsg_356();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_373();
-      //374, 375, 376, 377
 
-      //sendCanMsg_359();
+      //374, 375, 376, 377
+      //359
       break;
 
     default:
