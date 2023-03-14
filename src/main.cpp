@@ -105,6 +105,7 @@ static String str_lWlanPwd;
 static uint16_t u16_lWlanConnTimeout;
 static boolean bo_lWlanNeverAp;
 static unsigned long wlanConnectTimer;
+static const char *hostname = {"bsc"};
 
 //
 void task_ble(void *param);
@@ -167,7 +168,8 @@ boolean connectWiFi()
 
   if(!str_lWlanSsid.equals("") && !str_lWlanPwd.equals(""))
   {
-    ESP_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid);
+    ESP_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid.c_str());
+    WiFi.setHostname(hostname);
     WiFi.mode(WIFI_STA);
     WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
 
@@ -878,8 +880,7 @@ void setup()
   connectWiFi();
   ESP_LOGI(TAG, "Init WLAN...ok");
   
-  char dns[30] = {'b','s','c'};
-  if (MDNS.begin(dns))
+  if (MDNS.begin(hostname))
   {
     ESP_LOGI(TAG, "MDNS responder gestartet");
   }
