@@ -38,7 +38,7 @@ static bool      checkCrc(uint8_t *recvMsg);
 static uint16_t  calcCrc(uint8_t *recvMsg);
 
 
-bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
+bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
 {
   bool bo_lRet=true;
   mPort = port;
@@ -239,6 +239,7 @@ static void parseCellVoltageMessage(uint8_t * t_message)
   for (byte i=0; i<u8_lNumOfCells; i++) 
   {
     u16_lZellVoltage = (uint16_t)convertToUint16(t_message[i*2+offset], t_message[i*2+1+offset]);
+    if(u16_lZellVoltage<=500 || u16_lZellVoltage>5000) continue;
     setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr,i, (float)(u16_lZellVoltage));
 
     u16_lCellSum += u16_lZellVoltage;

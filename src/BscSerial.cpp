@@ -48,6 +48,8 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnR
 
 void BscSerial::initSerial()
 {
+  u8_mAddData=0;
+
   if(isSoftSerial==true)
   {
     setSoftSerial(9600);
@@ -65,20 +67,27 @@ void BscSerial::initSerial()
 
 void BscSerial::setHwSerial(uint32_t baudrate)
 {
+  u8_mAddData=0;
   if(u8_mTxEnRS485pin!=0) pinMode(u8_mTxEnRS485pin, OUTPUT);
 
   if(u8_mHwUartNr==0)
   {
+    Serial.end();
+    pinMode(u8_mTx, OUTPUT | PULLUP);
     Serial.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial;
   }
   else if(u8_mHwUartNr==1)
   {
+    Serial1.end();
+    pinMode(u8_mTx, OUTPUT);
     Serial1.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial1;
   }
   else if(u8_mHwUartNr==2)
   {
+    Serial2.end();
+    pinMode(u8_mTx, OUTPUT);
     Serial2.begin(baudrate,SERIAL_8N1,u8_mRx,u8_mTx);
     stream_mPort=&Serial2;
   }
@@ -123,6 +132,8 @@ void BscSerial::setSerialBaudrate(uint32_t baudrate)
 void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
 {
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
+  u8_mAddData=0;
+
   switch (funktionsTyp)
   {
     case ID_SERIAL_DEVICE_NB:
@@ -150,6 +161,14 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
     default:
       readBms = 0;
   }
+
+  if(u8_mSerialNr==2)
+  {
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_mSerialNr,0)==ID_SERIAL_DEVICE_SEPLOSBMS)
+    {
+      u8_mAddData=WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,0,0);
+    }
+  }
   xSemaphoreGive(mSerialMutex);
 }
 
@@ -160,7 +179,7 @@ void BscSerial::cyclicRun()
   if(readBms==0){return;}    //Wenn nicht Initialisiert
 
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
-  if(readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin)) //Wenn kein Fehler beim Holen der Daten vom BMS
+  if(readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin, u8_mAddData)) //Wenn kein Fehler beim Holen der Daten vom BMS
   {
     bmsReadOk=true;
   }

@@ -28,6 +28,7 @@
 #include "webUtility.h"
 #include "bscTime.h"
 #include "restapi.h"
+#include "devices/NeeyBalancer.h"
 
 static const char *TAG = "MAIN";
 
@@ -120,8 +121,9 @@ void free_dump()
 
 void onWiFiEvent(WiFiEvent_t event)
 {
-    ESP_LOGI(TAG, "[WiFi] event: %d", event);
-    switch(event) {
+  ESP_LOGI(TAG, "[WiFi] event: %d", event);
+  switch(event)
+  {
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
       break;
 
@@ -141,7 +143,7 @@ void onWiFiEvent(WiFiEvent_t event)
       WlanStaApOk=WIFI_AP;
       //bleHandler->init();
       break;
-    }
+  }
 }
 
 
@@ -389,7 +391,7 @@ void task_ConnectWiFi(void *param)
       mConnectStateEnumsOld=mConnectStateEnums;
     }
     
-    #ifdef WLAN_DEBUG
+    #ifdef WLAN_DEBUG2
     if(millis()>tConnWifiHelpTimer+1000)
     {
       tConnWifiHelpTimer=millis();
@@ -527,7 +529,7 @@ void task_i2c(void *param)
       String ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
-      i2cSendData(BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
     }
       
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
@@ -648,7 +650,13 @@ void handle_paramSystem()
 }
 
 void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);}
-        
+void handle_getNeeySettingsReadback()
+{
+  String value;
+  NeeyBalancer::getNeeyReadbackDataAsString(value);
+  server.send(200, "text/html", value);
+  value="";
+}        
 
 void handle_getData()
 {
@@ -821,6 +829,9 @@ uint8_t checkTaskRun()
 
 void setup()
 {
+  //Register setzen
+  *((volatile uint32_t *) (RTC_CNTL_SDIO_CONF_REG)) |= RTC_CNTL_SDIO_TIEH; 
+
   mutexTaskRunTime_ble = xSemaphoreCreateMutex();
   mutexTaskRunTime_alarmrules = xSemaphoreCreateMutex();
   mutexTaskRunTime_ow = xSemaphoreCreateMutex();
@@ -860,6 +871,7 @@ void setup()
   webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf",0);
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf",0);
   webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf",0);
+  webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
 
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
@@ -877,8 +889,7 @@ void setup()
   WiFi.setAutoReconnect(false);
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2000, nullptr, 1, &task_handle_wifiConn, 1);
-  connectWiFi();
-  ESP_LOGI(TAG, "Init WLAN...ok");
+  //connectWiFi();
   
   if (MDNS.begin(hostname))
   {
@@ -907,6 +918,7 @@ void setup()
   server.on("/settings/schnittstellen/ow2/",handle_paramOnewire2);
     
   server.on("/settings/devices/neeyBalancer/",handle_paramDevicesNeeyBalancer);
+  server.on("/settings/devices/neeyBalancer/getNeeySettingsReadback",handle_getNeeySettingsReadback);
 
   server.on("/getData",handle_getData);
   server.on("/settings/schnittstellen/bt/getBtDevices",handle_getBtDevices);
@@ -917,9 +929,9 @@ void setup()
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
   //server.on("/bsc.css", HTTP_GET, []() {if(!handleFileRead(&server, "/bscdata/bsc.css")){server.send(404, "text/plain", "FileNotFound");}});
 
-  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/param/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   webota.init(&server, "/settings/webota/"); //webota
 
@@ -929,11 +941,6 @@ void setup()
     sleep(2);
     ESP.restart();
   });
-
-  //starte webserver
-  ESP_LOGI(TAG, "Starte Webserver...");
-  server.begin(WEBSERVER_PORT);
-  ESP_LOGI(TAG, "Starte Webserver...ok");
 
   //Erstelle Tasks
   //xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
@@ -945,6 +952,10 @@ void setup()
   //xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2000, nullptr, 1, &task_handle_wifiConn, 1);
 
  
+  //starte webserver
+  ESP_LOGI(TAG, "Starte Webserver...");
+  server.begin(WEBSERVER_PORT);
+
   //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
 
 

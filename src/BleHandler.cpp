@@ -7,6 +7,10 @@
 #include "BleHandler.h"
 #include "log.h"
 
+#include "devices/JkBmsBt.h"
+#include "devices/NeeyBalancer.h"
+
+
 static const char *TAG = "BLE_HANDLER";
 
 bool bleNeeyBalancerConnect(uint8_t deviceNr);
@@ -14,6 +18,7 @@ bool bleNeeyBalancerConnect(uint8_t deviceNr);
 static bleDevice bleDevices[BT_DEVICES_COUNT];
 NimBLEScan* pBLEScan;
 NimBLEAdvertisedDevice* advDevice;
+uint8_t u8_mAdvDeviceNumber;
 
 WebSettings webSettings;
 
@@ -21,22 +26,21 @@ static boolean bo_mBleHandlerRunning = false;
 static boolean bo_mBtScanIsRunning = false; 
 static boolean bo_mBtNotAllDeviceConnectedOrScanRunning = false;
 uint8_t u8_mScanAndNotConnectTimer;
-
+bool bo_mSendDataToNeey;
 
 //NEEY
-//#define NEEY_ZYCLIC_SEND_TIME 60   // 0=deaktiviert
-byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
 NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
 NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
+byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
 
+//JK-BMS
+NimBLEUUID BtServiceUUID("ffe0");
+NimBLEUUID BtCharUUID   ("ffe1");
 
 class ClientCallbacks : public NimBLEClientCallbacks
 {
   void onConnect(NimBLEClient* pClient)
   {
-    // interval 1,25ms; timeout 10ms
-    pClient->updateConnParams(800,800,5,1500); //120,120,5,150
-
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
     ESP_LOGI(TAG, "onConnect() %s", devMacAdr.c_str());
 
@@ -44,6 +48,20 @@ class ClientCallbacks : public NimBLEClientCallbacks
     {
       if(bleDevices[i].macAdr.equals(devMacAdr))
       {
+        switch(bleDevices[i].deviceTyp)
+        {
+          case ID_BT_DEVICE_NEEY4A:
+            // interval 1,25ms; timeout 10ms
+            pClient->updateConnParams(800,800,5,1500); //120,120,5,150
+            break;
+          case ID_BT_DEVICE_JKBMS_JK02:
+          case ID_BT_DEVICE_JKBMS_JK02_32S:
+            pClient->updateConnParams(120,120,5,1500);
+            jkBmsBtDevInit(i);
+            break;
+        }
+  
+        bleDevices[i].balancerOn=e_BalancerWaitForCmd;
         bleDevices[i].isConnect = true;
         bleDevices[i].doConnect = btDoConnectionWaitStart; 
         setBmsLastDataMillis(i,millis());
@@ -126,6 +144,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
           NimBLEDevice::getScan()->stop();
         
           advDevice = advertisedDevice;   
+          u8_mAdvDeviceNumber = i;
           bleDevices[i].deviceTyp = (uint8_t)webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
           bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0);
           bleDevices[i].doConnect = btDoConnect;
@@ -151,10 +170,42 @@ void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* p
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
-      //ESP_LOGI(TAG,"NEEY RX len=%i", length);
-
       //Daten kopieren
       NeeyBalancer::neeyBalancerCopyData(i, pData, length);     
+    }
+  }
+}
+
+//String temp="";
+void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
+{
+  std::string notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
+
+  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  {
+    if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
+    {
+      //ESP_LOGI(TAG,"JKBMS RX len=%i", length);
+
+      /*for(uint16_t i=0; i<length; i++)
+      {
+        temp += pData[i];
+        temp+=" ";
+      }
+      ESP_LOGI(TAG,"JKBMS RX data=%s", temp.c_str());
+      temp="";*/
+
+      uint8_t u8_frameVersion=FRAME_VERSION_JK02;
+      switch(bleDevices[i].deviceTyp)
+      {
+        case ID_BT_DEVICE_JKBMS_JK02_32S:
+          u8_frameVersion=FRAME_VERSION_JK02_32S;
+          break;
+      }
+
+      jkBmsBtCopyData(i, u8_frameVersion, pData, length); 
+
+      bleDevices[i].sendDataStep=0;
     }
   }
 }
@@ -169,7 +220,7 @@ void scanCompleteCB(NimBLEScanResults scanResults)
 // Create a single global instance of the callback class to be used by all clients
 static ClientCallbacks clientCB;
 
-bool btDeviceConnect(uint8_t devNr)
+bool btDeviceConnect()
 {
   #ifdef BT_DEBUG
   ESP_LOGI(TAG, "btDeviceConnect()");
@@ -179,11 +230,18 @@ bool btDeviceConnect(uint8_t devNr)
   NimBLEUUID serviceUUID;
   NimBLEUUID charUUID;
 
+  uint8_t devNr = u8_mAdvDeviceNumber; //devNr ist letztes gefundenes Device
+
   switch(bleDevices[devNr].deviceTyp)
   {
     case ID_BT_DEVICE_NEEY4A:
       serviceUUID=NeyyBalancer4A_serviceUUID;
       charUUID=NeyyBalancer4A_charUUID;
+      break;
+    case ID_BT_DEVICE_JKBMS_JK02:
+    case ID_BT_DEVICE_JKBMS_JK02_32S:
+      serviceUUID=BtServiceUUID;
+      charUUID=BtCharUUID;
       break;
     default:
       //Wenn Device-Typ nicht bekannt, dann abbrechen
@@ -295,6 +353,10 @@ bool btDeviceConnect(uint8_t devNr)
           case ID_BT_DEVICE_NEEY4A:
             bo_lSubscribeRet=bleDevices[devNr].pChr->subscribe(true, notifyCB_NEEY);
             break;
+          case ID_BT_DEVICE_JKBMS_JK02:
+          case ID_BT_DEVICE_JKBMS_JK02_32S:
+            bo_lSubscribeRet=bleDevices[devNr].pChr->subscribe(true, notifyCB_JKBMS);
+            break;
         }
 
         if(!bo_lSubscribeRet)
@@ -360,7 +422,6 @@ BleHandler::BleHandler()
 };
 
 
-//NimBLEAdvertisedDeviceCallbacks* myAdvertisedDeviceCallback;
 void BleHandler::init()
 {
   if(bo_mBleHandlerRunning)return;
@@ -370,15 +431,17 @@ void BleHandler::init()
   bo_mStartManualScan=false;
   bo_mBtScanIsRunning=false;
   bo_mBtNotAllDeviceConnectedOrScanRunning=false;
+  bo_mSendDataToNeey=false;
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
     bleDevices[i].doConnect = btDoConnectionIdle;
     bleDevices[i].isConnect = false;
-    //bleDevices[i].u16_zyclicWriteTimer=0;
     bleDevices[i].macAdr = "";
     bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
     setBmsLastDataMillis(i,0);
+    bleDevices[i].sendDataStep=0;
+    bleDevices[i].balancerOn=e_BalancerWaitForCmd;
 
     for(uint8_t n=0;n<24;n++)
     {
@@ -388,7 +451,7 @@ void BleHandler::init()
   }
 
   NimBLEDevice::init("");
-  //NimBLEDevice::setPower(ESP_PWR_LVL_P9); // +9db
+  NimBLEDevice::setPower(ESP_PWR_LVL_P9); // +9db
 
   pBLEScan = NimBLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
@@ -397,8 +460,6 @@ void BleHandler::init()
   pBLEScan->setActiveScan(true);
   pBLEScan->setMaxResults(BT_SCAN_RESULTS);
   pBLEScan->clearResults();
-
-  //bo_mBleHandlerRunning=true;
 };
 
 void BleHandler::start()
@@ -409,21 +470,10 @@ void BleHandler::start()
 void BleHandler::stop()
 {
   btDeviceDisconnect(0);
-  
-  /*if(bo_mBleHandlerRunning)
-  {
-    pBLEScan->stop();
-    pBLEScan->clearResults();
-    pBLEScan->clearDuplicateCache();
-    NimBLEDevice::deinit(false);
-  }*/
-  /*for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
-  {
-    bleDevices[i].pChr=nullptr;
-  }*/
 
   bo_mBleHandlerRunning=false;
   bo_mBtNotAllDeviceConnectedOrScanRunning=false;
+  bo_mSendDataToNeey=false;
 }
 
 void BleHandler::startScan()
@@ -448,20 +498,43 @@ bool BleHandler::isNotAllDeviceConnectedOrScanRunning()
   return bo_mBtNotAllDeviceConnectedOrScanRunning;
 }
 
+void BleHandler::sendDataToNeey()
+{
+  ESP_LOGI(TAG,"NEEY SEND DATA (B)");
+  bo_mSendDataToNeey=true;
+}
+
 
 void BleHandler::run()
 {
+  #ifdef BT_DEBUG
+  ESP_LOGD(TAG, "run(a) bo_mBtScanIsRunning=%i, bo_mBleHandlerRunning=%i",bo_mBtScanIsRunning,bo_mBleHandlerRunning);
+  #endif
+
   if(!bo_mBleHandlerRunning)return;
 
   #ifdef BT_DEBUG
-  ESP_LOGD(TAG, "run() bo_mBtScanIsRunning=%i",bo_mBtScanIsRunning);
+  ESP_LOGD(TAG, "run(b) bo_mBtScanIsRunning=%i",bo_mBtScanIsRunning);
   #endif
 
-  //
+  //Devices trennen wenn notwendig
+  handleDisconnectionToDevices();
+
+  //Überprüfe ob Devices verbunden werden müssen
   boolean bo_lDoStartBtScan=handleConnectionToDevices();
 
+  //Scan abbrechen, wenn Daten an den NEEY gesendet werden müssen
+  if(bo_mBtScanIsRunning && bo_mSendDataToNeey && !bo_lDoStartBtScan)
+  {
+    ESP_LOGD(TAG, "Send Data to NEEY -> Stoppe Scan!");
+    bo_lDoStartBtScan=false;
+    pBLEScan->stop(); 
+    bo_mBtNotAllDeviceConnectedOrScanRunning=false;
+    bo_mBtScanIsRunning=false;
+  }
+
   //Manuellen scan starten
-  if(bo_mStartManualScan)
+  if(bo_mStartManualScan && !bo_mSendDataToNeey)
   {
     bo_mStartManualScan=false;
     if(!bo_mBtScanIsRunning) bo_lDoStartBtScan=true;
@@ -506,6 +579,19 @@ void BleHandler::run()
 } 
 
 
+void BleHandler::setBalancerState(uint8_t u8_devNr, boolean bo_state)
+{
+  if(bo_state)
+  {
+    if(bleDevices[u8_devNr].balancerOn!=e_BalancerIsOn) bleDevices[u8_devNr].balancerOn=e_BalancerChangeToOn;
+  }
+  else
+  {
+    if(bleDevices[u8_devNr].balancerOn!=e_BalancerIsOff) bleDevices[u8_devNr].balancerOn=e_BalancerChangeToOff;
+  }
+}
+
+
 /* handleConnectToDevices()
  * Die Funktion Handelt den Verbinungsaufbau und ob eine neue Suche nach BT Devices gestartet werden muss.
  * Rückgabewert: true, wenn eine neue Suche gestarten werden soll.
@@ -537,7 +623,7 @@ bool BleHandler::handleConnectionToDevices()
       {
         bleDevices[i].doConnect = btConnectionSetup; //Verbdinung wird hergestellt
 
-        if(btDeviceConnect(i))
+        if(btDeviceConnect())
         {
           u8_lBtConnStatus|=(1<<i);
         }
@@ -561,9 +647,6 @@ bool BleHandler::handleConnectionToDevices()
       bool bo_lAllDevWrite=false;
       for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
       {
-        //ESP_LOGI(TAG,"BT write (%i) doC=%i",i,bleDevices[i].doConnect);
-        //if(bleDevices[i].u16_zyclicWriteTimer>1)bleDevices[i].u16_zyclicWriteTimer--;
-
         if(bleDevices[i].doConnect==btDoConnectionWaitStart)
         {
           //ESP_LOGI(TAG,"BT write (%i) typ=%i",i,bleDevices[i].deviceTyp);
@@ -571,12 +654,70 @@ bool BleHandler::handleConnectionToDevices()
           {
             case ID_BT_DEVICE_NEEY4A:
               ESP_LOGD(TAG,"BT write dev=%i",i);
-              //bleDevices[i].u16_zyclicWriteTimer=NEEY_ZYCLIC_SEND_TIME;
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
+              bleDevices[i].doConnect = btDoConnectionIdle; 
+              bleDevices[i].sendDataStep = 0;
+              break;
+
+            case ID_BT_DEVICE_JKBMS_JK02:
+            case ID_BT_DEVICE_JKBMS_JK02_32S:
+              ESP_LOGI(TAG,"BT write (A) dev=%i",i);
+              uint8_t frame[20];
+              jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_DEVICE_INFO, 0x00000000, 0x00);
+              bleDevices[i].pChr->writeValue(frame, 20);
+               
               bleDevices[i].doConnect = btDoConnectionIdle; 
               break;
           }
           bo_lAllDevWrite=true; 
+        }
+        else if(bleDevices[i].doConnect==btDoConnectionIdle)
+        {
+          switch(bleDevices[i].deviceTyp)
+          {
+            case ID_BT_DEVICE_NEEY4A:
+              switch(bleDevices[i].sendDataStep)
+              {
+                case 0:
+                  bleDevices[i].sendDataStep++;
+                  NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr); 
+                  break;
+                case 1:
+                  if(bo_mSendDataToNeey)
+                  {
+                    if(NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr)) {bo_mSendDataToNeey=false;}
+                  }
+                  else
+                  {
+                    if(bleDevices[i].balancerOn==e_BalancerChangeToOff)
+                    {
+                      bleDevices[i].balancerOn=e_BalancerIsOff;
+                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, false); 
+                    }
+                    else if(bleDevices[i].balancerOn==e_BalancerChangeToOn)
+                    {
+                      bleDevices[i].balancerOn=e_BalancerIsOn;
+                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, true); 
+                    }
+                  }
+                  break;
+              }
+              break;
+
+            case ID_BT_DEVICE_JKBMS_JK02:
+            case ID_BT_DEVICE_JKBMS_JK02_32S:
+              bleDevices[i].sendDataStep++;
+              if(bleDevices[i].sendDataStep>2)
+              {
+              ESP_LOGI(TAG,"BT write (B) dev=%i",i);
+              uint8_t frame[20];
+              jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_CELL_INFO, 0x00000000, 0x00);
+              bleDevices[i].pChr->writeValue(frame, 20);
+              
+              bleDevices[i].sendDataStep=0;
+              }
+              break;
+          }
         }
       }
       if(bo_lAllDevWrite)bo_mBtNotAllDeviceConnectedOrScanRunning=false; 
@@ -584,6 +725,31 @@ bool BleHandler::handleConnectionToDevices()
   }
 
   return bo_lDoStartBtScan;
+}
+
+
+void BleHandler::handleDisconnectionToDevices()
+{
+  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  {
+    if(bleDevices[i].isConnect)
+    {
+      if(webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)==ID_BT_DEVICE_NB || webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(""))
+      {
+        if(NimBLEDevice::getClientListSize())
+        {
+          NimBLEClient* pClient = NimBLEDevice::getClientByPeerAddress(NimBLEAddress(bleDevices[i].macAdr.c_str(), BLE_ADDR_PUBLIC));
+          if(pClient)
+          {
+            if(!pClient->disconnect())
+            {
+              ESP_LOGI(TAG, "Device disconnected, dev=%s",bleDevices[i].macAdr.c_str());
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 
@@ -614,7 +780,13 @@ std::string BleHandler::getBtScanResult()
     btDevScanResult += "<td>";
     btDevScanResult += device.getServiceDataUUID();
     btDevScanResult += "</td>";
-        
+
+    btDevScanResult += "<td>";    
+    btDevScanResult+="<button onclick='copyStringToClipboard(\"";
+    btDevScanResult+=device.getAddress().toString();
+    btDevScanResult+="\")'>Copy</button>";
+    btDevScanResult += "</td>";
+
     btDevScanResult += "</tr>";
   }
   

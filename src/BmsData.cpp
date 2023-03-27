@@ -9,11 +9,16 @@
 static SemaphoreHandle_t mBmsDataMutex = NULL;
 
 static struct bmsData_s bmsData;
-
+static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
 
 void bmsDataInit()
 {
   mBmsDataMutex = xSemaphoreCreateMutex();
+
+  for(uint8_t i=0;i<BMSDATA_NUMBER_ALLDEVICES;i++)
+  {
+    setBmsLastDataMillis(i,0);
+  }
 }
 
 void bmsDataSemaphoreTake()
@@ -268,4 +273,66 @@ void setBmsLastDataMillis(uint8_t devNr, unsigned long value)
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsLastDataMillis[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
+}
+
+
+uint8_t getBmsDataBytes(uint8_t dataType)
+{
+  switch(dataType)
+  {
+    case BMS_CELL_VOLTAGE:
+      return 48;
+      break;
+    case BMS_TOTAL_VOLTAGE:
+      return 4;
+      break;
+    case BMS_MAX_CELL_DIFFERENCE_VOLTAGE:
+      return 2;
+      break;
+    case BMS_AVG_VOLTAGE:
+      return 2;
+      break;
+    case BMS_TOTAL_CURRENT:
+     return 2;
+      break;
+    case BMS_MAX_CELL_VOLTAGE:
+      return 2;
+      break;
+    case BMS_MIN_CELL_VOLTAGE:
+      return 2;
+      break;
+    case BMS_MAX_VOLTAGE_CELL_NUMBER:
+      return 1;
+      break;
+    case BMS_MIN_VOLTAGE_CELL_NUMBER:
+      return 1;
+      break;
+    case BMS_IS_BALANCING_ACTIVE:
+      return 1;
+      break;
+    case BMS_BALANCING_CURRENT:
+      return 4;
+      break;
+    case BMS_TEMPERATURE:
+      return 12;
+      break;
+    case BMS_CHARGE_PERCENT:
+      return 1;
+      break;
+    case BMS_ERRORS:
+      return 4;
+      break;
+    case BMS_LAST_DATA_MILLIS:
+      return 4;
+      break;
+    default:
+      return 0;
+      break;
+  }
+}
+
+
+uint8_t * getBmsSettingsReadback(uint8_t bmsNr)
+{
+  return &bmsSettingsReadback[bmsNr][0];
 }

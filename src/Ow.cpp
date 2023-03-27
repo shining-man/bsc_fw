@@ -14,9 +14,12 @@ static const char *TAG = "OW";
 
 static SemaphoreHandle_t owMutex = NULL;
 
+//enum enumOwSenprStae{owSensorOk, owSensorFailure};
+
 uint8_t owAddr[MAX_ANZAHL_OW_SENSOREN][8];
 float owTempsC[MAX_ANZAHL_OW_SENSOREN];
 float owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
+//uint8_t owSensorState[MAX_ANZAHL_OW_SENSOREN]; //0=ok
 
 uint8_t cycleCounter;
 bool firstMeasurement;
@@ -53,6 +56,10 @@ uint8_t getSensorAdrFromParams()
       {
         owAddr[i][n]=0;
       }
+
+      //Wenn Adresse ungültig, dann Temp zurücksetzen
+      owTempsC[i]=0;
+      owTempsC_AvgCalc[i]=0;
     }
   }
 
@@ -145,7 +152,11 @@ void getTempC_allDevices(bool tempToOutBuffer)
         if (tempC == DEVICE_DISCONNECTED_C)
         {
           //debugPrintf("Error: Could not read temperature data [%i] r=%i",i,r);
-          owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
+          if(owTempsC[i]>=TEMP_IF_SENSOR_READ_ERROR)
+          {
+            if(owTempsC[i]<=TEMP_IF_SENSOR_READ_ERROR*2) owTempsC[i]++;
+          }
+          else owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
         }
         else
         {
@@ -178,6 +189,35 @@ void getTempC_allDevices(bool tempToOutBuffer)
 float owGetTemp(uint8_t sensNr)
 {
   return owTempsC[sensNr];
+}
+
+
+uint8_t owGetSensorError(uint8_t sensNr)
+{
+  if(owTempsC[sensNr]>=TEMP_IF_SENSOR_READ_ERROR)
+  {
+    return (owTempsC[sensNr]-TEMP_IF_SENSOR_READ_ERROR+1);
+  }
+
+  return 0;
+}
+
+
+uint8_t owGetAllSensorError()
+{
+ uint8_t u8_maxErrors=0;
+ uint8_t u8_errors=0;
+
+ for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
+ {
+  if(owTempsC[i]>=TEMP_IF_SENSOR_READ_ERROR)
+  {
+    u8_errors=(owTempsC[i]-TEMP_IF_SENSOR_READ_ERROR+1);
+    if(u8_errors>u8_maxErrors)u8_maxErrors=u8_errors;
+  }
+ }
+
+ return u8_maxErrors;
 }
 
 
@@ -220,7 +260,7 @@ String findDevices()
       owAddresses+=owAdr;
       if(newAdr){owAddresses+="</b>";}
       owAddresses+="</td><td>";
-      owAddresses+="<button onclick='navigator.clipboard.writeText(\"";
+      owAddresses+="<button onclick='copyStringToClipboard(\"";
       owAddresses+=owAdr;
       owAddresses+="\")'>Copy</button>";
       owAddresses+="</td></tr>";

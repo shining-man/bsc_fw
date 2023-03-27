@@ -24,7 +24,7 @@ static bool recvAnswer(uint8_t * t_outMessage);
 static void parseData(uint8_t * t_message);
 
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
+bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
 {
   bool bo_lRet=true;
   mPort = port;
@@ -50,9 +50,6 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
     bo_lRet=false;
   }
 
-
-  if(bo_lRet==false) return bo_lRet;
-  
   return bo_lRet;  
 }
 
@@ -163,6 +160,8 @@ uint32_t mqttSendeTimer_jk=0;
 void parseData(uint8_t * t_message)
 {
   int16_t  i16_lTmpValue;
+  uint16_t u16_lTmpValue;
+  uint32_t u32_lTmpValue;
   uint32_t u32_lBalanceCapacity=0;
   uint16_t u16_lCycle=0;
 
@@ -280,43 +279,46 @@ void parseData(uint8_t * t_message)
         break; 
 
       case 0x8b: // Battery_Warning_Massage
+        /*bmsErrors
+        #define BMS_ERR_STATUS_OK                0
+        #define BMS_ERR_STATUS_CELL_OVP          1  - //bit0  single cell over voltage 
+        #define BMS_ERR_STATUS_CELL_UVP          2  - //bit1  single cell under voltage    
+        #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  pack over voltage 
+        #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  pack under voltage     
+        #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature 
+        #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature 
+        #define BMS_ERR_STATUS_DSG_OTP          64  - //bit6  Discharge over temperature  
+        #define BMS_ERR_STATUS_DSG_UTP         128  - //bit7  discharge low temperature   
+        #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging over current 
+        #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge over current       
+        #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  - //bit10 short circuit              
+        #define BMS_ERR_STATUS_AFE_ERROR      2048  - //bit11 Front-end detection IC error 
+        #define BMS_ERR_STATUS_SOFT_LOCK      4096  - //bit12 software lock MOS 
+        #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+        #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
+        #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
-/*bmsErrors                                           | JBD | JK |
-bit0  single cell overvoltage protection              |  x  |    |
-bit1  single cell undervoltage protection             |  x  |    |
-bit2  whole pack overvoltage protection (Batterie)    |  x  | x  |
-bit3  Whole pack undervoltage protection (Batterie)   |  x  | x  |
-bit4  charging over-temperature protection            |  x  |    |
-bit5  charging low temperature protection             |  x  |    |
-bit6  Discharge over temperature protection           |  x  |    |
-bit7  discharge low temperature protection            |  x  |    |
-bit8  charging overcurrent protection                 |  x  | x  |
-bit9  Discharge overcurrent protection                |  x  | x  |
-bit10 short circuit protection                        |  x  |    |
-bit11 Front-end detection IC error                    |  x  |    |
-bit12 software lock MOS                               |  x  |    |
-*/
+        u16_lTmpValue = ((uint16_t)t_message[i+1]<<8 | t_message[i+2]);
 
-        /* JKBMS
-        Bit 0:  Low capacity alarm
-        Bit 1:  MOS tube overtemperature alarm
-        Bit 2:  Charge over voltage alarm
-        Bit 3:  Discharge undervoltage alarm
-        Bit 4:  Battery overtemperature alarm
-        Bit 5:  Charge overcurrent alarm                        -> Bit 8
-        Bit 6:  discharge over current alarm                    -> Bit 9
-        Bit 7:  core differential pressure alarm
-        Bit 8:  overtemperature alarm in the battery box 
-        Bit 9:  Battery low temperature
-        Bit 10: Unit overvoltage                                -> Bit 2
-        Bit 11: Unit undervoltage                               -> Bit 3
-        Bit 12: 309_A protection 
-        Bit 13: 309_B protection
-        Bit 14: reserved
-        Bit 15: Reserved
-        */
-       
-        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, (((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
+        u32_lTmpValue = BMS_ERR_STATUS_OK;
+        //Bit 0:  Low capacity alarm
+        if((u16_lTmpValue&0x1)==0x1) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;         // Bit 1:  MOS tube over temperature alarm                 -> ?
+        if((u16_lTmpValue&0x2)==0x2) u32_lTmpValue |= BMS_ERR_STATUS_BATTERY_OVP;     // Bit 2:  Charge over voltage alarm                       -> ?
+        if((u16_lTmpValue&0x4)==0x4) u32_lTmpValue |= BMS_ERR_STATUS_CELL_OVP;        // Bit 3:  cell over voltage                               -> x
+        if((u16_lTmpValue&0x8)==0x8) u32_lTmpValue |= BMS_ERR_STATUS_CELL_UVP;        // Bit 4:  cell under voltage                              -> x
+        if((u16_lTmpValue&0x10)==0x10) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 5:  Charge over temperature                         -> x
+        if((u16_lTmpValue&0x20)==0x20) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 6:  discharge over current alarm                    -> ?
+        if((u16_lTmpValue&0x40)==0x40) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 7:  discharge overcurent                            -> x
+        if((u16_lTmpValue&0x80)==0x80) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 8:  over temperature alarm in the battery box       -> ?
+        if((u16_lTmpValue&0x100)==0x100) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OCP;     // Bit 9:  Battery low temperature                         -> ?
+        if((u16_lTmpValue&0x200)==0x200) u32_lTmpValue |= BMS_ERR_STATUS_CHG_UTP ;    // Bit 10: Charge under temperature                        -> x
+        if((u16_lTmpValue&0x400)==0x400) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 11:                                                 -> ?
+        if((u16_lTmpValue&0x800)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 12: 309_A protection                                -> ?
+        if((u16_lTmpValue&0x1000)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
+
+
+        ESP_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
+        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
         i+=3;
         break;  
 

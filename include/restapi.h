@@ -3,15 +3,13 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#ifndef LOG_H
-#define LOG_H
+#ifndef RESTAPI_H
+#define RESTAPI_H
 
 #include <Arduino.h>
-  
-void debugInit();
+#include <WebServer.h>
 
-#ifdef DEBUG_ON_FS
-void writeLogToFS();
-#endif
+
+void buildJsonRest(WebServer * server);
 
 #endif

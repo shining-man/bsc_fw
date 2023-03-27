@@ -13,47 +13,56 @@
 
 struct bmsData_s
 {
-  /*                                                                                 // N | J | J | S |
-                                                                                     // E | b | K | e |
-                                                                                     // E | d |   | p |
-                                                                                     // Y |   |   | l |
-                                                                                     // 4 |   |   | o |
-                                                                                     // A |   |   | s | 
-                                                                                     //---|---|---|---|*/
-  uint16_t   bmsCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][24];          // x | x | x | x |
-  //float    bmsCellResistance[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][24];       // x |   |   |   |
-  float      bmsTotalVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];             // x | x | x | x |
-  uint16_t   bmsMaxCellDifferenceVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT]; // x | x | x | x |
-  uint16_t   bmsAvgVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];               // x | x | x | x |
-  float      bmsTotalCurrent[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];             //   | x | x | x |
-  uint16_t   bmsMaxCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];           // x | x | x | x |
-  uint16_t   bmsMinCellVoltage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];           // x | x | x | x |
-  uint8_t    bmsMaxVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];     // x |   |   |   |
-  uint8_t    bmsMinVoltageCellNumber[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];     // x |   |   |   |
-  uint8_t    bmsIsBalancingActive[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];        // x |   |   |   |
-  float      bmsBalancingCurrent[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];         // x |   |   |   |
-  float      bmsTempature[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT][3];             // 2 | 3 | 3 | 3 |
-  uint8_t    bmsChargePercentage[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];         //   | x | x | x |
-  uint32_t   bmsErrors[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];                   // * | x | x |   |
-  unsigned long bmsLastDataMillis[BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT];        // x | x | x |   |
-  //                                                                                 // *=Teilweise                                                                               // *=Teilweise
+  /*                                                                 // N | J | J | S |
+                                                                     // E | b | K | e |
+                                                                     // E | d |   | p |
+                                                                     // Y |   |   | l |
+                                                                     // 4 |   |   | o |
+                                                                     // A |   |   | s | 
+                                                                     //---|---|---|---|*/
+  uint16_t   bmsCellVoltage[BMSDATA_NUMBER_ALLDEVICES][24];          // x | x | x | x |
+  //float    bmsCellResistance[BMSDATA_NUMBER_ALLDEVICES][24];       // x |   |   |   |
+  float      bmsTotalVoltage[BMSDATA_NUMBER_ALLDEVICES];             // x | x | x | x |
+  uint16_t   bmsMaxCellDifferenceVoltage[BMSDATA_NUMBER_ALLDEVICES]; // x | x | x | x |
+  uint16_t   bmsAvgVoltage[BMSDATA_NUMBER_ALLDEVICES];               // x | x | x | x |
+  float      bmsTotalCurrent[BMSDATA_NUMBER_ALLDEVICES];             //   | x | x | x |
+  uint16_t   bmsMaxCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |
+  uint16_t   bmsMinCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |
+  uint8_t    bmsMaxVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |
+  uint8_t    bmsMinVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |
+  uint8_t    bmsIsBalancingActive[BMSDATA_NUMBER_ALLDEVICES];        // x |   |   |   |
+  float      bmsBalancingCurrent[BMSDATA_NUMBER_ALLDEVICES];         // x |   |   |   |
+  float      bmsTempature[BMSDATA_NUMBER_ALLDEVICES][3];             // 2 | 3 | 3 | 3 |
+  uint8_t    bmsChargePercentage[BMSDATA_NUMBER_ALLDEVICES];         //   | x | x | x |
+  uint32_t   bmsErrors[BMSDATA_NUMBER_ALLDEVICES];                   // * | x | x |   |
+  unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x |   |
+  //                                                                 // *=Teilweise
 };
 
-/*bmsErrors
-bit0  single cell overvoltage protection 
-bit1  single cell undervoltage protection    
-bit2  whole pack overvoltage protection 
-bit3  Whole pack undervoltage protection     
-bit4  charging over-temperature protection 
-bit5  charging low temperature protection 
-bit6  Discharge over temperature protection  
-bit7  discharge low temperature protection   
-bit8  charging overcurrent protection 
-bit9  Discharge overcurrent protection       
-bit10 short circuit protection              
-bit11 Front-end detection IC error 
-bit12 software lock MOS 
-*/
+
+
+
+//bmsErrors
+#define BMS_ERR_STATUS_OK                0
+#define BMS_ERR_STATUS_CELL_OVP          1   //bit0  single cell overvoltage protection 
+#define BMS_ERR_STATUS_CELL_UVP          2   //bit1  single cell undervoltage protection    
+#define BMS_ERR_STATUS_BATTERY_OVP       4   //bit2  whole pack overvoltage protection 
+#define BMS_ERR_STATUS_BATTERY_UVP       8   //bit3  Whole pack undervoltage protection     
+#define BMS_ERR_STATUS_CHG_OTP          16   //bit4  charging over temperature protection 
+#define BMS_ERR_STATUS_CHG_UTP          32   //bit5  charging low temperature protection 
+#define BMS_ERR_STATUS_DSG_OTP          64   //bit6  Discharge over temperature protection  
+#define BMS_ERR_STATUS_DSG_UTP         128   //bit7  discharge low temperature protection   
+#define BMS_ERR_STATUS_CHG_OCP         256   //bit8  charging overcurrent protection 
+#define BMS_ERR_STATUS_DSG_OCP         512   //bit9  Discharge overcurrent protection       
+#define BMS_ERR_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection              
+#define BMS_ERR_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error 
+#define BMS_ERR_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS 
+#define BMS_ERR_STATUS_RESERVED1      8192   //bit13 Reserved 
+#define BMS_ERR_STATUS_RESERVED2     16384   //bit14 Reserved
+#define BMS_ERR_STATUS_RESERVED3     32768   //bit15 Reserved 
+
+
+
 
 void bmsDataInit();
 void bmsDataSemaphoreTake();
@@ -109,6 +118,8 @@ void setBmsErrors(uint8_t devNr, uint32_t value);
 unsigned long getBmsLastDataMillis(uint8_t devNr);
 void setBmsLastDataMillis(uint8_t devNr, unsigned long value);
 
+uint8_t getBmsDataBytes(uint8_t dataType);
 
+uint8_t * getBmsSettingsReadback(uint8_t bmsNr);
 
 #endif
