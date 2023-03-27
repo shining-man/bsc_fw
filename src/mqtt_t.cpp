@@ -20,7 +20,6 @@
 static const char* TAG = "MQTT";
 
 static SemaphoreHandle_t mMqttMutex = NULL;
-//TimerHandle_t mqttReconnectTimer;
 
 WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
@@ -40,11 +39,11 @@ uint8_t  sendOwTemperatur_mqtt_sendeCounter=0;
 bool     owDataSendFinsh=false;
 
 struct mqttEntry_s {
-    int8_t t1;
-    int8_t t2;
-    int8_t t3;
-    int8_t t4;
-    String value;
+  int8_t t1;
+  int8_t t2;
+  int8_t t3;
+  int8_t t4;
+  String value;
 };
 std::deque<mqttEntry_s> txBuffer;
 
@@ -113,7 +112,11 @@ bool mqttLoop()
         break;
       }
 
-      if(BleHandler::isNotAllDeviceConnectedOrScanRunning())break;
+      if(BleHandler::isNotAllDeviceConnectedOrScanRunning())
+      {
+        ret=true;
+        break;
+      }
 
       mqttClient.loop();
 
@@ -274,7 +277,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
-  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) return;  //Wenn nicht alle BT-Devices verbunedn sind
+  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) return;  //Wenn nicht alle BT-Devices verbunden sind
 
   if(txBuffer.size()>300)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
@@ -347,9 +350,12 @@ void mqttDataToTxBuffer()
 
       if(!bmsDataSendFinsh)
       {
-        mqttPublishBmsData(sendBmsData_mqtt_sendeCounter);
+        if((getBmsLastDataMillis(sendBmsData_mqtt_sendeCounter)+5000)>millis()) //Nur senden wenn die Daten nicht älter als 5 sec. sind
+        {
+          mqttPublishBmsData(sendBmsData_mqtt_sendeCounter);
+        }        
         sendBmsData_mqtt_sendeCounter++;
-        if(sendBmsData_mqtt_sendeCounter==BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT)bmsDataSendFinsh=true;
+        if(sendBmsData_mqtt_sendeCounter==BMSDATA_NUMBER_ALLDEVICES)bmsDataSendFinsh=true;
       }
     }
 
@@ -392,7 +398,8 @@ void mqttPublishBmsData(uint8_t i)
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_MAXCELL_DIFFERENCE_VOLTAGE, -1, getBmsMaxCellDifferenceVoltage(i));
 
   //totalCurrent
-  //if(i>4) mqttPublish("bms/"+String(i)+"/totalCurrent", getBmsTotalCurrent(i));
+  //Hier werden nur die Daten von den BT-Devices gesendet
+  if(i<=6) mqttPublish(MQTT_TOPIC_BMS_BT, i, (uint8_t)MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(i));
 
   //balancingActive
   if(i<=4) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_BALANCING_ACTIVE, -1, getBmsIsBalancingActive(i));
@@ -406,7 +413,7 @@ void mqttPublishBmsData(uint8_t i)
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_TEMPERATURE, 2, getBmsTempature(i,2));
 
   //chargePercent
-  if(i>4) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
+  /*if(i>4)*/ mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
 
   //Errors
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_ERRORS, -1, getBmsErrors(i));

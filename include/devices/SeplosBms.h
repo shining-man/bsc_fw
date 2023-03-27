@@ -11,6 +11,6 @@
 
 #define SEPLOSBMS_MAX_ANSWER_LEN   0xff
 
-bool SeplosBms_readBmsData(Stream *port, uint8_t devNrv, uint8_t txEnRS485pin);
+bool SeplosBms_readBmsData(Stream *port, uint8_t devNrv, uint8_t txEnRS485pin, uint8_t u8_addData);
 
 #endif 

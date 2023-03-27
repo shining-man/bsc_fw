@@ -10,20 +10,22 @@
 #include "Arduino.h"
 #include "NimBLEDevice.h"
 #include "WebSettings.h"
-#include "devices/NeeyBalancer.h"
 #include "defines.h"
 #include "BmsData.h"
 
 
+
 enum btDoConnectEnums {btDoConnect, btConnectionSetup, btDoConnectionIdle, btDoConnectionWaitStart};
+enum e_btBalancerOnOff {e_BalancerWaitForCmd, e_BalancerChangeToOff, e_BalancerIsOff, e_BalancerChangeToOn, e_BalancerIsOn};
 
 struct bleDevice {
   bool isConnect;
   btDoConnectEnums doConnect;
-  //uint16_t u16_zyclicWriteTimer;
   String macAdr;
   uint8_t deviceTyp;
   NimBLERemoteCharacteristic* pChr;
+  uint8_t sendDataStep;
+  e_btBalancerOnOff balancerOn;
 };
 
 
@@ -41,12 +43,15 @@ public:
   void startScan();
   bool isScanFinish();
   static bool isNotAllDeviceConnectedOrScanRunning();
+  void sendDataToNeey();
+  static void setBalancerState(uint8_t u8_devNr, boolean bo_state);
 
 private:
   uint8_t timer_startScan;
   bool bo_mStartManualScan;
   
   bool handleConnectionToDevices();
+  void handleDisconnectionToDevices();
 };
 
 #endif

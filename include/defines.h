@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.1"
+#define BSC_SW_VERSION      "V0.3.3a"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -18,11 +18,16 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
+//#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
+//#define NEEY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
-//#define WLAN_DEBUG        
+#define WLAN_DEBUG        
+//#define WLAN_DEBUG2
 //#define CAN_DEBUG
+//#define WEBSET_DEBUG
+
 
 //System
 #define WEBSERVER_PORT               80
@@ -30,7 +35,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Alarmrules
 #define CNT_ALARMS                   10
 #define CNT_BT_ALARMS_RULES          10
-
+//
 //DI/DO
 #define H_CLK                        14
 #define H_MOSI                       13
@@ -40,7 +45,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define CNT_DIGITALIN                 4
 #define GPIO_LED1_HW1                 0
 
-//Tcho
+//Tacho
 #define TACHO_ADDR0                   6
 #define TACHO_ADDR1                   7
 #define TACHO_ADDR2                  15
@@ -59,6 +64,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      3
+#define SERIAL_BMS_SEPLOS_COUNT       2
 
 #define SERIAL1_PIN_RX               16
 #define SERIAL1_PIN_TX               17
@@ -75,11 +81,37 @@ static const char COMPILE_DATE_TIME[] = "";
 #define COUNT_TEMP_RULES             10
 
 //I2C
+#define ID_I2C_MASTER                 0 //Auswahl Master/Slave
 #define I2C_DEV_ADDR_DISPLAY       0x55
+#define I2C_DEV_ADDR_SLAVE1          16
+#define I2C_DEV_ADDR_SLAVE2          17
 #define I2C_SDA_PIN                  21
 #define I2C_SCL_PIN                  22
 #define I2C_FREQUENCY          1000000U
+//#define I2C_FREQUENCY           400000U
+#define I2C_CNT_SLAVES                2
 
+
+//BMS Data
+#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1 
+#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_SEPLOS    BMSDATA_LAST_DEV_SERIAL+1 
+#define BMSDATA_LAST_DEV_SEPLOS     BMSDATA_FIRST_DEV_SEPLOS+SERIAL_BMS_SEPLOS_COUNT-1
+#define BMSDATA_FIRST_DEV_SLAVE1    BMSDATA_LAST_DEV_SEPLOS+1 
+#define BMSDATA_LAST_DEV_SLAVE1     BMSDATA_FIRST_DEV_SLAVE1+SERIAL_BMS_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_SLAVE2    BMSDATA_LAST_DEV_SLAVE1+1 
+#define BMSDATA_LAST_DEV_SLAVE2     BMSDATA_FIRST_DEV_SLAVE2+SERIAL_BMS_DEVICES_COUNT-1 
+
+#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_SEPLOS_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT
+
+
+// Register
+#define RTC_CNTL_SDIO_CONF_REG 0x3FF48074
+
+// Rester RTC_CNTL_SDIO_CONF_REG
+#define RTC_CNTL_XPD_SDIO_VREG 0x80000000
+#define RTC_CNTL_SDIO_TIEH     0x800000
 
 
 /*********************************************
@@ -96,9 +128,9 @@ static const char COMPILE_DATE_TIME[] = "";
 
 #define ID_PARAM_ALARM_BTDEV_BMS_SELECT              9
 #define ID_PARAM_ALARM_BT                           10
-#define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
+//#define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
 #define ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT         12
-#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON         13
+//#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON         13
 #define ID_PARAM_ALARM_BT_CNT_CELL_CTRL             14
 #define ID_PARAM_ALARM_BT_CELL_SPG_MIN              15
 #define ID_PARAM_ALARM_BT_CELL_SPG_MAX              16
@@ -162,46 +194,81 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_BMS_CAN_DATASOURCE_SS2                                 84
 #define ID_PARAM_BMS_CAN_DATASOURCE_SS3                                 85
 
-#define ID_PARAM_MQTT_USERNAME  86
-#define ID_PARAM_MQTT_PWD       87
+#define ID_PARAM_MQTT_USERNAME                                   86
+#define ID_PARAM_MQTT_PWD                                        87
 
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN      88 
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG     89
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC     90
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME    91
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END 92
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN              88 
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG             89
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC             90
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME            91
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END         92
 
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN       93
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG  94
 #define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA    95
 
-#define ID_PARAM_WLAN_CONNECT_TIMEOUT 96
+#define ID_PARAM_WLAN_CONNECT_TIMEOUT         96
 
-#define ID_PARAM_INVERTER_BATT_TEMP_QUELLE 97
-#define ID_PARAM_INVERTER_BATT_TEMP_SENSOR 98
+#define ID_PARAM_INVERTER_BATT_TEMP_QUELLE    97
+#define ID_PARAM_INVERTER_BATT_TEMP_SENSOR    98
+
+#define ID_PARAM_NEEY_CELLS                   99
+#define ID_PARAM_NEEY_START_VOLTAGE          100
+#define ID_PARAM_NEEY_MAX_BALANCE_CURRENT    101
+#define ID_PARAM_NEEY_SLEEP_VOLTAGE          102
+#define ID_PARAM_NEEY_EQUALIZATION_VOLTAGE   103
+#define ID_PARAM_NEEY_BAT_CAPACITY           104
+#define ID_PARAM_NEEY_BAT_TYPE               105
+#define ID_PARAM_NEEY_BUZZER                 106 //not use
+#define ID_PARAM_NEEY_BALANCER_ON            107
+
+#define ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID 108
+
+#define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER 109
+#define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME    110
+
+#define ID_PARAM_MASTER_SLAVE_TYP            111
+
+#define ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE  112
+#define ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE   113
+#define ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE  114
+#define ID_PARAM_BMS_ALARM_LOWTEMPERATURE    115
+
+#define ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC 116
+
+#define ID_PARAM_TRIGGER_NAMES                117
+
 
 
 //Auswahl Bluetooth Geräte
-#define ID_BT_DEVICE_NB           0
-#define ID_BT_DEVICE_NEEY4A       1
+#define ID_BT_DEVICE_NB             0
+#define ID_BT_DEVICE_NEEY4A         1
+#define ID_BT_DEVICE_JKBMS_JK02     2
+#define ID_BT_DEVICE_JKBMS_JK02_32S 3
 
 //Auswahl Serial Geräte
-#define ID_SERIAL_DEVICE_NB        0
-#define ID_SERIAL_DEVICE_JBDBMS    1
-#define ID_SERIAL_DEVICE_JKBMS     2
-#define ID_SERIAL_DEVICE_SEPLOSBMS 3
+#define ID_SERIAL_DEVICE_NB         0
+#define ID_SERIAL_DEVICE_JBDBMS     1
+#define ID_SERIAL_DEVICE_JKBMS      2
+#define ID_SERIAL_DEVICE_SEPLOSBMS  3
 
 //Auswahl CAN Geräte
-#define ID_CAN_DEVICE_NB          0
-#define ID_CAN_DEVICE_SOLISRHI    1
-#define ID_CAN_DEVICE_DEYE        2
-#define ID_CAN_DEVICE_VICTRON     3
+#define ID_CAN_DEVICE_NB            0
+#define ID_CAN_DEVICE_SOLISRHI      1
+#define ID_CAN_DEVICE_DEYE          2
+#define ID_CAN_DEVICE_VICTRON       3
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT          1
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT_REFERENZ 2
 #define ID_TEMP_ALARM_FUNKTION_DIFFERENZ        3
+
+//Auswahl
+#define OPTION_MULTI_BMS_SOC_AVG                1
+#define OPTION_MULTI_BMS_SOC_MAX                2
+
+
 
 
 
@@ -213,6 +280,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BMS_DATA                          0x01  //BMS-Daten
 #define INVERTER_DATA                     0x02  //Inverter-Daten
 #define BSC_DATA                          0x03  //
+#define BSC_GET_SLAVE_DATA                0x0A  //
 
 //BMS_DATA 0x01
 #define BMS_CELL_VOLTAGE                  0x01  
@@ -229,6 +297,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BMS_TEMPERATURE                   0x0C
 #define BMS_CHARGE_PERCENT                0x0D
 #define BMS_ERRORS                        0x0E
+#define BMS_LAST_DATA_MILLIS              0x0F
 
 //INVERTER_DATA 0x02
 #define INVERTER_VOLTAGE                  0x01 
@@ -241,6 +310,8 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BSC_ALARMS                        0x01 
 #define BSC_IP_ADDR                       0x02
 
+//BSC_GET_SLAVE_DATA 0x0A
+//#define BMS_GET_ALL_DATA                  0x01
 
 
 /*********************************************
@@ -286,7 +357,7 @@ static const char COMPILE_DATE_TIME[] = "";
 static const char* mqttTopics[] PROGMEM = {"", // 0
   "bms/bt",        // 1
   "temperatur",    // 2
-  "alarm",         // 3
+  "trigger",       // 3
   "inverter",      // 4
   "sys",           // 5
   "bms/serial",    // 6

@@ -6,7 +6,7 @@
 #include "log.h"
 #include "defines.h"
 #include "SoftwareSerial.h"
-#include "SPIFFS.h"
+#include <SPIFFS.h>
 #include <FS.h>
 #include "bscTime.h"
 
@@ -41,6 +41,7 @@ void debugInit()
   debugPort.begin(DEBUG_SW_BAUDRATE, SWSERIAL_8N1, 3, 1, false, 64, 11);
   #endif
 
+ 
   #ifdef DEBUG_ON_FS
   if(!SPIFFS.begin())
   {
@@ -57,18 +58,27 @@ void debugInit()
   #endif
 
 
-  //esp_log_level_set("*", ESP_LOG_VERBOSE); //LOG all
-  esp_log_level_set("*", ESP_LOG_INFO); 
+  //esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
+  esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
+  
+  //esp_log_level_set("MAIN", ESP_LOG_INFO); 
+  //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
+  //esp_log_level_set("MQTT", ESP_LOG_INFO); 
+  //esp_log_level_set("ALARM", ESP_LOG_INFO); 
+  //esp_log_level_set("OW", ESP_LOG_INFO); //onewire  
+  //esp_log_level_set("CAN", ESP_LOG_INFO);  
 
-  esp_log_level_set("MAIN", ESP_LOG_INFO); 
-  esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
-  esp_log_level_set("MQTT", ESP_LOG_INFO); 
-  esp_log_level_set("ALARM", ESP_LOG_INFO); 
-  esp_log_level_set("OW", ESP_LOG_INFO); //onewire  
+  //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
+  //esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
+  //esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
 
-  esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
-  esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
-  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
+  //esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
+  //esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG); 
+  //esp_log_level_set("ALARM", ESP_LOG_DEBUG); 
+  //esp_log_level_set("JKBT", ESP_LOG_DEBUG); 
+  //esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
+  esp_log_level_set("I2C", ESP_LOG_DEBUG); 
+  esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
 
 
   #ifdef DEBUG_ON_FS
@@ -160,6 +170,8 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
 }
 #endif
 
+
+#ifdef DEBUG_ON_FS
 unsigned long writeLogToFsTimer=0;
 void writeLogToFS()
 {
@@ -201,3 +213,4 @@ void writeLogToFS()
 
   spiffsLogFile.flush();   
 }
+#endif

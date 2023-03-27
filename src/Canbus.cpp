@@ -11,6 +11,7 @@
 #include "mqtt_t.h"
 #include <CAN.h>
 #include "log.h"
+#include "AlarmRules.h"
 
 static const char *TAG = "CAN";
 
@@ -25,6 +26,7 @@ void sendCanMsg_35a();
 void sendCanMsg_373();
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
+void onCanReceive(int packetSize);
 
 static SemaphoreHandle_t mInverterDataMutex = NULL;
 static struct inverterData_s inverterData;
@@ -91,6 +93,13 @@ struct data373
   uint16_t maxCellTemp;
 };
 
+
+//Test
+uint32_t u32_lastCanId;
+uint16_t can_batVolt=0;
+int16_t can_batCurr=0;
+uint8_t can_soc=0;
+
 void canSetup()
 {
   mInverterDataMutex = xSemaphoreCreateMutex();
@@ -110,9 +119,10 @@ void canSetup()
 
   loadCanSettings();
 
-  // start the CAN bus at 500 kbps
+  
   CAN.setPins(5,4);
-  if (!CAN.begin(500000))
+  if (!CAN.begin(500000)) // start the CAN bus at 500 kbps
+  //if (!CAN.begin(125E3)) // start the CAN bus at 250 kbps
   {
     ESP_LOGI(TAG,"Init CAN failed!");
   }
@@ -120,6 +130,8 @@ void canSetup()
   {
     ESP_LOGI(TAG,"Init CAN ok");
   } 
+
+  CAN.onReceive(onCanReceive);
 }
 
 void inverterDataSemaphoreTake()
@@ -190,6 +202,14 @@ uint16_t getAktualChargeCurrentSoll()
 //Wird vom Task aus der main.c zyklisch aufgerufen
 void canTxCyclicRun()
 {
+
+  //Test
+  /*ESP_LOGI(TAG,"CAN RX: u32_lastCanId=%i",u32_lastCanId);
+  ESP_LOGI(TAG,"CAN RX: volt=%i, cur=%i, soc=%i",can_batVolt, can_batCurr, can_soc);
+  setBmsTotalVoltage(BT_DEVICES_COUNT+2,(float)can_batVolt*0.1);
+  setBmsTotalCurrent(BT_DEVICES_COUNT+2,(float)can_batCurr*0.1);
+  setBmsChargePercentage(BT_DEVICES_COUNT+2,can_soc);*/
+
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_ENABLE,0,0,0))
   {
     sendBmsCanMessages();
@@ -233,6 +253,7 @@ void sendBmsCanMessages()
       sendCanMsg_35e();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35a(); //Alarm Details
+      //sendCanMsg_359(); //Alarms
       vTaskDelay(pdMS_TO_TICKS(5));
 
       //372
@@ -618,6 +639,37 @@ void sendCanMsg_355()
   {
     msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
 
+    uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,0,0);
+    if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
+    {
+      if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
+      {
+        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL);
+        msgData.soc/=2;
+      }
+      if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
+      {
+        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1);
+        msgData.soc/=2;
+      }
+      if((u8_mBmsDatasourceAdd & 0x04) == 0x04) 
+      {
+        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2);
+        msgData.soc/=2;
+      }
+    }
+    else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
+    {
+      //Wenn zusätzliche Datenquellen angegeben sind:
+      if((u8_mBmsDatasourceAdd & 0x01) == 0x01) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL)>msgData.soc) 
+        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL);
+      if((u8_mBmsDatasourceAdd & 0x02) == 0x02) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1)>msgData.soc)
+        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1);
+      if((u8_mBmsDatasourceAdd & 0x04) == 0x04) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2)>msgData.soc)
+        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2);
+    }
+
+
     if(WebSettings::getBool(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN,0,0,0)==true)
     {
       //Wenn Zellspannung unterschritten wird, dann SoC x an Inverter senden
@@ -702,16 +754,37 @@ void sendCanMsg_356()
 void sendCanMsg_359()
 {
   data35a msgData;
+  uint8_t u8_lValue=0;
+
+  /*bmsErrors
+  #define BMS_ERR_STATUS_OK                0
+  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection 
+  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection    
+  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection 
+  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection     
+  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection 
+  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection 
+  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection  
+  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection   
+  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection 
+  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection       
+  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection              
+  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error 
+  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS 
+  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+  #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
+  #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
+
 
   /*
   Pylontech V1.2
 
   Data 0 (Alarm)
   0: -
-  1: Cell/module over voltage
-  2: Cell/module under voltage
-  3: Cell over temp
-  4: Cell under temp
+  1: Battery high voltage
+  2: Battery low voltage alarm
+  3: Battery high temp
+  4: Battery low temp
   5: -
   6: -
   7: Discharge over current 
@@ -728,10 +801,10 @@ void sendCanMsg_359()
 
   Data 2 (Warning)
   0: -
-  1: Cell/module high voltage
-  2: Cell/module low voltage
-  3: Cell high temp
-  4: Cell low temp
+  1: Battery high voltage
+  2: Battery low voltage alarm
+  3: Battery high temp
+  4: Battery low temp
   5: -
   6: -
   7: Discharg high current 
@@ -752,13 +825,58 @@ void sendCanMsg_359()
   Data 6: -
   */
  
+  uint32_t u32_bmsErrors = getBmsErrors(u8_mBmsDatasource);
+
   msgData.u8_b0=0;
+  if((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP) msgData.u8_b0 |= B00000010;    //1: Battery high voltage
+  if((u32_bmsErrors&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP) msgData.u8_b0 |= B00000100;    //2: Battery low voltage alarm
+  if((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_BATTERY_OVP) msgData.u8_b0 |= B00000010; //1: Battery high voltage
+  if((u32_bmsErrors&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_BATTERY_UVP) msgData.u8_b0 |= B00000100; //2: Battery low voltage alarm
+
+  if((u32_bmsErrors&BMS_ERR_STATUS_CHG_OTP)==BMS_ERR_STATUS_CHG_OTP) msgData.u8_b0 |= B00001000;      //3: Battery high temp
+  if((u32_bmsErrors&BMS_ERR_STATUS_CHG_UTP)==BMS_ERR_STATUS_CHG_UTP) msgData.u8_b0 |= B00010000;      //4: Battery low temp
+  if((u32_bmsErrors&BMS_ERR_STATUS_DSG_OTP)==BMS_ERR_STATUS_DSG_OTP) msgData.u8_b0 |= B00001000;      //3: Battery high temp
+  if((u32_bmsErrors&BMS_ERR_STATUS_DSG_UTP)==BMS_ERR_STATUS_DSG_UTP) msgData.u8_b0 |= B00010000;      //4: Battery low temp
+
+  if((u32_bmsErrors&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) msgData.u8_b0 |= B10000000;      //7: Discharge over current 
+
   msgData.u8_b1=0;
+  if((u32_bmsErrors&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) msgData.u8_b1 |= B00000001;              //0: Charge high current 
+  if((u32_bmsErrors&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b1 |= B00001000;  //3: System error
+  if((u32_bmsErrors&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) msgData.u8_b1 |= B00001000;          //3: System error
+  if((u32_bmsErrors&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b1 |= B00001000;      //3: System error
+
+
+  //Alarme über Trigger einbinden
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000010;
+  }
+
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000100;
+  }
+
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00001000;
+  }
+
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) msgData.u8_b1 |= B00010000;
+  }
+
   msgData.u8_b2=0;
   msgData.u8_b3=0;
-  msgData.u8_b4=0;
-  msgData.u8_b5=0;
-  msgData.u8_b6=0;
+  msgData.u8_b4=0x01; //Pack number (data type : 8bit unsigned char)
+  msgData.u8_b5=0x50;
+  msgData.u8_b6=0x4E;
   msgData.u8_b7=0;
 
   sendCanMsg(0x359, (uint8_t *)&msgData, sizeof(data35a));
@@ -768,30 +886,121 @@ void sendCanMsg_359()
 // Send alarm details
 void sendCanMsg_35a()
 {
+  const uint8_t BB0_ALARM = B00000001;
+  const uint8_t BB1_ALARM = B00000100;
+  const uint8_t BB2_ALARM = B00010000;
+  const uint8_t BB3_ALARM = B01000000;
 
-  // 0 (bit 0+1) General alarm (not implemented)
-  // 0 (bit 2+3) Battery low voltage alarm
-  // 0 (bit 4+5) Battery high voltage alarm
+  const uint8_t BB0_OK = B00000010;
+  const uint8_t BB1_OK = B00001000;
+  const uint8_t BB2_OK = B00100000;
+  const uint8_t BB3_OK = B10000000;
+
+  data35a msgData;
+  msgData.u8_b0=0;
+  msgData.u8_b1=0;
+  msgData.u8_b2=0;
+  msgData.u8_b3=0;
+  msgData.u8_b4=0;
+  msgData.u8_b5=0;
+  msgData.u8_b6=0;
+  msgData.u8_b7=0;
+
+  uint8_t u8_lValue=0;
+
+  /*bmsErrors
+  #define BMS_ERR_STATUS_OK                0
+  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection 
+  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection    
+  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection 
+  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection     
+  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection 
+  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection 
+  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection  
+  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection   
+  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection 
+  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection       
+  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection              
+  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error 
+  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS 
+  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+  #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
+  #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
+
+
+  //msgData.u8_b0 |= BB0_ALARM; //n.b.
+  //msgData.u8_b0 |= BB1_ALARM; //High battery voltage
+  //msgData.u8_b0 |= BB2_ALARM; //Low battery voltage
+  //msgData.u8_b0 |= BB3_ALARM; //High Temperature
+
+  //msgData.u8_b1 |= BB0_ALARM; //Low Temperature
+  //msgData.u8_b1 |= BB1_ALARM; //High charge Temperature
+  //msgData.u8_b1 |= BB2_ALARM; //Low charge Temperature
+  //msgData.u8_b1 |= BB3_ALARM; //High discharge current
+
+  //msgData.u8_b2 |= BB0_ALARM; //High charge current
+  //msgData.u8_b2 |= BB1_ALARM; //n.b.
+  //msgData.u8_b2 |= BB2_ALARM; //n.b.
+  //msgData.u8_b2 |= BB3_ALARM; //Internal failure
+
+  //msgData.u8_b3 |= BB0_ALARM; // Cell imbalance
+  //msgData.u8_b3 |= BB1_ALARM; //n.b.
+  //msgData.u8_b3 |= BB2_ALARM; //n.b.
+  //msgData.u8_b3 |= BB3_ALARM; //n.b.
+
+  uint32_t u32_bmsErrors = getBmsErrors(u8_mBmsDatasource);
+  //ESP_LOGI(TAG,"u8_mBmsDatasource=%i, u32_bmsErrors=%i",u8_mBmsDatasource,u32_bmsErrors);
+
+  // 0 (bit 0+1) n.b.
+  msgData.u8_b0 |= BB0_OK;
+    
+  // 0 (bit 2+3) Battery high voltage alarm
+  msgData.u8_b0 |= (((u32_bmsErrors&BMS_ERR_STATUS_BATTERY_OVP)==BMS_ERR_STATUS_BATTERY_OVP) ||
+    ((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP))? BB1_ALARM : BB1_OK;
+
+  // 0 (bit 4+5) Battery low voltage alarm
+  msgData.u8_b0 |= (((u32_bmsErrors&BMS_ERR_STATUS_BATTERY_UVP)==BMS_ERR_STATUS_BATTERY_UVP) ||
+    ((u32_bmsErrors&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP)) ? BB2_ALARM : BB2_OK;
+
   // 0 (bit 6+7) Battery high temperature alarm
+  msgData.u8_b0 |= ((u32_bmsErrors&BMS_ERR_STATUS_DSG_OTP)==BMS_ERR_STATUS_DSG_OTP) ? BB3_ALARM : BB3_OK;
 
   // 1 (bit 0+1) Battery low temperature alarm
+  msgData.u8_b1 |= ((u32_bmsErrors&BMS_ERR_STATUS_DSG_UTP)==BMS_ERR_STATUS_DSG_UTP) ? BB0_ALARM : BB0_OK;
+
   // 1 (bit 2+3) Battery high temperature charge alarm
+  msgData.u8_b1 |= ((u32_bmsErrors&BMS_ERR_STATUS_CHG_OTP)==BMS_ERR_STATUS_CHG_OTP) ? BB1_ALARM : BB1_OK;
+
   // 1 (bit 4+5) Battery low temperature charge alarm
-  // 1 (bit 6+7) Battery high current alarm
+  msgData.u8_b1 |= ((u32_bmsErrors&BMS_ERR_STATUS_CHG_UTP)==BMS_ERR_STATUS_CHG_UTP) ? BB2_ALARM : BB2_OK;
+
+  // 1 (bit 6+7) Battery high discharge current alarm
+  msgData.u8_b1 |= ((u32_bmsErrors&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) ? BB3_ALARM : BB3_OK;
   
   // 2 (bit 0+1) Battery high charge current alarm
+  msgData.u8_b2 |= ((u32_bmsErrors&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) ? BB0_ALARM : BB0_OK;
+
   // 2 (bit 2+3) Contactor Alarm (not implemented)
+  msgData.u8_b2 |= BB1_OK;
+
   // 2 (bit 4+5) Short circuit Alarm (not implemented)
+  msgData.u8_b2 |= BB2_OK;
+
   // 2 (bit 6+7) BMS internal alarm
+  msgData.u8_b2 |= (((u32_bmsErrors&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) || 
+    ((u32_bmsErrors&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) || 
+    ((u32_bmsErrors&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SOFT_LOCK)) ? BB3_ALARM : BB3_OK;
 
   // 3 (bit 0+1) Cell imbalance alarm
-  // 3 (bit 2+3) Reserved
-  // 3 (bit 4+5) Reserved
-  // 3 (bit 6+7) Reserved
+  // 3 (bit 2+3) n.b.
+  // 3 (bit 4+5) n.b.
+  // 3 (bit 6+7) n.b.
 
-  // 4 (bit 0+1) General warning (not implemented)
-  // 4 (bit 2+3) Battery low voltage warning
-  // 4 (bit 4+5) Battery high voltage warning
+
+  //Warnings
+  // 4 (bit 0+1) n.b.
+  // 4 (bit 2+3) Battery high voltage warning
+  // 4 (bit 4+5) Battery low voltage warning
   // 4 (bit 6+7) Battery high temperature warning
 
   // 5 (bit 0+1) Battery low temperature warning
@@ -805,22 +1014,54 @@ void sendCanMsg_35a()
   // 6 (bit 6+7) BMS internal warning
 
   // 7 (bit 0+1) Cell imbalance warning
-  // 7 (bit 2+3) System status (online/offline) [1]
-  // 7 (bit 4+5) Reserved
-  // 7 (bit 6+7) Reserved
+  // 7 (bit 2+3) System status (online/offline)
+  // 7 (bit 4+5) n.b.
+  // 7 (bit 6+7) n.b.
 
 
-  data35a msgData;
+  //Alarme über Trigger einbinden
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) 
+    {
+      msgData.u8_b0 &= ~(BB1_OK);
+      msgData.u8_b0 |= BB1_ALARM;
+    }
+  }
 
-  msgData.u8_b0=0;
-  msgData.u8_b1=0;
-  msgData.u8_b2=0;
-  msgData.u8_b3=0;
-  msgData.u8_b4=0;
-  msgData.u8_b5=0;
-  msgData.u8_b6=0;
-  msgData.u8_b7=0;
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) 
+    {
+      msgData.u8_b0 &= ~(BB2_OK);
+      msgData.u8_b0 |= BB2_ALARM;
+    }
+  }
 
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) 
+    {
+      msgData.u8_b0 &= ~(BB3_OK);
+      msgData.u8_b0 |= BB3_ALARM;
+    }
+  }
+
+  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
+  if(u8_lValue>0)
+  {
+    if(getAlarm(u8_lValue-1)) 
+    {
+      msgData.u8_b1 &= ~(BB0_OK);
+      msgData.u8_b1 |= BB0_ALARM;
+    }
+  }
+
+
+  //ESP_LOGI(TAG,"0x35a=%i,%i,%i,%i,%i,%i,%i,%i",msgData.u8_b0,msgData.u8_b1,msgData.u8_b2,msgData.u8_b3,msgData.u8_b4,msgData.u8_b5,msgData.u8_b6,msgData.u8_b7);
   sendCanMsg(0x35a, (uint8_t *)&msgData, sizeof(data35a));
 }
 
@@ -866,4 +1107,46 @@ void sendCanMsg_373()
   msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,2);
 
   sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
+}
+
+
+
+void onCanReceive(int packetSize)
+{
+  u32_lastCanId = CAN.packetId();
+
+  if (CAN.packetRtr())
+  {
+    //requested length
+  }
+  else
+  {
+    uint8_t i=0;
+    uint8_t u8_canPacket[8];
+    while (CAN.available())
+    {
+      u8_canPacket[i]=(uint8_t)CAN.read();
+      i++;
+      if(i==8)break;
+    }
+
+    if(CAN.packetId()==0x02F4)
+    {
+      can_batVolt = (uint16_t)u8_canPacket[1]<<8 | u8_canPacket[0];
+
+      can_batCurr = ((int16_t)u8_canPacket[3]<<8 | u8_canPacket[2])-4000;
+      if (can_batCurr&0x8000){can_batCurr=(can_batCurr&0x7fff);}
+      else {can_batCurr*=-1;} // Wenn negativ
+
+      can_soc = u8_canPacket[4];
+    }
+    else if(CAN.packetId()==0x04F4)
+    {
+
+    }
+    else if(CAN.packetId()==0x05F4)
+    {
+
+    }
+  }
 }

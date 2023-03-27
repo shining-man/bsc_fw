@@ -134,7 +134,7 @@ int ESP32SJA1000Class::begin(long baudRate)
   modifyRegister(REG_BTR1, 0x80, 0x80); // SAM = 1
 
   //enable all interrupts (BUT NOT BIT 4 which has turned into a baud rate scalar!)
-  writeRegister(REG_IER, 0xEF); // TH edit
+  if(baudRate==500000) writeRegister(REG_IER, 0xEF); // TH edit
 
   // set filter to allow anything
   writeRegister(REG_ACRn(0), 0x00);

@@ -40,6 +40,7 @@ void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
 bool temperatur_DifferenzUeberwachung(uint8_t);
+void temperatur_senorsErrors();
 void runDigitalAusgaenge();
 void doOffPulse(TimerHandle_t xTimer);
 void getDIs();
@@ -47,6 +48,7 @@ void setDOs();
 void tachoInit();
 bool tachoRead(uint16_t &tachoRpm);
 void tachoSetMux(uint8_t channel);
+void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 
 
 void initAlarmRules()
@@ -103,14 +105,18 @@ uint16_t getAlarm()
 
 void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
 {
+  if(alarmNr==0)return;
+
   alarmNr--;
   if(bo_lAlarm)
   {
+    ESP_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
     bo_alarmActivate[alarmNr]=true;
   }
   else if(bo_alarmActivate[alarmNr]!=true)
   {
+    ESP_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
     bo_Alarm[alarmNr]=bo_lAlarm;
     if(bo_lAlarm)
     {
@@ -152,6 +158,7 @@ void runAlarmRules()
     xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
     if(bo_mChangeAlarmSettings)
     {
+      ESP_LOGD(TAG,"Alarm zurücksetzen: alarmNr=%i",i);
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       //setAlarm(i+1, false); //Alarm zurücksetzen
@@ -160,12 +167,13 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      //debugPrintf("Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
+      ESP_LOGD(TAG, "Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
       {
+        //ESP_LOGD(TAG, "Alarm MQTT: %i, %i",i+1,bo_Alarm[i]);
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
@@ -194,6 +202,9 @@ void runAlarmRules()
           }
         }
       }
+
+      //Alarm an BT Device weiterleiten
+      setAlarmToBtDevices(i, bo_Alarm[i]);
     }
   }
   xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
@@ -270,17 +281,19 @@ void getDIs()
     uint8_t u8_lAlarmNr  = WebSettings::getInt(ID_PARAM_DI_ALARM_NR,0,i,0);
     bool    bo_lDiInvert = WebSettings::getBool(ID_PARAM_DI_INVERTIERT,0,i,0);
 
+    if(u8_lAlarmNr==0) continue;
+
     if((u8_lDiData & (1<<i)) == (1<<i))
     {
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,true); 
-        //ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,false);
-        //ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm (b) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
     }
     else
@@ -288,12 +301,12 @@ void getDIs()
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,false);
-        //ESP_LOGD(TAG,"Alarm DI FALSE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm (c) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,true);
-        //ESP_LOGD(TAG,"Alarm DI TRUE; Alarm %i", u8_lAlarmNr);
+        //ESP_LOGD(TAG,"Alarm (d) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
     }
   }
@@ -418,7 +431,7 @@ void rules_Bms()
       (u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,0)!=0 ) )
     {
       //Wenn Alram für das Device aktiv ist
-      if(WebSettings::getBool(ID_PARAM_ALARM_BTDEV_ALARM_ON,0,i,0)) 
+      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0)>0) 
       {      
         //Alarm wenn keine Daten mehr vom BT-Device kommen
         if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
@@ -438,8 +451,8 @@ void rules_Bms()
       }
 
       //Überwachung Zellspannung
-      //debugPrintf("(i=%i) Zell Spg. Outside b_lBmsOnline=%i, enable=%i",i, b_lBmsOnline,WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0));
-      if(/*b_lBmsOnline==true &&*/ WebSettings::getBool(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON,0,i,0))
+      ESP_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0));
+      if(/*b_lBmsOnline==true &&*/WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0)>0)
       {
       //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
@@ -450,14 +463,14 @@ void rules_Bms()
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,true);
-            //ESP_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
+            ESP_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
           {
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
             setAlarm(tmp,false);
-            //ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
+            ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
       }
@@ -511,7 +524,8 @@ void rules_Temperatur()
 
         case ID_TEMP_ALARM_FUNKTION_DIFFERENZ:
           if(temperatur_DifferenzUeberwachung(i)){bo_lAlarm=true;}
-        
+          break;
+
         default:
           break;
       }
@@ -521,6 +535,8 @@ void rules_Temperatur()
       //ESP_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
+
+  temperatur_senorsErrors();
 }
 
 
@@ -613,6 +629,33 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
     return true;
   }
   return false;
+}
+
+
+void temperatur_senorsErrors()
+{
+  boolean bo_lAlarm = false;
+  uint8_t u8_lOwTempSensorErrors = owGetAllSensorError();
+
+  uint8_t u8_lSensorNoValueTime = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME,0,0,0); //Time in secounds
+  uint8_t u8_lTrigger = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER,0,0,0);
+
+  if(u8_lTrigger>0) //If enabled
+  {
+    if(u8_lOwTempSensorErrors>u8_lSensorNoValueTime) bo_lAlarm=true;
+    setAlarm(u8_lTrigger,bo_lAlarm);
+  }
+}
+
+
+//Alarm an BT Device weiterleiten
+void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm)
+{
+  for(uint8_t d=0;d<BT_DEVICES_COUNT;d++)
+  {
+    uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,0,0,PARAM_DT_U8);
+    if(u8_AlarmNr==u8_lTriggerNr) BleHandler::setBalancerState(d,bo_Alarm);
+  }
 }
 
 

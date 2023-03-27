@@ -14,6 +14,8 @@ void    owSetup();
 
 void    owCyclicRun();
 float   owGetTemp(uint8_t sensNr);
+uint8_t owGetSensorError(uint8_t sensNr);
+uint8_t owGetAllSensorError();
 String  getSensorAdr();
 
 #endif

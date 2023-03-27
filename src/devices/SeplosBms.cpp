@@ -11,7 +11,7 @@
 static const char *TAG = "SEPLOS_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mTxEnRS485pin;
+static uint8_t u8_mDevNr, u8_mTxEnRS485pin, u8_mConnToId;
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -25,40 +25,56 @@ static uint32_t mqttSendeTimer=0;
 //
 static void      getDataFromBms(uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage);
-static void      parseMessage(uint8_t * t_message);
+static void      parseMessage(uint8_t * t_message, uint8_t address);
+static void      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
 
-uint8_t convertAsciiHexToByte(char a, char b);
-static char convertByteToAsciiHex(uint8_t v);
-void convertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length);
-uint16_t lCrc(const uint16_t len);
-static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
+uint8_t         convertAsciiHexToByte(char a, char b);
+static char     convertByteToAsciiHex(uint8_t v);
+void            convertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length);
+uint16_t        lCrc(const uint16_t len);
+static bool     checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
 
-bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
+bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
 {
   mPort = port;
   u8_mDevNr = devNr;
   u8_mTxEnRS485pin = txEnRS485pin;
+  u8_mConnToId = u8_addData;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
   #ifdef SEPLOS_DEBUG
   ESP_LOGI(TAG,"SeplosBms_readBmsData()");
   #endif
 
-  getDataFromBms(0, 0x42);
-  if(recvAnswer(response))
+  for(uint8_t adr=0; adr<u8_mConnToId+1;adr++)
   {
-    parseMessage(response);
+    getDataFromBms(adr, 0x42);
+    if(recvAnswer(response))
+    {
+      parseMessage(response, adr);
 
-    //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
-  }
-  else
-  {
-    ESP_LOGE(TAG,"Checksum wrong");
-    return false;
+      //mqtt
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+adr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+adr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+    }
+    else
+    {
+      ESP_LOGE(TAG,"Checksum wrong");
+      return false;
+    }
+
+    getDataFromBms(adr, 0x44); //Alarms
+    if(recvAnswer(response))
+    {
+      parseMessage_Alarms(response, adr);
+    }
+    else
+    {
+      ESP_LOGE(TAG,"Checksum wrong");
+      return false;
+    }
   }
 
   return true;  
@@ -209,7 +225,7 @@ static void checkMsgLen(uint8_t * t_message)
 }
 */
 
-static void parseMessage(uint8_t * t_message)
+static void parseMessage(uint8_t * t_message, uint8_t address)
 {
   //lambda get16bitFromMsg(i)
 	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
@@ -341,13 +357,13 @@ static void parseMessage(uint8_t * t_message)
   if(millis()>(mqttSendeTimer+10000))
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
@@ -357,6 +373,308 @@ static void parseMessage(uint8_t * t_message)
 
     mqttSendeTimer=millis();
   }
+}
+
+
+static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
+{
+  // Byte   Address Content: Description                      Decoded content               Coeff./Unit
+  //   0    0x20             Protocol version      VER        2.0
+  //   1    0x00             Device address        ADR
+  //   2    0x46             Device type           CID1       Lithium iron phosphate battery BMS
+  //   3    0x00             Function code         CID2       0x00: Normal, 0x01 VER error, 0x02 Chksum error, ...
+  //   4    0x10             Data length checksum  LCHKSUM
+  //   5    0x96             Data length           LENID      150 / 2 = 75
+  //   6    0x00             Data flag
+  //   7    0x01             Command group
+
+  // Byte   Description
+  // The following are 24 byte alarms 
+  //   8    Number of cells M=16
+  //   9    Cell 1 alarm
+  //  11    Cell 2 alarm
+  //  12    Cell 3 alarm
+  //  13    Cell 4 alarm
+  //  14    Cell 5 alarm
+  //  15    Cell 6 alarm
+  //  16    Cell 7 alarm
+  //  17    Cell 8 alarm
+  //  18    Cell 9 alarm
+  //  19    Cell 10 alarm
+  //  20    Cell 11 alarm
+  //  21    Cell 12 alarm
+  //  22    Cell 13 alarm
+  //  23    Cell 14 alarm
+  //  24    Cell 15 alarm
+  //  25    Cell 16 alarm
+  //  26    Number of temperatures N=6
+  //  27    Cell temperature alarm 1 
+  //  28    Cell temperature alarm 2
+  //  29    Cell temperature alarm 3
+  //  30    Cell temperature alarm 4
+  //  31    Environment temperature alarm 
+  //  32    Power temperature alarm 1 
+  //  33    Charge/discharge current alarm
+  //  34    Total battery voltage alarm
+  // The following are 20 bit alarms (Vmtl. sind nicht bit sondern byte gemeint) 
+  //  35    Number of custom alarms P=20
+  //  36    Alarm event 1
+  //  37    Alarm event 2
+  //  38    Alarm event 3
+  //  39    Alarm event 4
+  //  40    Alarm event 5
+  //  41    Alarm event 6
+  //  42    On-off state 
+  //  43    Equilibrium state 1 
+  //  44    Equilibrium state 2
+  //  45    System state
+  //  46    Disconnection state 1
+  //  47    Disconnection state 2
+  //  48    Alarm event 7
+  //  49    Alarm event 8
+  //  50    Reservation extension 
+  //  51    Reservation extension 
+  //  52    Reservation extension 
+  //  53    Reservation extension 
+  //  54    Reservation extension 
+  //  55    Reservation extension  
+ 
+
+  //  Comments on byte alarms 
+  //  S/N  Value  Meaning
+  //  1    0x00   Normal, no alarm
+  //  2    0x01   Alarm that analog quantity reaches the lower limit
+  //  3    0x02   Alarm that analog quantity reaches the upper limit
+  //  4    0xF0   Other alarms 
+  //  
+  //  Alarm event 1 - Flag bit information (1: trigger, 0: normal)
+  //  0 Voltage sensor fault
+  //  1 Temperature sensor fault
+  //  2 Current sensor fault
+  //  3 Key switch fault
+  //  4 Cell voltage dropout fault
+  //  5 Charge switch fault
+  //  6 Discharge switch fault
+  //  7 Current limit switch fault
+  //  
+  //  Alarm event 2 - Flag bit information (1: trigger, 0: normal)
+  //  0 Monomer high voltage alarm
+  //  1 Monomer overvoltage protection
+  //  2 Monomer low voltage alarm
+  //  3 Monomer under voltage protection
+  //  4 High voltage alarm for total voltage
+  //  5 Overvoltage protection for total voltage
+  //  6 Low voltage alarm for total voltage
+  //  7 Under voltage protection for total voltage
+  //  
+  //  Alarm event 3 - Flag bit information (1: trigger, 0: normal)
+  //  0 Charge high temperature alarm (Cell temperature)
+  //  1 Charge over temperature protection (Cell temperature)
+  //  2 Charge low temperature alarm (Cell temperature)
+  //  3 Charge under temperature protection (Cell temperature)
+  //  4 Discharge high temperature alarm (Cell temperature)
+  //  5 Discharge over temperature protection (Cell temperature)
+  //  6 Discharge low temperature alarm (Cell temperature)
+  //  7 Discharge under temperature protection (Cell temperature)
+  //  
+  //  Alarm event 4 - Flag bit information (1: trigger, 0: normal)
+  //  0 Environment high temperature alarm Environment
+  //  1 Environment over temperature protection temperature
+  //  2 Environment low temperature alarm
+  //  3 Environment under temperature protection
+  //  4 Power over temperature protection Power
+  //  5 Power high temperature alarm temperature
+  //  6 Cell low temperature heating Cell temperature
+  //  7 Reservation bit
+  //  
+  //  Alarm event 5 - Flag bit information (1: trigger, 0: normal)
+  //  0 Charge over current alarm
+  //  1 Charge over current protection
+  //  2 Discharge over current alarm
+  //  3 Discharge over current protection
+  //  4 Transient over current protection
+  //  5 Output short circuit protection
+  //  6 Transient over current lockout
+  //  7 Output short circuit lockout
+  //  
+  //  Alarm event 6 - Flag bit information (1: trigger, 0: normal)
+  //  0 Charge high voltage protection
+  //  1 Intermittent recharge waiting
+  //  2 Residual capacity alarm
+  //  3 Residual capacity protection
+  //  4 Cell low voltage charging prohibition
+  //  5 Output reverse polarity protection
+  //  6 Output connection fault
+  //  7 Inside bit
+  //  
+  //  On-off state - Flag bit information (1: on, 0: off)
+  //  0 Discharge switch state
+  //  1 Charge switch state
+  //  2 Current limit switch state
+  //  3 Heating switch state
+  //  4-7 Reservation bit
+  //  
+  //  Equilibrium state 1 - Flag bit information (1: on, 0: off)
+  //  0 Cell 01 equilibrium
+  //  1 Cell 02 equilibrium
+  //  2 Cell 03 equilibrium
+  //  3 Cell 04 equilibrium
+  //  4 Cell 05 equilibrium
+  //  5 Cell 06 equilibrium
+  //  6 Cell 07 equilibrium
+  //  7 Cell 08 equilibrium
+  //  
+  //  Equilibrium state 2 - Flag bit information (1: on, 0: off)
+  //  0 Cell 09 equilibrium
+  //  1 Cell 10 equilibrium
+  //  2 Cell 11 equilibrium
+  //  3 Cell 12 equilibrium
+  //  4 Cell 13 equilibrium
+  //  5 Cell 14 equilibrium
+  //  6 Cell 15 equilibrium
+  //  7 Cell 16 equilibrium
+  //  
+  //  System state Flag bit information (1: access, 0: exit)
+  //  0 Discharge
+  //  1 Charge
+  //  2 Floating charge
+  //  3 Reservation bit
+  //  4 Standby
+  //  5 Shutdown
+  //  6 Reservation bit
+  //  7 Reservation bit
+  //  
+  //  Disconnection state 1 - Flag bit information (1: trigger, 0: normal)
+  //  0 Cell 01 disconnection
+  //  1 Cell 02 disconnection
+  //  2 Cell 03 disconnection
+  //  3 Cell 04 disconnection
+  //  4 Cell 05 disconnection
+  //  5 Cell 06 disconnection
+  //  6 Cell 07 disconnection
+  //  7 Cell 08 disconnection
+  //  
+  //  Disconnection state 2 - Flag bit information (1: trigger, 0: normal)
+  //  0 Cell 09 disconnection
+  //  1 Cell 10 disconnection
+  //  2 Cell 11 disconnection
+  //  3 Cell 12 disconnection
+  //  4 Cell 13 disconnection
+  //  5 Cell 14 disconnection
+  //  6 Cell 15 disconnection
+  //  7 Cell 16 disconnection
+  //  
+  //  Alarm event 7 - Flag bit information (1: trigger, 0: normal)
+  //  0 Inside bit
+  //  1 Inside bit
+  //  2 Inside bit
+  //  3 Inside bit
+  //  4 Automatic charging waiting
+  //  5 Manual charging waiting
+  //  6 Inside bit
+  //  7 Inside bit
+  //  
+  //  Alarm event 8 - Flag bit information (1: trigger, 0: normal)
+  //  0 EEP storage fault
+  //  1 RTC error
+  //  2 Voltage calibration not performed
+  //  3 Current calibration not performed
+  //  4 Zero calibration not performed
+  //  5 Inside bit
+  //  6 Inside bit
+  //  7 Inside bit
+
+
+  // Beispieldaten:
+  // ->: 7E 32 30 30 30 34 36 34 34 45 30 30 32 30 30 46 44 33 35 0D
+  // <-: 7E 32 30 30 30 34 36 30 30 38 30 36 32 30 30 30 31 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 36 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 31 34 30 30 30 30 30 30 30 30 30 30 30 30 30 33 30 30 30 30 30 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 31 45 42 33 32 0D Response Ok
+
+
+  uint8_t  u8_lMsgoffset;
+  uint8_t  u8_dataLen = t_message[5];
+  uint32_t u32_alarm = 0;
+
+  /*bmsErrors
+  #define BMS_ERR_STATUS_OK                0
+  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection
+  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection
+  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection
+  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection
+  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection
+  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection
+  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection
+  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection
+  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection
+  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection
+  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  - //bit10 short circuit protection
+  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error
+  #define BMS_ERR_STATUS_SOFT_LOCK      4096  - //bit12 software lock MOS
+  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved
+  #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
+  #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
+
+  u8_lMsgoffset = 7; 
+  for (uint8_t i = 0; i < u8_dataLen; i++)
+  {
+    u8_lMsgoffset++;
+    uint8_t u8_lByte = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
+
+    switch (u8_lByte)
+    {
+      //  36    Alarm event 1
+      case 36:
+        if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        break;
+
+      //  37    Alarm event 2
+      case 37:
+        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
+        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
+        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP; //?
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP; //?
+        break;
+
+      //  38    Alarm event 3
+      case 38:
+        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OTP; //?
+        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CHG_UTP; //?
+        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_DSG_OTP; //?
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_DSG_UTP; //?
+        break;
+
+      //  39    Alarm event 4
+      case 39:
+        if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        break;
+
+      //  40    Alarm event 5
+      case 40:
+        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP; //?
+        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP; //?
+        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        break;
+
+      //  41    Alarm event 6
+      case 41:
+        if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        break;
+    }
+  }
+
+  setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_alarm);
 }
 
 
