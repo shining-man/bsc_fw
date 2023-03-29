@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.3a"
+#define BSC_SW_VERSION      "V0.3.3b"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug

@@ -717,9 +717,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           {
             sendContentHtml(server,_buf,false);
             String str_lNewLabel = mOptionLabels[j];
-            str_lNewLabel += "   ";
-            str_lNewLabel += getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
-
+            String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+            if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
             createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
           }
           mOptions.clear();
@@ -734,6 +733,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           for (uint8_t j = 0 ; j<optionsCnt; j++)
           {
             sendContentHtml(server,_buf,false);
+            //createHtmlAddMultiOption(_buf,&u64_jsonName,parameter,a,jsonStartPos,j,mOptionLabels[j],getInt(u64_jsonName,bo_loadFromFlash,u8_dataType));
             createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,mOptionLabels[j],getInt(u32_jsonName));
           }
           sendContentHtml(server,_buf,false);
