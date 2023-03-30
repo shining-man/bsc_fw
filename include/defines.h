@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.3b"
+#define BSC_SW_VERSION      "V0.3.3c"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -93,17 +93,16 @@ static const char COMPILE_DATE_TIME[] = "";
 
 
 //BMS Data
+#define SERIAL_BMS_EXT_COUNT        8
+
 #define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1 
 #define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1 
 #define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1 
-#define BMSDATA_FIRST_DEV_SEPLOS    BMSDATA_LAST_DEV_SERIAL+1 
-#define BMSDATA_LAST_DEV_SEPLOS     BMSDATA_FIRST_DEV_SEPLOS+SERIAL_BMS_SEPLOS_COUNT-1
-#define BMSDATA_FIRST_DEV_SLAVE1    BMSDATA_LAST_DEV_SEPLOS+1 
-#define BMSDATA_LAST_DEV_SLAVE1     BMSDATA_FIRST_DEV_SLAVE1+SERIAL_BMS_DEVICES_COUNT-1 
-#define BMSDATA_FIRST_DEV_SLAVE2    BMSDATA_LAST_DEV_SLAVE1+1 
-#define BMSDATA_LAST_DEV_SLAVE2     BMSDATA_FIRST_DEV_SLAVE2+SERIAL_BMS_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1 
+#define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
 
-#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_SEPLOS_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT
+
+#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_EXT_COUNT
 
 
 // Register
@@ -352,6 +351,8 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_HIGHWATER_TASK_CAN          36
 #define MQTT_TOPIC2_HIGHWATER_TASK_SERIAL       37
 #define MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN     38
+#define MQTT_TOPIC2_FET_STATE_CHARGE            39
+#define MQTT_TOPIC2_FET_STATE_DISCHARGE            40
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -393,8 +394,8 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "highWater_task_can",        // 36
   "highWater_task_serial",     // 37
   "highWater_task_wifi",       // 38
-  "",                          // 39
-  "",                          // 40
+  "stateCharge",               // 39
+  "stateDischarge",            // 40
   "",                          // 41
   "",                          // 42
   "",                          // 43
