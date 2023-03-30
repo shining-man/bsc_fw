@@ -29,7 +29,7 @@ const String comboAlarms PROGMEM = ""
 //PY_VAR_END
 
 const String paramSystem = "["
-  "{"
+  /*"{"
     "'label':'Master/Slave',"
     "'type':"+String(HTML_SEPARATION)+","
   "},"
@@ -43,7 +43,7 @@ const String paramSystem = "["
       "{'v':'"+String(I2C_DEV_ADDR_SLAVE2)+"','l':'Slave 1'}"
     "],"
     "'default':'0'"
-  "},"
+  "},"*/
 
   "{"
     "'label':'WLAN',"

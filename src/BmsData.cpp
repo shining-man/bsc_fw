@@ -261,6 +261,51 @@ void setBmsErrors(uint8_t devNr, uint32_t value)
 }
 
 
+uint8_t getBmsStateFETs(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  uint8_t ret = bmsData.bmsStateFETs[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsStateFETs(uint8_t devNr, uint8_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsStateFETs[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+boolean getBmsStateFETsCharge(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  boolean ret = ((bmsData.bmsStateFETs[devNr]&0x01)==0x01) ? true : false;
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsStateFETsCharge(uint8_t devNr, boolean value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  if(value) bmsData.bmsStateFETs[devNr] |= 0x01;
+  else bmsData.bmsStateFETs[devNr] &= ~(0x01);
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+boolean getBmsStateFETsDischarge(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  boolean ret = ((bmsData.bmsStateFETs[devNr]&0x02)==0x02) ? true : false;
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsStateFETsDischarge(uint8_t devNr, boolean value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  if(value) bmsData.bmsStateFETs[devNr] |= 0x02;
+  else bmsData.bmsStateFETs[devNr] &= ~(0x02);
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+
 unsigned long getBmsLastDataMillis(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);

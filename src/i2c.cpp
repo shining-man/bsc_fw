@@ -282,10 +282,10 @@ void getBscSlaveData(uint8_t u8_slaveNr)
         
         u8_BmsDataTypRet=rxBuf[0];
         //u8_lBmsNrNew=rxBuf[1];
-        if(u8_slaveNr==0)u8_lBmsNrNew=BMSDATA_FIRST_DEV_SLAVE1+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
-        else if(u8_slaveNr==1)u8_lBmsNrNew=BMSDATA_FIRST_DEV_SLAVE2+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
+        if(u8_slaveNr==0)u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
+        else if(u8_slaveNr==1)u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT+3+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
         
-        u8_lBmsNrNew=BMSDATA_FIRST_DEV_SLAVE1; //zum Test
+        u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT; //zum Test
 
         switch(u8_BmsDataTypRet)
         {
