@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.3c"
+#define BSC_SW_VERSION      "V0.3.4b"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -81,12 +81,13 @@ static const char COMPILE_DATE_TIME[] = "";
 #define COUNT_TEMP_RULES             10
 
 //I2C
-#define ID_I2C_MASTER                 0 //Auswahl Master/Slave
-#define I2C_DEV_ADDR_DISPLAY       0x55
-#define I2C_DEV_ADDR_SLAVE1          16
-#define I2C_DEV_ADDR_SLAVE2          17
-#define I2C_SDA_PIN                  21
-#define I2C_SCL_PIN                  22
+#define ID_I2C_MASTER                  0 //Auswahl Master/Slave
+#define I2C_DEV_ADDR_DISPLAY        0x55
+#define I2C_DEV_ADDR_SLAVE1           16
+#define I2C_DEV_ADDR_SLAVE2           17
+#define I2C_DEV_ADDR_SERIAL_EXTENSION 32
+#define I2C_SDA_PIN                   21
+#define I2C_SCL_PIN                   22
 #define I2C_FREQUENCY          1000000U
 //#define I2C_FREQUENCY           400000U
 #define I2C_CNT_SLAVES                2
@@ -237,6 +238,9 @@ static const char COMPILE_DATE_TIME[] = "";
 
 #define ID_PARAM_TRIGGER_NAMES                117
 
+#define ID_PARAM_BATTERY_PACK_CHARGE_CURRENT    118
+#define ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT 119
+
 
 
 //Auswahl Bluetooth Geräte
@@ -338,7 +342,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_TOTAL_CURRENT               23
 #define MQTT_TOPIC2_FULL_CAPACITY               24
 #define MQTT_TOPIC2_BALANCE_STATUS              25
-#define MQTT_TOPIC2_FET_STATUS                  26
+//#define MQTT_TOPIC2_RESERVE                   26  //frei
 #define MQTT_TOPIC2_CHARGED_ENERGY              27
 #define MQTT_TOPIC2_DISCHARGED_ENERGY           28
 #define MQTT_TOPIC2_CHARGE_CURRENT_SOLL         29
@@ -381,7 +385,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalCurrent",              // 23
   "FullCapacity",              // 24
   "BalanceStatus",             // 25
-  "FetStatus",                 // 26
+  "",                          // 26  frei
   "ChargedEnergy",             // 27
   "DischargedEnergy",          // 28
   "chargeCurrentSoll",         // 29

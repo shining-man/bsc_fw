@@ -34,7 +34,7 @@ static struct inverterData_s inverterData;
 char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
 uint8_t u8_mBmsDatasource;
-uint8_t u8_mBmsDatasourceAdd;
+uint16_t u8_mBmsDatasourceAdd;
 uint8_t u8_mSelCanInverter;
 
 bool alarmSetChargeCurrentToZero;
@@ -157,17 +157,17 @@ void loadCanSettings()
   
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,0,0)!=0)
   {
-    if(u8_mBmsDatasource!=BT_DEVICES_COUNT) u8_mBmsDatasourceAdd=1;
+    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL) u8_mBmsDatasourceAdd=1;
   }
 
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS2,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0)!=0)
   {
-    if(u8_mBmsDatasource!=BT_DEVICES_COUNT+1) u8_mBmsDatasourceAdd |= (1<<1);
+    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL+1) u8_mBmsDatasourceAdd |= (1<<1);
   }  
 
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS3,0,0,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0)!=0)
   {
-    if(u8_mBmsDatasource!=BT_DEVICES_COUNT+2) u8_mBmsDatasourceAdd |= (1<<2);
+    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL+2) u8_mBmsDatasourceAdd |= (1<<2);
   } 
 
   ESP_LOGI(TAG,"loadCanSettings(): u8_mBmsDatasource=%i",u8_mBmsDatasource);
@@ -341,7 +341,21 @@ int16_t calcLadestromZellspanung(int16_t i16_pMaxChargeCurrent)
 {
   if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_EN,0,0,0)==true) //wenn enabled
   {
+    //Maximale Zellspannung von den aktiven BMSen ermitteln
     uint16_t u16_lAktuelleMaxZellspg = getBmsMaxCellVoltage(u8_mBmsDatasource);
+    uint16_t u16_lMaxCellSpg=0;
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+        {
+          u16_lMaxCellSpg=getBmsMaxCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
+          if(u16_lMaxCellSpg>u16_lAktuelleMaxZellspg) u16_lAktuelleMaxZellspg=u16_lMaxCellSpg;
+        }
+      }
+    }
+      
     uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,0,0);
     if(u16_lStartSpg<=u16_lAktuelleMaxZellspg)
     {
@@ -566,8 +580,24 @@ void sendCanMsg_351()
     {
       int16_t i16_lMaxChargeCurrentOld=i16_mMaxChargeCurrent;
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,0,0));
-      int16_t i16_lMaxChargeCurrentList[3];
+      
+      //Maximalen Ladestrom aus den einzelnen Packs errechnen
+      uint16_t u16_lMaxCurrent=0;
+      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      {
+        if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
+        {
+          if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)+5000)>millis() &&
+            getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
+          {
+            u16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_CHARGE_CURRENT,0,i,0);
+          }
+        }
+      }
+      if(u16_lMaxCurrent<i16_lMaxChargeCurrent) i16_lMaxChargeCurrent=u16_lMaxCurrent;
 
+
+      int16_t i16_lMaxChargeCurrentList[3];
       i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(i16_lMaxChargeCurrent);
       i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
       i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
@@ -604,6 +634,21 @@ void sendCanMsg_351()
     else
     {
       msgData.maxdischargecurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,0,0)*10);
+
+      //Maximalen Entladestrom aus den einzelnen Packs errechnen
+      uint16_t u16_lMaxCurrent=0;
+      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      {
+        if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
+        {
+          if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)+5000)>millis() &&
+            getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
+          {
+            u16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,0,i,0);
+          }
+        }
+      }
+      if(u16_lMaxCurrent<msgData.maxdischargecurrent) msgData.maxdischargecurrent=u16_lMaxCurrent;
     }
 
   }

@@ -175,7 +175,7 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
 unsigned long writeLogToFsTimer=0;
 void writeLogToFS()
 {
-  if(millis()>(writeLogToFsTimer+50)) writeLogToFsTimer=millis();
+  if((millis()-writeLogToFsTimer)>50) writeLogToFsTimer=millis();
   else return;
 
   if(spiffsLogFile.size()>100000)

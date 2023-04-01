@@ -392,7 +392,7 @@ void task_ConnectWiFi(void *param)
     }
     
     #ifdef WLAN_DEBUG2
-    if(millis()>tConnWifiHelpTimer+1000)
+    if((millis()-tConnWifiHelpTimer)>1000)
     {
       tConnWifiHelpTimer=millis();
       ESP_LOGD(TAG, "FreeHeap=%i, MinFreeHeap=%i, mqttTxBuffSize=%i, WlanStaApOk=%i", xPortGetFreeHeapSize(),xPortGetMinimumEverFreeHeapSize(),getTxBufferSize(),WlanStaApOk);

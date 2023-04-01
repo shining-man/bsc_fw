@@ -100,7 +100,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if(millis()-u32_lStartTime > 200) 
+    if((millis()-u32_lStartTime)>200) 
     {
       ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       /*for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -191,14 +191,22 @@ static void parseBasicMessage(uint8_t * t_message)
   u16_mBalanceCapacityOld=u16_lBalanceCapacity;
   
 
-  if(millis()>(mqttSendeTimer+10000))
+  if((millis()-mqttSendeTimer)>10000)
   {
     uint16_t u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
     u16_lFullCapacity = convertToUint16(t_message[JBD_BYTE_FULL_CAPACITY], t_message[JBD_BYTE_FULL_CAPACITY+1]); //10mAH
     u16_lCycle = convertToUint16(t_message[JBD_BYTE_CYCLE], t_message[JBD_BYTE_CYCLE+1]); //
     u16_lBalanceStatus = convertToUint16(t_message[JBD_BYTE_BALANCE_STATUS], t_message[JBD_BYTE_BALANCE_STATUS+1]); 
     //uint16_t u16_lBalanceStatus2 = convertToUint16(t_message[JBD_BYTE_BALANCE_STATUS_2], t_message[JBD_BYTE_BALANCE_STATUS_2+1]); 
+
     u16_lFetStatus = t_message[JBD_BYTE_FET_STATUS]; 
+    //Bit 0: charging
+    if(u16_lFetStatus&0x01) setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,true);
+    else setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+    //Bit 1: discharge
+    if((u16_lFetStatus>>1)&0x01) setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,true);
+    else setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+
     //uint16_t u16_lBatterySeries = t_message[JBD_BYTE_BATTERY_SERIES]; 
     //JBD_BYTE_PRODUCTION_DATE
     //JBD_BYTE_SOFTWARE_VERSION
@@ -208,7 +216,6 @@ static void parseBasicMessage(uint8_t * t_message)
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
 
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);

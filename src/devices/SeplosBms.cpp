@@ -146,7 +146,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if(millis()-u32_lStartTime > 200) 
+    if((millis()-u32_lStartTime)>200) 
     {
       ESP_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       #ifdef SEPLOS_DEBUG
@@ -354,7 +354,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   //   79     0x00 0x00      Reserved
 
 
-  if(millis()>(mqttSendeTimer+10000))
+  if((millis()-mqttSendeTimer)>10000)
   {
     //Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
@@ -593,6 +593,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   uint8_t  u8_lMsgoffset;
   uint8_t  u8_dataLen = t_message[5];
   uint32_t u32_alarm = 0;
+  boolean  bo_lValue=false;
 
   /*bmsErrors
   #define BMS_ERR_STATUS_OK                0
@@ -670,6 +671,19 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
       //  41    Alarm event 6
       case 41:
         if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        break;
+
+      //  42    On-off state - Flag bit information (1: on, 0: off)
+      case 42: 
+        // 0 Discharge switch state
+        bo_lValue=false;
+        if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
+        setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,bo_lValue);
+
+        // 1 Charge switch state
+        bo_lValue=false;
+        if ((u8_lByte & 0x2) == 0x2) bo_lValue=true;
+        setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,bo_lValue);
         break;
     }
   }
