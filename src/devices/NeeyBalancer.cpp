@@ -49,7 +49,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     // 3     1   0x01                   Function (read)
     // 4     2   0x02 0x00              Command (cell info)
     if(!(pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x02 && pData[5]==0x00)) return;
-    if((getBmsLastDataMillis(devNr)+500)>millis()) return; //Nur alle 500ms eine neue Nachricht akzeptieren
+    if((millis()-getBmsLastDataMillis(devNr))<500) return; //Nur alle 500ms eine neue Nachricht akzeptieren
 
     float    f_lTmpValue;
     uint32_t u32_lTmpValue;

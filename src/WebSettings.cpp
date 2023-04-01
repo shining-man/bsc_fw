@@ -51,6 +51,7 @@ body {margin: 0; background-color: %s;}
 .titel {font-weight:bold; text-align:left; padding:5px;}
 .Ctr {text-align: left;}
 .Ctd {width:150; padding:10px 5px 0 5px; text-align: left; vertical-align: top;}
+.Ctd2 {text-align: left; vertical-align: top; padding:15px 0 0 0;}
 .td0 {padding: 0 5px 0 5px;}
 .help {border-left:2px solid black; 
   border-bottom: 1px solid #fff0;
@@ -277,8 +278,9 @@ const char HTML_ENTRY_MULTI_OPTION[] PROGMEM =
 const char HTML_ENTRY_MULTI_END[] PROGMEM =
 "</fieldset></td><td class='t1'></td></tr>\n";  //<td class='Ctd'><span class='secVal' id='s%s'></span></td>
 
-const char HTML_GROUP_START[] PROGMEM = "</table><details open><summary><b>%s</b></summary><table>\n";
-const char HTML_GROUP_END[]   PROGMEM = "</table></details><table>\n";
+//const char HTML_GROUP_START[] PROGMEM = "</table><details open><summary><b>%s</b></summary><table>\n";
+//const char HTML_GROUP_END[]   PROGMEM = "</table></details><table>\n";
+const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='3'><b>%s</b></td></tr>\n";
 
 const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
 
@@ -668,14 +670,14 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
             bool ret = json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
             buildSendHtml(server, parameter, jsonArrayGroupStart);
 
-            sprintf(_buf,"<tr><td colspan='3'><hr></td></tr>");
+            sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
             sendContentHtml(server,_buf,false);
           }
-          if(optionGroupSize>1 && !jsonLabel.equals(""))
+          /*if(optionGroupSize>1 && !jsonLabel.equals(""))
           {
             sprintf(_buf,HTML_GROUP_END);
             sendContentHtml(server,_buf,false);
-          }
+          }*/
           u8_mAktOptionGroupNr = 0;
           break;
         case HTML_INPUTTEXT: 

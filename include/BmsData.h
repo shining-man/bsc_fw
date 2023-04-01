@@ -25,7 +25,7 @@ struct bmsData_s
   float      bmsTotalVoltage[BMSDATA_NUMBER_ALLDEVICES];             // x | x | x | x |   |
   uint16_t   bmsMaxCellDifferenceVoltage[BMSDATA_NUMBER_ALLDEVICES]; // x | x | x | x |   |
   uint16_t   bmsAvgVoltage[BMSDATA_NUMBER_ALLDEVICES];               // x | x | x | x |   |
-  float      bmsTotalCurrent[BMSDATA_NUMBER_ALLDEVICES];             //   | x | x | x |   |
+  float      bmsTotalCurrent[BMSDATA_NUMBER_ALLDEVICES];             // - | x | x | x |   |
   uint16_t   bmsMaxCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   |
   uint16_t   bmsMinCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   |
   uint8_t    bmsMaxVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |   |
@@ -33,11 +33,11 @@ struct bmsData_s
   uint8_t    bmsIsBalancingActive[BMSDATA_NUMBER_ALLDEVICES];        // x |   |   |   |   |
   float      bmsBalancingCurrent[BMSDATA_NUMBER_ALLDEVICES];         // x |   |   |   |   |
   float      bmsTempature[BMSDATA_NUMBER_ALLDEVICES][3];             // 2 | 3 | 3 | 3 |   |
-  uint8_t    bmsChargePercentage[BMSDATA_NUMBER_ALLDEVICES];         //   | x | x | x |   |
+  uint8_t    bmsChargePercentage[BMSDATA_NUMBER_ALLDEVICES];         // - | x | x | x |   |
   uint32_t   bmsErrors[BMSDATA_NUMBER_ALLDEVICES];                   // * | x | x |   |   |
-  uint8_t    bmsStateFETs[BMSDATA_NUMBER_ALLDEVICES];                //   |   |   |   | x |   bit 0=FET charge, bit 1=FET discharge
-  unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x |   |   |   
-  //                                                                 // *=Teilweise
+  uint8_t    bmsStateFETs[BMSDATA_NUMBER_ALLDEVICES];                // - | x | x | x | x |   bit 0=FET charge, bit 1=FET discharge
+  unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x | x | x |   
+  //                                                                 // *=Teilweise; -=Nicht verfügbar
 };
 
 

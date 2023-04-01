@@ -78,7 +78,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if(millis()-u32_lStartTime > 200) 
+    if((millis()-u32_lStartTime)>200) 
     {
       ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       /*for(uint16_t x=0;x<u16_mLastRecvBytesCnt;x++)
@@ -316,11 +316,34 @@ void parseData(uint8_t * t_message)
         if((u16_lTmpValue&0x800)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 12: 309_A protection                                -> ?
         if((u16_lTmpValue&0x1000)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
 
-
-        ESP_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
+        //ESP_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
         setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
         i+=3;
         break;  
+
+      case 0x8C:  // Battery status information
+        u16_lTmpValue = ((uint16_t)t_message[i+1] << 8 | t_message[i+2]);
+        if((u16_lTmpValue>>3)&0x01)
+        {
+          setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+          setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+        }
+        else
+        {
+          //Bit 0: charging on
+          if(u16_lTmpValue&0x01) setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+
+          //Bit 1: discharge on
+          if((u16_lTmpValue>>1)&0x01) setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+
+          //Bit 2: equilization on
+          if((u16_lTmpValue>>2)&0x01) setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,false);
+        }
+        i+=3;
+        break;
 
       case 0x86:
       case 0x9D:
@@ -336,7 +359,6 @@ void parseData(uint8_t * t_message)
         break;
 
       case 0x8A:
-      case 0x8C:
       case 0x8E:
       case 0x8F:
       case 0x90:
@@ -403,7 +425,7 @@ void parseData(uint8_t * t_message)
   }
 
 
-  if(millis()>(mqttSendeTimer_jk+10000))
+  if((millis()-mqttSendeTimer_jk)>10000)
   {
     //Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
