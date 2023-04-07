@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.4b"
+#define BSC_SW_VERSION      "V0.3.8"
 static const char COMPILE_DATE_TIME[] = "";
 
 //Debug
@@ -21,13 +21,16 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
 //#define NEEY_DEBUG
+#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
-#define WLAN_DEBUG        
+//#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define WEBSET_DEBUG
 
+//Tests
+//#define UTEST_BMS_FILTER
 
 //System
 #define WEBSERVER_PORT               80
@@ -241,6 +244,9 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_BATTERY_PACK_CHARGE_CURRENT    118
 #define ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT 119
 
+#define ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT 120
+#define ID_PARAM_BMS_FILTER_RX_ERROR_COUNT       121
+
 
 
 //Auswahl Bluetooth Geräte
@@ -254,6 +260,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_SERIAL_DEVICE_JBDBMS     1
 #define ID_SERIAL_DEVICE_JKBMS      2
 #define ID_SERIAL_DEVICE_SEPLOSBMS  3
+#define ID_SERIAL_DEVICE_DALYBMS    4
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
@@ -342,7 +349,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_TOTAL_CURRENT               23
 #define MQTT_TOPIC2_FULL_CAPACITY               24
 #define MQTT_TOPIC2_BALANCE_STATUS              25
-//#define MQTT_TOPIC2_RESERVE                   26  //frei
+#define MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL      26 
 #define MQTT_TOPIC2_CHARGED_ENERGY              27
 #define MQTT_TOPIC2_DISCHARGED_ENERGY           28
 #define MQTT_TOPIC2_CHARGE_CURRENT_SOLL         29
@@ -356,7 +363,8 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_HIGHWATER_TASK_SERIAL       37
 #define MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN     38
 #define MQTT_TOPIC2_FET_STATE_CHARGE            39
-#define MQTT_TOPIC2_FET_STATE_DISCHARGE            40
+#define MQTT_TOPIC2_FET_STATE_DISCHARGE         40
+#define MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE     41
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -385,7 +393,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalCurrent",              // 23
   "FullCapacity",              // 24
   "BalanceStatus",             // 25
-  "",                          // 26  frei
+  "dischargeCurrentSoll",      // 26  frei
   "ChargedEnergy",             // 27
   "DischargedEnergy",          // 28
   "chargeCurrentSoll",         // 29
@@ -400,7 +408,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "highWater_task_wifi",       // 38
   "stateCharge",               // 39
   "stateDischarge",            // 40
-  "",                          // 41
+  "chargeVoltage",             // 41
   "",                          // 42
   "",                          // 43
   "",                          // 44

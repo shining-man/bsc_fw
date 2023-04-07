@@ -30,6 +30,7 @@ private:
 
   bool isSoftSerial;
   bool (*readBms)(Stream*, uint8_t, uint8_t, uint8_t) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
+  static bool (*readBmsExt[8])(Stream*, uint8_t, uint8_t, uint8_t);
   Stream * stream_mPort;
   uint8_t u8_mHwUartNr;
   uint8_t u8_mSerialNr;

@@ -15,6 +15,7 @@
 #include "Ow.h"
 #include "log.h"
 #include "BleHandler.h"
+//#include "AlarmRules.h"
 
 
 static const char* TAG = "MQTT";
@@ -38,6 +39,8 @@ bool     bmsDataSendFinsh=false;
 uint8_t  sendOwTemperatur_mqtt_sendeCounter=0;
 bool     owDataSendFinsh=false;
 
+//bool     bo_mSendPrioMessages=false;
+
 struct mqttEntry_s {
   int8_t t1;
   int8_t t2;
@@ -55,6 +58,7 @@ bool mqttPublishLoopFromTxBuffer();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
+//void mqttPublishTrigger();
 
 
 void initMqtt()
@@ -114,6 +118,11 @@ bool mqttLoop()
 
       if(BleHandler::isNotAllDeviceConnectedOrScanRunning())
       {
+        /*if(bo_mSendPrioMessages)
+        {
+          mqttClient.loop();
+          mqttPublishLoopFromTxBuffer();  //MQTT Messages zyklisch publishen
+        }*/
         ret=true;
         break;
       }
@@ -266,6 +275,8 @@ bool mqttPublishLoopFromTxBuffer()
       txBuffer.pop_front();
     }
 
+    //if(txBuffer.size()==0) bo_mSendPrioMessages=false;
+
     xSemaphoreGive(mMqttMutex);
     u32_mMqttPublishLoopTimmer=millis();
   }
@@ -277,8 +288,19 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
-  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) return;  //Wenn nicht alle BT-Devices verbunden sind
-
+  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) //Wenn nicht alle BT-Devices verbunden sind
+  {
+     /*if(t1==MQTT_TOPIC_ALARM) 
+     {
+      //Trigger Meldungen mit Priorität abarbeiten
+      xSemaphoreTake(mMqttMutex, portMAX_DELAY);
+      txBuffer.clear();
+      xSemaphoreGive(mMqttMutex);
+      mqttPublishTrigger();
+      bo_mSendPrioMessages=true;
+     }*/
+     return;
+  }
   if(txBuffer.size()>300)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
   //Wenn BMS msg, dann msg anpassen
@@ -381,7 +403,9 @@ void mqttPublishBmsData(uint8_t i)
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {
-    mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE, n, getBmsCellVoltage(i,n));
+    uint16_t u16_lCellVoltage = getBmsCellVoltage(i,n);
+    //Zellvoltage nur senden wenn nicht 0xFFFF
+    if(u16_lCellVoltage!=0xFFFF) mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE, n, u16_lCellVoltage);
   }
 
   //Max. Cell Voltage
@@ -444,3 +468,14 @@ void mqttPublishOwTemperatur(uint8_t i)
     //Evtl. eine "Senor nicht verbunden" Meldung senden
   } 
 }
+
+
+/*void mqttPublishTrigger()
+{
+  if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
+
+  for(uint8_t i=0;i<CNT_ALARMS;i++)
+  {
+    mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, getAlarm(i));
+  }
+}*/

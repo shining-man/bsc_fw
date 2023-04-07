@@ -110,13 +110,13 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
   alarmNr--;
   if(bo_lAlarm)
   {
-    ESP_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
+    //ESP_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
     bo_alarmActivate[alarmNr]=true;
   }
   else if(bo_alarmActivate[alarmNr]!=true)
   {
-    ESP_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
+    //ESP_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
     bo_Alarm[alarmNr]=bo_lAlarm;
     if(bo_lAlarm)
     {
@@ -128,7 +128,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
 //Wird vom Task aus der main.c zyklisch aufgerufen
 void runAlarmRules()
 {
-  uint8_t i,tmp;
+  uint8_t i;
 
   //Toggle LED
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
@@ -173,31 +173,32 @@ void runAlarmRules()
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
       {
-        //ESP_LOGD(TAG, "Alarm MQTT: %i, %i",i+1,bo_Alarm[i]);
+        ESP_LOGI(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
-      //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut
-      for(uint8_t o=0; o<CNT_DIGITALOUT; o++)
+      //Bearbeiten der 6 Relaisausgaenge
+      uint8_t u8_lTriggerNrDo=0;
+      for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
-        tmp=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,0,o,0)-1;
-        if(tmp==i)
+        u8_lTriggerNrDo=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,0,b,0)-1;
+        if(u8_lTriggerNrDo==i)
         {
           if(bo_Alarm[i]==true)
           {     
-            if(u8_DoVerzoegerungTimer[o]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
+            if(u8_DoVerzoegerungTimer[b]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
-              ESP_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", o);
-              u8_DoVerzoegerungTimer[o] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,o,0);
+              ESP_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
+              u8_DoVerzoegerungTimer[b] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,b,0);
             }
           }
           else
           {
-            uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
+            uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,b,0);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
               ESP_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
-              u8_mDoByte &= ~(1 << o); //bit loeschen
+              u8_mDoByte &= ~(1 << b); //bit loeschen
             }
           }
         }
@@ -229,23 +230,23 @@ void changeAlarmSettings()
 void setDOs()
 {
   //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut
-  for(uint8_t o=0; o<CNT_DIGITALOUT; o++)
+  for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
   {
-    if(u8_DoVerzoegerungTimer[o]==0)
+    if(u8_DoVerzoegerungTimer[b]==0)
     {
-      u8_DoVerzoegerungTimer[o]=0xFF;
+      u8_DoVerzoegerungTimer[b]=0xFF;
 
-      ESP_LOGI(TAG, "Set DO (DoNr=%i)", o);
-      u8_mDoByte |= (1 << o); //bit setzen
+      ESP_LOGI(TAG, "Set DO (DoNr=%i)", b);
+      u8_mDoByte |= (1 << b); //bit setzen
 
-      uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,o,0);
+      uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,b,0);
       if(doPulseOrPermanent==1) //Wenn Impuls
       {
-        uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,0,o,0);
-        ESP_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", o, pulseDuration);
+        uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,0,b,0);
+        ESP_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
               
         xSemaphoreTake(doMutex, portMAX_DELAY);
-        bo_DoPulsOffCounter[o] = (pulseDuration/10);
+        bo_DoPulsOffCounter[b] = (pulseDuration/10);
         if(bo_timerPulseOffIsRunning==false)
         {
           bo_timerPulseOffIsRunning=true;
@@ -256,7 +257,7 @@ void setDOs()
     }
     else
     {
-      if(u8_DoVerzoegerungTimer[o]!=0xFF) u8_DoVerzoegerungTimer[o]--;
+      if(u8_DoVerzoegerungTimer[b]!=0xFF) u8_DoVerzoegerungTimer[b]--;
     }
   }
 
@@ -264,6 +265,53 @@ void setDOs()
   //Setze Ausgänge, lese Eingänge
   xSemaphoreTake(doMutex, portMAX_DELAY);
   setDoData(u8_mDoByte);
+  xSemaphoreGive(doMutex);
+}
+
+
+//doOffPulse wird alle 10 ms aufgerufen solange der Timer läuft
+void doOffPulse(TimerHandle_t xTimer)
+{
+  bool restartTimer = false;
+  bool changeDoData = false;
+  //doNr = ( uint32_t ) pvTimerGetTimerID( xTimer );
+
+  xSemaphoreTake(doMutex, portMAX_DELAY);
+  for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
+  {
+    if(bo_DoPulsOffCounter[i] > 1)
+    {
+      bo_DoPulsOffCounter[i]--;
+      restartTimer = true;
+    }
+    else if(bo_DoPulsOffCounter[i] == 1)
+    {
+      ESP_LOGD(TAG, "DO off - Impuls(%i)",i);
+
+      bo_DoPulsOffCounter[i]=0;
+
+      u8_mDoByte &= ~(1 << i); //bit loeschen
+      changeDoData=true;
+    }
+  }
+
+  //New DO Data
+  if(changeDoData)
+  {
+    setDoData(u8_mDoByte);
+    dioRwInOut();
+  }
+
+  //Timer neu starten solange noch nicht alle Relais abgeschalten sind
+  if(restartTimer)
+  {
+    xTimerStart(timer_doOffPulse, 10);
+  }
+  else
+  {
+    bo_timerPulseOffIsRunning=false;
+  }
+  
   xSemaphoreGive(doMutex);
 }
 
@@ -656,51 +704,4 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm)
     uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,0,0,PARAM_DT_U8);
     if(u8_AlarmNr==u8_lTriggerNr) BleHandler::setBalancerState(d,bo_Alarm);
   }
-}
-
-
-//doOffPulse wird alle 10 ms aufgerufen solange der Timer läuft
-void doOffPulse(TimerHandle_t xTimer)
-{
-  bool restartTimer = false;
-  bool changeDoData = false;
-  //doNr = ( uint32_t ) pvTimerGetTimerID( xTimer );
-
-  xSemaphoreTake(doMutex, portMAX_DELAY);
-  for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
-  {
-    if(bo_DoPulsOffCounter[i] > 1)
-    {
-      bo_DoPulsOffCounter[i]--;
-      restartTimer = true;
-    }
-    else if(bo_DoPulsOffCounter[i] == 1)
-    {
-      //debugPrintf("DO off - Impuls(%i)",i);
-
-      bo_DoPulsOffCounter[i]=0;
-
-      u8_mDoByte &= ~(1 << i); //bit loeschen
-      changeDoData=true;
-    }
-  }
-
-  //New DO Data
-  if(changeDoData)
-  {
-    setDoData(u8_mDoByte);
-    dioRwInOut();
-  }
-
-  //Timer neu starten solange noch nicht alle Relais abgeschalten sind
-  if(restartTimer)
-  {
-    xTimerStart(timer_doOffPulse, 10);
-  }
-  else
-  {
-    bo_timerPulseOffIsRunning=false;
-  }
-  
-  xSemaphoreGive(doMutex);
 }

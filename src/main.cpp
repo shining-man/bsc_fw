@@ -218,7 +218,9 @@ boolean connectWiFi()
     ESP_LOGI(TAG, "Wifi AP");
     WlanStaApOk=WIFI_AP;
     WiFi.mode(WIFI_AP);
-    WiFi.softAP("BSC","",1);  
+    String str_lHostname = hostname;
+    str_lHostname += "_" + String((uint32_t)ESP.getEfuseMac());
+    WiFi.softAP(str_lHostname.c_str(),"",1);  
     changeWlanDataForI2C=true;
   }
   
@@ -619,6 +621,9 @@ void handle_paramSerial()
     bscSerial2.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0));
     bscSerial3.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0));
     changeAlarmSettings();
+
+    bmsFilterData_s* bmsFilterData = getBmsFilterData();
+    bmsFilterData->u8_mFilterBmsCellVoltagePercent = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,0,0,PARAM_DT_U8);
   }
 }
 
@@ -889,7 +894,6 @@ void setup()
   WiFi.setAutoReconnect(false);
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2000, nullptr, 1, &task_handle_wifiConn, 1);
-  //connectWiFi();
   
   if (MDNS.begin(hostname))
   {
@@ -943,13 +947,11 @@ void setup()
   });
 
   //Erstelle Tasks
-  //xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
   xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, 5, &task_handle_bscSerial, 1);
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
   xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
-  //xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2000, nullptr, 1, &task_handle_wifiConn, 1);
 
  
   //starte webserver
@@ -988,28 +990,4 @@ void loop()
     ESP_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
-
-  //10s Intervall
-  currentMillis = millis();
-  if(currentMillis-previousMillis10000>=10000)
-  {
-    //Sende Daten via mqqtt, wenn aktiv
-    if(WlanStaApOk==WIFI_STA && WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
-    {      
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_ESP32_TEMP, -1, temperatureRead());
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, getAktualChargeCurrentSoll());
-      
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_FREE_HEAP, -1, xPortGetFreeHeapSize());
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_MIN_FREE_HEAP, -1, xPortGetMinimumEverFreeHeapSize());
-      
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_BLE, -1, uxTaskGetStackHighWaterMark(task_handle_ble));
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_ALARMRULES, -1, uxTaskGetStackHighWaterMark(task_handle_alarmrules));
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_OW, -1, uxTaskGetStackHighWaterMark(task_handle_onewire));
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_CAN, -1, uxTaskGetStackHighWaterMark(task_handle_canbusTx));
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_SERIAL, -1, uxTaskGetStackHighWaterMark(task_handle_bscSerial));
-      mqttPublish(MQTT_TOPIC_SYS, -1, MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN, -1, uxTaskGetStackHighWaterMark(task_handle_wifiConn));
-    }
-
-    previousMillis10000 = currentMillis;
-  }  
 }
