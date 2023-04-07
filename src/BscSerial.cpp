@@ -14,11 +14,23 @@
 #include "devices/JbdBms.h"
 #include "devices/JkBms.h"
 #include "devices/SeplosBms.h"
+#include "devices/DalyBms.h"
 
 static const char *TAG = "BSC_SERIAL";
 
+static uint8_t u8_mFilterBmsCellVoltageMaxCount;
+
+#ifdef UTEST_BMS_FILTER
+bool readBmsTestData(uint8_t devNr);
+#endif
+
+
 BscSerial::BscSerial()
 {
+  for(uint8_t i=0;i<8;i++)
+  {
+    readBmsExt[i]=0;
+  }
 };
 
 BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t hwUartNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin)
@@ -48,6 +60,7 @@ BscSerial::BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnR
 
 void BscSerial::initSerial()
 {
+  u8_mFilterBmsCellVoltageMaxCount=0;
   u8_mAddData=0;
 
   if(isSoftSerial==true)
@@ -131,6 +144,8 @@ void BscSerial::setSerialBaudrate(uint32_t baudrate)
 
 void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
 {
+  u8_mFilterBmsCellVoltageMaxCount = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,0,0,PARAM_DT_U8);
+
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   u8_mAddData=0;
 
@@ -157,6 +172,12 @@ void BscSerial::setReadBmsFunktion(uint8_t funktionsTyp)
       setSerialBaudrate(19200);
       readBms = &SeplosBms_readBmsData;
       break;
+      
+    case ID_SERIAL_DEVICE_DALYBMS:
+      ESP_LOGI(TAG,"setReadBmsFunktion DALY");
+      setSerialBaudrate(9600);
+      readBms = &DalyBms_readBmsData;
+      break;
    
     default:
       readBms = 0;
@@ -178,14 +199,67 @@ void BscSerial::cyclicRun()
   bool bmsReadOk=false;
   if(readBms==0){return;}    //Wenn nicht Initialisiert
 
+  //Aktuell (später entfernen)
+  uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+u8_mSerialNr);
+
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
-  if(readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin, u8_mAddData)) //Wenn kein Fehler beim Holen der Daten vom BMS
+  *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
+  #ifndef UTEST_BMS_FILTER
+  bmsReadOk=readBms(stream_mPort, u8_mSerialNr, u8_mTxEnRS485pin, u8_mAddData); //Wenn kein Fehler beim Holen der Daten vom BMS  
+  #else
+  bmsReadOk=readBmsTestData(BT_DEVICES_COUNT+u8_mSerialNr);
+  ESP_LOGI(TAG,"Filter: RX serial Data; errCnt=%i",*u8_pBmsFilterErrorCounter);
+  #endif
+  if((*u8_pBmsFilterErrorCounter>>7)) //Wenn beim Empfang Fehler wahren
   {
-    bmsReadOk=true;
+    //ESP_LOGI(TAG,"Filter: RX Error; errCnt=%i",*u8_pBmsFilterErrorCounter);
+    if((*u8_pBmsFilterErrorCounter&0x7F)>=u8_mFilterBmsCellVoltageMaxCount) //Wenn Fehler
+    {
+      //Zu häufig Fehler
+      bmsReadOk=false;
+      //ESP_LOGI(TAG,"Filter: Zu viele Errors ist=%i, max=%i", (*u8_pBmsFilterErrorCounter&0x7F), u8_mFilterBmsCellVoltageMaxCount);
+    }
+    else
+    {
+      if((*u8_pBmsFilterErrorCounter&0x7F)<125) *u8_pBmsFilterErrorCounter=*u8_pBmsFilterErrorCounter+1;
+      //ESP_LOGI(TAG,"Filter: ErrCount ist=%i, max=%i", (*u8_pBmsFilterErrorCounter&0x7F), u8_mFilterBmsCellVoltageMaxCount);
+    }
+  }
+  else
+  {
+    if(*u8_pBmsFilterErrorCounter>0) ESP_LOGI(TAG,"Filter: Reset RX Error");
+    *u8_pBmsFilterErrorCounter = 0; //Fehler Counter zurücksetzen
   }
   xSemaphoreGive(mSerialMutex);
   if(bmsReadOk)
   {
     setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mSerialNr,millis());
   }
+  else ESP_LOGE(TAG,"Checksum wrong");
 }
+
+
+
+
+
+  #ifdef UTEST_BMS_FILTER
+  static uint16_t u16_filterTestErrCnt=0;
+  bool readBmsTestData(uint8_t devNr)
+  {
+    ESP_LOGI(TAG,"readBmsTestData: u16_filterTestErrCnt=%i", u16_filterTestErrCnt);
+
+    for(uint8_t i=0;i<24;i++)
+    {
+      setBmsCellVoltage(devNr,i,3450);
+    }
+
+    if(u16_filterTestErrCnt>5 && u16_filterTestErrCnt<30)
+    {
+      setBmsCellVoltage(devNr,3,6900);
+    }
+
+
+    u16_filterTestErrCnt++;
+    return true;
+  }
+  #endif

@@ -9,7 +9,12 @@
 static SemaphoreHandle_t mBmsDataMutex = NULL;
 
 static struct bmsData_s bmsData;
+struct bmsFilterData_s bmsFilterData;
+
 static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
+
+uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
+
 
 void bmsDataInit()
 {
@@ -17,9 +22,29 @@ void bmsDataInit()
 
   for(uint8_t i=0;i<BMSDATA_NUMBER_ALLDEVICES;i++)
   {
+    for(uint8_t n=0;n<24;n++)
+    {
+      setBmsCellVoltage(i,n,0xFFFF);
+    }
     setBmsLastDataMillis(i,0);
+    u8_mBmsFilterErrorCounter[i]=0;
   }
+  
+  bmsFilterData.u8_mFilterBmsCellVoltagePercent=0;
+  //bmsFilterData.u8_mFilterBmsCellVoltageMaxCount=0;
 }
+
+
+struct bmsFilterData_s* getBmsFilterData()
+{
+  return &bmsFilterData;
+}
+
+uint8_t* getBmsFilterErrorCounter(uint8_t bmsNr)
+{
+  return &u8_mBmsFilterErrorCounter[bmsNr];
+}
+
 
 void bmsDataSemaphoreTake()
 {
@@ -31,7 +56,7 @@ void bmsDataSemaphoreGive()
 }
 
 
-struct bmsData_s * getBmsData()
+struct bmsData_s* getBmsData()
 {
   return &bmsData;
 }
@@ -43,11 +68,30 @@ uint16_t getBmsCellVoltage(uint8_t devNr, uint8_t cellNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
-void setBmsCellVoltage(uint8_t devNr, uint8_t cellNr, uint16_t value)
+bool setBmsCellVoltage(uint8_t devNr, uint8_t cellNr, uint16_t value)
 {
+  bool ret = true;
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsCellVoltage[devNr][cellNr] = value;
+
+  if(bmsFilterData.u8_mFilterBmsCellVoltagePercent>0 && bmsData.bmsCellVoltage[devNr][cellNr]!=0xFFFF) //Wenn größer 0, dann ist der Filter aktiv
+  {
+    if(value<(bmsData.bmsCellVoltage[devNr][cellNr]+(float)(bmsData.bmsCellVoltage[devNr][cellNr]/100.0*bmsFilterData.u8_mFilterBmsCellVoltagePercent)))
+    {
+      bmsData.bmsCellVoltage[devNr][cellNr] = value;
+    }
+    else
+    {
+      //Wert zu groß
+      u8_mBmsFilterErrorCounter[devNr]|=(1<<7); //Fehler-Bit setzen (bit 7)
+    }
+  }
+  else
+  {
+    bmsData.bmsCellVoltage[devNr][cellNr] = value;
+  }
+
   xSemaphoreGive(mBmsDataMutex);
+  return ret;
 }
 
 

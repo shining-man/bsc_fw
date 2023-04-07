@@ -11,6 +11,7 @@
 #include "Canbus.h"
 #include "Alarmrules.h"
 #include "BmsData.h"
+#include "mcp23017.h"
 
 static const char *TAG = "I2C";
 
@@ -19,6 +20,7 @@ static const char *TAG = "I2C";
 struct  bmsData_s *p_lBmsData;
 struct  inverterData_s *p_lInverterData;
 bool    bo_mDisplayEnabled;
+bool    bo_mSerialExtEnabled;
 bool    bo_mSlaveEnabled[I2C_CNT_SLAVES];
 uint8_t u8_mMasterSlaveId;
 
@@ -33,6 +35,8 @@ void displaySendData_bms();
 void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
+void i2cInitExtSerial();
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, boolean bo_write);
 
 
 /*
@@ -41,67 +45,6 @@ void i2cSendDataToMaster();
 void onRequest()
 {
   i2cSendDataToMaster();
-
-  #if 0
-  if(u8_mI2cRxBuf[0]==BSC_GET_SLAVE_DATA)
-  {
-    u8_mI2cRxBuf[0]=0;
-
-    uint8_t u8_bmsNr = u8_mI2cRxBuf[2];
-    switch(u8_mI2cRxBuf[1])
-    {
-      case BMS_CELL_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsCellVoltage[u8_bmsNr], 48);
-        break;
-      case BMS_TOTAL_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsTotalVoltage[u8_bmsNr], 4);
-        break;
-      case BMS_MAX_CELL_DIFFERENCE_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsMaxCellDifferenceVoltage[u8_bmsNr], 2);
-        break;
-      case BMS_AVG_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsAvgVoltage[u8_bmsNr], 2);
-        break;
-      case BMS_TOTAL_CURRENT:
-        Wire.write((uint8_t*)&p_lBmsData->bmsTotalCurrent[u8_bmsNr], 4);
-        break;
-      case BMS_MAX_CELL_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsMaxCellVoltage[u8_bmsNr], 2);
-        break;
-      case BMS_MIN_CELL_VOLTAGE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsMinCellVoltage[u8_bmsNr], 2);
-        break;
-      case BMS_MAX_VOLTAGE_CELL_NUMBER:
-        Wire.write((uint8_t*)&p_lBmsData->bmsMaxVoltageCellNumber[u8_bmsNr], 1);
-        break;
-      case BMS_MIN_VOLTAGE_CELL_NUMBER:
-        Wire.write((uint8_t*)&p_lBmsData->bmsMinVoltageCellNumber[u8_bmsNr], 1);
-        break;
-      case BMS_IS_BALANCING_ACTIVE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsIsBalancingActive[u8_bmsNr], 1);
-        break;
-      case BMS_BALANCING_CURRENT:
-        Wire.write((uint8_t*)&p_lBmsData->bmsBalancingCurrent[u8_bmsNr], 4);
-        break;
-      case BMS_TEMPERATURE:
-        Wire.write((uint8_t*)&p_lBmsData->bmsTempature[u8_bmsNr], 12);
-        break;
-      case BMS_CHARGE_PERCENT:
-        Wire.write((uint8_t*)&p_lBmsData->bmsChargePercentage[u8_bmsNr], 1);
-        break;
-      case BMS_ERRORS:
-        Wire.write((uint8_t*)&p_lBmsData->bmsErrors[u8_bmsNr], 4);
-        break;
-      case BMS_LAST_DATA_MILLIS:
-        if(p_lBmsData->bmsLastDataMillis[u8_bmsNr]+5000>millis()) Wire.write(true);
-        else Wire.write(false);
-        break;
-
-      default:
-        break;
-    }
-  }
-  #endif
 }
 
 
@@ -116,6 +59,15 @@ void onReceive(int len)
       u8_lRxCnt++;
     }
   }
+}
+
+
+void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data)
+{
+  Wire.beginTransmission(u8_i2cDevAdr);
+  Wire.write(u8_reg);
+  Wire.write(u8_data);
+  Wire.endTransmission();
 }
 
 
@@ -195,6 +147,22 @@ void isI2CdeviceConn()
       ESP_LOGI(TAG,"Slave %i (Adr=%i) not found (%i)",i,u8_slaveAdr,u8_lErr);
     }  
   }
+
+  //Serial Extension
+  Wire.beginTransmission(I2C_DEV_ADDR_SERIAL_EXTENSION);
+  Wire.write(txBuf,1);
+  u8_lErr = Wire.endTransmission();
+  if (u8_lErr == 0)
+  {
+    bo_mSerialExtEnabled = true;
+    ESP_LOGI(TAG,"Serial Ext. found");
+    i2cInitExtSerial();
+  }
+  else
+  {
+    bo_mSerialExtEnabled = false;
+    ESP_LOGI(TAG,"Serial Ext. not found (%i)",u8_lErr);
+  }   
   
 }
 
@@ -403,7 +371,7 @@ void i2cSendDataToMaster()
         Wire.write((uint8_t*)&p_lBmsData->bmsErrors[u8_bmsNr], 4);
         break;
       case BMS_LAST_DATA_MILLIS:
-        if(p_lBmsData->bmsLastDataMillis[u8_bmsNr]+5000>millis()) Wire.write(true);
+        if((millis()-p_lBmsData->bmsLastDataMillis[u8_bmsNr])<5000) Wire.write(true);
         else Wire.write(false);
         break;
 
@@ -466,4 +434,48 @@ void displaySendData_bms()
 
   uint16_t u16_lBscAlarms = getAlarm();
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);
+}
+
+
+
+void i2cInitExtSerial()
+{
+  /*
+  A0	A1	A2	I2C-Adresse
+  0	  0	  0	  0x20 (32)
+  1	  0	  0	  0x21 (33)
+  0	  1	  0	  0x22 (34)
+  1	  1	  0	  0x23 (35)
+  0	  0	  1	  0x24 (36)
+  1	  0	  1	  0x25 (37)
+  0	  1	  1	  0x26 (38)
+  1	  1	  1	  0x27 (39)
+  */
+
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0);
+
+}
+
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, boolean bo_write)
+{
+  uint8_t value=0;
+  const char RX_EN = 0x01;
+  const char TX_EN = 0x02;
+
+  if(u8_serialDevNr<4)
+  {
+    if(bo_write) value = (RX_EN<<(u8_serialDevNr*2));
+    else value = (TX_EN<<(u8_serialDevNr*2));
+    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, value);
+    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0x0);
+  }
+  else
+  {
+    if(bo_write) value = (RX_EN<<(u8_serialDevNr*2));
+    else value = (TX_EN<<(u8_serialDevNr*2));
+    value = (RX_EN<<((u8_serialDevNr-4)*2));
+    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0x0);
+    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, value);
+  }
 }
