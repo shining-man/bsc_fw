@@ -931,11 +931,12 @@ void setup()
   server.on("/owTempLive",handlePage_htmlPageOwTempLive);
   server.on("/getOwTempData",handle_getOwTempData);
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
-  //server.on("/bsc.css", HTTP_GET, []() {if(!handleFileRead(&server, "/bscdata/bsc.css")){server.send(404, "text/plain", "FileNotFound");}});
 
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
+
+  //server.on("/websettings.js", HTTP_GET, []() {server.send(200, "text/javascript", webSettingsJs);});
+  //server.on("/websettings.css", HTTP_GET, []() {server.send(200, "text/css", webSettingsCss);});
 
   webota.init(&server, "/settings/webota/"); //webota
 

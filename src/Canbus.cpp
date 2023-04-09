@@ -1093,25 +1093,69 @@ void sendCanMsg_359()
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000010;
+    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000010;
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 |= B00000010;
+          break;
+        }
+      }
+    }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000100;
+    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000100;
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 |= B00000100;
+          break;
+        }
+      }
+    }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00001000;
+    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00001000;
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 |= B00001000;
+          break;
+        }
+      }
+    }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) msgData.u8_b1 |= B00010000;
+    //if(getAlarm(u8_lValue-1)) msgData.u8_b1 |= B00010000;
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 |= B00010000;
+          break;
+        }
+      }
+    }
   }
 
   msgData.u8_b2=0;
@@ -1265,40 +1309,88 @@ void sendCanMsg_35a()
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) 
+    /*if(getAlarm(u8_lValue-1)) 
     {
       msgData.u8_b0 &= ~(BB1_OK);
       msgData.u8_b0 |= BB1_ALARM;
+    }*/
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 &= ~(BB1_OK);
+          msgData.u8_b0 |= BB1_ALARM;
+          break;
+        }
+      }
     }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) 
+    /*if(getAlarm(u8_lValue-1)) 
     {
       msgData.u8_b0 &= ~(BB2_OK);
       msgData.u8_b0 |= BB2_ALARM;
+    }*/
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 &= ~(BB2_OK);
+          msgData.u8_b0 |= BB2_ALARM;
+          break;
+        }
+      }
     }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) 
+    /*if(getAlarm(u8_lValue-1)) 
     {
       msgData.u8_b0 &= ~(BB3_OK);
       msgData.u8_b0 |= BB3_ALARM;
+    }*/
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b0 &= ~(BB3_OK);
+          msgData.u8_b0 |= BB3_ALARM;
+          break;
+        }
+      }
     }
   }
 
   u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
   if(u8_lValue>0)
   {
-    if(getAlarm(u8_lValue-1)) 
+    /*if(getAlarm(u8_lValue-1)) 
     {
       msgData.u8_b1 &= ~(BB0_OK);
       msgData.u8_b1 |= BB0_ALARM;
+    }*/
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          msgData.u8_b1 &= ~(BB0_OK);
+          msgData.u8_b1 |= BB0_ALARM;
+          break;
+        }
+      }
     }
   }
 
@@ -1347,8 +1439,17 @@ void sendCanMsg_373()
   msgData.minCellColtage = u16_lCellVoltageMin;*/
   msgData.maxCellVoltage = getMaxCellSpannungFromBms();
   msgData.minCellColtage = getMinCellSpannungFromBms();
-  msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,1);
-  msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,2);
+
+  if(getBmsTempature(u8_mBmsDatasource,1)>getBmsTempature(u8_mBmsDatasource,2))
+  {
+    msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,2);
+    msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,1);
+  }
+  else
+  {
+    msgData.minCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,1);
+    msgData.maxCellTemp = 273 + getBmsTempature(u8_mBmsDatasource,2);
+  }
 
   sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
 }
