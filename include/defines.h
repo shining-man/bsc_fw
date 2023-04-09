@@ -7,8 +7,10 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.8"
+#define BSC_SW_VERSION      "V0.3.8a"
 static const char COMPILE_DATE_TIME[] = "";
+
+#define HTML_MINIFY
 
 //Debug
 #define DEBUG_ON_FS
@@ -24,7 +26,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
-//#define WLAN_DEBUG        
+#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define WEBSET_DEBUG

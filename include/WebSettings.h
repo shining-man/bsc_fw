@@ -17,20 +17,21 @@
 |(listIdx & 0x7F)
 
 
-#define HTML_INPUTTEXT         0
-#define HTML_INPUTTEXTAREA     1
-#define HTML_INPUTPASSWORD     2
-#define HTML_INPUTNUMBER       3
-#define HTML_INPUTFLOAT        4
-#define HTML_INPUTRANGE        5
-#define HTML_INPUTDATE         6
-#define HTML_INPUTTIME         7
-#define HTML_INPUTCOLOR        8
-#define HTML_INPUTSELECT       9
-#define HTML_INPUTCHECKBOX     10
-#define HTML_INPUTMULTICHECK   11
-#define HTML_OPTIONGROUP       12
-#define HTML_SEPARATION        13
+#define HTML_INPUTTEXT                    0
+#define HTML_INPUTTEXTAREA                1
+#define HTML_INPUTPASSWORD                2
+#define HTML_INPUTNUMBER                  3
+#define HTML_INPUTFLOAT                   4
+#define HTML_INPUTRANGE                   5
+#define HTML_INPUTDATE                    6
+#define HTML_INPUTTIME                    7
+#define HTML_INPUTCOLOR                   8
+#define HTML_INPUTSELECT                  9
+#define HTML_INPUTCHECKBOX                10
+#define HTML_INPUTMULTICHECK              11
+#define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
+#define HTML_OPTIONGROUP                  12
+#define HTML_SEPARATION                   13
 
 #define BACKGROUND_COLOR "#ffffff" 
 
@@ -141,7 +142,7 @@ private:
   void createHtmlCheckbox(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
   void createHtmlStartSelect(char * buf, uint64_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
-  void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
+  void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
   void createHtmlAddMultiOption(char * buf, uint32_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value);
 
   void (*fn_mOnButtonSave)() = NULL;

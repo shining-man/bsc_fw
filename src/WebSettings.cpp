@@ -5,6 +5,7 @@
 
 
 #include "WebSettings.h"
+#include "web/webSettings_web.h"
 #include "defines.h"
 #include <Arduino.h>
 #include "SPIFFS.h"
@@ -40,68 +41,8 @@ const char HTML_START[] PROGMEM = R"rawliteral(
 <meta http-equiv='Content-Type' content='text/html' charset='utf-8'/>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BSC</title>
-<style>
-html {font-family:Helvetica; display:inline-block; margin:0px auto; text-align:left;}
-body {margin: 0; background-color: %s;}
-.content {padding:20px; max-width:600px;}
-.topnav {overflow: hidden;position:sticky;top:0;background-color:#6E6E6E;color:white;padding:5px;cursor:default;}
-.topnav span {float: left; padding: 14px 16px; text-decoration: none; font-size:1.7rem;}
-.btnBack:hover {background-color:#555555;color:white;}
-.hl {flex:1;font-size:2rem;}
-.titel {font-weight:bold; text-align:left; padding:5px;}
-.Ctr {text-align: left;}
-.Ctd {width:150; padding:10px 5px 0 5px; text-align: left; vertical-align: top;}
-.Ctd2 {text-align: left; vertical-align: top; padding:15px 0 0 0;}
-.td0 {padding: 0 5px 0 5px;}
-.help {border-left:2px solid black; 
-  border-bottom: 1px solid #fff0;
-  border-image: linear-gradient(90deg, #000, #000 1%% ,#FFF 1.5%%, #fff 100%%);
-  border-image-slice: 1;
-  padding:0 0 0 2px; margin:0 0 0 5px;
-  text-align:left; vertical-align:top;}
-.sep {padding:2px; border-top:15px solid #fff; background: linear-gradient(90deg, #f0f0f0 40%%, #fff0 80%%);}
-button {font-size:100%%; width:150px; padding:0px; margin:10px 0 0 0;}
-.sb {font-size:100%%; width:25px; height:25px; padding:0px; margin:5px 0 0 0;}
-input:invalid {border:1px solid red;}
-input:valid {border:1px solid green;}
-.secVal {padding:0 0 0 10px;}
-fieldset{padding:0px; margin:0px; border:0px;}
-</style>
 )rawliteral";
 
-const char HTML_STYLE_2[] PROGMEM = R"rawliteral(
-<style>
-.loading-container {
-  margin: 0px;
-  padding: 0px;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translateX(-50%) translateY(-50%);
-}
-
-.loading-spinner {
-  display: block;
-  width: 100px;
-  height: 100px;
-  border: 7px solid #87ceeb3b;
-  border-radius: 50%;
-  border-top-color: #4682b4;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    -webkit-transform: rotate(360deg);
-  }
-}
-</style>
-)rawliteral";
 
 const char HTML_START_2[] PROGMEM = R"rawliteral(
 </head>
@@ -125,87 +66,6 @@ const char HTML_END_1[] PROGMEM = R"rawliteral(
 const char HTML_END_2[] PROGMEM = R"rawliteral(
 </div>
 <br><div id='data_div'></div>
-<script>
-function btnClick(btn) {
-  var xhttp = new XMLHttpRequest();
-  xhttp.open('POST','?'+btn+'=',true);
-  xhttp.timeout=1000;
-  xhttp.send();  
-}
-
-function urlencode(str) {
-  str = (str + '').toString();
-  return encodeURIComponent(str)
-    .replace('!', '%21')
-    .replace('\'', '%27')
-    .replace('(', '%28')
-    .replace(')', '%29')
-    .replace('*', '%2A')
-    .replace('%20', '+');
-}
-
-const collection = document.getElementsByClassName('t1');
-for (let i = 0; i < collection.length; i++){
-  var button = document.createElement('button');
-  button.type = 'button';
-  button.innerHTML = 'S';
-  button.className = 'sb';
-  button.addEventListener("click", function(event){
-    let t1=this.parentNode.previousSibling.firstChild;
-
-    if (t1.checkValidity() === false){
-      alert('Fehler');
-      return;
-    }
-
-    var name=t1.getAttribute('name');
-    var val=0;
-    if(t1.nodeName=='SELECT'){
-      val=t1.options[t1.selectedIndex].value; 
-    }else if(t1.nodeName=='INPUT'){
-      if(t1.type=='checkbox'){
-        if(t1.checked){val=1;}
-        else{val=0;}
-      }else{
-        val=t1.value;
-      }
-    }else if(t1.nodeName=='FIELDSET'){
-      var ele = t1.getElementsByTagName('INPUT');
-      name=ele[0].getAttribute('name');
-      for(i=0; i<ele.length; i++) if(ele[i].checked) val|=(1<<i);
-    }else{
-      val=t1.value;
-    }
-
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function(){
-      if (this.readyState==4 && this.status==200){
-        alert(this.responseText);
-      }
-    };
-    xhttp.open('GET','?SAVE=&'+name+'='+urlencode(val),true);
-    xhttp.timeout=5000;
-    xhttp.send();
-  });
-  collection[i].appendChild(button);
-}
-document.getElementById('lc').style.display = 'none';
-</script>
-)rawliteral";
-
-const char HTML_SCRIPT_2[] PROGMEM = R"rawliteral(
-<script>
-function copyStringToClipboard (str) {
-   var el = document.createElement('textarea');
-   el.value = str;
-   el.setAttribute('readonly', '');
-   el.style = {position: 'absolute', left: '-9999px'};
-   document.body.appendChild(el);
-   el.select();
-   document.execCommand('copy');
-   document.body.removeChild(el);
-}
-</script>
 )rawliteral";
 
 const char HTML_END_3[] PROGMEM = R"rawliteral(
@@ -213,38 +73,6 @@ const char HTML_END_3[] PROGMEM = R"rawliteral(
 </html>
 )rawliteral";
 
-const char HTML_SCRIPT[] PROGMEM = R"rawliteral(
-<script>
-function getData() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      let values = this.responseText.split('|');
-      if(values.length==1){
-        document.getElementById('data_div').innerHTML = this.responseText;
-      }else{
-        for (let i=0; i<(values.length); i++){
-          let value = values[i].split(';');
-          if(value[0]=='display'){
-            document.getElementById('lc').style.display = value[1]; 
-          }else if(value[0]=='btn1'){
-            if(value[1]=='0'){document.getElementById("btn1").disabled = true;}
-            else{document.getElementById("btn1").disabled = false;}    
-          }else{
-            document.getElementById(value[0]).innerHTML = value[1] + '';
-          }
-        }
-      }
-    }
-  };
-  xhttp.open('GET', '%s', true);
-  xhttp.timeout=1000;
-  xhttp.send();
-  var timer = window.setTimeout('getData()', %i);
-}
-getData();
-</script>
-)rawliteral";
 
 const char HTML_ENTRY_TEXTFIELD[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
@@ -263,13 +91,15 @@ const char HTML_ENTRY_RANGE[] PROGMEM =
 "<td class='Ctd'>%i&nbsp;<input type='range' min='%i' max='%i' value='%s' name='%s'>&nbsp;%i</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
 const char HTML_ENTRY_CHECKBOX[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td><td class='Ctd'><input type='checkbox' %s name='%s'></td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n"; 
+
 const char HTML_ENTRY_SELECT_START[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><select name='%s'>\n";
 const char HTML_ENTRY_SELECT_OPTION[] PROGMEM =
-"<option value='%s' %s>%s</option>\n"; //
+"<option value='%s' %s>%s</option>\n";
 const char HTML_ENTRY_SELECT_END[] PROGMEM =
 "</select></td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
+
 const char HTML_ENTRY_MULTI_START[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><fieldset style='text-align:left;'>\n";
@@ -278,8 +108,18 @@ const char HTML_ENTRY_MULTI_OPTION[] PROGMEM =
 const char HTML_ENTRY_MULTI_END[] PROGMEM =
 "</fieldset></td><td class='t1'></td></tr>\n";  //<td class='Ctd'><span class='secVal' id='s%s'></span></td>
 
-//const char HTML_GROUP_START[] PROGMEM = "</table><details open><summary><b>%s</b></summary><table>\n";
-//const char HTML_GROUP_END[]   PROGMEM = "</table></details><table>\n";
+const char HTML_ENTRY_MULTI_COLLAPSIBLE_START[] PROGMEM =
+"<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
+"<td class='Ctd'>\n"
+"<input id='t%i' class='toggle' type='checkbox'>\n"
+"<label for='t%i' class='lbl-toggle'>%s</label>\n"
+"<div class='collapsible-content'>\n"
+"<div class='content-inner'>\n"
+"<fieldset style='text-align:left;'>\n";
+const char HTML_ENTRY_MULTI_COLLAPSIBLE_END[] PROGMEM =
+"</fieldset></div></div></td><td class='t1'></td></tr>\n";
+
+
 const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='3'><b>%s</b></td></tr>\n";
 
 const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
@@ -501,11 +341,13 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
     if(!exit)
     {  
       server->setContentLength(CONTENT_LENGTH_UNKNOWN);
-      sprintf(_buf,HTML_START,BACKGROUND_COLOR); //Titel der Seite
+      sprintf(_buf,HTML_START/*,BACKGROUND_COLOR*/);
       server->send(200, "text/html", _buf);
 
-      sendContentHtml(server,HTML_STYLE_2,false);
+      //sendContentHtml(server,HTML_STYLE_2,false);
       
+      sendContentHtml(server,webSettingsStyle,false);
+
       sprintf(_buf,HTML_START_2,str_mConfName.c_str());
       sendContentHtml(server,_buf,false);
 
@@ -531,12 +373,12 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
       }
 
       sendContentHtml(server,HTML_END_2,false); 
-      sendContentHtml(server,HTML_SCRIPT_2,false); 
+      sendContentHtml(server,webSettingsScript,false); 
 
       //Timer bei bedarf einfügen
       if(!str_mAjaxGetDataTimerHandlerName.equals(""))
       {
-        sprintf(_buf,HTML_SCRIPT,str_mAjaxGetDataTimerHandlerName.c_str(),u16_mAjaxGetDataTimerSec);
+        sprintf(_buf,webSettingsScript_Timer,str_mAjaxGetDataTimerHandlerName.c_str(),u16_mAjaxGetDataTimerSec);
         sendContentHtml(server,_buf,false);
       }
 
@@ -647,7 +489,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         u64_jsonName = u64_jsonName | ((uint64_t)u8_dataType<<32) | (1ULL<<40);
       }
 
-      switch (getJsonType(parameter, a, jsonStartPos))
+      uint8_t u8_lJsonType = getJsonType(parameter, a, jsonStartPos);
+      switch(u8_lJsonType)
       {
         case HTML_OPTIONGROUP:
           //bo_lIsGroup=true;
@@ -710,7 +553,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         case HTML_INPUTCHECKBOX: 
           createHtmlCheckbox(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
           break;
-        case HTML_INPUTSELECT: 
+        case HTML_INPUTSELECT:
           createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
           optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
           mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
@@ -728,18 +571,19 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           sendContentHtml(server,_buf,false);
           sprintf(_buf,HTML_ENTRY_SELECT_END,String(u32_jsonName));
           break;
-        case HTML_INPUTMULTICHECK: 
-          createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos);
+        case HTML_INPUTMULTICHECK:
+        case HTML_INPUTMULTICHECK_COLLAPSIBLE:
+          createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
           optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
           mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
           for (uint8_t j = 0 ; j<optionsCnt; j++)
           {
             sendContentHtml(server,_buf,false);
-            //createHtmlAddMultiOption(_buf,&u64_jsonName,parameter,a,jsonStartPos,j,mOptionLabels[j],getInt(u64_jsonName,bo_loadFromFlash,u8_dataType));
             createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,mOptionLabels[j],getInt(u32_jsonName));
           }
           sendContentHtml(server,_buf,false);
-          strcpy_P(_buf,HTML_ENTRY_MULTI_END);
+          if(u8_lJsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE) strcpy_P(_buf,HTML_ENTRY_MULTI_COLLAPSIBLE_END);
+          else strcpy_P(_buf,HTML_ENTRY_MULTI_END);;
           break;
         case HTML_SEPARATION:
           sprintf(_buf,HTML_ENTRY_SEPARATION,jsonLabel.c_str());
@@ -930,9 +774,17 @@ void WebSettings::createHtmlAddSelectOption(char * buf, String option, String la
   }
 }
 
-void WebSettings::createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos)
+void WebSettings::createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType)
 {
-  sprintf(buf,HTML_ENTRY_MULTI_START,label->c_str());
+  if(u8_jsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE)
+  {
+    uint32_t u32_lMillis = millis();
+    sprintf(buf,HTML_ENTRY_MULTI_COLLAPSIBLE_START,label->c_str(),u32_lMillis,u32_lMillis,label->c_str());
+  }
+  else
+  {
+    sprintf(buf,HTML_ENTRY_MULTI_START,label->c_str());
+  }
 }
 
 void WebSettings::createHtmlAddMultiOption(char * buf, uint32_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value)
