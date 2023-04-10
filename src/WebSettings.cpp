@@ -43,7 +43,6 @@ const char HTML_START[] PROGMEM = R"rawliteral(
 <title>BSC</title>
 )rawliteral";
 
-
 const char HTML_START_2[] PROGMEM = R"rawliteral(
 </head>
 <body>
@@ -182,7 +181,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
 
   if (!prefs.begin("prefs"))
   {
-    //ESP_LOGE(TAG,"Fehler beim Öffnen des NVS-Namespace");
+    //ESP_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
   }
   else
   {
@@ -301,7 +300,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
             }
             else //Store in RAM
             {
-              ESP_LOGD(TAG,"Store in RAM; u32_argName=%i",u32_argName);
+              //ESP_LOGD(TAG,"Store in RAM; u32_argName=%i",u32_argName);
 
               setString(u32_argName, argValue); 
               writeConfig(); //Schreiben der Einstellungen in das Config file
@@ -579,7 +578,10 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           for (uint8_t j = 0 ; j<optionsCnt; j++)
           {
             sendContentHtml(server,_buf,false);
-            createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,mOptionLabels[j],getInt(u32_jsonName));
+            String str_lNewLabel = mOptionLabels[j];
+            String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+            if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
+            createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,getInt(u32_jsonName));
           }
           sendContentHtml(server,_buf,false);
           if(u8_lJsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE) strcpy_P(_buf,HTML_ENTRY_MULTI_COLLAPSIBLE_END);
