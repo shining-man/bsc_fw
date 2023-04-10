@@ -23,8 +23,10 @@ void sendCanMsg_355();
 void sendCanMsg_356();
 void sendCanMsg_359();
 void sendCanMsg_35a();
-void sendCanMsg_373();
+void sendCanMsg_373_376_377();
 void sendCanMsgTemp();
+void sendCanMsg_372();
+void sendCanMsg_35f();
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
 void onCanReceive(int packetSize);
@@ -55,6 +57,9 @@ int16_t  i16_mAktualDischargeCurrentSoll=0;
 enum SM_SocZellspgStates {STATE_MINCELLSPG_SOC_WAIT_OF_MIN=0, STATE_MINCELLSPG_SOC_BELOW_MIN, STATE_MINCELLSPG_SOC_LOCKTIMER};
 uint8_t  u8_mSocZellspannungState;
 uint16_t u16_mSocZellspannungSperrzeitTimer;
+
+//uint8_t u8_mModulesCntCharge;
+//uint8_t u8_mModulesCntDischarge;
 
 struct data351
 {
@@ -195,8 +200,6 @@ void canSetSocToFull(bool val)
   alarmSetSocToFull = val;
 }
 
-
-
 uint16_t getAktualChargeCurrentSoll()
 {
   return i16_mAktualChargeCurrentSoll;
@@ -239,7 +242,7 @@ void sendBmsCanMessages()
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35e();
       vTaskDelay(pdMS_TO_TICKS(5));
-      sendCanMsg_359();
+      sendCanMsg_359(); //Alarms
       break;
 
     case ID_CAN_DEVICE_VICTRON:
@@ -250,23 +253,21 @@ void sendBmsCanMessages()
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35e();
       vTaskDelay(pdMS_TO_TICKS(5));
-      sendCanMsg_35a(); //Alarm Details
-      //sendCanMsg_359(); //Alarms
+      sendCanMsg_35a(); //Alarms
       vTaskDelay(pdMS_TO_TICKS(5));
 
-      //372
-      //35f
+      sendCanMsg_372();
+      sendCanMsg_35f();
 
       sendCanMsg_355();
       vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_356();
       vTaskDelay(pdMS_TO_TICKS(5));
-      sendCanMsg_373();
+      sendCanMsg_373_376_377();
 
       //sendCanMsgTemp();
 
-      //374, 375, 376, 377
-      //359
+      //374, 375, 376, 377, 359
       break;
 
     default:
@@ -275,14 +276,85 @@ void sendBmsCanMessages()
 }
 
 
+uint8_t getNumberOfBatteryModules()
+{
+  uint8_t u8_lModules=1;
+
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        u8_lModules++;
+      }
+    }
+  }
+  return u8_lModules;
+}
+
+uint8_t getNumberOfBatteryModulesCharge()
+{
+  uint8_t u8_lModules=0;
+  if(getBmsStateFETsCharge(u8_mBmsDatasource)) u8_lModules++;
+        
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        if(getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
+        {
+          u8_lModules++;
+        }
+      }
+    }
+  }
+  return u8_lModules;
+}
+
+uint8_t getNumberOfBatteryModulesDischarge()
+{
+  uint8_t u8_lModules=0;
+  if(getBmsStateFETsDischarge(u8_mBmsDatasource)) u8_lModules++;
+        
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        if(getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
+        {
+          u8_lModules++;
+        }
+      }
+    }
+  }
+  return u8_lModules;
+}
+
+void buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr)
+{
+  memset(buffer, 0, 8); // Clear
+  if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
+  else snprintf(buffer, 8, "S%d C%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
+}
+
+
+
 //Maximale Zellspannung von allen aktiven BMSen ermitteln
 uint16_t getMaxCellSpannungFromBms()
 {
-  uint8_t u8_lBmsNr=0; //nur zum Debug
-  uint8_t u8_lCellNr=0;  //nur zum Debug
+  uint8_t u8_lBmsNr=0;
+  uint8_t u8_lCellNr=0;
 
 
   uint16_t u16_lCellSpg = getBmsMaxCellVoltage(u8_mBmsDatasource);
+  u8_lBmsNr=u8_mBmsDatasource; 
+  u8_lCellNr=getBmsMaxVoltageCellNumber(u8_mBmsDatasource);
+
   if(u8_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMaxCellSpg=0;
@@ -296,8 +368,8 @@ uint16_t getMaxCellSpannungFromBms()
           if(u16_lMaxCellSpg>u16_lCellSpg)
           {
             u16_lCellSpg=u16_lMaxCellSpg; 
-            u8_lBmsNr=i; //nur zum Debug
-            u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); //nur zum Debug
+            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
+            u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i);
           }
         }
       }
@@ -312,6 +384,11 @@ uint16_t getMaxCellSpannungFromBms()
     ESP_LOGD(TAG,"getMaxCellSpannung: MaxSpg=%i",u16_lCellSpg); //nur zum Debug
   }
   #endif
+
+  char buf[8];
+  buildBatteryCellText(buf,u8_lBmsNr,u8_lCellNr);
+  sendCanMsg(0x375, (uint8_t *)&buf, 8);
+
   return u16_lCellSpg;
 }
 
@@ -319,11 +396,13 @@ uint16_t getMaxCellSpannungFromBms()
 //Minimale Zellspannung von allen aktiven BMSen ermitteln
 uint16_t getMinCellSpannungFromBms()
 {
-  uint8_t u8_lBmsNr=0; //nur zum Debug
-  uint8_t u8_lCellNr=0;  //nur zum Debug
-
+  uint8_t u8_lBmsNr=0;
+  uint8_t u8_lCellNr=0;
 
   uint16_t u16_lCellSpg = getBmsMinCellVoltage(u8_mBmsDatasource);
+  u8_lBmsNr=u8_mBmsDatasource; 
+  u8_lCellNr=getBmsMinVoltageCellNumber(u8_mBmsDatasource);
+
   if(u8_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMinCellSpg=0;
@@ -337,8 +416,8 @@ uint16_t getMinCellSpannungFromBms()
           if(u16_lMinCellSpg<u16_lCellSpg)
           {
             u16_lCellSpg=u16_lMinCellSpg; 
-            u8_lBmsNr=i; //nur zum Debug
-            u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); //nur zum Debug
+            u8_lBmsNr=i;
+            u8_lCellNr=getBmsMinVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); 
           }
         }
       }
@@ -353,6 +432,11 @@ uint16_t getMinCellSpannungFromBms()
     ESP_LOGD(TAG,"getMinCellSpannung: MinSpg=%i",u16_lCellSpg); //nur zum Debug
   }
   #endif
+
+  char buf[8];
+  buildBatteryCellText(buf,u8_lBmsNr,u8_lCellNr);
+  sendCanMsg(0x374, (uint8_t *)&buf, 8);
+
   return u16_lCellSpg;
 }
 
@@ -363,8 +447,8 @@ uint16_t getMaxCellDifferenceFromBms()
   uint8_t u8_lBmsNr=0; //nur zum Debug
   uint8_t u8_lCellNr=0;  //nur zum Debug
 
-
   uint16_t u16_lCellDiff = getBmsMaxCellDifferenceVoltage(u8_mBmsDatasource);
+
   if(u8_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMaxCellDiff=0;
@@ -378,7 +462,7 @@ uint16_t getMaxCellDifferenceFromBms()
           if(u16_lMaxCellDiff>u16_lCellDiff)
           {
             u16_lCellDiff=u16_lMaxCellDiff; 
-            u8_lBmsNr=i; //nur zum Debug
+            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;  //nur zum Debug
             u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); //nur zum Debug
           }
         }
@@ -394,6 +478,7 @@ uint16_t getMaxCellDifferenceFromBms()
     ESP_LOGD(TAG,"getMaxCellDifference: MaxDiff=%i",u16_lCellDiff); //nur zum Debug
   }
   #endif
+
   return u16_lCellDiff;
 }
 
@@ -738,6 +823,7 @@ void sendCanMsg_351()
     {
       int16_t i16_lMaxChargeCurrentOld=i16_mMaxChargeCurrent;
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,0,0));
+      //u8_mModulesCntCharge=1;
       
       //Maximalen Ladestrom aus den einzelnen Packs errechnen
       if(u8_mBmsDatasourceAdd>0)
@@ -751,6 +837,7 @@ void sendCanMsg_351()
               getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
             {
               u16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_CHARGE_CURRENT,0,i,0);
+              //u8_mModulesCntCharge++;
             }
           }
         }
@@ -804,6 +891,7 @@ void sendCanMsg_351()
     else
     {
       int16_t i16_lMaxCurrent = (int16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,0,0);
+      //u8_mModulesCntDischarge=1;
 
       //Maximalen Entladestrom aus den einzelnen Packs errechnen
       if(u8_mBmsDatasourceAdd>0)
@@ -816,6 +904,7 @@ void sendCanMsg_351()
               getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
             {
               i16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,0,i,0);
+              //u8_mModulesCntDischarge++;
             }
           }
         }
@@ -1090,73 +1179,11 @@ void sendCanMsg_359()
 
 
   //Alarme über Trigger einbinden
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
-  if(u8_lValue>0)
-  {
-    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000010;
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 |= B00000010;
-          break;
-        }
-      }
-    }
-  }
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0)) msgData.u8_b0 |= B00000010;
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0)) msgData.u8_b0 |= B00000100;
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0)) msgData.u8_b0 |= B00001000;
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0)) msgData.u8_b0 |= B00010000;
 
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
-  if(u8_lValue>0)
-  {
-    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00000100;
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 |= B00000100;
-          break;
-        }
-      }
-    }
-  }
-
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
-  if(u8_lValue>0)
-  {
-    //if(getAlarm(u8_lValue-1)) msgData.u8_b0 |= B00001000;
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 |= B00001000;
-          break;
-        }
-      }
-    }
-  }
-
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
-  if(u8_lValue>0)
-  {
-    //if(getAlarm(u8_lValue-1)) msgData.u8_b1 |= B00010000;
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 |= B00010000;
-          break;
-        }
-      }
-    }
-  }
 
   msgData.u8_b2=0;
   msgData.u8_b3=0;
@@ -1306,92 +1333,28 @@ void sendCanMsg_35a()
 
 
   //Alarme über Trigger einbinden
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0);
-  if(u8_lValue>0)
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE,0,0,0))
   {
-    /*if(getAlarm(u8_lValue-1)) 
-    {
-      msgData.u8_b0 &= ~(BB1_OK);
-      msgData.u8_b0 |= BB1_ALARM;
-    }*/
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 &= ~(BB1_OK);
-          msgData.u8_b0 |= BB1_ALARM;
-          break;
-        }
-      }
-    }
+    msgData.u8_b0 &= ~(BB1_OK);
+    msgData.u8_b0 |= BB1_ALARM;
   }
 
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0);
-  if(u8_lValue>0)
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE,0,0,0))
   {
-    /*if(getAlarm(u8_lValue-1)) 
-    {
-      msgData.u8_b0 &= ~(BB2_OK);
-      msgData.u8_b0 |= BB2_ALARM;
-    }*/
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 &= ~(BB2_OK);
-          msgData.u8_b0 |= BB2_ALARM;
-          break;
-        }
-      }
-    }
+    msgData.u8_b0 &= ~(BB2_OK);
+    msgData.u8_b0 |= BB2_ALARM;
   }
 
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0);
-  if(u8_lValue>0)
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE,0,0,0))
   {
-    /*if(getAlarm(u8_lValue-1)) 
-    {
-      msgData.u8_b0 &= ~(BB3_OK);
-      msgData.u8_b0 |= BB3_ALARM;
-    }*/
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b0 &= ~(BB3_OK);
-          msgData.u8_b0 |= BB3_ALARM;
-          break;
-        }
-      }
-    }
+    msgData.u8_b0 &= ~(BB3_OK);
+    msgData.u8_b0 |= BB3_ALARM;
   }
 
-  u8_lValue = WebSettings::getInt(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0);
-  if(u8_lValue>0)
+  if(isTriggerActive(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,0,0))
   {
-    /*if(getAlarm(u8_lValue-1)) 
-    {
-      msgData.u8_b1 &= ~(BB0_OK);
-      msgData.u8_b1 |= BB0_ALARM;
-    }*/
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
-    {
-      if((u8_lValue>>i)&0x1)
-      {
-        if(getAlarm(i))
-        {
-          msgData.u8_b1 &= ~(BB0_OK);
-          msgData.u8_b1 |= BB0_ALARM;
-          break;
-        }
-      }
-    }
+    msgData.u8_b1 &= ~(BB0_OK);
+    msgData.u8_b1 |= BB0_ALARM;
   }
 
 
@@ -1400,43 +1363,49 @@ void sendCanMsg_35a()
 }
 
 
-void sendCanMsg_373()
+void sendCanMsg_35f()
+{
+  struct data35f
+  {
+    uint16_t BatteryModel;
+    uint16_t Firmwareversion;
+    uint16_t Onlinecapacity;
+  };
+
+  data35f msgData;
+
+  msgData.BatteryModel = 0;
+  msgData.Firmwareversion = 3;
+  msgData.Onlinecapacity = 0;
+
+  sendCanMsg(0x35f, (uint8_t *)&msgData, sizeof(data35f));
+}
+
+
+void sendCanMsg_372()
+{
+  struct data372
+  {
+    uint16_t numberofmodulesok;
+    uint16_t numberofmodulesblockingcharge;
+    uint16_t numberofmodulesblockingdischarge;
+    // uint16_t numberofmodulesoffline;
+  };
+  data372 msgData;
+
+  msgData.numberofmodulesok = getNumberOfBatteryModules();
+  msgData.numberofmodulesblockingcharge = getNumberOfBatteryModules()-getNumberOfBatteryModulesCharge();
+  msgData.numberofmodulesblockingdischarge = getNumberOfBatteryModules()-getNumberOfBatteryModulesDischarge();
+  //msgData.numberofmodulesoffline = 0;
+
+  sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
+}
+
+
+void sendCanMsg_373_376_377()
 {
   data373 msgData;
 
-  /*uint16_t u16_lCellVoltageMax=getBmsMaxCellVoltage(u8_mBmsDatasource);
-  uint16_t u16_lCellVoltageMin=getBmsMinCellVoltage(u8_mBmsDatasource);
-
-  //Wenn zusätzliche Datenquellen angegeben sind:
-  if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
-  { 
-    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT); 
-  }
-  if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
-  { 
-    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT+1)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT+1); 
-  }
-  if((u8_mBmsDatasourceAdd & 0x04) == 0x04)
-  { 
-    if(getBmsMaxCellVoltage(BT_DEVICES_COUNT+2)>u16_lCellVoltageMax) u16_lCellVoltageMax=getBmsMaxCellVoltage(BT_DEVICES_COUNT+2); 
-  }
-
-  if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
-  { 
-    if(getBmsMinCellVoltage(BT_DEVICES_COUNT)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT); 
-  }
-  if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
-  { 
-    if(getBmsMinCellVoltage(BT_DEVICES_COUNT+1)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT+1); 
-  }
-  if((u8_mBmsDatasourceAdd & 0x04) == 0x04)
-  { 
-    if(getBmsMinCellVoltage(BT_DEVICES_COUNT+2)<u16_lCellVoltageMin) u16_lCellVoltageMin=getBmsMinCellVoltage(BT_DEVICES_COUNT+2); 
-  }
-
-
-  msgData.maxCellVoltage = u16_lCellVoltageMax;
-  msgData.minCellColtage = u16_lCellVoltageMin;*/
   msgData.maxCellVoltage = getMaxCellSpannungFromBms();
   msgData.minCellColtage = getMinCellSpannungFromBms();
 
@@ -1452,7 +1421,11 @@ void sendCanMsg_373()
   }
 
   sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
+
+  //sendCanMsg(0x376, (uint8_t *)&msgData, 8); //lowestExternalTemp
+  //sendCanMsg(0x377, (uint8_t *)&msgData, 8); //highestExternalTemp
 }
+
 
 
 void sendCanMsgTemp()

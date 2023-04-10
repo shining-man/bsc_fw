@@ -711,12 +711,6 @@ void handle_getDashboardData()
   tmp += "|";
   tmp += String(WiFi.RSSI()+100); //0...100 => bad...good
 
-  /*int8_t i8_lRssi = WiFi.RSSI()*-1;
-  if((i8_lRssi)>=0 && i8_lRssi<=50){tmp += "4";} //ausgezeichnet
-  else if(i8_lRssi>50 && i8_lRssi<=65){tmp += "3";} //Sehr gut
-  else if(i8_lRssi>65 && i8_lRssi<=70){tmp += "2";} //Akzeptabel
-  else if(i8_lRssi>70){tmp += "1";} //Schlecht*/
-
   server.send(200, "text/html", tmp.c_str());
 }
 

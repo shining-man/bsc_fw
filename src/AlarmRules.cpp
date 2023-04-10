@@ -88,6 +88,25 @@ void initAlarmRules()
   }
 }
 
+bool isTriggerActive(uint16_t paramId, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+{
+  uint8_t u8_lValue = WebSettings::getInt(paramId,settingNr,groupNr,listNr);
+  if(u8_lValue>0)
+  {
+    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    {
+      if((u8_lValue>>i)&0x1)
+      {
+        if(getAlarm(i))
+        {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 bool getAlarm(uint8_t alarmNr)
 {
   return bo_Alarm[alarmNr];
@@ -527,7 +546,7 @@ void rules_Bms()
       uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
       if(/*b_lBmsOnline==true &&*/ u8_lAlarm>0) 
       {
-        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
+        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
         {
           //Alarm
           setAlarm(u8_lAlarm,true);
@@ -591,43 +610,22 @@ void rules_Temperatur()
 void rules_CanInverter()
 {
   //Ladeleistung bei Alarm auf 0 Regeln
-  uint8_t alarmCurrentToZero = WebSettings::getInt(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,0,0);
-  if(alarmCurrentToZero>0)
-  {
-      if(bo_Alarm[alarmCurrentToZero-1]==true){
-        canSetChargeCurrentToZero(true);
-      }else{
-        canSetChargeCurrentToZero(false);
-      }
-  }
+  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,0,0)) canSetChargeCurrentToZero(true);
+  else canSetChargeCurrentToZero(false);
 
   //Entladeleistung bei Alarm auf 0 Regeln
-  alarmCurrentToZero = WebSettings::getInt(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,0,0);
-  if(alarmCurrentToZero>0)
-  {
-      if(bo_Alarm[alarmCurrentToZero-1]==true){
-        canSetDischargeCurrentToZero(true);
-      }else{
-        canSetDischargeCurrentToZero(false);
-      }
-  }
+  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,0,0)) canSetDischargeCurrentToZero(true);
+  else canSetDischargeCurrentToZero(false);
 
   //SOC bei Alarm auf 100 stellen
-  alarmCurrentToZero = WebSettings::getInt(ID_PARAM_BMS_SOC_AUF_FULL,0,0,0);
-  if(alarmCurrentToZero>0)
-  {
-      if(bo_Alarm[alarmCurrentToZero-1]==true){
-        canSetSocToFull(true);
-      }else{
-        canSetSocToFull(false);
-      }
-  }
+  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,0,0)) canSetSocToFull(true);
+  else canSetSocToFull(false);
 }
 
 
 bool temperatur_maxWertUeberwachung(uint8_t i)
 {
-  float maxTemp = WebSettings::getInt(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float maxTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
 
   if(maxTemp<=0) return false; //Wenn keine Max.Temp. angegeben ist
 
@@ -645,7 +643,7 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
 bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
 {
   float aktTemp = 0;
-  float tempOffset = WebSettings::getInt(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float tempOffset = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
 
   aktTemp = tempOffset + owGetTemp(WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,0,i,0));
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
@@ -664,7 +662,7 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
   float f_lTempMin = 0xFF;
   float f_lTempMax = 0;
 
-  float f_lMaxTempDiff = WebSettings::getInt(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float f_lMaxTempDiff = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
   
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
   {

@@ -19,5 +19,6 @@ void changeAlarmSettings();
 
 bool getAlarm(uint8_t alarmNr);
 uint16_t getAlarm();
+bool isTriggerActive(uint16_t paramId, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
 
 #endif

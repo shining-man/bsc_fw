@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.8a"
+#define BSC_SW_VERSION      "V0.3.8c"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -76,6 +76,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define SERIAL1_PIN_TX_EN            18
 #define SERIAL2_PIN_RX               23
 #define SERIAL2_PIN_TX               25
+#define SERIAL2_PIN_RX_EN             3
 #define SERIAL2_PIN_TX_EN             2
 #define SERIAL3_PIN_RX               35
 #define SERIAL3_PIN_TX               33

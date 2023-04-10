@@ -209,21 +209,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   return true;
 }
 
-/*
-static void checkMsgLen(uint8_t * t_message)
-{
-  // num_of_cells   frame_size   data_len
-  // 8              65           118 (0x76)   guessed
-  // 14             77           142 (0x8E)
-  // 15             79           146 (0x92)
-  // 16             81           150 (0x96)
-  // 24             97           182 (0xB6)   guessed
-  if (t_message.size() >= 65 && data[8] >= 8 && data[8] <= 24) {
-    this->on_telemetry_data_(data);
-    return;
-  }
-}
-*/
 
 static void parseMessage(uint8_t * t_message, uint8_t address)
 {
@@ -260,7 +245,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   //   4    0x10             Data length checksum  LCHKSUM
   //   5    0x96             Data length           LENID      150 / 2 = 75
   //   6    0x00             Data flag
-  //   7    0x01             Command group
+  //   7    0x00             Command group (Nr. Batterygroup)
   //   8    0x10             Number of cells                  16  
   //   9      0x0C 0xD7      Cell voltage 1                   3287 * 0.001f = 3.287         V
   //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
