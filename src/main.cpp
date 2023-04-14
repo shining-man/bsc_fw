@@ -34,15 +34,7 @@ static const char *TAG = "MAIN";
 
 WebServer server;
 BleHandler* bleHandler;
-
-//Serial
-BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);   // Hw Serial 1
-BscSerial bscSerial2(1,2,SERIAL2_PIN_RX,SERIAL2_PIN_TX,SERIAL2_PIN_TX_EN);   // Hw Serial 2
-#ifndef DEBUG_ON_HW_SERIAL
-BscSerial bscSerial3(2,0,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Hw Serial 0
-#else
-BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
-#endif
+BscSerial bscSerial;   // Serial
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -86,8 +78,6 @@ uint32_t lastTaskRun_wifiConn = 0;
 
 RTC_DATA_ATTR static uint8_t bootCounter = 0;
 
-unsigned long currentMillis;
-unsigned long previousMillis10000;
 
 uint8_t    u8_mTaskRunSate=0;           //Status ob alle Tasks laufen
 bool       isBoot=true;
@@ -171,8 +161,11 @@ boolean connectWiFi()
   if(!str_lWlanSsid.equals("") && !str_lWlanPwd.equals(""))
   {
     ESP_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid.c_str());
+    WiFi.scanDelete();
     WiFi.setHostname(hostname);
     WiFi.mode(WIFI_STA);
+    WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+    WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
     WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
 
     wlanConnectTimer=millis()+(u16_lWlanConnTimeout*1000);
@@ -244,6 +237,7 @@ void task_ConnectWiFi(void *param)
   connectStateEnums mConnectStateEnumsOld=ConnState_noWifiConnection;
   uint8_t u8_mWaitConnCounter=0;
   unsigned long connectMqttTimer; //Timeout MQTT Verbindungsaufbau
+  bool bo_lFirstRun=true;
 
   #ifdef WLAN_DEBUG
   unsigned long tConnWifiHelpTimer=0;
@@ -292,7 +286,13 @@ void task_ConnectWiFi(void *param)
       case ConnState_wifiConnected: //Wlan verbunden
         WlanStaApOk=WIFI_STA;
         server.begin(WEBSERVER_PORT);  //Webserver starten
-        //initTime();
+        if(bo_lFirstRun)
+        {
+          bo_lFirstRun=false;
+          initTime();
+        }
+        timeRunCyclic(true); //Hole 1x die Zeit
+        ESP_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
         
         mConnectStateEnums=ConnState_connectMQTTstart;
         break;
@@ -307,7 +307,6 @@ void task_ConnectWiFi(void *param)
         connectMqttTimer=millis();
         mConnectStateEnums=ConnState_connectMQTT;
         break;
-
 
       case ConnState_connectMQTT: //MQTT verbinden
         //Wenn 30s keine Verbindung möglich, dann Verbindungsversuch abbrechen
@@ -328,10 +327,7 @@ void task_ConnectWiFi(void *param)
 
         if(webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
         {
-          if(mqttConnect())
-          {
-            mConnectStateEnums=ConnState_connectBT;
-          }
+          if(mqttConnect()) mConnectStateEnums=ConnState_connectBT;
         }
         else
         {
@@ -393,22 +389,28 @@ void task_ConnectWiFi(void *param)
       mConnectStateEnumsOld=mConnectStateEnums;
     }
     
-    #ifdef WLAN_DEBUG2
+    
     if((millis()-tConnWifiHelpTimer)>1000)
     {
       tConnWifiHelpTimer=millis();
+      #ifdef WLAN_DEBUG2
       ESP_LOGD(TAG, "FreeHeap=%i, MinFreeHeap=%i, mqttTxBuffSize=%i, WlanStaApOk=%i", xPortGetFreeHeapSize(),xPortGetMinimumEverFreeHeapSize(),getTxBufferSize(),WlanStaApOk);
+      #endif
+
+      if(xSemaphoreTake(mutexTaskRunTime_wifiConn, 100))
+      {
+        lastTaskRun_wifiConn=millis();
+        xSemaphoreGive(mutexTaskRunTime_wifiConn);
+      }
+
+      if(mConnectStateEnums==ConnState_idle)
+      {
+        timeRunCyclic(false);
+      }
     }
-    #endif
 
     //Wenn nicht im Idle, dann 1000ms warten
     if(mConnectStateEnums!=ConnState_idle) vTaskDelay(pdMS_TO_TICKS(1000));
-
-    if(xSemaphoreTake(mutexTaskRunTime_wifiConn, 100))
-    {
-      lastTaskRun_wifiConn=millis();
-      xSemaphoreGive(mutexTaskRunTime_wifiConn);
-    }
   }
 }
 
@@ -498,16 +500,12 @@ void task_bscSerial(void *param)
   ESP_LOGD(TAG, "-> 'task_bscSerial' runs on core %d", xPortGetCoreID());
 
   //init Serial
-  bscSerial1.initSerial();
-  bscSerial2.initSerial();
-  bscSerial3.initSerial();
+  bscSerial.initSerial();
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    bscSerial1.cyclicRun();
-    bscSerial2.cyclicRun();
-    bscSerial3.cyclicRun();
+    bscSerial.cyclicRun();
     xSemaphoreTake(mutexTaskRunTime_serial, portMAX_DELAY);
     lastTaskRun_bscSerial=millis();
     xSemaphoreGive(mutexTaskRunTime_serial);
@@ -617,9 +615,9 @@ void handle_paramSerial()
   webSettingsSerial.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
-    bscSerial1.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,0,0));
-    bscSerial2.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0));
-    bscSerial3.setReadBmsFunktion(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0));
+    bscSerial.setReadBmsFunktion(0, WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,0,0));
+    bscSerial.setReadBmsFunktion(1, WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,1,0));
+    bscSerial.setReadBmsFunktion(2, WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,2,0));
     changeAlarmSettings();
 
     bmsFilterData_s* bmsFilterData = getBmsFilterData();
@@ -948,20 +946,7 @@ void setup()
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
   xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
 
- 
-  //starte webserver
-  ESP_LOGI(TAG, "Starte Webserver...");
-  server.begin(WEBSERVER_PORT);
-
-  //uint32_t chipid = (uint32_t)ESP.getEfuseMac();
-
-
-  previousMillis10000=millis();
   free_dump();  
-
-  initTime();
-  timeRunCyclic(); //Hole 1x die Zeit
-  ESP_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
 }
 
 
@@ -975,7 +960,6 @@ void loop()
   if(WlanStaApOk!=WIFI_OFF)
   {
     server.handleClient();
-    //timeRunCyclic();
   }
 
   //Taskrun state

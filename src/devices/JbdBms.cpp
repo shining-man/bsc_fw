@@ -11,7 +11,7 @@
 static const char *TAG = "JBD_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mTxEnRS485pin;
+static uint8_t u8_mDevNr;
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -37,13 +37,14 @@ static int16_t   convertToInt16(int highbyte, int lowbyte);
 static bool      checkCrc(uint8_t *recvMsg);
 static uint16_t  calcCrc(uint8_t *recvMsg);
 
+static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
+bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
 {
   bool bo_lRet=true;
   mPort = port;
   u8_mDevNr = devNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
+  callbackSetTxRxEn=callback;
   uint8_t response[JBDBMS_MAX_ANSWER_LEN];
 
   sendMessage(basicMsg);
@@ -72,20 +73,18 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8
     bo_lRet=false;
   }
 
-  if(bo_lRet==false) return bo_lRet;
-
+  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
 
 
 static void sendMessage(uint8_t *sendMsg)
-{
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, HIGH); 
+{ 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(sendMsg, 7);
   mPort->flush();  
-  //usleep(50);
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
@@ -233,6 +232,8 @@ static void parseCellVoltageMessage(uint8_t * t_message)
   uint16_t u16_lZellMinVoltage = 0;
   uint16_t u16_lZellMaxVoltage = 0;
   uint16_t u16_lZellDifferenceVoltage = 0;
+  uint8_t  u8_lZellNumberMinVoltage = 0;
+  uint8_t  u8_lZellNumberMaxVoltage = 0;
 
   uint16_t u16_lCellSum = 0;
 
@@ -251,8 +252,17 @@ static void parseCellVoltageMessage(uint8_t * t_message)
 
     u16_lCellSum += u16_lZellVoltage;
 
-    if (u16_lZellVoltage > u16_lCellHigh){u16_lCellHigh = u16_lZellVoltage;}
-    if (u16_lZellVoltage < u16_lCellLow){u16_lCellLow = u16_lZellVoltage;}
+    if (u16_lZellVoltage > u16_lCellHigh)
+    {
+      u16_lCellHigh = u16_lZellVoltage;
+      u8_lZellNumberMaxVoltage=i;
+      
+    }
+    if (u16_lZellVoltage < u16_lCellLow)
+    {
+      u16_lCellLow = u16_lZellVoltage;
+      u8_lZellNumberMinVoltage=i;
+    }
 
     u16_lZellMinVoltage = u16_lCellLow;
     u16_lZellMaxVoltage = u16_lCellHigh;
@@ -261,6 +271,8 @@ static void parseCellVoltageMessage(uint8_t * t_message)
   
   setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
   setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
+  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
+  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMinVoltage);
   setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
   setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
 }

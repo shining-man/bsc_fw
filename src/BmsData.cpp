@@ -248,14 +248,14 @@ void setBmsIsBalancingActive(uint8_t devNr, uint8_t value)
 float getBmsBalancingCurrent(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  float ret = bmsData.bmsBalancingCurrent[devNr];
+  float ret = (float)(bmsData.bmsBalancingCurrent[devNr]/100.0);
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
 void setBmsBalancingCurrent(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsBalancingCurrent[devNr] = value;
+  bmsData.bmsBalancingCurrent[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
 

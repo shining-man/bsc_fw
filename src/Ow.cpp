@@ -16,9 +16,9 @@ static SemaphoreHandle_t owMutex = NULL;
 
 //enum enumOwSenprStae{owSensorOk, owSensorFailure};
 
-uint8_t owAddr[MAX_ANZAHL_OW_SENSOREN][8];
-float owTempsC[MAX_ANZAHL_OW_SENSOREN];
-float owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
+uint8_t  owAddr[MAX_ANZAHL_OW_SENSOREN][8];
+int16_t owTempsC[MAX_ANZAHL_OW_SENSOREN];
+int16_t owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
 //uint8_t owSensorState[MAX_ANZAHL_OW_SENSOREN]; //0=ok
 
 uint8_t cycleCounter;
@@ -148,20 +148,20 @@ void getTempC_allDevices(bool tempToOutBuffer)
     {
       for(uint8_t r=0;r<3;r++)
       {
-        tempC = sensors.getTempC(&owAddr[i][0]);
-        if (tempC == DEVICE_DISCONNECTED_C)
+        tempC = (int16_t)(sensors.getTempC(&owAddr[i][0])*100);
+        if (tempC == DEVICE_DISCONNECTED_C_U16)
         {
           //debugPrintf("Error: Could not read temperature data [%i] r=%i",i,r);
           if(owTempsC[i]>=TEMP_IF_SENSOR_READ_ERROR)
           {
-            if(owTempsC[i]<=TEMP_IF_SENSOR_READ_ERROR*2) owTempsC[i]++;
+            if(owTempsC[i]<=0xFFFF) owTempsC[i]++;
           }
           else owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
         }
         else
         {
           //Offset abziehen
-          tempC += WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,0,i,0);
+          tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,0,i,0)*100);
 
           if(firstMeasurement){
             owTempsC_AvgCalc[i] = tempC;
@@ -171,7 +171,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
           
           if(tempToOutBuffer==true)
           {
-            if( (owTempsC_AvgCalc[i]>=owTempsC[i]+0.08) || (owTempsC_AvgCalc[i]<=owTempsC[i]-0.08) )
+            if( (owTempsC_AvgCalc[i]>=owTempsC[i]+8) || (owTempsC_AvgCalc[i]<=owTempsC[i]-8) ) //0.08
             {
               owTempsC[i]=owTempsC_AvgCalc[i];
             }
@@ -188,7 +188,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
 
 float owGetTemp(uint8_t sensNr)
 {
-  return owTempsC[sensNr];
+  return (float)owTempsC[sensNr]/100;
 }
 
 

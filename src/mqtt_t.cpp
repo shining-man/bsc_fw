@@ -86,21 +86,27 @@ bool bo_mBTisScanRuningOld=false;
 bool mqttLoop()
 {
   //Is MQTT Enabled?
-  if(!bo_mMqttEnable) return true;
+  if(!bo_mMqttEnable)
+  {
+    #ifdef MQTT_DEBUG
+    ESP_LOGD(TAG,"mqttLoop(): !bo_mMqttEnable, ret=1");
+    #endif
+    return true;
+  }
 
   bool ret=false;
 
   //Running Bluetooth scan?
   bool bo_lBTisScanRuning=BleHandler::isNotAllDeviceConnectedOrScanRunning();
-  #ifdef BT_DEBUG
+  #ifdef MQTT_DEBUG
   if(bo_lBTisScanRuning!=bo_mBTisScanRuningOld)
   {
-    ESP_LOGD(TAG,"MQTT Loop, BTscanRuning=%i", bo_lBTisScanRuning);
+    ESP_LOGD(TAG,"mqttLoop(): BTscanRuning=%i", bo_lBTisScanRuning);
     bo_mBTisScanRuningOld=bo_lBTisScanRuning;
   }
   #endif
-  if(bo_lBTisScanRuning){return true;}
-
+  if(bo_lBTisScanRuning) return true;
+  
   //Mqtt connect SM
   switch(smMqttConnectState)
   {
@@ -112,6 +118,9 @@ bool mqttLoop()
       if(!mqttClient.connected())
       {
         smMqttConnectState=SM_MQTT_DISCONNECTED;
+        #ifdef MQTT_DEBUG
+        ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED: !mqttClient.connected(), ret=0");
+        #endif
         ret=false;
         break;
       }
@@ -123,6 +132,9 @@ bool mqttLoop()
           mqttClient.loop();
           mqttPublishLoopFromTxBuffer();  //MQTT Messages zyklisch publishen
         }*/
+        #ifdef MQTT_DEBUG
+        ESP_LOGD(TAG,"mqttLoop(): isNotAllDeviceConnectedOrScanRunning, ret=1");
+        #endif
         ret=true;
         break;
       }
@@ -135,16 +147,27 @@ bool mqttLoop()
       //Sende Diverse MQTT Daten
       mqttDataToTxBuffer();
 
+      //#ifdef MQTT_DEBUG
+      //ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED, ret=1");
+      //#endif
       ret=true;
       break;
 
     case SM_MQTT_DISCONNECTED:
       smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
+      
+      #ifdef MQTT_DEBUG
+      ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_DISCONNECTED -> SM_MQTT_WAIT_CONNECTION, ret=0");
+      #endif
       ret=false;
       break;
 
     default:
       smMqttConnectState=SM_MQTT_DISCONNECTED;
+
+      #ifdef MQTT_DEBUG
+      ESP_LOGD(TAG,"mqttLoop(): default -> SM_MQTT_DISCONNECTED, ret=0");
+      #endif
       ret=false;
       break;
   }
@@ -156,6 +179,9 @@ bool mqttLoop()
     smMqttConnectStateOld=smMqttConnectState;
   }
 
+  //#ifdef MQTT_DEBUG
+  //ESP_LOGD(TAG,"mqttLoop(): END: ret=%i",ret);
+  //#endif
   return ret;
 }
 

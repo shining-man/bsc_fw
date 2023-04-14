@@ -221,6 +221,8 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     uint8_t  u8_lCells = 24;//+(u8_lOffset/2);
     uint16_t u16_lMinCellVoltage = 0xFFFF;
     uint16_t u16_lMaxCellVoltage = 0;
+    uint8_t  u8_lZellNumberMinVoltage = 0;
+    uint8_t  u8_lZellNumberMaxVoltage = 0;
     for (uint8_t i = 0; i < u8_lCells; i++)
     {
       uint16_t u16_lCellVoltage = getJk16bit(i*2+6) ;
@@ -228,16 +230,20 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
       if (u16_lCellVoltage > 0 && u16_lCellVoltage < u16_lMinCellVoltage)
       {
         u16_lMinCellVoltage = u16_lCellVoltage;
+        u8_lZellNumberMinVoltage=i;
       }
       if (u16_lCellVoltage > u16_lMaxCellVoltage)
       {
         u16_lMaxCellVoltage = u16_lCellVoltage;
+        u8_lZellNumberMaxVoltage=i;
       }
       setBmsCellVoltage(devNr,i,u16_lCellVoltage);
       //u16_lCellResistance
     }
     setBmsMinCellVoltage(devNr,u16_lMinCellVoltage);
     setBmsMaxCellVoltage(devNr,u16_lMaxCellVoltage);
+    setBmsMaxVoltageCellNumber(devNr, u8_lZellNumberMaxVoltage);
+    setBmsMinVoltageCellNumber(devNr, u8_lZellNumberMinVoltage);
 
     #ifdef JK_BT_DEBUG
     ESP_LOGI(TAG,"DevNr=%i, CellVoltage[0]=%i",devNr,getBmsCellVoltage(devNr,0));
