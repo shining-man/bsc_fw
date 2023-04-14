@@ -11,7 +11,7 @@
 static const char *TAG = "DALY_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mTxEnRS485pin, u8_mConnToId;
+static uint8_t u8_mDevNr, u8_mConnToId;
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -27,12 +27,13 @@ static void      getDataFromBms(uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage, uint8_t packets);
 static void      parseMessage(uint8_t * t_message);
 
+static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool DalyBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
+bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
 {
   mPort = port;
   u8_mDevNr = devNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
+  callbackSetTxRxEn=callback;
   u8_mConnToId = u8_addData;
   uint8_t response[DALY_FRAME_SIZE*16];
 
@@ -87,6 +88,7 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint
 
   //}
 
+  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return true;  
 }
 
@@ -124,11 +126,11 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   }
 
   //TX
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, HIGH); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(u8_lData, DALY_FRAME_SIZE);
   mPort->flush();  
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 

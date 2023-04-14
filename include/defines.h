@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.8c"
+#define BSC_SW_VERSION      "V0.3.10"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -58,9 +58,9 @@ static const char COMPILE_DATE_TIME[] = "";
 #define TACHO_MEAS_TIME            3000
 
 //Onewire
-#define MAX_ANZAHL_OW_SENSOREN       64
-#define TEMP_IF_SENSOR_READ_ERROR  0xFF
-#define OW_TEMP_AVG_CYCELS            3
+#define MAX_ANZAHL_OW_SENSOREN         64
+#define TEMP_IF_SENSOR_READ_ERROR  0xFF00
+#define OW_TEMP_AVG_CYCELS              3
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
@@ -70,6 +70,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      3
 #define SERIAL_BMS_SEPLOS_COUNT       2
+enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define SERIAL1_PIN_RX               16
 #define SERIAL1_PIN_TX               17
@@ -94,7 +95,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
 #define I2C_SDA_PIN                   21
 #define I2C_SCL_PIN                   22
-#define I2C_FREQUENCY          1000000U
+#define I2C_FREQUENCY           1000000U
 //#define I2C_FREQUENCY           400000U
 #define I2C_CNT_SLAVES                2
 
@@ -249,6 +250,9 @@ static const char COMPILE_DATE_TIME[] = "";
 
 #define ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT 120
 #define ID_PARAM_BMS_FILTER_RX_ERROR_COUNT       121
+
+#define ID_PARAM_SYSTEM_NTP_SERVER_NAME          122
+#define ID_PARAM_SYSTEM_NTP_SERVER_PORT          123
 
 
 

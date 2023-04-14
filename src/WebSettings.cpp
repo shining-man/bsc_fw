@@ -185,7 +185,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   }
   else
   {
-    ESP_LOGI(TAG,"Anzahl freier Eintraege: %d\n", prefs.freeEntries());
+    ESP_LOGI(TAG,"Anzahl freier Eintraege: %d", prefs.freeEntries());
   }
   
   readConfig();

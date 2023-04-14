@@ -7,7 +7,9 @@
 #define OW_H
 
 #include <Arduino.h>
-  
+
+#define DEVICE_DISCONNECTED_C_U16 DEVICE_DISCONNECTED_C*100
+
 uint8_t getSensorAdrFromParams();
 void    takeOwSensorAddress();
 void    owSetup();

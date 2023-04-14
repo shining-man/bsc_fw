@@ -1,0 +1,30 @@
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+NTP	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+stop	KEYWORD2
+update	KEYWORD2
+updateInterval	KEYWORD2
+timeZone	KEYWORD2
+ruleDST	KEYWORD2
+ruleSTD KEYWORD2
+tzName  KEYWORD2
+isDST 	KEYWORD2
+epoch	KEYWORD2
+year	KEYWORD2
+month	KEYWORD2
+day	KEYWORD2
+weekDay KEYWORD2
+hours	KEYWORD2
+minutes	KEYWORD2
+seconds	KEYWORD2
+formattedTime	KEYWORD2
+utc	KEYWORD2
+ntp	KEYWORD2

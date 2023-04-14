@@ -58,8 +58,8 @@ void debugInit()
   #endif
 
 
-  esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
-  //esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
+  //esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
+  esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
   
   //esp_log_level_set("MAIN", ESP_LOG_INFO); 
   //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
@@ -81,6 +81,7 @@ void debugInit()
   esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
   //esp_log_level_set("CAN", ESP_LOG_DEBUG);  
   esp_log_level_set("DALY_BMS", ESP_LOG_DEBUG); 
+  //esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
 
 
   #ifdef DEBUG_ON_FS

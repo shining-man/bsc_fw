@@ -11,7 +11,7 @@
 static const char *TAG = "JK_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mTxEnRS485pin;
+static uint8_t u8_mDevNr;
 static uint16_t u16_mLastRecvBytesCnt;
 
 enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, SEARCH_END};
@@ -23,13 +23,15 @@ static void sendMessage(uint8_t *sendMsg);
 static bool recvAnswer(uint8_t * t_outMessage);
 static void parseData(uint8_t * t_message);
 
+static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_t u8_addData)
+
+bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
 {
   bool bo_lRet=true;
   mPort = port;
   u8_mDevNr = devNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
+  callbackSetTxRxEn=callback;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
   #ifdef JK_DEBUG 
@@ -50,18 +52,18 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin, uint8_
     bo_lRet=false;
   }
 
+  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
 
 
 static void sendMessage(uint8_t *sendMsg)
 {
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, HIGH); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(sendMsg, 21);
   mPort->flush();  
-  //usleep(50);
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
@@ -170,6 +172,8 @@ void parseData(uint8_t * t_message)
   uint16_t u16_lZellMinVoltage = 0;
   uint16_t u16_lZellMaxVoltage = 0;
   uint16_t u16_lZellDifferenceVoltage = 0;
+  uint8_t  u8_lZellNumberMinVoltage = 0;
+  uint8_t  u8_lZellNumberMaxVoltage = 0;
   uint16_t u16_lCellSum = 0;
   uint16_t u16_lZellVoltage = 0;
   uint16_t u16_lCellLow = 0xFFFF; 
@@ -200,8 +204,16 @@ void parseData(uint8_t * t_message)
 
           u16_lCellSum += u16_lZellVoltage;
 
-          if (u16_lZellVoltage > u16_lCellHigh){u16_lCellHigh = u16_lZellVoltage;}
-          if (u16_lZellVoltage < u16_lCellLow){u16_lCellLow = u16_lZellVoltage;}
+          if (u16_lZellVoltage > u16_lCellHigh)
+          {
+            u16_lCellHigh = u16_lZellVoltage;
+            u8_lZellNumberMaxVoltage=n;
+          }
+          if (u16_lZellVoltage < u16_lCellLow)
+          {
+            u16_lCellLow = u16_lZellVoltage;
+            u8_lZellNumberMinVoltage=n;
+          }
 
           u16_lZellMinVoltage = u16_lCellLow;
           u16_lZellMaxVoltage = u16_lCellHigh;
@@ -214,6 +226,8 @@ void parseData(uint8_t * t_message)
         
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
         setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
+        setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
+        setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMinVoltage);
         setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
         setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
 
