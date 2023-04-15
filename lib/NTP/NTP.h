@@ -173,6 +173,13 @@ class NTP {
      * @return time_t timestamp
      */
     time_t epoch();
+	
+    /**
+     * @brief get the Unix epoch timestamp
+     * 
+     * @return time_t timestamp
+     */
+    time_t localEpoch();
 
     /**
      * @brief get the year

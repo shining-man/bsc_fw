@@ -22,6 +22,8 @@
 
 #include "NTP.h"
 
+//static const char *TAG = "NTP";
+
 NTP::NTP(UDP& udp) {
 	this->udp = &udp;
 	}
@@ -53,6 +55,7 @@ void NTP::init() {
   ntpRequest[15]  = 52;
 	udp->begin(NTP_PORT);
 	ntpUpdate();
+	lastUpdate=0;
 	if (dstZone) {
 		timezoneOffset = dstEnd.tzOffset * SECS_PER_MINUTES;
 		dstOffset = (dstStart.tzOffset - dstEnd.tzOffset) * SECS_PER_MINUTES;
@@ -66,10 +69,11 @@ void NTP::stop() {
 	}
 
 int8_t NTP::update() {
+	//ESP_LOGI(TAG,"NTP update: %i, %i, %i",millis()-lastUpdate,lastUpdate,interval);
 	if ((millis() - lastUpdate >= interval) || lastUpdate == 0) {
 		return ntpUpdate();
 		}
-	return 0;
+	return 3;
 	}
 
 int8_t NTP::ntpUpdate() {
@@ -174,6 +178,11 @@ bool NTP::isDST() {
 time_t NTP::epoch() {
 	currentTime();
 	return utcCurrent; 
+	}
+
+time_t NTP::localEpoch() {
+	currentTime();
+	return local; 
 	}
 
 void NTP::currentTime() {

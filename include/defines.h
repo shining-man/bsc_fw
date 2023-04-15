@@ -7,7 +7,7 @@
 #define DEFINES_H
 
 
-#define BSC_SW_VERSION      "V0.3.10"
+#define BSC_SW_VERSION      "V0.3.10a"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
