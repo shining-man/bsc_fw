@@ -33,7 +33,7 @@ void initTime()
   timeClient.ruleDST("CEST", Last, Sun, Mar, 2, 120); // last sunday in march 2:00,   timetone +120min (+1 GMT + 1h summertime offset)
   timeClient.ruleSTD("CET", Last, Sun, Oct, 3, 60);   // last sunday in october 3:00, timezone +60min (+1 GMT)
   timeClient.isDST(true);
-  timeClient.updateInterval(600000); //All 10 minutes
+  timeClient.updateInterval((uint32_t)600000); //All 10 minutes
 
   IPAddress ipAdr;
   if (ipAdr.fromString(str_lNtpServerName.c_str()))
@@ -85,7 +85,7 @@ void setTimeFromNTP()
 {
   struct timeval tv;
   //struct timezone tz;
-	uint32_t u32_lEpoch = (uint32_t)timeClient.epoch();
+	uint32_t u32_lEpoch = (uint32_t)timeClient.localEpoch();
 
   if(u32_lEpoch>2082758399) tv.tv_sec=u32_lEpoch-2082758399;  // epoch time (seconds)
   else tv.tv_sec=u32_lEpoch;  // epoch time (seconds)
