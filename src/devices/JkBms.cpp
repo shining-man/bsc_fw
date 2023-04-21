@@ -35,7 +35,7 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
   #ifdef JK_DEBUG 
-  ESP_LOGD(TAG,"Serial %i send",u8_mDevNr);
+  BSC_LOGD(TAG,"Serial %i send",u8_mDevNr);
   #endif
   sendMessage(getDataMsg);
   if(recvAnswer(response))
@@ -46,12 +46,8 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
-  else
-  {
-    ESP_LOGI(TAG,"bmsData checksum wrong; Serial(%i)",u8_mDevNr);
-    bo_lRet=false;
-  }
-
+  else bo_lRet=false;
+  
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
@@ -82,10 +78,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200) 
     {
-      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
+      BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       /*for(uint16_t x=0;x<u16_mLastRecvBytesCnt;x++)
       {
-        ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
+        BSC_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
       }*/
       return false;
     }
@@ -136,7 +132,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   #ifdef JK_DEBUG 
   if(u16_mLastRecvBytesCnt>5)
   {
-    ESP_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
+    BSC_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
       p_lRecvBytes[u16_mLastRecvBytesCnt-3], p_lRecvBytes[u16_mLastRecvBytesCnt-2], p_lRecvBytes[u16_mLastRecvBytesCnt-1]);
   }
   #endif
@@ -148,7 +144,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   uint8_t crcB4 = crc & 0xFF;         // Byte 4
 
   #ifdef JK_DEBUG 
-  ESP_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
+  BSC_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
   #endif
   if(p_lRecvBytes[u16_mLastRecvBytesCnt-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCnt-1]!=crcB4) return false; 
 
@@ -186,7 +182,7 @@ void parseData(uint8_t * t_message)
 
         u8_lNumOfCells = t_message[i+1]/3;
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"NumOfCells=%i", u8_lNumOfCells);
+        BSC_LOGD(TAG,"NumOfCells=%i", u8_lNumOfCells);
         #endif
         i+=2;
         for(uint8_t n=0;n<u8_lNumOfCells;n++)
@@ -194,7 +190,7 @@ void parseData(uint8_t * t_message)
           if(t_message[i]>u8_lNumOfCells)
           {
             #ifdef JK_DEBUG 
-            ESP_LOGD(TAG,"n>NOC: %i, %i, %i, %i", i, n, u8_lNumOfCells, t_message[i]);
+            BSC_LOGD(TAG,"n>NOC: %i, %i, %i, %i", i, n, u8_lNumOfCells, t_message[i]);
             #endif
             break;
           }
@@ -220,7 +216,7 @@ void parseData(uint8_t * t_message)
           u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow; 
 
           #ifdef JK_DEBUG 
-          ESP_LOGD(TAG,"V%i=%i",n, u16_lZellVoltage);
+          BSC_LOGD(TAG,"V%i=%i",n, u16_lZellVoltage);
           #endif
         }
         
@@ -236,7 +232,7 @@ void parseData(uint8_t * t_message)
       case 0x80: // Read tube temp. 
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break; 
@@ -244,7 +240,7 @@ void parseData(uint8_t * t_message)
       case 0x81: // Battery inside temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break; 
@@ -252,7 +248,7 @@ void parseData(uint8_t * t_message)
       case 0x82: // Battery temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break;   
@@ -260,7 +256,7 @@ void parseData(uint8_t * t_message)
       case 0x83: // Total Batery Voltage
         setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        BSC_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #endif
         i+=3;
         break; 
@@ -272,7 +268,7 @@ void parseData(uint8_t * t_message)
 
         setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)i16_lTmpValue*0.01);
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
+        BSC_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
         #endif
         i+=3;
         break; 
@@ -330,7 +326,7 @@ void parseData(uint8_t * t_message)
         if((u16_lTmpValue&0x800)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 12: 309_A protection                                -> ?
         if((u16_lTmpValue&0x1000)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
 
-        //ESP_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
+        //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
         setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
         i+=3;
         break;  

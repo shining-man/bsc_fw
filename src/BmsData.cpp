@@ -113,14 +113,14 @@ void setBmsCellResistance(uint8_t devNr, uint8_t cellNr, float value)
 float getBmsTotalVoltage(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  float ret = bmsData.bmsTotalVoltage[devNr];
+  float ret = (float)(bmsData.bmsTotalVoltage[devNr]/100.0);
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
 void setBmsTotalVoltage(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsTotalVoltage[devNr] = value;
+  bmsData.bmsTotalVoltage[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
 
@@ -158,14 +158,14 @@ void setBmsAvgVoltage(uint8_t devNr, uint16_t value)
 float getBmsTotalCurrent(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  float ret = bmsData.bmsTotalCurrent[devNr];
+  float ret = (float)(bmsData.bmsTotalCurrent[devNr]/100.0);
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
 void setBmsTotalCurrent(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsTotalCurrent[devNr] = value;
+  bmsData.bmsTotalCurrent[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
 
@@ -263,14 +263,14 @@ void setBmsBalancingCurrent(uint8_t devNr, float value)
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  float ret = bmsData.bmsTempature[devNr][sensorNr];
+  float ret = (float)(bmsData.bmsTempature[devNr][sensorNr]/100.0);
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
 void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsTempature[devNr][sensorNr] = value;
+  bmsData.bmsTempature[devNr][sensorNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
 

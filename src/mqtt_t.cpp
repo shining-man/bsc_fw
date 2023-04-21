@@ -69,13 +69,14 @@ void initMqtt()
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
   
-  bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0);
+  bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
   if(!bo_mMqttEnable) return;
 
-  if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals(""))
+  if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
   {
-    mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).c_str());
-    mqttClient.setServer(mqttIpAdr, WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,0,0));
+    mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
+    mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
+    BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
 
     mqttClient.setKeepAlive(30);
   }
@@ -89,7 +90,7 @@ bool mqttLoop()
   if(!bo_mMqttEnable)
   {
     #ifdef MQTT_DEBUG
-    ESP_LOGD(TAG,"mqttLoop(): !bo_mMqttEnable, ret=1");
+    BSC_LOGD(TAG,"mqttLoop(): !bo_mMqttEnable, ret=1");
     #endif
     return true;
   }
@@ -101,7 +102,7 @@ bool mqttLoop()
   #ifdef MQTT_DEBUG
   if(bo_lBTisScanRuning!=bo_mBTisScanRuningOld)
   {
-    ESP_LOGD(TAG,"mqttLoop(): BTscanRuning=%i", bo_lBTisScanRuning);
+    BSC_LOGD(TAG,"mqttLoop(): BTscanRuning=%i", bo_lBTisScanRuning);
     bo_mBTisScanRuningOld=bo_lBTisScanRuning;
   }
   #endif
@@ -119,7 +120,7 @@ bool mqttLoop()
       {
         smMqttConnectState=SM_MQTT_DISCONNECTED;
         #ifdef MQTT_DEBUG
-        ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED: !mqttClient.connected(), ret=0");
+        BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED: !mqttClient.connected(), ret=0");
         #endif
         ret=false;
         break;
@@ -133,7 +134,7 @@ bool mqttLoop()
           mqttPublishLoopFromTxBuffer();  //MQTT Messages zyklisch publishen
         }*/
         #ifdef MQTT_DEBUG
-        ESP_LOGD(TAG,"mqttLoop(): isNotAllDeviceConnectedOrScanRunning, ret=1");
+        BSC_LOGD(TAG,"mqttLoop(): isNotAllDeviceConnectedOrScanRunning, ret=1");
         #endif
         ret=true;
         break;
@@ -148,7 +149,7 @@ bool mqttLoop()
       mqttDataToTxBuffer();
 
       //#ifdef MQTT_DEBUG
-      //ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED, ret=1");
+      //BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED, ret=1");
       //#endif
       ret=true;
       break;
@@ -157,7 +158,7 @@ bool mqttLoop()
       smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
       
       #ifdef MQTT_DEBUG
-      ESP_LOGD(TAG,"mqttLoop(): SM_MQTT_DISCONNECTED -> SM_MQTT_WAIT_CONNECTION, ret=0");
+      BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_DISCONNECTED -> SM_MQTT_WAIT_CONNECTION, ret=0");
       #endif
       ret=false;
       break;
@@ -166,7 +167,7 @@ bool mqttLoop()
       smMqttConnectState=SM_MQTT_DISCONNECTED;
 
       #ifdef MQTT_DEBUG
-      ESP_LOGD(TAG,"mqttLoop(): default -> SM_MQTT_DISCONNECTED, ret=0");
+      BSC_LOGD(TAG,"mqttLoop(): default -> SM_MQTT_DISCONNECTED, ret=0");
       #endif
       ret=false;
       break;
@@ -175,12 +176,12 @@ bool mqttLoop()
   //Log MQTT SM-state (smMqttConnectStateOld only for log)
   if(smMqttConnectState!=smMqttConnectStateOld)
   {
-    ESP_LOGD(TAG,"smMqttConnectState=%i",smMqttConnectState);
+    BSC_LOGD(TAG,"smMqttConnectState=%i",smMqttConnectState);
     smMqttConnectStateOld=smMqttConnectState;
   }
 
   //#ifdef MQTT_DEBUG
-  //ESP_LOGD(TAG,"mqttLoop(): END: ret=%i",ret);
+  //BSC_LOGD(TAG,"mqttLoop(): END: ret=%i",ret);
   //#endif
   return ret;
 }
@@ -193,7 +194,7 @@ bool mqttConnect()
   if(!bo_mMqttEnable) return true;
 
   #ifdef MQTT_DEBUG
-  ESP_LOGD(TAG,"mqttConnect() u8_mWaitConnectCounter=%i",u8_mWaitConnectCounter);
+  BSC_LOGD(TAG,"mqttConnect() u8_mWaitConnectCounter=%i",u8_mWaitConnectCounter);
   #endif
 
   smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
@@ -202,27 +203,27 @@ bool mqttConnect()
   if(WiFi.status() != WL_CONNECTED) bo_lBreak+=1;
   if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) bo_lBreak+=2;
 
-  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0,0,0).equals("")) bo_lBreak+=4;
-  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_PORT,0,0,0).equals("")) bo_lBreak+=8;
+  if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals("")) bo_lBreak+=4;
+  if(WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT)<=0) bo_lBreak+=8;
   
   if(bo_lBreak!=0)
   {
     #ifdef MQTT_DEBUG
-    ESP_LOGD(TAG,"mqttConnect() break (%i)",bo_lBreak);
+    BSC_LOGD(TAG,"mqttConnect() break (%i)",bo_lBreak);
     #endif
     return false;
   }
 
-  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0,0,0);
-  String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0,0,0);
-  String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0,0,0);
+  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0);
+  String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0);
 
   if(!mqttClient.connected())
   {
     if(u8_mWaitConnectCounter==5)
     {
       #ifdef MQTT_DEBUG
-      ESP_LOGD(TAG,"mqttConnect() u8_mWaitConnectCounter==5 => disconnect");
+      BSC_LOGD(TAG,"mqttConnect() u8_mWaitConnectCounter==5 => disconnect");
       #endif
       u8_mWaitConnectCounter=0;
       mqttClient.disconnect();
@@ -233,7 +234,7 @@ bool mqttConnect()
     u8_mWaitConnectCounter++;
     
     #ifdef MQTT_DEBUG
-    ESP_LOGD(TAG,"Connecting to MQTT Broker...");
+    BSC_LOGD(TAG,"Connecting to MQTT Broker...");
     #endif
     if(mqttUser.equals("") || mqttPwd.equals("")) //Wenn kein User oder Pwd eingetragen, dann ohne verbinden
     {
@@ -249,7 +250,7 @@ bool mqttConnect()
     u8_mWaitConnectCounter=0;
     smMqttConnectState=SM_MQTT_CONNECTED;
     ret=true;
-    ESP_LOGI(TAG,"MQTT Broker connected");
+    BSC_LOGI(TAG,"MQTT Broker connected");
   }
 
   return ret;
@@ -262,7 +263,7 @@ void mqttDisconnect()
 
   if(mqttClient.connected())
   {
-    ESP_LOGI(TAG,"MQTT Broker disconnected");
+    BSC_LOGI(TAG,"MQTT Broker disconnected");
     mqttClient.disconnect();
   }
 
@@ -379,7 +380,7 @@ void mqttDataToTxBuffer()
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
   //Sende Daten via mqtt, wenn aktiv
-  if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+  if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
   {
     if(millis()-sendeTimerBmsMsg>=15000)
     {
@@ -482,7 +483,7 @@ void mqttPublishOwTemperatur(uint8_t i)
   float f_lOwTemp;
 
   f_lOwTemp=owGetTemp(i);
-  if(WebSettings::getString(ID_PARAM_ONEWIRE_ADR,0,0,i).equals("")==false)
+  if(WebSettings::getStringFlash(ID_PARAM_ONEWIRE_ADR,i).equals("")==false)
   {
     if(f_lOwTemp!=TEMP_IF_SENSOR_READ_ERROR /*&& f_lOwTemp!=0*/)
     {

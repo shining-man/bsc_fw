@@ -56,23 +56,12 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
-  else
-  {
-    ESP_LOGI(TAG,"sendReqBasicMessage checksum wrong");
-    bo_lRet=false;
-  }
- 
+  else bo_lRet=false;
+   
   sendMessage(cellMsg);
-  if(recvAnswer(response))
-  {
-    parseCellVoltageMessage(response);
-  }
-  else
-  {
-    ESP_LOGI(TAG,"sendCellMessage checksum wrong");
-    bo_lRet=false;
-  }
-
+  if(recvAnswer(response)) parseCellVoltageMessage(response);
+  else bo_lRet=false;
+  
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
@@ -101,10 +90,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200) 
     {
-      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       /*for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
       {
-        ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
+        BSC_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
       }*/
       return false;
     }

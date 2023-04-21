@@ -141,3 +141,50 @@ for zeile in datei:
 
 datei.close()
 dateiOut.close()
+
+
+########################################################
+# Build defines_dt.h
+########################################################
+dateiOut = open('./include/params_dt.h','w')
+datei = open('./include/params_py.h','r')
+
+dateiOut.write("#include \"defines.h\"\n\n")
+#dateiOut.write("uint8_t paramIdDataTypes[256];\n\n")
+
+               
+# "'name':"+String(ID_PARAM_SERIAL_CONNECT_DEVICE)+","
+# "'dt':"+String(PARAM_DT_U8)+""
+
+defInList=0
+
+for zeile in datei:
+    zeileNeu = ""
+
+    defFoundStart = zeile.find("'name':")
+    if defFoundStart >= 0:
+        #print(zeile)
+        defName = zeile.split("(")[1]
+        defName = defName.split(")")[0]
+
+        if defName in defines_dict:
+            defNr = defines_dict.get(defName)
+            defInList=1
+        else:
+            defInList=0
+            print("Error: " + defName + ", zeile: " + zeile)
+
+    defFoundStart = zeile.find("'dt':")
+    if defFoundStart >= 0 and defInList==1:
+        dtName = zeile.split("(")[1]
+        dtName = dtName.split(")")[0]
+
+        zeileNeu = "#define DT_" + defName + " " + dtName + "\n"
+        dateiOut.write(zeileNeu)
+
+        #zeileNeu = "paramIdDataTypes["+defName+"] = "+dtName+";\n"
+        #dateiOut.write(zeileNeu)
+
+datei.close()
+dateiOut.close()
+

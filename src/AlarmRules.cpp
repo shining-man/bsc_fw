@@ -63,7 +63,7 @@ void initAlarmRules()
     bo_Alarm_old[i] = false;
 
     //Initialwerte per mqqt senden
-    if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+    if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
     {
       mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       
@@ -88,9 +88,9 @@ void initAlarmRules()
   }
 }
 
-bool isTriggerActive(uint16_t paramId, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+bool isTriggerActive(uint16_t paramId, uint8_t groupNr, uint8_t dataType)
 {
-  uint8_t u8_lValue = WebSettings::getInt(paramId,settingNr,groupNr,listNr);
+  uint8_t u8_lValue = WebSettings::getInt(paramId,groupNr,dataType);
   if(u8_lValue>0)
   {
     for(uint8_t i=0;i<CNT_ALARMS;i++)
@@ -129,13 +129,13 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
   alarmNr--;
   if(bo_lAlarm)
   {
-    //ESP_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
+    //BSC_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
     bo_alarmActivate[alarmNr]=true;
   }
   else if(bo_alarmActivate[alarmNr]!=true)
   {
-    //ESP_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
+    //BSC_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
     bo_Alarm[alarmNr]=bo_lAlarm;
     if(bo_lAlarm)
     {
@@ -177,7 +177,7 @@ void runAlarmRules()
     xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
     if(bo_mChangeAlarmSettings)
     {
-      ESP_LOGD(TAG,"Alarm zurücksetzen: alarmNr=%i",i);
+      BSC_LOGD(TAG,"Reset Alarms (Nr=%i)",i);
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       //setAlarm(i+1, false); //Alarm zurücksetzen
@@ -186,13 +186,13 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      ESP_LOGD(TAG, "Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
+      BSC_LOGD(TAG, "Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
-      if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0,0,0))
+      if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
       {
-        ESP_LOGI(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
+        BSC_LOGI(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
@@ -200,23 +200,23 @@ void runAlarmRules()
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
-        u8_lTriggerNrDo=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,0,b,0)-1;
+        u8_lTriggerNrDo=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI)-1;
         if(u8_lTriggerNrDo==i)
         {
           if(bo_Alarm[i]==true)
           {     
             if(u8_DoVerzoegerungTimer[b]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
-              ESP_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
-              u8_DoVerzoegerungTimer[b] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,0,b,0);
+              BSC_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
+              u8_DoVerzoegerungTimer[b] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,b,DT_ID_PARAM_DO_VERZOEGERUNG);
             }
           }
           else
           {
-            uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,b,0);
+            uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              ESP_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
+              BSC_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
               u8_mDoByte &= ~(1 << b); //bit loeschen
             }
           }
@@ -255,14 +255,14 @@ void setDOs()
     {
       u8_DoVerzoegerungTimer[b]=0xFF;
 
-      ESP_LOGI(TAG, "Set DO (DoNr=%i)", b);
+      BSC_LOGI(TAG, "Set DO (DoNr=%i)", b);
       u8_mDoByte |= (1 << b); //bit setzen
 
-      uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,0,b,0);
+      uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
       if(doPulseOrPermanent==1) //Wenn Impuls
       {
-        uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,0,b,0);
-        ESP_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
+        uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
+        BSC_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
               
         xSemaphoreTake(doMutex, portMAX_DELAY);
         bo_DoPulsOffCounter[b] = (pulseDuration/10);
@@ -305,7 +305,7 @@ void doOffPulse(TimerHandle_t xTimer)
     }
     else if(bo_DoPulsOffCounter[i] == 1)
     {
-      ESP_LOGD(TAG, "DO off - Impuls(%i)",i);
+      BSC_LOGD(TAG, "DO off - Impuls(%i)",i);
 
       bo_DoPulsOffCounter[i]=0;
 
@@ -345,8 +345,8 @@ void getDIs()
   //Bearbeiten der 4 Digitaleingänge
   for(uint8_t i=0; i<CNT_DIGITALIN; i++)
   {
-    uint8_t u8_lAlarmNr  = WebSettings::getInt(ID_PARAM_DI_ALARM_NR,0,i,0);
-    bool    bo_lDiInvert = WebSettings::getBool(ID_PARAM_DI_INVERTIERT,0,i,0);
+    uint8_t u8_lAlarmNr  = WebSettings::getInt(ID_PARAM_DI_ALARM_NR,i,DT_ID_PARAM_DI_ALARM_NR);
+    bool    bo_lDiInvert = WebSettings::getBool(ID_PARAM_DI_INVERTIERT,i);
 
     if(u8_lAlarmNr==0) continue;
 
@@ -355,12 +355,12 @@ void getDIs()
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,true); 
-        //ESP_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
+        //BSC_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,false);
-        //ESP_LOGD(TAG,"Alarm (b) DI FALSE; Alarm %i", u8_lAlarmNr);
+        //BSC_LOGD(TAG,"Alarm (b) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
     }
     else
@@ -368,12 +368,12 @@ void getDIs()
       if(!bo_lDiInvert)
       {
         setAlarm(u8_lAlarmNr,false);
-        //ESP_LOGD(TAG,"Alarm (c) DI FALSE; Alarm %i", u8_lAlarmNr);
+        //BSC_LOGD(TAG,"Alarm (c) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
         setAlarm(u8_lAlarmNr,true);
-        //ESP_LOGD(TAG,"Alarm (d) DI TRUE; Alarm %i", u8_lAlarmNr);
+        //BSC_LOGD(TAG,"Alarm (d) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
     }
   }
@@ -400,7 +400,7 @@ bool tachoRead(uint16_t &tachoRpm)
   if (FreqCountESP.available())
   {
     tachoRpm = FreqCountESP.read() * (60000/TACHO_MEAS_TIME);
-    ESP_LOGD(TAG,"chan=%i, RPM=%i",u8_mTachoChannel,tachoRpm);
+    BSC_LOGD(TAG,"chan=%i, RPM=%i",u8_mTachoChannel,tachoRpm);
     u8_mTachoChannel++;
     tachoSetMux(u8_mTachoChannel);
     FreqCountESP.runMeasure(); //nächste Messung starten
@@ -484,7 +484,7 @@ void rules_Bms()
 
   for(i=0; i<CNT_BT_ALARMS_RULES; i++)
   {
-    u8_lAlarmruleBmsNr=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,0,i,0);
+    u8_lAlarmruleBmsNr=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,i,DT_ID_PARAM_ALARM_BTDEV_BMS_SELECT);
 
     if(u8_lAlarmruleBmsNr<=0) continue;
     u8_lAlarmruleBmsNr--;
@@ -494,68 +494,69 @@ void rules_Bms()
     //debugPrintf("i=%i, b_lBmsOnline=%i",i,b_lBmsOnline);
 
     //Ist überhaupt ein Device parametriert?
-    if((u8_lAlarmruleBmsNr<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,0,u8_lAlarmruleBmsNr,0)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,0,u8_lAlarmruleBmsNr,0).equals("")) ||
-      (u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,0)!=0 ) )
+    if((u8_lAlarmruleBmsNr<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,u8_lAlarmruleBmsNr,DT_ID_PARAM_SS_BTDEV)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,u8_lAlarmruleBmsNr).equals("")) ||
+      (u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0 ) )
     {
       //Wenn Alram für das Device aktiv ist
-      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0)>0) 
+      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0) 
       {      
         //Alarm wenn keine Daten mehr vom BT-Device kommen
-        if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,0,i,0)*1000))
+        if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
         {
           //Alarm
           //debugPrintf("BT Alarm (%i)",u8_lAlarmruleBmsNr);
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
+          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
           setAlarm(tmp,true);
-          //ESP_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
+          //BSC_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
         }
         else
         {
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,0,i,0);
+          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
           setAlarm(tmp,false);
-          //ESP_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
+          //BSC_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
         }
       }
 
       //Überwachung Zellspannung
-      ESP_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0));
-      if(/*b_lBmsOnline==true &&*/WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0)>0)
+      BSC_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION));
+      if(/*b_lBmsOnline==true &&*/WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION)>0)
       {
       //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
-        for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0); cc++)
+        for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
         {
           //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
-          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0) || getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0))
+          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN) 
+            || getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
           {
             //Alarm
-            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
+            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
             setAlarm(tmp,true);
-            ESP_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
+            BSC_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
           {
-            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,0,i,0);
+            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
             setAlarm(tmp,false);
-            ESP_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
+            BSC_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
       }
 
       //Überwachung Gesamtspannung
-      uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,0,i,0); //BleHandler::bmsIsConnect(i)
+      uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION); //BleHandler::bmsIsConnect(i)
       if(/*b_lBmsOnline==true &&*/ u8_lAlarm>0) 
       {
-        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,0,i,0) || getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,0,i,0))
+        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i) || getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i))
         {
           //Alarm
           setAlarm(u8_lAlarm,true);
-          //ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
+          //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
         }
         else
         {
           setAlarm(u8_lAlarm,false);
-          //ESP_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
+          //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
         }
       }
     }
@@ -571,12 +572,12 @@ void rules_Temperatur()
   for(uint8_t i=0;i<COUNT_TEMP_RULES;i++)
   {
     bo_lAlarm = false;
-    sensorVon = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);
-    sensorBis = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0);
+    sensorVon = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);
+    sensorBis = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS);
     
     if(sensorVon>=0 && sensorBis>=0 && sensorBis>=sensorVon)
     {
-      switch (WebSettings::getInt(ID_PARAM_TEMP_ALARM_UEBERWACH_FUNKTION,0,i,0))
+      switch (WebSettings::getInt(ID_PARAM_TEMP_ALARM_UEBERWACH_FUNKTION,i,DT_ID_PARAM_TEMP_ALARM_UEBERWACH_FUNKTION))
       {
         case ID_TEMP_ALARM_FUNKTION_NB:
           break;
@@ -597,9 +598,9 @@ void rules_Temperatur()
           break;
       }
 
-      alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,0,i,0);
+      alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,i,DT_ID_PARAM_TEMP_ALARM_AKTION);
       setAlarm(alarmNr,bo_lAlarm);
-      //ESP_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
+      //BSC_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
 
@@ -610,26 +611,26 @@ void rules_Temperatur()
 void rules_CanInverter()
 {
   //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,0,0)) canSetChargeCurrentToZero(true);
+  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) canSetChargeCurrentToZero(true);
   else canSetChargeCurrentToZero(false);
 
   //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,0,0)) canSetDischargeCurrentToZero(true);
+  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) canSetDischargeCurrentToZero(true);
   else canSetDischargeCurrentToZero(false);
 
   //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,0,0)) canSetSocToFull(true);
+  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) canSetSocToFull(true);
   else canSetSocToFull(false);
 }
 
 
 bool temperatur_maxWertUeberwachung(uint8_t i)
 {
-  float maxTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float maxTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
 
   if(maxTemp<=0) return false; //Wenn keine Max.Temp. angegeben ist
 
-  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
+  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
     if(owGetTemp(n)>maxTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
@@ -643,10 +644,10 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
 bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
 {
   float aktTemp = 0;
-  float tempOffset = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float tempOffset = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
 
-  aktTemp = tempOffset + owGetTemp(WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,0,i,0));
-  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
+  aktTemp = tempOffset + owGetTemp(WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH));
+  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
     if(owGetTemp(n)>aktTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
@@ -662,9 +663,9 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
   float f_lTempMin = 0xFF;
   float f_lTempMax = 0;
 
-  float f_lMaxTempDiff = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,0,i,0);
+  float f_lMaxTempDiff = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
   
-  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,0,i,0);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,0,i,0)+1;n++)
+  for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
     if(owGetTemp(n)>f_lTempMax) f_lTempMax=owGetTemp(n);
     if(owGetTemp(n)<f_lTempMin) f_lTempMin=owGetTemp(n);
@@ -683,8 +684,8 @@ void temperatur_senorsErrors()
   boolean bo_lAlarm = false;
   uint8_t u8_lOwTempSensorErrors = owGetAllSensorError();
 
-  uint8_t u8_lSensorNoValueTime = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME,0,0,0); //Time in secounds
-  uint8_t u8_lTrigger = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER,0,0,0);
+  uint8_t u8_lSensorNoValueTime = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME,0,DT_ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME); //Time in secounds
+  uint8_t u8_lTrigger = WebSettings::getInt(ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER,0,DT_ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER);
 
   if(u8_lTrigger>0) //If enabled
   {
@@ -699,7 +700,7 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm)
 {
   for(uint8_t d=0;d<BT_DEVICES_COUNT;d++)
   {
-    uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,0,0,PARAM_DT_U8);
+    uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,DT_ID_PARAM_NEEY_BALANCER_ON);
     if(u8_AlarmNr==u8_lTriggerNr) BleHandler::setBalancerState(d,bo_Alarm);
   }
 }

@@ -26,7 +26,7 @@ static boolean bo_mBleHandlerRunning = false;
 static boolean bo_mBtScanIsRunning = false; 
 static boolean bo_mBtNotAllDeviceConnectedOrScanRunning = false;
 uint8_t u8_mScanAndNotConnectTimer;
-bool bo_mSendDataToNeey;
+uint8_t u8_mSendDataToNeey;
 
 //NEEY
 NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
@@ -42,7 +42,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
   void onConnect(NimBLEClient* pClient)
   {
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
-    ESP_LOGI(TAG, "onConnect() %s", devMacAdr.c_str());
+    BSC_LOGI(TAG, "onConnect() %s", devMacAdr.c_str());
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
@@ -75,14 +75,14 @@ class ClientCallbacks : public NimBLEClientCallbacks
   {
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
     #ifdef BT_DEBUG
-    ESP_LOGI(TAG, "onDisconnect() %s", devMacAdr.c_str());
+    BSC_LOGI(TAG, "onDisconnect() %s", devMacAdr.c_str());
     #endif
 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
       if(bleDevices[i].macAdr.equals(devMacAdr.c_str()))
       {
-        ESP_LOGI(TAG, "onDisconnect() dev=%i, mac=%s", i, devMacAdr.c_str());
+        BSC_LOGI(TAG, "onDisconnect() dev=%i, mac=%s", i, devMacAdr.c_str());
         bleDevices[i].isConnect = false;
         bleDevices[i].doConnect = btDoConnectionIdle; 
         bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
@@ -94,7 +94,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
   bool onConnParamsUpdateRequest(NimBLEClient* pClient, const ble_gap_upd_params* params)
   {
     #ifdef BT_DEBUG
-    ESP_LOGD(TAG, "onConnParamsUpdateRequest(): itvl_min=%i itvl_max=%i latency=%i supervision_timeout=%i",
+    BSC_LOGD(TAG, "onConnParamsUpdateRequest(): itvl_min=%i itvl_max=%i latency=%i supervision_timeout=%i",
       params->itvl_min,params->itvl_max,params->latency,params->supervision_timeout);
     #endif
 
@@ -112,7 +112,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     }
 
     #ifdef BT_DEBUG
-    ESP_LOGD(TAG, "onConnParamsUpdateRequest(): true");
+    BSC_LOGD(TAG, "onConnParamsUpdateRequest(): true");
     #endif
     return true;
     #endif
@@ -127,7 +127,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
   void onResult(NimBLEAdvertisedDevice* advertisedDevice)
   {
     #ifdef BT_DEBUG
-    ESP_LOGI(TAG, "BT device found()");
+    BSC_LOGI(TAG, "BT device found()");
     #endif
 
     //Device gefunden
@@ -135,18 +135,18 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 
     for(uint8_t i=0; i<BT_DEVICES_COUNT; i++)
     {    
-      if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(""))
+      if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(""))
       {
-        if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(devMacAdr.c_str()) && webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)!=ID_BT_DEVICE_NB)
+        if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(devMacAdr.c_str()) && webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)!=ID_BT_DEVICE_NB)
         {
-          ESP_LOGD(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).c_str());
+          BSC_LOGD(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
 
           NimBLEDevice::getScan()->stop();
         
           advDevice = advertisedDevice;   
           u8_mAdvDeviceNumber = i;
-          bleDevices[i].deviceTyp = (uint8_t)webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
-          bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0);
+          bleDevices[i].deviceTyp = (uint8_t)webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
+          bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,i);
           bleDevices[i].doConnect = btDoConnect;
      
           bo_mBtScanIsRunning = false; //Scan beendet
@@ -185,14 +185,14 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
-      //ESP_LOGI(TAG,"JKBMS RX len=%i", length);
+      //BSC_LOGI(TAG,"JKBMS RX len=%i", length);
 
       /*for(uint16_t i=0; i<length; i++)
       {
         temp += pData[i];
         temp+=" ";
       }
-      ESP_LOGI(TAG,"JKBMS RX data=%s", temp.c_str());
+      BSC_LOGI(TAG,"JKBMS RX data=%s", temp.c_str());
       temp="";*/
 
       uint8_t u8_frameVersion=FRAME_VERSION_JK02;
@@ -223,7 +223,7 @@ static ClientCallbacks clientCB;
 bool btDeviceConnect()
 {
   #ifdef BT_DEBUG
-  ESP_LOGI(TAG, "btDeviceConnect()");
+  BSC_LOGI(TAG, "btDeviceConnect()");
   #endif
 
   NimBLEClient* pClient = nullptr;
@@ -260,11 +260,11 @@ bool btDeviceConnect()
     {
       if(!pClient->connect(advDevice, false))
       {
-        ESP_LOGW(TAG, "Reconnect failed: dev=%i",devNr);
+        BSC_LOGW(TAG, "Reconnect failed: dev=%i",devNr);
         return false;
       }
       #ifdef BT_DEBUG
-      ESP_LOGI(TAG, "Reconnect: dev=%i",devNr);
+      BSC_LOGI(TAG, "Reconnect: dev=%i",devNr);
       #endif
     }
     /* We don't already have a client that knows this device,
@@ -281,13 +281,13 @@ bool btDeviceConnect()
   {
     if(NimBLEDevice::getClientListSize() >= NIMBLE_MAX_CONNECTIONS)
     {
-      ESP_LOGW(TAG, "Max clients reached - no more connections available");
+      BSC_LOGW(TAG, "Max clients reached - no more connections available");
       return false;
     }
 
     pClient = NimBLEDevice::createClient();
     #ifdef BT_DEBUG
-    ESP_LOGI(TAG, "New client created");
+    BSC_LOGI(TAG, "New client created");
     #endif
     pClient->setClientCallbacks(&clientCB, false);
 
@@ -300,7 +300,7 @@ bool btDeviceConnect()
     if (!pClient->connect(advDevice))
     {
       // Created a client but failed to connect, don't need to keep it as it has no data
-      ESP_LOGW(TAG, "Failed to connect, deleted client; dev=%i",devNr);
+      BSC_LOGW(TAG, "Failed to connect, deleted client; dev=%i",devNr);
       NimBLEDevice::deleteClient(pClient);
       return false;
     }
@@ -310,12 +310,12 @@ bool btDeviceConnect()
   {
     if (!pClient->connect(advDevice))
     {
-      ESP_LOGW(TAG, "Failed to connect; dev=%i", devNr);
+      BSC_LOGW(TAG, "Failed to connect; dev=%i", devNr);
       return false;
     }
   }
   #ifdef BT_DEBUG
-  ESP_LOGI(TAG, "Connected to: %s, RSSI: %i",pClient->getPeerAddress().toString().c_str(),pClient->getRssi());
+  BSC_LOGI(TAG, "Connected to: %s, RSSI: %i",pClient->getPeerAddress().toString().c_str(),pClient->getRssi());
   #endif
 
   // Now we can read/write/subscribe the charateristics of the services we are interested in 
@@ -333,14 +333,14 @@ bool btDeviceConnect()
       if(bleDevices[devNr].pChr->canRead())
       {
         #ifdef BT_DEBUG
-        ESP_LOGI(TAG, "can read: %s, Value: %s",bleDevices[devNr].pChr->getUUID().toString().c_str(),bleDevices[devNr].pChr->readValue().c_str());
+        BSC_LOGI(TAG, "can read: %s, Value: %s",bleDevices[devNr].pChr->getUUID().toString().c_str(),bleDevices[devNr].pChr->readValue().c_str());
         #endif
       }
 
       if(bleDevices[devNr].pChr->canWrite())
       {
         #ifdef BT_DEBUG
-        ESP_LOGI(TAG, "can write");
+        BSC_LOGI(TAG, "can write");
         #endif
       }
 
@@ -370,11 +370,11 @@ bool btDeviceConnect()
   }
   else
   {
-    ESP_LOGW(TAG, "Service not found.");
+    BSC_LOGW(TAG, "Service not found.");
   }
 
   #ifdef BT_DEBUG
-  ESP_LOGI(TAG, "Device connected; dev=%i",devNr);
+  BSC_LOGI(TAG, "Device connected; dev=%i",devNr);
   #endif
   return true;
 }
@@ -383,7 +383,7 @@ bool btDeviceConnect()
 void btDeviceDisconnect(uint8_t devNr)
 {
   //#ifdef BT_DEBUG
-  ESP_LOGI(TAG, "btDeviceDisconnect() devNr=%i",devNr);
+  BSC_LOGI(TAG, "btDeviceDisconnect() devNr=%i",devNr);
   //#endif
 
   NimBLEClient* pClient = nullptr;
@@ -431,7 +431,7 @@ void BleHandler::init()
   bo_mStartManualScan=false;
   bo_mBtScanIsRunning=false;
   bo_mBtNotAllDeviceConnectedOrScanRunning=false;
-  bo_mSendDataToNeey=false;
+  u8_mSendDataToNeey=0;
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
@@ -473,7 +473,7 @@ void BleHandler::stop()
 
   bo_mBleHandlerRunning=false;
   bo_mBtNotAllDeviceConnectedOrScanRunning=false;
-  bo_mSendDataToNeey=false;
+  u8_mSendDataToNeey=0;
 }
 
 void BleHandler::startScan()
@@ -500,21 +500,21 @@ bool BleHandler::isNotAllDeviceConnectedOrScanRunning()
 
 void BleHandler::sendDataToNeey()
 {
-  ESP_LOGI(TAG,"NEEY SEND DATA (B)");
-  bo_mSendDataToNeey=true;
+  BSC_LOGI(TAG,"NEEY SEND DATA (B)");
+  u8_mSendDataToNeey=1;
 }
 
 
 void BleHandler::run()
 {
   #ifdef BT_DEBUG
-  ESP_LOGD(TAG, "run(a) bo_mBtScanIsRunning=%i, bo_mBleHandlerRunning=%i",bo_mBtScanIsRunning,bo_mBleHandlerRunning);
+  BSC_LOGD(TAG, "run(a) bo_mBtScanIsRunning=%i, bo_mBleHandlerRunning=%i",bo_mBtScanIsRunning,bo_mBleHandlerRunning);
   #endif
 
   if(!bo_mBleHandlerRunning)return;
 
   #ifdef BT_DEBUG
-  ESP_LOGD(TAG, "run(b) bo_mBtScanIsRunning=%i",bo_mBtScanIsRunning);
+  BSC_LOGD(TAG, "run(b) bo_mBtScanIsRunning=%i",bo_mBtScanIsRunning);
   #endif
 
   //Devices trennen wenn notwendig
@@ -524,9 +524,9 @@ void BleHandler::run()
   boolean bo_lDoStartBtScan=handleConnectionToDevices();
 
   //Scan abbrechen, wenn Daten an den NEEY gesendet werden müssen
-  if(bo_mBtScanIsRunning && bo_mSendDataToNeey && !bo_lDoStartBtScan)
+  if(bo_mBtScanIsRunning && u8_mSendDataToNeey>0 && !bo_lDoStartBtScan)
   {
-    ESP_LOGD(TAG, "Send Data to NEEY -> Stoppe Scan!");
+    BSC_LOGD(TAG, "Send Data to NEEY -> Stoppe Scan!");
     bo_lDoStartBtScan=false;
     pBLEScan->stop(); 
     bo_mBtNotAllDeviceConnectedOrScanRunning=false;
@@ -534,7 +534,7 @@ void BleHandler::run()
   }
 
   //Manuellen scan starten
-  if(bo_mStartManualScan && !bo_mSendDataToNeey)
+  if(bo_mStartManualScan && u8_mSendDataToNeey==0)
   {
     bo_mStartManualScan=false;
     if(!bo_mBtScanIsRunning) bo_lDoStartBtScan=true;
@@ -543,13 +543,13 @@ void BleHandler::run()
   //Wenn angefordert, dann starte neuen BT scan
   if(bo_lDoStartBtScan && !bo_mBtScanIsRunning)
   {
-    ESP_LOGD(TAG, "Starte BT Scan");
+    BSC_LOGD(TAG, "Starte BT Scan");
     bo_mBtNotAllDeviceConnectedOrScanRunning=true;
     bo_lDoStartBtScan = false;
     bo_mBtScanIsRunning = true;
     if(pBLEScan->isScanning())
     {
-      ESP_LOGI(TAG, "scan läuft noch");
+      BSC_LOGI(TAG, "scan läuft noch");
     }
     else
     {
@@ -560,7 +560,7 @@ void BleHandler::run()
   }
 
   #ifdef BT_DEBUG
-  ESP_LOGD(TAG, "run() u8_mScanAndNotConnectTimer=%i, bo_mBtScanIsRunning=%i, scanResCount=%i",u8_mScanAndNotConnectTimer,bo_mBtScanIsRunning,pBLEScan->getResults().getCount());
+  BSC_LOGD(TAG, "run() u8_mScanAndNotConnectTimer=%i, bo_mBtScanIsRunning=%i, scanResCount=%i",u8_mScanAndNotConnectTimer,bo_mBtScanIsRunning,pBLEScan->getResults().getCount());
   #endif
 
   //Stop den Scan, wenn die Ergebnisliste voll ist und x Sekunden kein Device mehr verbunden wurde
@@ -571,7 +571,7 @@ void BleHandler::run()
   if(u8_mScanAndNotConnectTimer==1)
   {
     u8_mScanAndNotConnectTimer=0;
-    ESP_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
+    BSC_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
     pBLEScan->stop(); 
     bo_mBtNotAllDeviceConnectedOrScanRunning=false;
     bo_mBtScanIsRunning=false;
@@ -607,14 +607,14 @@ bool BleHandler::handleConnectionToDevices()
     //BT Devices verbinden 
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
-      uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0);
+      uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
       if(u8_lBtDevType>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
       {
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
-          ESP_LOGD(TAG, "Suche device %i",i);
+          BSC_LOGD(TAG, "Suche device %i",i);
           bo_lDoStartBtScan = true;
         }
       }
@@ -640,7 +640,7 @@ bool BleHandler::handleConnectionToDevices()
 
     //Wenn alle Geräte verbunden sind
     #ifdef BT_DEBUG
-    ESP_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
+    BSC_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
     #endif
     if(u8_lBtConnStatus==0x7F)
     {
@@ -649,11 +649,11 @@ bool BleHandler::handleConnectionToDevices()
       {
         if(bleDevices[i].doConnect==btDoConnectionWaitStart)
         {
-          //ESP_LOGI(TAG,"BT write (%i) typ=%i",i,bleDevices[i].deviceTyp);
+          //BSC_LOGI(TAG,"BT write (%i) typ=%i",i,bleDevices[i].deviceTyp);
           switch(bleDevices[i].deviceTyp)
           {
             case ID_BT_DEVICE_NEEY4A:
-              ESP_LOGD(TAG,"BT write dev=%i",i);
+              BSC_LOGD(TAG,"BT write dev=%i",i);
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
               bleDevices[i].doConnect = btDoConnectionIdle; 
               bleDevices[i].sendDataStep = 0;
@@ -661,7 +661,7 @@ bool BleHandler::handleConnectionToDevices()
 
             case ID_BT_DEVICE_JKBMS_JK02:
             case ID_BT_DEVICE_JKBMS_JK02_32S:
-              ESP_LOGI(TAG,"BT write (A) dev=%i",i);
+              BSC_LOGI(TAG,"BT write (A) dev=%i",i);
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_DEVICE_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
@@ -683,9 +683,15 @@ bool BleHandler::handleConnectionToDevices()
                   NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr); 
                   break;
                 case 1:
-                  if(bo_mSendDataToNeey)
+                  if(u8_mSendDataToNeey>0)
                   {
-                    if(NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr)) {bo_mSendDataToNeey=false;}
+                    if(u8_mSendDataToNeey==1)
+                    {
+                      NeeyBalancer::neeyWriteData_GotoStartStep();
+                      u8_mSendDataToNeey=2;
+                    }
+                    //if(NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr)) {u8_mSendDataToNeey=false;}
+                    NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr);
                   }
                   else
                   {
@@ -709,7 +715,7 @@ bool BleHandler::handleConnectionToDevices()
               bleDevices[i].sendDataStep++;
               if(bleDevices[i].sendDataStep>2)
               {
-              ESP_LOGI(TAG,"BT write (B) dev=%i",i);
+              BSC_LOGI(TAG,"BT write (B) dev=%i",i);
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_CELL_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
@@ -719,6 +725,10 @@ bool BleHandler::handleConnectionToDevices()
               break;
           }
         }
+      }
+      if(u8_mSendDataToNeey==2)
+      {
+        if(NeeyBalancer::neeyWriteData_GotoNextStep()) u8_mSendDataToNeey=0;
       }
       if(bo_lAllDevWrite)bo_mBtNotAllDeviceConnectedOrScanRunning=false; 
     }
@@ -734,7 +744,7 @@ void BleHandler::handleDisconnectionToDevices()
   {
     if(bleDevices[i].isConnect)
     {
-      if(webSettings.getInt(ID_PARAM_SS_BTDEV,0,i,0)==ID_BT_DEVICE_NB || webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,i,0).equals(""))
+      if(webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NB || webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(""))
       {
         if(NimBLEDevice::getClientListSize())
         {
@@ -743,7 +753,7 @@ void BleHandler::handleDisconnectionToDevices()
           {
             if(!pClient->disconnect())
             {
-              ESP_LOGI(TAG, "Device disconnected, dev=%s",bleDevices[i].macAdr.c_str());
+              BSC_LOGI(TAG, "Device disconnected, dev=%s",bleDevices[i].macAdr.c_str());
             }
           }
         }
@@ -804,7 +814,7 @@ uint8_t BleHandler::bmsIsConnect(uint8_t devNr)
   }
   else
   {
-    if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,0,devNr,0).equals("") && webSettings.getInt(ID_PARAM_SS_BTDEV,0,devNr,0)!=ID_BT_DEVICE_NB) return 1;
+    if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,devNr).equals("") && webSettings.getInt(ID_PARAM_SS_BTDEV,devNr,DT_ID_PARAM_SS_BTDEV)!=ID_BT_DEVICE_NB) return 1;
   }
   return 0;
 }

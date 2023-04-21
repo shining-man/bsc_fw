@@ -47,7 +47,7 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
   #ifdef SEPLOS_DEBUG
-  ESP_LOGI(TAG,"SeplosBms_readBmsData()");
+  BSC_LOGI(TAG,"SeplosBms_readBmsData()");
   #endif
 
   for(uint8_t adr=0; adr<u8_mConnToId+1;adr++)
@@ -61,22 +61,14 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+adr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+adr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
     }
-    else
-    {
-      ESP_LOGE(TAG,"Checksum wrong");
-      return false;
-    }
-
+    else return false;
+    
     getDataFromBms(adr, 0x44); //Alarms
     if(recvAnswer(response))
     {
       parseMessage_Alarms(response, adr);
     }
-    else
-    {
-      ESP_LOGE(TAG,"Checksum wrong");
-      return false;
-    }
+    else return false;
   }
 
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
@@ -108,7 +100,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 
   uint16_t crc = calcCrc(&u8_lSendData[1], frame_len*2);
   #ifdef SEPLOS_DEBUG
-  ESP_LOGD(TAG,"crc=%i", crc);
+  BSC_LOGD(TAG,"crc=%i", crc);
   #endif
   u8_lData[7]=(crc >> 8);  // CHKSUM (0xFD)
   u8_lData[8]=(crc >> 0);  // CHKSUM (0x37)
@@ -124,7 +116,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
     recvBytes+=String(u8_lData[x]);
     recvBytes+=" ";
   }
-  ESP_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
+  BSC_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
   #endif
 
 
@@ -151,7 +143,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200) 
     {
-      ESP_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       #ifdef SEPLOS_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -159,7 +151,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
         recvBytes+=String(p_lRecvBytes[x]);
         recvBytes+=" ";
       }
-      ESP_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+      BSC_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
       #endif
       return false;
     }
@@ -203,7 +195,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     recvBytes+=String(p_lRecvBytes[x]);
     recvBytes+=" ";
   }
-  ESP_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+  BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
   #endif
 
   //Überprüfe Cheksum
@@ -222,7 +214,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 	};
 
   #ifdef SEPLOS_DEBUG
-  ESP_LOGI(TAG, "parseMessage()");
+  BSC_LOGI(TAG, "parseMessage()");
   #endif
 
   uint8_t u8_lNumOfCells = 0;
@@ -259,7 +251,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
 	u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
   #ifdef SEPLOS_DEBUG
-  ESP_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
+  BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
   #endif
 
   for (uint8_t i=0; i<u8_lNumOfCells; i++) 
@@ -298,7 +290,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   //   41     0x06           Number of temperatures           6                                    V
   uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
   #ifdef SEPLOS_DEBUG
-  ESP_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+  BSC_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
   #endif
 
   //   42     0x0B 0xA6      Temperature sensor 1             (2982 - 2731) * 0.1f = 25.1          °C
@@ -739,7 +731,7 @@ static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt)
 
   if (u16_lCrc != u16_lRemoteCrc)
   {
-    ESP_LOGE(TAG, "CRC failed: %04X != %04X", u16_lCrc, u16_lRemoteCrc);
+    BSC_LOGE(TAG, "CRC failed: %04X != %04X", u16_lCrc, u16_lRemoteCrc);
     return false;
   }
 

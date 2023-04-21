@@ -41,7 +41,7 @@ uint8_t getSensorAdrFromParams()
   uint8_t owAmount = 0;
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
-    owAdr = WebSettings::getString(ID_PARAM_ONEWIRE_ADR,0,0,i);
+    owAdr = WebSettings::getStringFlash(ID_PARAM_ONEWIRE_ADR,i);
 
     if (8 == sscanf(owAdr.c_str(), "%x:%x:%x:%x:%x:%x:%x:%x%*c",
         &owAddr[i][0], &owAddr[i][1], &owAddr[i][2], &owAddr[i][3],
@@ -102,7 +102,7 @@ void takeOwSensorAddress()
 void owCyclicRun()
 {
   //Wenn onewire aktiviert wurde
-  if(WebSettings::getBool(ID_PARAM_ONWIRE_ENABLE,0,0,0))
+  if(WebSettings::getBool(ID_PARAM_ONWIRE_ENABLE,0))
   {
     xSemaphoreTake(owMutex, portMAX_DELAY);
     if(cycleCounter==0)
@@ -161,7 +161,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
         else
         {
           //Offset abziehen
-          tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,0,i,0)*100);
+          tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
 
           if(firstMeasurement){
             owTempsC_AvgCalc[i] = tempC;
