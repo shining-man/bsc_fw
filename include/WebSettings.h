@@ -40,39 +40,29 @@
 #define BUTTON_2     2
 #define BUTTON_3     3
 
-#define PARAM_DT_U8  1
-#define PARAM_DT_I8  2
-#define PARAM_DT_U16 3
-#define PARAM_DT_I16 4
-#define PARAM_DT_U32 5
-#define PARAM_DT_I32 6
-#define PARAM_DT_FL  7
-#define PARAM_DT_ST  8
-#define PARAM_DT_BO  9
-
 
 class WebSettings {
 public:
   WebSettings();
-  void initWebSettings(const char *parameter, String confName, String configfile, uint8_t settingNr);
+  void initWebSettings(const char *parameter, String confName, String configfile);
 
   //Parameterfile
   boolean deleteConfig();
   boolean writeConfig();
   
-  static String   getString(uint32_t name, boolean fromFlash, uint8_t u8_dataType);
-  static String   getString(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
-  static int      getInt(uint32_t name);
-  static int      getInt(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
-  static float    getFloat(uint32_t name);
-  static float    getFloat(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
-  static boolean  getBool(uint32_t name);
-  static boolean  getBool(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
+  static String   getString(uint16_t name, boolean fromFlash, uint8_t u8_dataType);
+  static String   getString(uint16_t name, uint8_t groupNr);
+  static int32_t  getInt(uint16_t name, uint8_t u8_dataType);
+  static int32_t  getInt(uint16_t name, uint8_t groupNr, uint8_t u8_dataType);
+  static float    getFloat(uint16_t name);
+  static float    getFloat(uint16_t name, uint8_t groupNr);
+  static bool     getBool(uint16_t name);
+  static bool     getBool(uint16_t name, uint8_t groupNr);
 
-  static int getIntFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr, uint8_t dataType);
-  static float getFloatFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
-  static boolean getBoolFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
-  static String getStringFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr);
+  static int getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
+  static float getFloatFlash(uint16_t name, uint8_t groupNr);
+  static boolean getBoolFlash(uint16_t name, uint8_t groupNr);
+  static String getStringFlash(uint16_t name, uint8_t groupNr);
   String getStringFlash(String name);
 
 
@@ -88,17 +78,16 @@ public:
   void setTimerHandlerName(String handlerName, uint16_t timerSec=1000);
   void handleHtmlFormRequest(WebServer * server);
 
-  static uint32_t getParmId(uint16_t id, uint8_t settingNr, uint8_t groupIdx, uint8_t listIdx);
-  static void     getIdFromParamId(uint32_t paramId, uint16_t &id, uint8_t &settingNr, uint8_t &groupIdx, uint8_t &listIdx);
-
+  static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
+  static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
   
 private:
   const char *parameterFile;
-
+  
   String   str_mConfName;
   String   str_mConfigfile;
   uint8_t  u8_mJsonArraySize;
-  uint8_t  u8_mSettingNr;
+  //uint8_t  u8_mSettingNr;
   String   str_mAjaxGetDataTimerHandlerName;
   uint16_t u16_mAjaxGetDataTimerSec;
 
@@ -115,8 +104,9 @@ private:
   void sendContentHtml(WebServer *server, const char *buf, bool send);
   //void readWebValues(WebServer * server, const String *parameter, uint32_t jsonStartPos);
 
-  bool isKeyExist(uint32_t key);
-  void setString(uint32_t name, String value);
+  bool isKeyExist(uint16_t key, uint8_t u8_dataType);
+  void setString(uint16_t name, String value, uint8_t u8_dataType);
+  void setInt(uint16_t name, int32_t value);
 
   String   getJson_Key(const char *parameter, String key, uint8_t idx, uint32_t startPos, String defaultValue); //Universal über parameter key
   uint8_t  getJsonSize(const char *parameter, uint8_t idx, uint32_t startPos);
@@ -134,16 +124,16 @@ private:
   std::vector<String> getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos);
   String   getJsonArrValue(const char *parameter, String str_key1, String str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos);
 
-  void createHtmlTextfield(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
-  void createHtmlTextarea(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlNumber(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlFloat(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlRange(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
-  void createHtmlCheckbox(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
+  void createHtmlTextarea(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlNumber(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlRange(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
+  void createHtmlCheckbox(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value);
   void createHtmlStartSelect(char * buf, uint64_t *name, String *label, const char *parameter, uint8_t idx, uint32_t startPos);
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
   void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
-  void createHtmlAddMultiOption(char * buf, uint32_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value);
+  void createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType);
 
   void (*fn_mOnButtonSave)() = NULL;
   void (*fn_mOnButton1)() = NULL;

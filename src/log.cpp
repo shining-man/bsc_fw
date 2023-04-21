@@ -58,8 +58,8 @@ void debugInit()
   #endif
 
 
-  //esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
-  esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
+  esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
+  //esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
   
   //esp_log_level_set("MAIN", ESP_LOG_INFO); 
   //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
@@ -87,9 +87,9 @@ void debugInit()
   #ifdef DEBUG_ON_FS
   if(!SPIFFS.exists("/log.txt")) 
   {
-    ESP_LOGE(TAG, "Error with the SPIFFS!");
+    BSC_LOGE(TAG, "Error with the SPIFFS!");
   }
-  ESP_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
+  BSC_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
   #endif
 }
 

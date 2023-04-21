@@ -170,6 +170,8 @@ public:
   static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value);
   static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, float value);
   static bool neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pChr);
+  static void neeyWriteData_GotoStartStep();
+  static bool neeyWriteData_GotoNextStep();
   static void neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolean u8_state);
   static void neeyWriteMsg2(NimBLERemoteCharacteristic* pChr);
 

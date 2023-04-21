@@ -21,12 +21,19 @@ static const char * TAG = "WEB_SETTINGS";
 
 static SemaphoreHandle_t mParamMutex = NULL;
 
-sparse_hash_map<uint32_t, std::string> settingValues;
+static sparse_hash_map<uint16_t, int8_t> settingValues_i8;
+static sparse_hash_map<uint16_t, int16_t> settingValues_i16;
+static sparse_hash_map<uint16_t, int32_t> settingValues_i32;
+static sparse_hash_map<uint16_t, float> settingValues_fl;
+static sparse_hash_map<uint16_t, bool> settingValues_bo;
+static sparse_hash_map<uint16_t, std::string> settingValues_str;
+
 static char _buf[2000];
 static String st_mSendBuf = "";
 static String str_lTmpGetString;
 std::vector<String> mOptions;
 std::vector<String> mOptionLabels;
+bool bo_hasNewKeys=false;
 
 uint8_t u8_mAktOptionGroupNr;
 static Json json;
@@ -71,7 +78,6 @@ const char HTML_END_3[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
-
 
 const char HTML_ENTRY_TEXTFIELD[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
@@ -118,7 +124,6 @@ const char HTML_ENTRY_MULTI_COLLAPSIBLE_START[] PROGMEM =
 const char HTML_ENTRY_MULTI_COLLAPSIBLE_END[] PROGMEM =
 "</fieldset></div></div></td><td class='t1'></td></tr>\n";
 
-
 const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='3'><b>%s</b></td></tr>\n";
 
 const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
@@ -149,7 +154,6 @@ String getValue(String data, char separator, int index)
         strIndex[1] = (i == maxIndex) ? i+1 : i;
     }
   }
-
   return found>index ? data.substring(strIndex[0], strIndex[1]) : "";
 }
 
@@ -163,12 +167,11 @@ WebSettings::WebSettings() {
 };
 
 
-void WebSettings::initWebSettings(const char *parameter, String confName, String configfile, uint8_t settingNr)
+void WebSettings::initWebSettings(const char *parameter, String confName, String configfile)
 {
   u8_mJsonArraySize = 0;
   str_mConfName = confName.c_str();
   str_mConfigfile = configfile.c_str();
-  u8_mSettingNr = settingNr;
 
   parameterFile = parameter;
 
@@ -181,15 +184,16 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
 
   if (!prefs.begin("prefs"))
   {
-    //ESP_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
+    //BSC_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
   }
   else
   {
-    ESP_LOGI(TAG,"Anzahl freier Eintraege: %d", prefs.freeEntries());
+    BSC_LOGI(TAG,"Free flash entries: %d", prefs.freeEntries());
   }
   
   readConfig();
   getDefaultValuesFromNewKeys(parameterFile, 0);
+  if(bo_hasNewKeys) writeConfig();
 }
 
 void WebSettings::setTimerHandlerName(String handlerName, uint16_t timerSec)
@@ -214,16 +218,13 @@ void WebSettings::sendContentHtml(WebServer *server, const char *buf, bool send)
     
   if(send==true || st_mSendBuf.length()>2000)
   {
-    //debugPrintf("sende sendBuf size=%i\n",st_mSendBuf.length());
     if(!st_mSendBuf.equals("")) server->sendContent(st_mSendBuf);
-    //ESP_LOGI(TAG, "BUF_1:%s",st_mSendBuf.c_str());
     st_mSendBuf="";
   }
 
   if(strlen(buf)>500)
   {
     server->sendContent(buf);
-    //ESP_LOGI(TAG, "BUF_2:%s",buf);
   }
 }
 
@@ -236,7 +237,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
 
   if(json.getArraySize(parameterFile,0)==0)
   {
-    ESP_LOGI(TAG,"Error read json");
+    BSC_LOGI(TAG,"Error read json");
   }
   else
   {
@@ -250,7 +251,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
         {
           String argValue = server->arg(i);
           #ifdef WEBSET_DEBUG
-          ESP_LOGD(TAG, "SAVE: name:%s, val:%s", argName, argValue);
+          BSC_LOGD(TAG, "SAVE: name:%s, val:%s", argName, argValue);
           #endif
 
           if(isNumber(argName)) //Wenn keine Zahl, dann Fehler
@@ -258,12 +259,12 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
             char* end;
             uint64_t u64_argName=strtoull(argName.c_str(),&end,10);
             uint32_t u32_argName = (uint32_t)(u64_argName&0xFFFFFFFF);
+            uint8_t  u8_datatype = ((u64_argName>>32)&0xff);
 
             if((u64_argName&((uint64_t)1<<40))==((uint64_t)1<<40)) //Store  in Flash
             {              
-              uint8_t u8_datatype = ((u64_argName>>32)&0xff);
               #ifdef WEBSET_DEBUG
-              ESP_LOGD(TAG,"Store in Flash; u32_argName=%i, dt=%i",u32_argName,u8_datatype);
+              BSC_LOGD(TAG,"Store in Flash; u32_argName=%i, dt=%i",u32_argName,u8_datatype);
               #endif
 
               uint8_t ret=0xFF;
@@ -300,9 +301,11 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
             }
             else //Store in RAM
             {
-              //ESP_LOGD(TAG,"Store in RAM; u32_argName=%i",u32_argName);
+              #ifdef WEBSET_DEBUG
+              BSC_LOGD(TAG,"Store in RAM; u32_argName=%i, dt=%i",u32_argName,u8_datatype);
+              #endif
 
-              setString(u32_argName, argValue); 
+              setString(u32_argName, argValue, u8_datatype); 
               writeConfig(); //Schreiben der Einstellungen in das Config file
             }
             server->send(200, "text/html", "OK"); //Sende ok an Website (Rückmeldung, dass gespeichert wurde)
@@ -343,8 +346,6 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
       sprintf(_buf,HTML_START/*,BACKGROUND_COLOR*/);
       server->send(200, "text/html", _buf);
 
-      //sendContentHtml(server,HTML_STYLE_2,false);
-      
       sendContentHtml(server,webSettingsStyle,false);
 
       sprintf(_buf,HTML_START_2,str_mConfName.c_str());
@@ -393,7 +394,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
   uint8_t g, optionGroupSize;
   String tmpStr = "";
 
-  ESP_LOGD(tag,"SAVE readWebValues()");
+  BSC_LOGD(tag,"SAVE readWebValues()");
 
   for (uint8_t a=0; a<json.getArraySize(parameter, jsonStartPos); a++)
   {
@@ -441,175 +442,157 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
 
 void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos)
 {
-  uint8_t g;
-  uint8_t optionsCnt;
-  uint8_t optionGroupSize;
-  boolean bo_lIsGroup=false;
-  
-  uint32_t u32_jsonName;
+  uint8_t g, optionsCnt, optionGroupSize, jsonSize, u8_dataType;
+  uint16_t u32_jsonName, jsonNameBase;
   uint64_t u64_jsonName;
-  String jsonLabel;
-  String jsonLabelBase;
-  String st_jsonLabelEntry;
-  uint32_t jsonNameBase;
-  uint8_t jsonSize;
-  String strlHelp;
+  String jsonLabel, st_jsonLabelEntry, strlHelp;
+  boolean bo_lIsGroup, bo_loadFromFlash;
 
-  boolean bo_loadFromFlash=false;
-  uint8_t u8_dataType=0;
+  bo_lIsGroup=false;
+  bo_loadFromFlash=false;
+  u8_dataType=0;
 
   for (uint8_t a=0; a<json.getArraySize(parameter, jsonStartPos); a++)
   {
     u64_jsonName = 0;
-    jsonLabel = "";
-    jsonLabelBase = getJsonLabel(parameter, a, jsonStartPos);
+    jsonLabel = getJsonLabel(parameter, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
-    jsonSize = getJsonSize(parameter, a, jsonStartPos);  
+  
+    bo_loadFromFlash=false;
+    u8_dataType=0;
+    u32_jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
+    u64_jsonName = u32_jsonName;
 
+    //Load from RAM or Flash
+    u8_dataType = (uint8_t)getJson_Key(parameter, "dt", a, jsonStartPos, "").toInt();
+    u64_jsonName = u64_jsonName | ((uint64_t)u8_dataType<<32); // | (1ULL<<40);
+    if(getJson_Key(parameter, "flash", a, jsonStartPos, "").equals("1")) 
+    {
+      u64_jsonName |= (1ULL<<40);
+      bo_loadFromFlash=true;
+    }
 
-    for(uint8_t n=0; n<jsonSize; n++)
-    {  
-      bo_loadFromFlash=false;
-      u8_dataType=0;
-
-      u32_jsonName = getParmId(jsonNameBase,u8_mSettingNr,u8_mAktOptionGroupNr,n);
-      u64_jsonName = u32_jsonName;
-      jsonLabel = jsonLabelBase;
-      if(jsonSize>1){jsonLabel += " (";}
-      if(jsonSize>1){jsonLabel += n;}
-      if(jsonSize>1){jsonLabel += ")";}
-
-
-      //Load from RAM or Flash
-      if(getJson_Key(parameter, "flash", a, jsonStartPos, "").equals("1"))
-      {
-        bo_loadFromFlash=true;
-        u8_dataType = (uint8_t)getJson_Key(parameter, "dt", a, jsonStartPos, "").toInt();
-        u64_jsonName = u64_jsonName | ((uint64_t)u8_dataType<<32) | (1ULL<<40);
-      }
-
-      uint8_t u8_lJsonType = getJsonType(parameter, a, jsonStartPos);
-      switch(u8_lJsonType)
-      {
-        case HTML_OPTIONGROUP:
-          //bo_lIsGroup=true;
-          st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
-          optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
-          if(optionGroupSize>1 && !jsonLabel.equals(""))
-          {
-            sprintf(_buf,HTML_GROUP_START,jsonLabel.c_str());
-            sendContentHtml(server,_buf,false);
-          }
-          for(g=0; g<optionGroupSize; g++)
-          {
-            u8_mAktOptionGroupNr=g;
-
-            sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g);
-            sendContentHtml(server,_buf,false);
-
-            String retStr;
-            uint32_t jsonArrayGroupStart = 0;
-            bool ret = json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
-            buildSendHtml(server, parameter, jsonArrayGroupStart);
-
-            sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
-            sendContentHtml(server,_buf,false);
-          }
-          /*if(optionGroupSize>1 && !jsonLabel.equals(""))
-          {
-            sprintf(_buf,HTML_GROUP_END);
-            sendContentHtml(server,_buf,false);
-          }*/
-          u8_mAktOptionGroupNr = 0;
-          break;
-        case HTML_INPUTTEXT: 
-          createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"text",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTTEXTAREA: 
-          createHtmlTextarea(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-            break;
-        case HTML_INPUTPASSWORD: 
-          createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"password",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTDATE: 
-          createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"date",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTTIME: 
-          createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"time",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTCOLOR: 
-          createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"color",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;      
-        case HTML_INPUTFLOAT: 
-          createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTNUMBER: 
-          createHtmlNumber(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTRANGE: 
-          createHtmlRange(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTCHECKBOX: 
-          createHtmlCheckbox(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          break;
-        case HTML_INPUTSELECT:
-          createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
-          optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-          mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
-          mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
-          for (uint8_t j = 0 ; j<optionsCnt; j++)
-          {
-            sendContentHtml(server,_buf,false);
-            String str_lNewLabel = mOptionLabels[j];
-            String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
-            if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
-            createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
-          }
-          mOptions.clear();
-          mOptionLabels.clear();
-          sendContentHtml(server,_buf,false);
-          sprintf(_buf,HTML_ENTRY_SELECT_END,String(u32_jsonName));
-          break;
-        case HTML_INPUTMULTICHECK:
-        case HTML_INPUTMULTICHECK_COLLAPSIBLE:
-          createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
-          optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-          mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
-          for (uint8_t j = 0 ; j<optionsCnt; j++)
-          {
-            sendContentHtml(server,_buf,false);
-            String str_lNewLabel = mOptionLabels[j];
-            String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
-            if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
-            createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,getInt(u32_jsonName));
-          }
-          sendContentHtml(server,_buf,false);
-          if(u8_lJsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE) strcpy_P(_buf,HTML_ENTRY_MULTI_COLLAPSIBLE_END);
-          else strcpy_P(_buf,HTML_ENTRY_MULTI_END);;
-          break;
-        case HTML_SEPARATION:
-          sprintf(_buf,HTML_ENTRY_SEPARATION,jsonLabel.c_str());
-          break;
-        default: 
-          _buf[0] = 0;
-          break;
-      }
-
-      if(getJsonType(parameter, a, jsonStartPos) != HTML_OPTIONGROUP)
-      {
-        sendContentHtml(server,_buf,false);
-      }
-
-      //Help einfügen
-      if(!bo_lIsGroup)
-      {
-        strlHelp = getJsonHelp(parameter, a, jsonStartPos);
-        if(!strlHelp.equals(""))
+    uint8_t u8_lJsonType = getJsonType(parameter, a, jsonStartPos);
+    switch(u8_lJsonType)
+    {
+      case HTML_OPTIONGROUP:
+        //bo_lIsGroup=true;
+        st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
+        optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
+        if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
-          strlHelp.replace("\n","<br>");
-          sprintf(_buf,"<tr><td colspan='3' class='td0'><div class='help'>%s</div></td></tr>",strlHelp.c_str());
+          sprintf(_buf,HTML_GROUP_START,jsonLabel.c_str());
           sendContentHtml(server,_buf,false);
         }
+        for(g=0; g<optionGroupSize; g++)
+        {
+          u8_mAktOptionGroupNr=g;
+
+          sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g);
+          sendContentHtml(server,_buf,false);
+
+          String retStr;
+          uint32_t jsonArrayGroupStart = 0;
+          bool ret = json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
+          buildSendHtml(server, parameter, jsonArrayGroupStart);
+
+          sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
+          sendContentHtml(server,_buf,false);
+        }
+        /*if(optionGroupSize>1 && !jsonLabel.equals(""))
+        {
+          sprintf(_buf,HTML_GROUP_END);
+          sendContentHtml(server,_buf,false);
+        }*/
+        u8_mAktOptionGroupNr = 0;
+        break;
+      case HTML_INPUTTEXT: 
+        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"text",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTTEXTAREA: 
+        createHtmlTextarea(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+          break;
+      case HTML_INPUTPASSWORD: 
+        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"password",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTDATE: 
+        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"date",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTTIME: 
+        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"time",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTCOLOR: 
+        createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"color",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;      
+      case HTML_INPUTFLOAT: 
+        createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTNUMBER: 
+        createHtmlNumber(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTRANGE: 
+        createHtmlRange(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTCHECKBOX: 
+        createHtmlCheckbox(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
+        break;
+      case HTML_INPUTSELECT:
+        createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
+        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
+        mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
+        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        for (uint8_t j = 0 ; j<optionsCnt; j++)
+        {
+          sendContentHtml(server,_buf,false);
+          String str_lNewLabel = mOptionLabels[j];
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
+          createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u32_jsonName,bo_loadFromFlash,u8_dataType));
+        }
+        mOptions.clear();
+        mOptionLabels.clear();
+        sendContentHtml(server,_buf,false);
+        sprintf(_buf,HTML_ENTRY_SELECT_END,String(u32_jsonName));
+        break;
+      case HTML_INPUTMULTICHECK:
+      case HTML_INPUTMULTICHECK_COLLAPSIBLE:
+        createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
+        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
+        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        for (uint8_t j = 0 ; j<optionsCnt; j++)
+        {
+          sendContentHtml(server,_buf,false);
+          String str_lNewLabel = mOptionLabels[j];
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
+          createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,(uint32_t)getInt(u32_jsonName,u8_dataType),u8_dataType);
+        }
+        sendContentHtml(server,_buf,false);
+        if(u8_lJsonType==HTML_INPUTMULTICHECK_COLLAPSIBLE) strcpy_P(_buf,HTML_ENTRY_MULTI_COLLAPSIBLE_END);
+        else strcpy_P(_buf,HTML_ENTRY_MULTI_END);;
+        break;
+      case HTML_SEPARATION:
+        sprintf(_buf,HTML_ENTRY_SEPARATION,jsonLabel.c_str());
+        break;
+      default: 
+        _buf[0] = 0;
+        break;
+    }
+
+    if(getJsonType(parameter, a, jsonStartPos) != HTML_OPTIONGROUP)
+    {
+      sendContentHtml(server,_buf,false);
+    }
+
+    //Help einfügen
+    if(!bo_lIsGroup)
+    {
+      strlHelp = getJsonHelp(parameter, a, jsonStartPos);
+      if(!strlHelp.equals(""))
+      {
+        strlHelp.replace("\n","<br>");
+        sprintf(_buf,"<tr><td colspan='3' class='td0'><div class='help'>%s</div></td></tr>",strlHelp.c_str());
+        sendContentHtml(server,_buf,false);
       }
     }
   }
@@ -617,94 +600,97 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
 
 void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos)
 {
-  uint8_t g, optionGroupSize, u8_dataType;
+  uint8_t  g, optionGroupSize, u8_dataType;
   uint32_t u32_tmp;
-  //String retStr_label = "";
-  String retStr_default = "";
+  String   retStr_default = "";
 
+  //BSC_LOGI(TAG,"getDefaultValuesFromNewKeys: str_mConfName=%s, arraySize=%i",str_mConfName.c_str(), json.getArraySize(parameter, jsonStartPos));
   for (uint8_t a=0; a<json.getArraySize(parameter, jsonStartPos); a++)
   {
-    uint8_t type, optionCnt, jsonSize;
-    uint32_t jsonName, jsonNameBase;
+    uint8_t type, optionCnt; //, jsonSize;
+    uint16_t jsonName, jsonNameBase;
 
     type = getJsonType(parameter, a, jsonStartPos);
     optionCnt = getJsonOptionsCnt(parameter, a, jsonStartPos);
-    jsonSize = getJsonSize(parameter, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
+    jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
 
-    for(uint8_t n=0; n<jsonSize; n++)
-    {  
-      jsonName = getParmId(jsonNameBase,u8_mSettingNr,u8_mAktOptionGroupNr,n);
+    retStr_default="";
+    json.getValue(parameter, a, "dt", jsonStartPos, retStr_default, u32_tmp);
+    u8_dataType = retStr_default.toInt();
 
-      if (type == HTML_OPTIONGROUP)
+    if (type == HTML_OPTIONGROUP)
+    {
+      optionGroupSize = getJsonGroupsize(parameter,a,jsonStartPos);
+      for(g=0; g<optionGroupSize; g++)
       {
-        optionGroupSize = getJsonGroupsize(parameter,a,jsonStartPos);
-        for(g=0; g<optionGroupSize; g++)
+        u8_mAktOptionGroupNr=g;
+        String retStr;
+        uint32_t jsonArrayGroupStart = 0;
+        json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
+        getDefaultValuesFromNewKeys(parameter, jsonArrayGroupStart);
+      }
+      u8_mAktOptionGroupNr = 0;
+      //break;
+    }
+    else
+    {
+      //Store in RAM
+      if(getJson_Key(parameter, "flash", a, jsonStartPos, "").equals("1")==false)
+      {
+        retStr_default="";
+        json.getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
+
+        if(isKeyExist(jsonName, u8_dataType)==false)
         {
-          u8_mAktOptionGroupNr=g;
-          String retStr;
-          uint32_t jsonArrayGroupStart = 0;
-          json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
-          getDefaultValuesFromNewKeys(parameter, jsonArrayGroupStart);
+          bo_hasNewKeys=true;
+          uint16_t id=0;
+          uint8_t group=0;
+          getIdFromParamId(jsonName,id,group);
+          //BSC_LOGI(TAG,"newDefKeyInRam: key=%i, val=%s, dt=%i, id=%i, group=%i",jsonName,retStr_default.c_str(),u8_dataType,id,group);
+          setString(jsonName, retStr_default, u8_dataType);
         }
-        u8_mAktOptionGroupNr = 0;
-        break;
       }
       else
       {
-        //Store in RAM
-        if(getJson_Key(parameter, "flash", a, jsonStartPos, "").equals("1")==false)
+        if(prefs.isKey(String(jsonName).c_str())==false)
         {
+          bo_hasNewKeys=true;
           retStr_default="";
           json.getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
-
-          if(isKeyExist(jsonName)==false)
+          uint16_t id=0;
+          uint8_t group=0;
+          getIdFromParamId(jsonName,id,group);
+          //BSC_LOGI(TAG,"newDefKeyInFlash: key=%i, val=%s, dt=%i, id=%i, group=%i",jsonName,retStr_default.c_str(),u8_dataType,id,group);
+          switch(u8_dataType)
           {
-            setString(jsonName, retStr_default);
-          }
-        }
-        else
-        {
-          if(prefs.isKey(String(jsonName).c_str())==false)
-          {
-            retStr_default="";
-            json.getValue(parameter, a, "dt", jsonStartPos, retStr_default, u32_tmp);
-            u8_dataType = retStr_default.toInt();
-
-            //wirte defaultvalues
-              retStr_default="";
-              json.getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
-              
-            switch(u8_dataType)
-            {
-              case PARAM_DT_U8:
-                prefs.putChar(String(jsonName).c_str(),(uint8_t)retStr_default.toInt());
-                break;
-              case PARAM_DT_I8:
-                prefs.putChar(String(jsonName).c_str(),(int8_t)retStr_default.toInt());
-                break;
-              case PARAM_DT_U16:
-                prefs.putInt(String(jsonName).c_str(),(uint16_t)retStr_default.toInt());
-                break;
-              case PARAM_DT_I16:
-                prefs.putInt(String(jsonName).c_str(),(int16_t)retStr_default.toInt());
-                break;
-              case PARAM_DT_U32:
-                prefs.putLong(String(jsonName).c_str(),retStr_default.toInt());
-                break;
-              case PARAM_DT_I32:
-                prefs.putLong(String(jsonName).c_str(),retStr_default.toInt());
-                break;
-              case PARAM_DT_FL:
-                prefs.putFloat(String(jsonName).c_str(),retStr_default.toFloat());
-                break;
-              case PARAM_DT_ST:
-                prefs.putString(String(jsonName).c_str(),retStr_default);
-                break;
-              case PARAM_DT_BO:
-                prefs.putBool(String(jsonName).c_str(),retStr_default.toInt());
-                break;
-            }
+            case PARAM_DT_U8:
+              prefs.putChar(String(jsonName).c_str(),(uint8_t)retStr_default.toInt());
+              break;
+            case PARAM_DT_I8:
+              prefs.putChar(String(jsonName).c_str(),(int8_t)retStr_default.toInt());
+              break;
+            case PARAM_DT_U16:
+              prefs.putInt(String(jsonName).c_str(),(uint16_t)retStr_default.toInt());
+              break;
+            case PARAM_DT_I16:
+              prefs.putInt(String(jsonName).c_str(),(int16_t)retStr_default.toInt());
+              break;
+            case PARAM_DT_U32:
+              prefs.putLong(String(jsonName).c_str(),retStr_default.toInt());
+              break;
+            case PARAM_DT_I32:
+              prefs.putLong(String(jsonName).c_str(),retStr_default.toInt());
+              break;
+            case PARAM_DT_FL:
+              prefs.putFloat(String(jsonName).c_str(),retStr_default.toFloat());
+              break;
+            case PARAM_DT_ST:
+              prefs.putString(String(jsonName).c_str(),retStr_default);
+              break;
+            case PARAM_DT_BO:
+              prefs.putBool(String(jsonName).c_str(),retStr_default.toInt());
+              break;
           }
         }
       }
@@ -713,19 +699,19 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
 }
 
 
-void WebSettings::createHtmlTextfield(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
+void WebSettings::createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_TEXTFIELD,label->c_str(),type,value.c_str(),String(*nameExt).c_str(),getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 
-void WebSettings::createHtmlTextarea(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlTextarea(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_AREA,label->c_str(),getJsonOptionsMax(parameter, idx, startPos),getJsonOptionsMin(parameter, idx, startPos),String(*nameExt).c_str(), value.c_str(), String(*name));
 }
 
-void WebSettings::createHtmlNumber(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlNumber(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_NUMBER,label->c_str(),getJsonOptionsMin(parameter, idx, startPos),
@@ -733,7 +719,7 @@ void WebSettings::createHtmlNumber(char * buf, uint32_t *name, uint64_t *nameExt
     getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 
-void WebSettings::createHtmlFloat(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_FLOAT,label->c_str(),
@@ -743,7 +729,7 @@ void WebSettings::createHtmlFloat(char * buf, uint32_t *name, uint64_t *nameExt,
     getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 
-void WebSettings::createHtmlRange(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlRange(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   sprintf(buf,HTML_ENTRY_RANGE, label->c_str(), getJsonOptionsMin(parameter, idx, startPos),
@@ -751,7 +737,7 @@ void WebSettings::createHtmlRange(char * buf, uint32_t *name, uint64_t *nameExt,
     value.c_str(), nameExt,  getJsonOptionsMax(parameter, idx, startPos),String(*name));
 }
 
-void WebSettings::createHtmlCheckbox(char * buf, uint32_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
+void WebSettings::createHtmlCheckbox(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
   String sValue = String(*name);
@@ -769,7 +755,8 @@ void WebSettings::createHtmlStartSelect(char * buf, uint64_t *nameExt, String *l
 
 void WebSettings::createHtmlAddSelectOption(char * buf, String option, String label, String value)
 {
-  if (option == value) {
+  if (option.equals(value))
+  {
     sprintf(buf,HTML_ENTRY_SELECT_OPTION,option.c_str(),"selected",label.c_str());
   } else {
     sprintf(buf,HTML_ENTRY_SELECT_OPTION,option.c_str(),"",label.c_str());
@@ -789,13 +776,13 @@ void WebSettings::createHtmlStartMulti(char * buf, String *label, const char *pa
   }
 }
 
-void WebSettings::createHtmlAddMultiOption(char * buf, uint32_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value)
+void WebSettings::createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType)
 {
   #ifdef WEBSET_DEBUG
-  ESP_LOGD(TAG,"createHtmlAddMultiOption: option=%i, value=%i",option,value);
+  BSC_LOGD(TAG,"createHtmlAddMultiOption: option=%i, value=%i",option,value);
   #endif
 
-  if(!isKeyExist(*name)) value = getJsonDefault(parameter, idx, startPos).toInt();
+  if(!isKeyExist(*name,u8_dataType)) value = getJsonDefault(parameter, idx, startPos).toInt();
 
   if((value&(1<<option))==(1<<option))
   {
@@ -1053,112 +1040,209 @@ String WebSettings::getJson_Key(const char *parameter, String key, uint8_t idx, 
 
 
 
-bool WebSettings::isKeyExist(uint32_t key)
+bool WebSettings::isKeyExist(uint16_t key, uint8_t u8_dataType)
 {
   bool ret = false;
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
-  if(settingValues.count(key)) ret=true;
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      if(settingValues_i8.count(key)) ret=true;
+      break;
+    case PARAM_DT_I8:
+      if(settingValues_i8.count(key)) ret=true;
+      break;
+    case PARAM_DT_U16:
+      if(settingValues_i16.count(key)) ret=true;
+      break;
+    case PARAM_DT_I16:
+      if(settingValues_i16.count(key)) ret=true;
+      break;
+    case PARAM_DT_U32:
+      if(settingValues_i32.count(key)) ret=true;
+      break;
+    case PARAM_DT_I32:
+      if(settingValues_i32.count(key)) ret=true;
+      break;
+    case PARAM_DT_FL:
+      if(settingValues_fl.count(key)) ret=true;
+      break;
+    case PARAM_DT_ST:
+      if(settingValues_str.count(key)) ret=true;
+      break;
+    case PARAM_DT_BO:
+      if(settingValues_bo.count(key)) ret=true;
+      break;
+  } 
   xSemaphoreGive(mParamMutex);
   return ret;
 }
 
-void WebSettings::setString(uint32_t name, String value)
+void WebSettings::setString(uint16_t name, String value, uint8_t u8_dataType)
 {
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"setString(): name=%i, value=%s, dataType=%i",name,value.c_str(),u8_dataType);
+  #endif
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
-  settingValues[name] = value.c_str();
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      settingValues_i8[name] = (uint8_t)value.toInt();
+      break;
+    case PARAM_DT_I8:
+      settingValues_i8[name] = (int8_t)value.toInt();
+      break;
+    case PARAM_DT_U16:
+      settingValues_i16[name] = (uint16_t)value.toInt();
+      break;
+    case PARAM_DT_I16:
+      settingValues_i16[name] = (int16_t)value.toInt();
+      break;
+    case PARAM_DT_U32:
+      settingValues_i32[name] = (uint32_t)value.toInt();
+      break;
+    case PARAM_DT_I32:
+      settingValues_i32[name] = (int32_t)value.toInt();
+      break;
+    case PARAM_DT_FL:
+      settingValues_fl[name] = value.toFloat();
+      break;
+    case PARAM_DT_ST:
+      settingValues_str[name] = value.c_str();
+      break;
+    case PARAM_DT_BO:
+      settingValues_bo[name] = (bool)value.toInt();
+      break;
+  } 
   xSemaphoreGive(mParamMutex);
 }
 
-String WebSettings::getString(uint32_t name, boolean fromFlash, uint8_t u8_dataType)
+String WebSettings::getString(uint16_t name, boolean fromFlash, uint8_t u8_dataType)
 {
   std::string ret = "";
+  String str_ret = "";
 
-  if(fromFlash)
-  {
-    switch(u8_dataType)
-    {
-      case PARAM_DT_U8:
-        ret = String(prefs.getChar(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_I8:
-        ret = String(prefs.getChar(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_U16:
-        ret = String(prefs.getInt(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_I16:
-        ret = String(prefs.getInt(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_U32:
-        ret = String(prefs.getLong(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_I32:
-        ret = String(prefs.getLong(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_FL:
-        ret = String((prefs.getFloat(String(name).c_str())),4).c_str();
-        break;
-      case PARAM_DT_ST:
-        ret = String(prefs.getString(String(name).c_str())).c_str();
-        break;
-      case PARAM_DT_BO:
-        ret = String(prefs.getBool(String(name).c_str())).c_str();
-        break;
-    }
-  }
-  else
-  {
-    xSemaphoreTake(mParamMutex, portMAX_DELAY);
-    ret = settingValues[name];
-    //debugPrintf("getString A:%lu, val:%s",name, ret);
-    xSemaphoreGive(mParamMutex);
-  }
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"getString(): name=%i, fromFlash=%d, dataType=%i",name,fromFlash,u8_dataType);
+  #endif
 
-  return String(ret.c_str());
+  xSemaphoreTake(mParamMutex, portMAX_DELAY);
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      if(fromFlash) ret = String(prefs.getChar(String(name).c_str())).c_str();
+      else str_ret = String((uint8_t)settingValues_i8[name]);
+      break;
+    case PARAM_DT_I8:
+      if(fromFlash) ret = String(prefs.getChar(String(name).c_str())).c_str();
+      else str_ret = String(settingValues_i8[name]);
+      break;
+    case PARAM_DT_U16:
+      if(fromFlash) ret = String(prefs.getInt(String(name).c_str())).c_str();
+      else str_ret = String((uint16_t)settingValues_i16[name]);
+      break;
+    case PARAM_DT_I16:
+      if(fromFlash) ret = String(prefs.getInt(String(name).c_str())).c_str();
+      else str_ret = String(settingValues_i16[name]);
+      break;
+    case PARAM_DT_U32:
+      if(fromFlash) ret = String(prefs.getLong(String(name).c_str())).c_str();
+      else str_ret = String((uint32_t)settingValues_i32[name]);
+      break;
+    case PARAM_DT_I32:
+      if(fromFlash) ret = String(prefs.getLong(String(name).c_str())).c_str();
+      else str_ret = String(settingValues_i32[name]);
+      break;
+    case PARAM_DT_FL:
+      if(fromFlash) ret = String((prefs.getFloat(String(name).c_str())),4).c_str();
+      else str_ret = String(settingValues_fl[name]);
+      break;
+    case PARAM_DT_ST:
+      if(fromFlash) ret = String(prefs.getString(String(name).c_str())).c_str();
+      else str_ret = String(settingValues_str[name].c_str());
+      break;
+    case PARAM_DT_BO:
+      if(fromFlash) ret = String(prefs.getBool(String(name).c_str())).c_str();
+      else str_ret = String(settingValues_bo[name]);
+      break;
+  }    
+  xSemaphoreGive(mParamMutex);
+  
+  if(fromFlash) return String(ret.c_str());
+  else return str_ret;
 }
-String WebSettings::getString(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+
+String WebSettings::getString(uint16_t name, uint8_t groupNr)
 {
   std::string ret = "";
   xSemaphoreTake(mParamMutex, portMAX_DELAY);
-  ret = settingValues[getParmId(name,settingNr, groupNr, listNr)];
-  //debugPrintf("getString B:%lu, val:%s",name, ret);
+  ret = settingValues_str[getParmId(name,groupNr)];
   xSemaphoreGive(mParamMutex);
   return String(ret.c_str());
 }
 
-int WebSettings::getInt(uint32_t name)
+int32_t WebSettings::getInt(uint16_t name, uint8_t u8_dataType)
 {
-  return getString(name,false,0).toInt();
-}
-int WebSettings::getInt(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
-{
-  return getString(name, settingNr, groupNr, listNr).toInt();
+  /*#ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"getInt(); name=%i",name);
+  #endif*/
+
+  uint32_t ret = 0;
+  xSemaphoreTake(mParamMutex, portMAX_DELAY);
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      ret=(uint8_t)settingValues_i8[name];
+      break;
+    case PARAM_DT_I8:
+      ret=settingValues_i8[name];
+      break;
+    case PARAM_DT_U16:
+      ret=(uint16_t)settingValues_i16[name];
+      break;
+    case PARAM_DT_I16:
+      ret=settingValues_i16[name];
+      break;
+    case PARAM_DT_U32:
+      ret=(uint32_t)settingValues_i32[name];
+      break;
+    case PARAM_DT_I32:
+      ret=settingValues_i32[name];
+      break;
+  }    
+  xSemaphoreGive(mParamMutex);
+  return ret;
 }
 
-float WebSettings::getFloat(uint32_t name)
+int32_t WebSettings::getInt(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
 {
-  return getString(name,false,0).toFloat();
-}
-float WebSettings::getFloat(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
-{
-  return getString(name, settingNr, groupNr, listNr).toFloat();
+  return getInt(getParmId(name,groupNr),u8_dataType);
 }
 
-boolean WebSettings::getBool(uint32_t name)
+float WebSettings::getFloat(uint16_t name)
 {
-  return (getString(name,false,0) != "0");
+  return settingValues_fl[name];
 }
-boolean WebSettings::getBool(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+float WebSettings::getFloat(uint16_t name, uint8_t groupNr)
 {
-  return (getString(name, settingNr, groupNr, listNr) != "0");
+  return getFloat(getParmId(name, groupNr));
+}
+
+bool WebSettings::getBool(uint16_t name)
+{
+  return settingValues_bo[name];
+}
+bool WebSettings::getBool(uint16_t name, uint8_t groupNr)
+{
+  return getBool(getParmId(name, groupNr));
 }
 
 
 //Load Data from Flash
-int WebSettings::getIntFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr, uint8_t u8_dataType)
+int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
 {
   int ret=0;
-  uint32_t u32_name = getParmId(name,settingNr, groupNr, listNr);
+  uint16_t u32_name = getParmId(name, groupNr);
   switch(u8_dataType)
   {
     case PARAM_DT_U8:
@@ -1182,19 +1266,19 @@ int WebSettings::getIntFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, 
   }
   return ret;
 }
-float WebSettings::getFloatFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+float WebSettings::getFloatFlash(uint16_t name, uint8_t groupNr)
 {
-  uint32_t u32_name = getParmId(name,settingNr, groupNr, listNr);
+  uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getFloat(String(u32_name).c_str());
 }
-boolean WebSettings::getBoolFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+boolean WebSettings::getBoolFlash(uint16_t name, uint8_t groupNr)
 {
-  uint32_t u32_name = getParmId(name,settingNr, groupNr, listNr);
+  uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getBool(String(u32_name).c_str());
 }
-String WebSettings::getStringFlash(uint32_t name, uint8_t settingNr, uint8_t groupNr, uint8_t listNr)
+String WebSettings::getStringFlash(uint16_t name, uint8_t groupNr)
 {
-  uint32_t u32_name = getParmId(name,settingNr, groupNr, listNr);
+  uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getString(String(u32_name).c_str());
 }
 String WebSettings::getStringFlash(String name)
@@ -1204,31 +1288,30 @@ String WebSettings::getStringFlash(String name)
 }
 
 
-uint32_t WebSettings::getParmId(uint16_t id, uint8_t settingNr, uint8_t groupIdx, uint8_t listIdx)
+
+uint16_t WebSettings::getParmId(uint16_t id, uint8_t groupIdx)
 {
-  return (id<<20) | (settingNr<<14) | (groupIdx<<7) | (listIdx & 0x7F);
+  return (id<<6) | (groupIdx&0x3F);
 }
 
 
-void WebSettings::getIdFromParamId(uint32_t paramId, uint16_t &id, uint8_t &settingNr, uint8_t &groupIdx, uint8_t &listIdx)
+void WebSettings::getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx)
 {
-  id = (paramId>>20) & 0xFFF;
-  settingNr = (paramId>>14) & 0x3F;
-  groupIdx = (paramId>>7) & 0x7F;
-  listIdx = paramId & 0x7F;
+  id = ((paramId>>6)&0x3FF);
+  groupIdx = (paramId&0x3F);
 }
 
 //Lese Parameter aus Datei
 boolean WebSettings::readConfig()
 {
-  String  str_line, str_value;
+  String  str_line, str_value, str_dataType;
   uint32_t str_name;
   uint8_t ui8_pos;
 
   if (!SPIFFS.exists(str_mConfigfile.c_str()))
   {
     //wenn settingfile nicht vorhanden, dann schreibe default Werte
-    ESP_LOGI(TAG,"readConfig: file not exist");
+    BSC_LOGI(TAG,"readConfig: file not exist");
     writeConfig();
   }
 
@@ -1241,17 +1324,27 @@ boolean WebSettings::readConfig()
       str_line = f.readStringUntil(10);
       ui8_pos = str_line.indexOf('=');
       str_name = str_line.substring(0,ui8_pos).toInt();
-      str_value = str_line.substring(ui8_pos+1).c_str();
+      str_dataType = str_line.substring(ui8_pos+1,ui8_pos+1+3).c_str();
+      str_value = str_line.substring(ui8_pos+1+3).c_str();
       str_value.replace("~","\n");
-      setString(str_name, str_value);
-      //ESP_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, settingValues[str_name].c_str());
+      if(str_dataType.equals("U8_")) setString(str_name, str_value, PARAM_DT_U8);
+      else if(str_dataType.equals("I8_")) setString(str_name, str_value, PARAM_DT_I8);
+      else if(str_dataType.equals("U16")) setString(str_name, str_value, PARAM_DT_U16);
+      else if(str_dataType.equals("I16")) setString(str_name, str_value, PARAM_DT_I16);
+      else if(str_dataType.equals("U32")) setString(str_name, str_value, PARAM_DT_U32);
+      else if(str_dataType.equals("I32")) setString(str_name, str_value, PARAM_DT_I32);
+      else if(str_dataType.equals("FL_")) setString(str_name, str_value, PARAM_DT_FL);
+      else if(str_dataType.equals("BO_")) setString(str_name, str_value, PARAM_DT_BO);
+      else if(str_dataType.equals("STR")) setString(str_name, str_value, PARAM_DT_ST);
+      
+      //BSC_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, settingValues[str_name].c_str());
     }
     f.close();
     return true;
   }
   else
   {
-    ESP_LOGI(TAG,"Cannot read configuration");
+    BSC_LOGI(TAG,"Cannot read configuration");
     return false;
   }
 }
@@ -1259,32 +1352,80 @@ boolean WebSettings::readConfig()
 //Schreiben der Parameter in Datei
 boolean WebSettings::writeConfig()
 {
-  std::string val;
+  //std::string val;
   String val2;
   uint32_t name;
 
-  //ESP_LOGD(TAG, "writeConfig()");
+  //BSC_LOGI(TAG, "writeConfig()");
 
   if (!SPIFFS.exists(str_mConfigfile.c_str()))
   {
-    ESP_LOGI(TAG,"writeConfig(): file not exist");
+    BSC_LOGI(TAG,"writeConfig(): file not exist");
   }
 
   File f = SPIFFS.open(str_mConfigfile.c_str(),"w");
   if (f)
   {   
     xSemaphoreTake(mParamMutex, portMAX_DELAY);
-    auto iter = settingValues.begin();
-    for (const auto& n : settingValues) 
+    //String
+    auto iter = settingValues_str.begin();
+    for (const auto& n : settingValues_str) 
     {
       name = n.first;
-      val = n.second;
-
+      std::string val = n.second;
       val2 = String(val.c_str());
       val2.replace("\n","~");
-      f.printf("%lu=%s\n",name,val2.c_str());
-      //fprintf(f,"%lu=%s\n",name,val2.c_str());
+      f.printf("%lu=STR%s\n",name,val2.c_str());
     }
+
+    //u8
+    //I8
+    iter = settingValues_i8.begin();
+    for (const auto& n : settingValues_i8) 
+    {
+      name = n.first;
+      int8_t val = n.second;
+      f.printf("%lu=I8_%i\n",name,val);
+    } 
+
+    //u16
+    //i16
+    iter = settingValues_i16.begin();
+    for (const auto& n : settingValues_i16) 
+    {
+      name = n.first;
+      int16_t val = n.second;
+      f.printf("%lu=I16%i\n",name,val);
+    } 
+
+    //u32
+    //i32
+    iter = settingValues_i32.begin();
+    for (const auto& n : settingValues_i32) 
+    {
+      name = n.first;
+      int32_t val = n.second;
+      f.printf("%lu=I32%i\n",name,val);
+    } 
+
+    //bool
+    iter = settingValues_bo.begin();
+    for (const auto& n : settingValues_bo) 
+    {
+      name = n.first;
+      bool val = n.second;
+      f.printf("%lu=BO_%d\n",name,val);
+    } 
+
+    //float
+    iter = settingValues_fl.begin();
+    for (const auto& n : settingValues_fl) 
+    {
+      name = n.first;
+      float val = n.second;
+      f.printf("%lu=FL_%f\n",name,val);
+    } 
+
     xSemaphoreGive(mParamMutex);
     f.flush();
     f.close();
@@ -1292,7 +1433,7 @@ boolean WebSettings::writeConfig()
   }
   else
   {
-    ESP_LOGI(TAG,"Cannot write configuration");
+    BSC_LOGI(TAG,"Cannot write configuration");
     return false;
   }
 }

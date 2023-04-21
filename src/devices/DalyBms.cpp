@@ -38,7 +38,7 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   uint8_t response[DALY_FRAME_SIZE*16];
 
   #ifdef DALY_DEBUG
-  ESP_LOGI(TAG,"DalyBms_readBmsData()");
+  BSC_LOGI(TAG,"DalyBms_readBmsData()");
   #endif
 
   //for(uint8_t adr=0; adr<u8_mConnToId+1;adr++)
@@ -116,7 +116,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
     recvBytes+=String(u8_lData[x]);
     recvBytes+=" ";
   }
-  ESP_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
+  BSC_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
   #endif
 
   //Empfangsbuffer leeren wenn da noch etwas drin sein sollte
@@ -148,7 +148,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     //Timeout
     if((millis()-u32_lStartTime)>200) 
     {
-      ESP_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
+      BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
       #ifdef DALY_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -156,7 +156,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
         recvBytes+=String(p_lRecvBytes[x]);
         recvBytes+=" ";
       }
-      ESP_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+      BSC_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
       #endif
       return false;
     }
@@ -207,7 +207,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     recvBytes+=String(p_lRecvBytes[x]);
     recvBytes+=" ";
   }
-  ESP_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+  BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
   #endif
 
   return true;

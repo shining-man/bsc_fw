@@ -12,6 +12,7 @@ void   initTime();
 void   timeRunCyclic(bool bo_resetTimeout);
 String getBscTime();
 String getBscDateTime();
+const char* getBscDateTimeCc();
 void   setTimeFromNTP();
 
 #endif

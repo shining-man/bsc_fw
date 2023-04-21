@@ -64,10 +64,12 @@ void onReceive(int len)
 
 void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data)
 {
+  xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(u8_i2cDevAdr);
   Wire.write(u8_reg);
   Wire.write(u8_data);
   Wire.endTransmission();
+  xSemaphoreGive(mutexI2cRx);
 }
 
 
@@ -86,23 +88,23 @@ void i2cInit()
   p_lBmsData = getBmsData();
   p_lInverterData = getInverterData();
   
-  u8_mMasterSlaveId = WebSettings::getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0);
+  //u8_mMasterSlaveId = WebSettings::getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0,DT_ID_PARAM_MASTER_SLAVE_TYP);
 
-  if(u8_mMasterSlaveId==ID_I2C_MASTER) //Master
-  {
+  //if(u8_mMasterSlaveId==ID_I2C_MASTER) //Master
+  //{
     bool i2cBegin = Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQUENCY);
-    ESP_LOGD(TAG,"Master begin=%d",i2cBegin);
+    BSC_LOGD(TAG,"Master begin=%d",i2cBegin);
     isI2CdeviceConn();
-  }
+  /*}
   else //Slave
   {
     Wire.onReceive(onReceive);
     Wire.onRequest(onRequest);
     if(Wire.begin(u8_mMasterSlaveId,I2C_SDA_PIN, I2C_SCL_PIN, I2C_FREQUENCY))
     {
-      ESP_LOGD(TAG,"Slave: Adr=%i",u8_mMasterSlaveId);
+      BSC_LOGD(TAG,"Slave: Adr=%i",u8_mMasterSlaveId);
     }
-  }
+  }*/
 }
 
 void isI2CdeviceConn()
@@ -118,12 +120,12 @@ void isI2CdeviceConn()
   if (u8_lErr == 0)
   {
     bo_mDisplayEnabled = true;
-    ESP_LOGI(TAG,"Display found");
+    BSC_LOGI(TAG,"Display found");
   }
   else
   {
     bo_mDisplayEnabled = false;
-    ESP_LOGI(TAG,"Display not found (%i)",u8_lErr);
+    BSC_LOGI(TAG,"Display not found (%i)",u8_lErr);
   }   
 
   //Slaves
@@ -139,12 +141,12 @@ void isI2CdeviceConn()
     if (u8_lErr == 0)
     {
       bo_mSlaveEnabled[i] = true;
-      ESP_LOGI(TAG,"Slave %i (Adr=%i) found",i,u8_slaveAdr);
+      BSC_LOGI(TAG,"Slave %i (Adr=%i) found",i,u8_slaveAdr);
     }
     else
     {
       bo_mSlaveEnabled[i] = false;
-      ESP_LOGI(TAG,"Slave %i (Adr=%i) not found (%i)",i,u8_slaveAdr,u8_lErr);
+      BSC_LOGI(TAG,"Slave %i (Adr=%i) not found (%i)",i,u8_slaveAdr,u8_lErr);
     }  
   }
 
@@ -155,13 +157,13 @@ void isI2CdeviceConn()
   if (u8_lErr == 0)
   {
     bo_mSerialExtEnabled = true;
-    ESP_LOGI(TAG,"Serial Ext. found");
+    BSC_LOGI(TAG,"Serial Ext. found");
     i2cInitExtSerial();
   }
   else
   {
     bo_mSerialExtEnabled = false;
-    ESP_LOGI(TAG,"Serial Ext. not found (%i)",u8_lErr);
+    BSC_LOGI(TAG,"Serial Ext. not found (%i)",u8_lErr);
   }   
   
 }
@@ -202,9 +204,11 @@ void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, co
   if(data1==BMS_DATA){bmsDataSemaphoreGive();}
   else if(data1==INVERTER_DATA){inverterDataSemaphoreGive();}
 
+  xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(i2cAdr);
   uint8_t quant = Wire.write(txBuf,TXBUFF_OFFSET+dataLen);
   uint8_t error = Wire.endTransmission();
+  xSemaphoreGive(mutexI2cRx);
 
   //vTaskDelay(pdMS_TO_TICKS(10));
 }
@@ -391,17 +395,17 @@ void displaySendData_bms()
   for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[i], 48);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[i], 4);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[i], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[i], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[i], 4);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[i], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[i], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[i], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[i], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[i], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[i], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[i], 4);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[i], 12);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[i], 2);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[i], 6);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[i], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[i], 4);
   }
@@ -410,17 +414,17 @@ void displaySendData_bms()
   for(uint8_t n=BT_DEVICES_COUNT;n<(BT_DEVICES_COUNT+3);n++)
   {
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[n], 48);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[n], 4);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[n], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[n], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[n], 4);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[n], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[n], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[n], 2);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[n], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[n], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[n], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[n], 4);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[n], 12);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[n], 2);
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[n], 6);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[n], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[n], 4);
     i++;
@@ -455,27 +459,43 @@ void i2cInitExtSerial()
   i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0);
   i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0);
 
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0xAA);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0xAA);
 }
 
-void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, boolean bo_write)
+//serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn)
 {
-  uint8_t value=0;
-  const char RX_EN = 0x01;
-  const char TX_EN = 0x02;
+  uint8_t valueA=0;
+  uint8_t valueB=0;
+  const char TX_EN = 0x00;
+  const char RX_EN = 0x03;
+  const char TXRX_DIS = 0x02;
 
-  if(u8_serialDevNr<4)
+  for(uint8_t i=0;i<8;i++)
   {
-    if(bo_write) value = (RX_EN<<(u8_serialDevNr*2));
-    else value = (TX_EN<<(u8_serialDevNr*2));
-    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, value);
-    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0x0);
+    if(i==u8_serialDevNr)
+    {
+      if(u8_serialDevNr<4)
+      {
+        if(serialRxTxEn==serialRxTx_TxEn) valueA|=(RX_EN<<(u8_serialDevNr*2));
+        else if(serialRxTxEn==serialRxTx_RxEn) valueA|=(TX_EN<<(u8_serialDevNr*2));
+        else if(serialRxTxEn==serialRxTx_RxTxDisable) valueA|=(TXRX_DIS<<(u8_serialDevNr*2));
+      }
+      else
+      {
+        if(serialRxTxEn==serialRxTx_TxEn) valueB|=(RX_EN<<((u8_serialDevNr-4)*2));
+        else if(serialRxTxEn==serialRxTx_RxEn) valueB|=(TX_EN<<((u8_serialDevNr-4)*2));
+        else if(serialRxTxEn==serialRxTx_RxTxDisable) valueB|=(TXRX_DIS<<((u8_serialDevNr-4)*2));
+      }
+    }
+    else
+    {
+      if(i<4) valueA|=(TXRX_DIS<<(i*2));
+      else valueB|=(TXRX_DIS<<((i-4)*2));
+    }
   }
-  else
-  {
-    if(bo_write) value = (RX_EN<<(u8_serialDevNr*2));
-    else value = (TX_EN<<(u8_serialDevNr*2));
-    value = (RX_EN<<((u8_serialDevNr-4)*2));
-    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0x0);
-    i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, value);
-  }
+  
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB);
 }

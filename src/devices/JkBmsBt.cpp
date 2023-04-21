@@ -68,9 +68,9 @@ void jkBmsBtCopyData(uint8_t devNr, uint8_t frameVersion, uint8_t* pData, size_t
     else if(u8_mRecvFrameNr[devNr]==4) pDataBsp=frameData4_32s;
 
     #ifdef JK_BT_DEBUG
-    ESP_LOGI(TAG,"DevNr=%i, Frame Nr=%i",devNr,u8_mRecvFrameNr[devNr]);
+    BSC_LOGI(TAG,"DevNr=%i, Frame Nr=%i",devNr,u8_mRecvFrameNr[devNr]);
 
-    ESP_LOGI(TAG,"Data: %i,%i,%i,%i,%i",pDataBsp[0],pDataBsp[1],pDataBsp[2],pDataBsp[3],pDataBsp[4]); //Test
+    BSC_LOGI(TAG,"Data: %i,%i,%i,%i,%i",pDataBsp[0],pDataBsp[1],pDataBsp[2],pDataBsp[3],pDataBsp[4]); //Test
     #endif
 
     if(u8_mRecvFrameNr[devNr]>0 && u8_mRecvFrameNr[devNr]<=5) jkBmsBtDecodeCellInfo_jk02(devNr, pDataBsp, u8_mRecvFrameNr[devNr], FRAME_VERSION_JK02_32S); //Testdaten
@@ -127,7 +127,7 @@ void jkBmsBtBuildSendFrame(uint8_t *frame, uint8_t address, uint32_t value, uint
   frame[18] = 0x00;
   frame[19] = jkBmsBtCrc(frame, 20-1);
 
-  //ESP_LOGD(TAG, "Write register: %s", format_hex_pretty(frame, sizeof(frame)).c_str());
+  //BSC_LOGD(TAG, "Write register: %s", format_hex_pretty(frame, sizeof(frame)).c_str());
 }
 
 
@@ -190,7 +190,7 @@ void jkBmsSetErrors(uint8_t devNr, uint16_t err)
   //                                    Cell count is not equal to settings
 
 
-  //ESP_LOGI(TAG,"devNr=%i,err=%i,u32_lRawErrors=%i",devNr,err,u32_lRawErrors);
+  //BSC_LOGI(TAG,"devNr=%i,err=%i,u32_lRawErrors=%i",devNr,err,u32_lRawErrors);
   setBmsErrors(devNr,u32_lRawErrors);
 }
 
@@ -246,7 +246,7 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     setBmsMinVoltageCellNumber(devNr, u8_lZellNumberMinVoltage);
 
     #ifdef JK_BT_DEBUG
-    ESP_LOGI(TAG,"DevNr=%i, CellVoltage[0]=%i",devNr,getBmsCellVoltage(devNr,0));
+    BSC_LOGI(TAG,"DevNr=%i, CellVoltage[0]=%i",devNr,getBmsCellVoltage(devNr,0));
     #endif
 
     // 54    4   0xFF 0xFF 0x00 0x00    Enabled cells bitmask
@@ -292,12 +292,12 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     {    
       setBmsTempature(devNr,0,(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #ifdef JK_BT_DEBUG
-      ESP_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
+      BSC_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #endif
     }
 
     // 114   4   0x00 0x00 0x00 0x00    Wire resistance warning bitmask (each bit indicates a warning per cell / wire)
-    /*ESP_LOGD(TAG, "Wire resistance warning bitmask: %02X %02X %02X %02X", data[114 + u8_lOffset], data[115 + u8_lOffset],
+    /*BSC_LOGD(TAG, "Wire resistance warning bitmask: %02X %02X %02X %02X", data[114 + u8_lOffset], data[115 + u8_lOffset],
             data[116 + u8_lOffset], data[117 + u8_lOffset]);*/
   }
   if((frameNr==1 && u8_frameVersion==FRAME_VERSION_JK02) || (frameNr==3 && u8_frameVersion==FRAME_VERSION_JK02_32S))
@@ -329,12 +329,12 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     if(u8_frameVersion==FRAME_VERSION_JK02)
     {
       fl_lCurrent = (((int)pData[1] << 24 | pData[0] << 16 | u8_mRecvData[devNr][1] << 8 | u8_mRecvData[devNr][0]) * 0.001);
-      //ESP_LOGI(TAG,"C:%i,%i,%i,%i",u8_mRecvData[devNr][0],u8_mRecvData[devNr][1],pData[0],pData[1]);
+      //BSC_LOGI(TAG,"C:%i,%i,%i,%i",u8_mRecvData[devNr][0],u8_mRecvData[devNr][1],pData[0],pData[1]);
     }
     else if(u8_frameVersion==FRAME_VERSION_JK02_32S)
     {
       fl_lCurrent = (float)((int32_t) getJk32bit(u16_lPos)) * 0.001f;
-      //ESP_LOGI(TAG,"C32:%i,%i,%i,%i",pData[0],pData[1],pData[2],pData[3]);
+      //BSC_LOGI(TAG,"C32:%i,%i,%i,%i",pData[0],pData[1],pData[2],pData[3]);
     }
     setBmsTotalCurrent(devNr,fl_lCurrent);
 
@@ -364,7 +364,7 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     {
       setBmsTempature(devNr,0,(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #ifdef JK_BT_DEBUG
-      ESP_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
+      BSC_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #endif
     }
 
