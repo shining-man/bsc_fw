@@ -1434,14 +1434,16 @@ void sendCanMsgTemp()
 
   struct dataTemp
   {
-    float temperature;
+    uint16_t temperature[4];
   };
   dataTemp msgData;
 
-  for(uint8_t i=0;i<64;i++)
+  for(uint8_t i=0;i<64;i+=4)
   {
-    msgData.temperature = owGetTemp(i);
-
+    for(uint8_t n=0;n<4;n++)
+    {
+      msgData.temperature[n] = (uint16_t)(owGetTemp(i+n)*100);
+    }
     sendCanMsg(u16_lCanId, (uint8_t *)&msgData, sizeof(dataTemp));
     u16_lCanId++;
   }

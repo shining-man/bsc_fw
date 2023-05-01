@@ -15,6 +15,8 @@ static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
 
 uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
 
+uint8_t u8_readWriteDataSerialBms[SERIAL_BMS_DEVICES_COUNT];
+
 
 void bmsDataInit()
 {
@@ -363,6 +365,26 @@ void setBmsLastDataMillis(uint8_t devNr, unsigned long value)
   bmsData.bmsLastDataMillis[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
 }
+
+
+bool getSerialBmsWriteData(uint8_t devNr)
+{
+  bool ret=false;
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  if(u8_readWriteDataSerialBms[devNr]==1)ret=true;
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setSerialBmsWriteData(uint8_t devNr, bool value)
+{
+  uint8_t val=0;
+  if(value)val=1;
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  u8_readWriteDataSerialBms[devNr] = val;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+
 
 
 uint8_t getBmsDataBytes(uint8_t dataType)

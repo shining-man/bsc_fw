@@ -7,6 +7,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "log.h"
+#include "WebSettings.h"
 
 static const char *TAG = "JBD_BMS";
 
@@ -26,7 +27,8 @@ static uint32_t  u32_mDischargeMAh=0;
 static uint32_t  mqttSendeTimer=0;
 
 //
-static void      sendMessage(uint8_t *sendMsg);
+static void      buildMessage(uint8_t* frame, bool bo_write, uint8_t cmd, uint16_t value);
+static void      sendMessage(uint8_t *sendMsg, uint8_t len);
 static bool      recvAnswer(uint8_t * t_outMessage);
 static void      parseBasicMessage(uint8_t * t_message);
 static void      parseCellVoltageMessage(uint8_t * t_message);
@@ -39,7 +41,7 @@ static uint16_t  calcCrc(uint8_t *recvMsg);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
+bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
   mPort = port;
@@ -47,7 +49,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
   callbackSetTxRxEn=callback;
   uint8_t response[JBDBMS_MAX_ANSWER_LEN];
 
-  sendMessage(basicMsg);
+  sendMessage(basicMsg,7);
   if(recvAnswer(response))
   {
     parseBasicMessage(response);
@@ -58,20 +60,63 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
   }
   else bo_lRet=false;
    
-  sendMessage(cellMsg);
+  sendMessage(cellMsg,7);
   if(recvAnswer(response)) parseCellVoltageMessage(response);
   else bo_lRet=false;
   
+  if(devData->bo_writeData)
+  {
+    //response als buffer nehmen um zusätzlichen Speicher zu sparen
+    buildMessage(response,true,JBDBMS_REG_CELLVOLTAGE_100,WebSettings::getIntFlash(ID_PARAM_JBD_CELL_VOLTAGE_100,u8_mDevNr+BMSDATA_FIRST_DEV_SERIAL,DT_ID_PARAM_JBD_CELL_VOLTAGE_100));
+    sendMessage(response,9);
+  }
+
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
 
 
-static void sendMessage(uint8_t *sendMsg)
+static void buildMessage(uint8_t* frame, bool bo_write, uint8_t cmd, uint16_t value)
+{
+  frame[0] = 0xdd; //Startbyte
+
+  //Payload
+  if(bo_write) //write
+  {
+    frame[1] = 0x5A; //write
+    frame[2] = cmd; //register
+    frame[3] = 0x0; //len
+    frame[4] = 0x0; //Checksum
+    frame[5] = 0x0; //Checksum
+    frame[6] = 0x77; //Endbyte
+
+    uint16_t crc = calcCrc(frame);
+    frame[6] = ((crc>>8)&0xff);  //Checksum
+    frame[7] = (crc&0xff);  //Checksum
+  }
+  else //read
+  {
+    frame[1] = 0xA5; //read
+    frame[2] = cmd;  //register
+    frame[3] = 0x2;  //len
+    frame[4] = (value&0xff);      //value
+    frame[5] = ((value>>8)&0xff); //value
+    frame[6] = 0x0;  //Checksum
+    frame[7] = 0x0;  //Checksum
+    frame[8] = 0x77; //Endbyte
+
+    uint16_t crc = calcCrc(frame);
+    frame[6] = ((crc>>8)&0xff);  //Checksum
+    frame[7] = (crc&0xff);  //Checksum
+  }
+}
+
+
+static void sendMessage(uint8_t *sendMsg, uint8_t len)
 { 
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
-  mPort->write(sendMsg, 7);
+  mPort->write(sendMsg, len);
   mPort->flush();  
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }

@@ -26,7 +26,7 @@ static void parseData(uint8_t * t_message);
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
+bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
   mPort = port;

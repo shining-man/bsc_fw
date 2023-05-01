@@ -13,6 +13,7 @@
 #include "i2c.h"
 
 //include Devices
+#include "devices/serialDevData.h"
 #include "devices/JbdBms.h"
 #include "devices/JkBms.h"
 #include "devices/SeplosBms.h"
@@ -30,7 +31,7 @@ bool readBmsTestData(uint8_t devNr);
 
 struct serialDeviceData_s
 {
-  bool (*readBms)(Stream*, uint8_t, void (*callback)(uint8_t, uint8_t), uint8_t) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
+  bool (*readBms)(Stream*, uint8_t, void (*callback)(uint8_t, uint8_t), serialDevData_s*) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
   Stream * stream_mPort;
 
   uint32_t u32_baudrate;
@@ -263,7 +264,11 @@ void BscSerial::cyclicRun()
 {
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {  
-    if(serialDeviceData[i].readBms==0){continue;}    //Wenn nicht Initialisiert
+    if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
+    {
+      setSerialBmsWriteData(i,false);
+      continue;
+    }
 
     bool    bo_lBmsReadOk=false;
     uint8_t u8_lReason=1;
@@ -275,7 +280,11 @@ void BscSerial::cyclicRun()
     xSemaphoreTake(mSerialMutex, portMAX_DELAY);
     *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
     #ifndef UTEST_BMS_FILTER
-    bo_lBmsReadOk=serialDeviceData[i].readBms(serialDeviceData[i].stream_mPort, i, &cbSetRxTxEn, serialDeviceData[i].u8_mAddData); //Wenn kein Fehler beim Holen der Daten vom BMS  
+    serialDevData_s devData;
+    devData.u8_addData=serialDeviceData[i].u8_mAddData;
+    devData.bo_writeData=getSerialBmsWriteData(i); //Hier true setzen, wenn Daten gschrieben werden sollen
+    bo_lBmsReadOk=serialDeviceData[i].readBms(serialDeviceData[i].stream_mPort, i, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
+    setSerialBmsWriteData(i,false);
     #else
     bmsReadOk=readBmsTestData(BT_DEVICES_COUNT+u8_mSerialNr);
     BSC_LOGI(TAG,"Filter: RX serial Data; errCnt=%i",*u8_pBmsFilterErrorCounter);

@@ -217,13 +217,12 @@ const char paramSerial[] PROGMEM = "["
   "},"
   "{"
     "'name':108,"
-    "'label':'Abfrage IDs',"
-    "'help':'Abgefragt werden alles Seplos von ID 0 bis zur hier eingestellten ID.\n"
-      "Die Einstellung betrifft nur das Seplos BMS an der Serial 2.',"
+    "'label':'Anzahl Packs',"
+    "'help':'Die Einstellung betrifft nur das Seplos BMS an Serial 2.',"
     "'type':3,"
-    "'default':0,"
-    "'min':0,"
-    "'max':2,"
+    "'default':1,"
+    "'min':1,"
+    "'max':8,"
     "'dt':1"
   "},"
 
@@ -1137,6 +1136,9 @@ const char paramDeviceNeeyBalancer[] PROGMEM = "["
     "'label_entry':'NEEY',"
     "'groupsize':7,"
     "'type':12,"
+    "'depId':4,"    //dependence
+    "'depVal':1," //dependence
+    "'depDt':1,"  //dependence   DT_ID_PARAM_SS_BTDEV
     "'group':["
     "{"
       "'name':99,"
@@ -1238,4 +1240,29 @@ const char paramDeviceNeeyBalancer[] PROGMEM = "["
     "]"
   "}"
   "]";
+  
+
+const char paramDeviceJbdBms[] PROGMEM = "["
+  "{"
+    "'label':'JBD BMS',"
+    "'label_entry':'Serial',"
+    "'groupsize':3+8,"
+    "'type':12,"
+    "'depId':1,"    //dependence
+    "'depVal':1,"          //dependence
+    "'depDt':1,"                                             //dependence; depVal=Datatype der depId
+    "'group':["
+    "{"
+      "'name':124,"
+      "'label':'Cellvoltage 100%',"
+      "'type':3,"
+      "'default':3400,"
+      "'min':1000,"
+      "'max':5000,"
+      "'unit':'mV',"
+      "'flash':'1',"
+      "'dt':3"
+    "}"
+    "]"
+  "}]";
   

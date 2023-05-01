@@ -2,7 +2,7 @@
 // 
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
-#if 1
+
 #include "devices/DalyBms.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
@@ -11,7 +11,7 @@
 static const char *TAG = "DALY_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mConnToId;
+static uint8_t u8_mDevNr/*, u8_mConnToId*/;
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -29,12 +29,13 @@ static void      parseMessage(uint8_t * t_message);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData)
+bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
+  bool bo_ret=true;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
-  u8_mConnToId = u8_addData;
+  //u8_mConnToId = u8_addData;
   uint8_t response[DALY_FRAME_SIZE*16];
 
   #ifdef DALY_DEBUG
@@ -51,45 +52,45 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
     }
-    else return false;
+    else bo_ret=false;
     
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE); 
     if(recvAnswer(response,1)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_TEMPERATURE); 
     //if(recvAnswer(response,1)) parseMessage(response);
-    //else return false;
+    //else bo_ret=false;
 
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS); 
     if(recvAnswer(response,1)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); 
     if(recvAnswer(response,1)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE); 
     if(recvAnswer(response,u8_mNumberOfCells/3)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE); 
     if(recvAnswer(response,1)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER); 
     if(recvAnswer(response,1)) parseMessage(response);
-    else return false;
+    else bo_ret=false;
 
     //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE); 
     //if(recvAnswer(response,1)) parseMessage(response);
-    //else return false;
+    //else bo_ret false;
     
 
   //}
 
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  return true;  
+  return bo_ret;  
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
@@ -310,8 +311,3 @@ static void parseMessage(uint8_t * t_message)
   }
 
 }
-
-
-
-
-#endif

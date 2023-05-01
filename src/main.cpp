@@ -72,6 +72,7 @@ WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
 WebSettings webSettingsDeviceNeeyBalancer;
+WebSettings webSettingsDeviceJbdBms;
 
 //Tasks
 TaskHandle_t task_handle_ble = NULL;
@@ -740,6 +741,8 @@ void handle_getNeeySettingsReadback()
   value="";
 }        
 
+void handle_paramDeviceJbdBms(){webSettingsDeviceJbdBms.handleHtmlFormRequest(&server);}
+
 void handle_getData()
 {
   server.send(200, "text/html", "Testdata");
@@ -854,6 +857,15 @@ void btnWriteNeeyData()
 }
 
 
+void btnWriteJbdBmsData()
+{
+  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  {
+    setSerialBmsWriteData(i,true);
+  }
+}
+
+
 uint8_t checkTaskRun()
 {
   uint8_t ret = 0;
@@ -949,12 +961,17 @@ void setup()
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
+  webSettingsDeviceJbdBms.initWebSettings(paramDeviceJbdBms, "JBD BMS", "/WebSettings.conf");
 
+  //Buttons
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
 
   webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Write Data to NEEY");
   webSettingsDeviceNeeyBalancer.registerOnButton1(&btnWriteNeeyData);
+
+  webSettingsDeviceJbdBms.setButtons(BUTTON_1,"Write Data to JBD");
+  webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
   free_dump();  
 
   //mqtt
@@ -996,6 +1013,8 @@ void setup()
     
   server.on("/settings/devices/neeyBalancer/",handle_paramDevicesNeeyBalancer);
   server.on("/settings/devices/neeyBalancer/getNeeySettingsReadback",handle_getNeeySettingsReadback);
+
+  server.on("/settings/devices/jbdBms/",handle_paramDeviceJbdBms);
 
   server.on("/getData",handle_getData);
   server.on("/settings/schnittstellen/bt/getBtDevices",handle_getBtDevices);

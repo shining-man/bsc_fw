@@ -230,13 +230,12 @@ const String paramSerial PROGMEM = "["
   "},"
   "{"
     "'name':"+String(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID)+","
-    "'label':'Abfrage IDs',"
-    "'help':'Abgefragt werden alles Seplos von ID 0 bis zur hier eingestellten ID.\n"
-      "Die Einstellung betrifft nur das Seplos BMS an der Serial 2.',"
+    "'label':'Anzahl Packs',"
+    "'help':'Die Einstellung betrifft nur das Seplos BMS an Serial 2.',"
     "'type':"+String(HTML_INPUTNUMBER)+","
-    "'default':0,"
-    "'min':0,"
-    "'max':2,"
+    "'default':1,"
+    "'min':1,"
+    "'max':8,"
     "'dt':"+String(PARAM_DT_U8)+""
   "},"
 
@@ -1150,6 +1149,9 @@ const String paramDeviceNeeyBalancer PROGMEM = "["
     "'label_entry':'NEEY',"
     "'groupsize':7,"
     "'type':"+String(HTML_OPTIONGROUP)+","
+    "'depId':"+String(ID_PARAM_SS_BTDEV)+","    //dependence
+    "'depVal':"+String(ID_BT_DEVICE_NEEY4A)+"," //dependence
+    "'depDt':1,"  //dependence   DT_ID_PARAM_SS_BTDEV
     "'group':["
     "{"
       "'name':"+String(ID_PARAM_NEEY_CELLS)+","
@@ -1251,4 +1253,29 @@ const String paramDeviceNeeyBalancer PROGMEM = "["
     "]"
   "}"
   "]";
+  
+
+const String paramDeviceJbdBms PROGMEM = "["
+  "{"
+    "'label':'JBD BMS',"
+    "'label_entry':'Serial',"
+    "'groupsize':"+String(SERIAL_BMS_DEVICES_COUNT)+","
+    "'type':"+String(HTML_OPTIONGROUP)+","
+    "'depId':"+String(ID_PARAM_SERIAL_CONNECT_DEVICE)+","    //dependence
+    "'depVal':"+String(ID_SERIAL_DEVICE_JBDBMS)+","          //dependence
+    "'depDt':1,"                                             //dependence; depVal=Datatype der depId
+    "'group':["
+    "{"
+      "'name':"+String(ID_PARAM_JBD_CELL_VOLTAGE_100)+","
+      "'label':'Cellvoltage 100%',"
+      "'type':"+String(HTML_INPUTNUMBER)+","
+      "'default':3400,"
+      "'min':1000,"
+      "'max':5000,"
+      "'unit':'mV',"
+      "'flash':'1',"
+      "'dt':"+String(PARAM_DT_U16)+""
+    "}"
+    "]"
+  "}]";
   

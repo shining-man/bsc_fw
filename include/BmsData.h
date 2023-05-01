@@ -132,6 +132,11 @@ void    setBmsStateFETsDischarge(uint8_t devNr, boolean value);
 unsigned long getBmsLastDataMillis(uint8_t devNr);
 void setBmsLastDataMillis(uint8_t devNr, unsigned long value);
 
+
+bool getSerialBmsWriteData(uint8_t devNr);
+void setSerialBmsWriteData(uint8_t devNr, bool value);
+
+
 uint8_t getBmsDataBytes(uint8_t dataType);
 
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr);
