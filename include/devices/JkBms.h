@@ -8,10 +8,11 @@
 
 #include "Arduino.h"
 #include "defines.h"
+#include "devices/serialDevData.h"
 
 #define JKBMS_MAX_ANSWER_LEN   0x200
 
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData);
+bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
 
 #endif 

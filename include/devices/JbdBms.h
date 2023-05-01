@@ -8,6 +8,7 @@
 
 #include "Arduino.h"
 #include "defines.h"
+#include "devices/serialDevData.h"
 
 #define JBDBMS_MAX_ANSWER_LEN   0xff
 
@@ -51,6 +52,12 @@
 #define JBDBMS_STATUS_RESERVED3     32768   //bit15 Reserved 
 
 
-bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), uint8_t u8_addData);
+
+//Register
+#define JBDBMS_REG_CELLVOLTAGE_100   0x12
+
+
+
+bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
 
 #endif 

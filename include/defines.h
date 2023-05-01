@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.0"
+#define BSC_SW_VERSION      "V0.4.1"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -22,7 +22,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
-//#define SEPLOS_DEBUG
+#define SEPLOS_DEBUG
 //#define NEEY_DEBUG
 #define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
@@ -267,6 +267,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_SYSTEM_NTP_SERVER_NAME          122
 //#define ID_PARAM_SYSTEM_NTP_SERVER_PORT          123
 
+#define ID_PARAM_JBD_CELL_VOLTAGE_100            124
 
 
 //Auswahl Bluetooth Geräte

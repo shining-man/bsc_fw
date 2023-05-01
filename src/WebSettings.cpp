@@ -473,12 +473,17 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
     }
 
     uint8_t u8_lJsonType = getJsonType(parameter, a, jsonStartPos);
+    uint16_t u16_lDepId;
+    uint8_t u8_lDepVal, u8_lDepDt;
     switch(u8_lJsonType)
     {
       case HTML_OPTIONGROUP:
         //bo_lIsGroup=true;
         st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
+        u16_lDepId = getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
+        u8_lDepVal = getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
+        u8_lDepDt = getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
         if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
           sprintf(_buf,HTML_GROUP_START,jsonLabel.c_str());
@@ -487,6 +492,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         for(g=0; g<optionGroupSize; g++)
         {
           u8_mAktOptionGroupNr=g;
+
+          if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
 
           sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g);
           sendContentHtml(server,_buf,false);
