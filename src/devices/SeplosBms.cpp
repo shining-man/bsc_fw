@@ -46,37 +46,42 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   u8_mCountOfPacks = devData->u8_addData;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
-  #ifdef SEPLOS_DEBUG
-  BSC_LOGI(TAG,"SeplosBms_readBmsData()");
-  #endif
-
   uint8_t u8_lSeplosAdr=0;
   uint8_t u8_lSeplosAdrBmsData=0;
   if(u8_mCountOfPacks>1)
   {
     u8_lSeplosAdr=1;
-    u8_lSeplosAdr++;
+    u8_mCountOfPacks++;
   }
+
+  #ifdef SEPLOS_DEBUG
+  BSC_LOGI(TAG,"SeplosBms_readBmsData() devNr=%i, firstAdr=%i, CountOfPacks=%i, Packs=%i",devNr,u8_lSeplosAdr,u8_mCountOfPacks,devData->u8_addData);
+  #endif
 
   for(;u8_lSeplosAdr<u8_mCountOfPacks;u8_lSeplosAdr++)
   {
+    #ifdef SEPLOS_DEBUG
+    BSC_LOGI(TAG,"read data from pack %i",u8_lSeplosAdr);
+    #endif
     getDataFromBms(u8_lSeplosAdr, 0x42);
     if(recvAnswer(response))
     {
-      parseMessage(response, u8_lSeplosAdr);
+      parseMessage(response, u8_lSeplosAdrBmsData);
 
       //mqtt
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData));
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData));
     }
     else return false;
     
     getDataFromBms(u8_lSeplosAdr, 0x44); //Alarms
     if(recvAnswer(response))
     {
-      parseMessage_Alarms(response, u8_lSeplosAdr);
+      parseMessage_Alarms(response, u8_lSeplosAdrBmsData);
     }
     else return false;
+
+    setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData,millis());
 
     u8_lSeplosAdrBmsData++;
   }
@@ -128,6 +133,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
     recvBytes+=" ";
   }
   BSC_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
+  //log_print_buf(u8_lSendData, 20);
   #endif
 
 
@@ -201,15 +207,23 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   }
 
   #ifdef SEPLOS_DEBUG
-  /*String recvBytes="";
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
   for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
   {
+    u8_logByteCount++;
     recvBytes+="0x";
     recvBytes+=String(p_lRecvBytes[x],16);
     recvBytes+=" ";
+    if(u8_logByteCount==20)
+    {
+      BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+      recvBytes="";
+      u8_logByteCount=0;
+    }
   }
-  BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());*/
-  log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
+  BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
   #endif
 
   //Überprüfe Cheksum
@@ -228,7 +242,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 	};
 
   #ifdef SEPLOS_DEBUG
-  BSC_LOGI(TAG, "parseMessage()");
+  BSC_LOGI(TAG, "parseMessage: serialDev=%i",u8_mDevNr+address);
   #endif
 
   uint8_t u8_lNumOfCells = 0;
@@ -271,7 +285,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   for (uint8_t i=0; i<u8_lNumOfCells; i++) 
   {
     u16_lZellVoltage = get16bitFromMsg(9+(i*2));
-    setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr,i, (float)(u16_lZellVoltage));
+    setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr+address,i, (float)(u16_lZellVoltage));
 
     u16_lCellSum+=u16_lZellVoltage;
 
@@ -291,12 +305,12 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow; 
   }
   
-  setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
-  setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
-  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
-  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMinVoltage);
-  setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
-  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
+  setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr+address, u16_lCellHigh);
+  setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr+address, u16_lCellLow);
+  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr+address, u8_lZellNumberMaxVoltage);
+  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr+address, u8_lZellNumberMinVoltage);
+  setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr+address, (float)(u16_lCellSum/u8_lNumOfCells));
+  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr+address,(float)(u16_lZellDifferenceVoltage));
   
 
   u8_lMsgoffset = 9+(u8_lNumOfCells*2);
@@ -317,7 +331,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   for (uint8_t i=0; i<u8_lCntTempSensors; i++)
   {
     fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset+1+(i*2))-0xAAB)*0.1;
-    if(i<3) setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr,i,fl_lBmsTemps[2]);
+    if(i<3) setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr+address,i,fl_lBmsTemps[2]);
     else if(i>=3 && i<5)fl_lBmsTemps[i-3]=fl_lBmsTemps[2];
   }
 
@@ -325,11 +339,11 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
   //   54     0xFD 0x5C      Charge/discharge current         signed int?                   A
   float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset))*0.01f;
-  setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr,f_lTotalCurrent);
+  setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr+address,f_lTotalCurrent);
 
   //   56     0x14 0xA0      Total battery voltage            5280 * 0.01f = 52.80          V
   float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset+2)*0.01f;
-  setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, f_lTotalVoltage);
+  setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr+address, f_lTotalVoltage);
 
   //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90         Ah
   uint16_t u16_lBalanceCapacity=get16bitFromMsg(u8_lMsgoffset+4)/100;
@@ -340,7 +354,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   uint16_t u16_lFullCapacity=get16bitFromMsg(u8_lMsgoffset+7)/100;
 
   //   63     0x03 0x13      Stage of charge                  787 * 0.1f = 78.7             %
-  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, get16bitFromMsg(u8_lMsgoffset+9)/10);
+  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr+address, get16bitFromMsg(u8_lMsgoffset+9)/10);
 
   //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
   //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
@@ -384,6 +398,10 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
 static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 {
+  #ifdef SEPLOS_DEBUG
+  BSC_LOGI(TAG, "parseMessage: serialDev=%i",u8_mDevNr+address);
+  #endif
+
   // Byte   Address Content: Description                      Decoded content               Coeff./Unit
   //   0    0x20             Protocol version      VER        2.0
   //   1    0x00             Device address        ADR
@@ -684,17 +702,17 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         // 0 Discharge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
-        setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,bo_lValue);
+        setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
 
         // 1 Charge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x2) == 0x2) bo_lValue=true;
-        setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,bo_lValue);
+        setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
         break;
     }
   }
 
-  setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_alarm);
+  setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr+address, u32_alarm);
 }
 
 

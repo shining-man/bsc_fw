@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.1"
+#define BSC_SW_VERSION      "V0.4.2"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -22,7 +22,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
-#define SEPLOS_DEBUG
+//#define SEPLOS_DEBUG
 //#define NEEY_DEBUG
 #define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
@@ -123,7 +123,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
 
 
-#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT+SERIAL_BMS_EXT_COUNT
+#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT //+SERIAL_BMS_EXT_COUNT
 
 
 // Register

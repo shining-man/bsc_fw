@@ -21,7 +21,17 @@
 
 static const char *TAG = "BSC_SERIAL";
 
+struct serialDeviceData_s
+{
+  bool (*readBms)(Stream*, uint8_t, void (*callback)(uint8_t, uint8_t), serialDevData_s*) = 0;
+  Stream * stream_mPort;
 
+  uint32_t u32_baudrate;
+  uint8_t u8_mAddData;
+  uint8_t u8_mFilterBmsCellVoltageMaxCount=0;
+};
+
+struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
 
 
 #ifdef UTEST_BMS_FILTER
@@ -29,41 +39,13 @@ bool readBmsTestData(uint8_t devNr);
 #endif
 
 
-struct serialDeviceData_s
-{
-  bool (*readBms)(Stream*, uint8_t, void (*callback)(uint8_t, uint8_t), serialDevData_s*) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
-  Stream * stream_mPort;
-
-  uint32_t u32_baudrate;
-  uint8_t u8_mAddData;
-  uint8_t u8_mFilterBmsCellVoltageMaxCount=0;
-};
-struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
-
-
 BscSerial::BscSerial()
 {
-  /*mSerialMutex = xSemaphoreCreateMutex();
-  isSoftSerial=false;
-  u8_mSerialNr = u8_lSerialNr;
-  u8_mHwUartNr = hwUartNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
-  u8_mRx=rx;
-  u8_mTx=tx;
 
-  if(u8_mHwUartNr==0) Serial.end();*/
 }
 
 void BscSerial::initSerial()
 {
-  /*BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);   // Hw Serial 1
-  BscSerial bscSerial2(1,2,SERIAL2_PIN_RX,SERIAL2_PIN_TX,SERIAL2_PIN_TX_EN);   // Hw Serial 2
-  #ifndef DEBUG_ON_HW_SERIAL
-  BscSerial bscSerial3(2,0,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Hw Serial 0
-  #else
-  BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
-  #endif*/
-
   mSerialMutex = xSemaphoreCreateMutex();
 
   pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //0
@@ -91,21 +73,19 @@ void BscSerial::initSerial()
 
 void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
 {
-  serialDeviceData[u8_devNr].u8_mAddData=0;
-
-  if(u8_devNr>=2) //BscSerial bscSerial3(2,0,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Hw Serial 0
+  if(u8_devNr>=2) // Hw Serial 0
   {
     Serial.end();
     Serial.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
     serialDeviceData[u8_devNr].stream_mPort=&Serial;
   }
-  else if(u8_devNr==0) //BscSerial bscSerial1(0,1,SERIAL1_PIN_RX,SERIAL1_PIN_TX,SERIAL1_PIN_TX_EN);
+  else if(u8_devNr==0) 
   {
     Serial1.end();
     Serial1.begin(baudrate,SERIAL_8N1,SERIAL1_PIN_RX,SERIAL1_PIN_TX);
     serialDeviceData[u8_devNr].stream_mPort=&Serial1;
   }
-  else if(u8_devNr==1) //BscSerial bscSerial2(1,2,SERIAL2_PIN_RX,SERIAL2_PIN_TX,SERIAL2_PIN_TX_EN);   // Hw Serial 2
+  else if(u8_devNr==1) // Hw Serial 2
   {
     Serial2.end();
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL2_PIN_RX,SERIAL2_PIN_TX);
@@ -114,7 +94,7 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
 }
 
 
-void BscSerial::setSoftSerial(uint8_t u8_devNr, uint32_t baudrate) //BscSerial bscSerial3(2,SERIAL3_PIN_RX,SERIAL3_PIN_TX,SERIAL3_PIN_TX_EN);   // Sw Serial
+void BscSerial::setSoftSerial(uint8_t u8_devNr, uint32_t baudrate) // Sw Serial
 {
   static SoftwareSerial mySwSerial(SERIAL3_PIN_RX,SERIAL3_PIN_TX,false);
   serialDeviceData[u8_devNr].stream_mPort = &mySwSerial;
@@ -185,6 +165,8 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       BSC_LOGI(TAG,"setReadBmsFunktion SEPLOS");
       setSerialBaudrate(u8_devNr, 19200);
       serialDeviceData[u8_devNr].readBms = &SeplosBms_readBmsData;
+      serialDeviceData[u8_devNr].u8_mAddData=1;
+      BSC_LOGI(TAG,"adrData (A): devNr=%i, adr=%i",u8_devNr, serialDeviceData[u8_devNr].u8_mAddData);
       break;
       
     case ID_SERIAL_DEVICE_DALYBMS:
@@ -202,6 +184,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
     if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_devNr,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_SEPLOSBMS)
     {
       serialDeviceData[u8_devNr].u8_mAddData=WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID);
+      BSC_LOGI(TAG,"adrData (B): devNr=%i, adr=%i",u8_devNr, serialDeviceData[u8_devNr].u8_mAddData);
     }
   }
   xSemaphoreGive(mSerialMutex);
@@ -283,6 +266,7 @@ void BscSerial::cyclicRun()
     serialDevData_s devData;
     devData.u8_addData=serialDeviceData[i].u8_mAddData;
     devData.bo_writeData=getSerialBmsWriteData(i); //Hier true setzen, wenn Daten gschrieben werden sollen
+    BSC_LOGI(TAG,"adrData (C): devNr=%i, adr=%i, adr2=%i",i, serialDeviceData[i].u8_mAddData, devData.u8_addData);
     bo_lBmsReadOk=serialDeviceData[i].readBms(serialDeviceData[i].stream_mPort, i, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
     setSerialBmsWriteData(i,false);
     #else

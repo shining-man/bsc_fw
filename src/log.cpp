@@ -70,7 +70,7 @@ void debugInit()
 
   //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
   //esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
-  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
+  //esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
 
   //esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
   //esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG); 
