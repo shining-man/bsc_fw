@@ -402,7 +402,11 @@ void mqttDataToTxBuffer()
         if((getBmsLastDataMillis(sendBmsData_mqtt_sendeCounter)+5000)>millis()) //Nur senden wenn die Daten nicht älter als 5 sec. sind
         {
           mqttPublishBmsData(sendBmsData_mqtt_sendeCounter);
-        }        
+        }
+        else
+        {
+          mqttPublish(MQTT_TOPIC_BMS_BT, sendBmsData_mqtt_sendeCounter, MQTT_TOPIC2_BMS_DATA_VALID, -1, 0); //invalid
+        }
         sendBmsData_mqtt_sendeCounter++;
         if(sendBmsData_mqtt_sendeCounter==BMSDATA_NUMBER_ALLDEVICES)bmsDataSendFinsh=true;
       }
@@ -473,6 +477,8 @@ void mqttPublishBmsData(uint8_t i)
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_FET_STATE_CHARGE, -1, getBmsStateFETsCharge(i));
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_FET_STATE_DISCHARGE, -1, getBmsStateFETsDischarge(i));
   
+  //valid
+  mqttPublish(MQTT_TOPIC_BMS_BT, sendBmsData_mqtt_sendeCounter, MQTT_TOPIC2_BMS_DATA_VALID, -1, 1); //invalid
 }
 
 

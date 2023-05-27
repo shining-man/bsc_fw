@@ -9,6 +9,7 @@
 
 #include "devices/JkBmsBt.h"
 #include "devices/NeeyBalancer.h"
+#include "AlarmRules.h"
 
 
 static const char *TAG = "BLE_HANDLER";
@@ -126,18 +127,22 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 
   void onResult(NimBLEAdvertisedDevice* advertisedDevice)
   {
-    #ifdef BT_DEBUG
-    BSC_LOGI(TAG, "BT device found()");
-    #endif
-
     //Device gefunden
     devMacAdr = advertisedDevice->getAddress().toString();
 
+    #ifdef BT_DEBUG
+    BSC_LOGI(TAG, "BT device found: %s",devMacAdr.c_str());
+    #endif
+    
     for(uint8_t i=0; i<BT_DEVICES_COUNT; i++)
-    {    
+    {  
+      #ifdef BT_DEBUG
+      BSC_LOGD(TAG, "BT device %i: mac=%s", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
+      #endif
+
       if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(""))
       {
-        if (webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(devMacAdr.c_str()) && webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)!=ID_BT_DEVICE_NB)
+        if(webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(devMacAdr.c_str()) && webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)!=ID_BT_DEVICE_NB)
         {
           BSC_LOGD(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
 
@@ -549,7 +554,7 @@ void BleHandler::run()
     bo_mBtScanIsRunning = true;
     if(pBLEScan->isScanning())
     {
-      BSC_LOGI(TAG, "scan läuft noch");
+      BSC_LOGD(TAG, "Scan läuft noch");
     }
     else
     {
@@ -564,7 +569,7 @@ void BleHandler::run()
   #endif
 
   //Stop den Scan, wenn die Ergebnisliste voll ist und x Sekunden kein Device mehr verbunden wurde
-  if(u8_mScanAndNotConnectTimer>0 && bo_mBtScanIsRunning && pBLEScan->getResults().getCount()>=BT_SCAN_RESULTS)
+  if(u8_mScanAndNotConnectTimer>0 && bo_mBtScanIsRunning /*&& pBLEScan->getResults().getCount()>=BT_SCAN_RESULTS*/)
   {
     u8_mScanAndNotConnectTimer--;
   }
@@ -608,13 +613,18 @@ bool BleHandler::handleConnectionToDevices()
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
       uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
+
+      uint8_t u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,i,DT_ID_PARAM_BTDEV_DEACTIVATE);
+      bool bo_devDeactivateTrigger=false;
+      if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
+
       //Überprüfen ob BT-Devices gesucht werden müssen; ggf. suche starten
-      if(u8_lBtDevType>ID_BT_DEVICE_NB) //Wenn ein Device parametriert ist
+      if(u8_lBtDevType>ID_BT_DEVICE_NB && !bo_devDeactivateTrigger) //Wenn ein Device parametriert ist
       {
         if(bleDevices[i].isConnect==false && bleDevices[i].doConnect==btDoConnectionIdle) //Wenn es nicht verbunden ist
         {
           //Suche starten
-          BSC_LOGD(TAG, "Suche device %i",i);
+          BSC_LOGD(TAG, "Suche device %i, %s",i,bleDevices[i].macAdr.c_str());
           bo_lDoStartBtScan = true;
         }
       }
@@ -634,7 +644,7 @@ bool BleHandler::handleConnectionToDevices()
       }
       else //Wenn keine Verbindungsaufforderung besteht
       {
-        if((u8_lBtDevType==ID_BT_DEVICE_NB) || (u8_lBtDevType>ID_BT_DEVICE_NB && bleDevices[i].isConnect)){u8_lBtConnStatus|=(1<<i);}
+        if((u8_lBtDevType==ID_BT_DEVICE_NB) || (u8_lBtDevType>ID_BT_DEVICE_NB && bleDevices[i].isConnect) || bo_devDeactivateTrigger){u8_lBtConnStatus|=(1<<i);}
       }
     }
 
@@ -649,7 +659,7 @@ bool BleHandler::handleConnectionToDevices()
       {
         if(bleDevices[i].doConnect==btDoConnectionWaitStart)
         {
-          //BSC_LOGI(TAG,"BT write (%i) typ=%i",i,bleDevices[i].deviceTyp);
+          BSC_LOGD(TAG,"BT write start (%i) typ=%i",i,bleDevices[i].deviceTyp);
           switch(bleDevices[i].deviceTyp)
           {
             case ID_BT_DEVICE_NEEY4A:
@@ -744,7 +754,11 @@ void BleHandler::handleDisconnectionToDevices()
   {
     if(bleDevices[i].isConnect)
     {
-      if(webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NB || webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(""))
+      uint8_t u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,i,DT_ID_PARAM_BTDEV_DEACTIVATE);
+      bool bo_devDeactivateTrigger=false;
+      if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
+
+      if(webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NB || webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals("") || bo_devDeactivateTrigger)
       {
         if(NimBLEDevice::getClientListSize())
         {

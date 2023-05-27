@@ -14,9 +14,9 @@ static const char *TAG = "LOG";
 
 static SemaphoreHandle_t logMutex = NULL;
 
-#ifndef DEBUG_ON_HW_SERIAL
+/*#ifndef DEBUG_ON_HW_SERIAL
 SoftwareSerial debugPort;
-#endif
+#endif*/
 
 #ifdef DEBUG_ON_FS
 static File spiffsLogFile;
@@ -28,17 +28,18 @@ int vprintf_into_spiffs(const char* szFormat, va_list args);
 void debugInit()
 {
   logMutex = xSemaphoreCreateMutex();
-
   #ifdef DEBUG_ON_HW_SERIAL
+  Serial.end();
+  Serial.setPins(18,1); // Als RX Pin den U1RXTX_En nehmen, da dieser hier nicht gebraucht wird
   Serial.begin(115200);
   #else
   //Serial beenden um auf die Pins 3+1 die Softserial zu mappen
   Serial.end();
   Serial.setPins(SERIAL3_PIN_RX,SERIAL3_PIN_TX);
 
-  debugPort.enableIntTx(false);
-  debugPort.enableRx(false);
-  debugPort.begin(DEBUG_SW_BAUDRATE, SWSERIAL_8N1, 3, 1, false, 64, 11);
+  //debugPort.enableIntTx(false);
+  //debugPort.enableRx(false);
+  //debugPort.begin(DEBUG_SW_BAUDRATE, SWSERIAL_8N1, 3, 1, false, 64, 11);
   #endif
 
  
@@ -58,8 +59,8 @@ void debugInit()
   #endif
 
 
-  esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
-  //esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
+  //esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
+  esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
   
   //esp_log_level_set("MAIN", ESP_LOG_INFO); 
   //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
@@ -69,20 +70,48 @@ void debugInit()
   //esp_log_level_set("CAN", ESP_LOG_INFO);  
 
   //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
-  //esp_log_level_set("JK_BMS", ESP_LOG_VERBOSE); 
-  //esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
-
-  //esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
-  //esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG); 
+  
   //esp_log_level_set("ALARM", ESP_LOG_DEBUG); 
-  //esp_log_level_set("JKBT", ESP_LOG_DEBUG); 
-  //esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
   //esp_log_level_set("I2C", ESP_LOG_DEBUG); 
-  esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
-  //esp_log_level_set("CAN", ESP_LOG_DEBUG);  
-  esp_log_level_set("DALY_BMS", ESP_LOG_DEBUG); 
-  //esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
+  //esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
+ 
 
+  #ifdef NEEY_DEBUG
+  esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef JK_DEBUG
+  esp_log_level_set("JK_BMS", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef JK_BT_DEBUG
+  esp_log_level_set("JKBT", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef SEPLOS_DEBUG
+  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef DALY_DEBUG
+  esp_log_level_set("DALY_BMS", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef BT_DEBUG        //Bluetooth
+  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
+  #endif
+  #ifdef MQTT_DEBUG 
+  esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
+  #endif       
+  #ifdef CAN_DEBUG
+  esp_log_level_set("CAN", ESP_LOG_DEBUG);  
+  #endif
+  #ifdef WEBSET_DEBUG
+  esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG); 
+  #endif
+
+  #ifdef WLAN_DEBUG  
+  #endif      
+  #ifdef WLAN_DEBUG2
+  #endif
+
+
+
+  
 
   #ifdef DEBUG_ON_FS
   if(!SPIFFS.exists("/log.txt")) 
@@ -110,8 +139,8 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
       #ifdef LOG_TO_SERIAL
       #ifdef DEBUG_ON_HW_SERIAL
       Serial.print(log_print_buffer);
-      #else
-      debugPort.print(log_print_buffer);
+      //#else
+      //debugPort.print(log_print_buffer);
       #endif
       #endif
 
@@ -156,8 +185,8 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
       #ifdef LOG_TO_SERIAL
       #ifdef DEBUG_ON_HW_SERIAL
       Serial.print(log_print_buffer);
-      #else
-      debugPort.print(log_print_buffer);
+      //#else
+      //debugPort.print(log_print_buffer);
       #endif
       #endif
 

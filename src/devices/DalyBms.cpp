@@ -10,6 +10,8 @@
 
 static const char *TAG = "DALY_BMS";
 
+#define DALAY_SEND_DELAY 50
+
 static Stream *mPort;
 static uint8_t u8_mDevNr/*, u8_mConnToId*/;
 
@@ -42,52 +44,58 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   BSC_LOGI(TAG,"DalyBms_readBmsData()");
   #endif
 
-  //for(uint8_t adr=0; adr<u8_mConnToId+1;adr++)
-  //{
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
-    if(recvAnswer(response, 1))
-    {
-      parseMessage(response);
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
+  if(recvAnswer(response, 1))
+  {
+    parseMessage(response);
 
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
-    }
-    else bo_ret=false;
-    
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE); 
-    if(recvAnswer(response,1)) parseMessage(response);
-    else bo_ret=false;
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+  }
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_TEMPERATURE); 
-    //if(recvAnswer(response,1)) parseMessage(response);
-    //else bo_ret=false;
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE); //no answer from bms
+  if(recvAnswer(response,1)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS); 
-    if(recvAnswer(response,1)) parseMessage(response);
-    else bo_ret=false;
+  //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_TEMPERATURE); //not use
+  //if(recvAnswer(response,1)) parseMessage(response);
+  //else bo_ret=false;
+  //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); 
-    if(recvAnswer(response,1)) parseMessage(response);
-    else bo_ret=false;
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS);  
+  if(recvAnswer(response,1)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE); 
-    if(recvAnswer(response,u8_mNumberOfCells/3)) parseMessage(response);
-    else bo_ret=false;
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_STATUS);
+  if(recvAnswer(response,1)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE); 
-    if(recvAnswer(response,1)) parseMessage(response);
-    else bo_ret=false;
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE); 
+  u8_mNumberOfCells=18;
+  if(recvAnswer(response,u8_mNumberOfCells/3+u8_mNumberOfCells%3)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER); 
-    if(recvAnswer(response,1)) parseMessage(response);
-    else bo_ret=false;
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE); 
+  if(recvAnswer(response,1)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-    //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE); 
-    //if(recvAnswer(response,1)) parseMessage(response);
-    //else bo_ret false;
-    
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER); 
+  if(recvAnswer(response,1)) parseMessage(response);
+  else bo_ret=false;
+  vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  //}
+  //getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE); //not use
+  //if(recvAnswer(response,1)) parseMessage(response);
+  //else bo_ret false;
+  //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
+  
 
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_ret;  
@@ -114,7 +122,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   String recvBytes="";
   for(uint8_t x=0;x<DALY_FRAME_SIZE;x++)
   {
-    recvBytes+=String(u8_lData[x]);
+    recvBytes+=String(u8_lData[x],16);
     recvBytes+=" ";
   }
   BSC_LOGD(TAG,"sendBytes: %s", recvBytes.c_str());
@@ -154,7 +162,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
       {
-        recvBytes+=String(p_lRecvBytes[x]);
+        recvBytes+=String(p_lRecvBytes[x],16);
         recvBytes+=" ";
       }
       BSC_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
@@ -167,10 +175,12 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     {
       u8_lRecvByte = mPort->read();
 
-      switch (SMrecvState)  {
+      switch (SMrecvState)
+      {
         case SEARCH_START:
           if (u8_lRecvByte == DALAY_START_BYTE)
           {
+            u32_lStartTime=millis();
             p_lRecvBytes[u8_lRecvBytesCnt]=u8_lRecvByte;
             u8_lRecvBytesCnt++;
             u8_checlSum=u8_lRecvByte;
@@ -181,35 +191,49 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
 
         case SEARCH_END:
           p_lRecvBytes[u8_lRecvBytesCnt]=u8_lRecvByte;
-          u8_checlSum+=u8_lRecvByte;
           u8_lRecvBytesCnt++;
           u8_lRecvBytesCntPacket++;
-          SMrecvState=SEARCH_START;
+
+          if(u8_lRecvBytesCntPacket==DALY_FRAME_SIZE)
+          {
+            //BSC_LOGI(TAG,"Last byte; cnt=%i, cntPacket=%i, recvByte=%i, chkSum=%i",u8_lRecvBytesCnt, u8_lRecvBytesCntPacket, u8_lRecvByte, u8_checlSum);
+            SMrecvState=SEARCH_START;
+            
+            //Überprüfe Cheksum
+            if(u8_checlSum!=p_lRecvBytes[u8_lRecvBytesCnt-1]) return false; 
+            //if(u8_checlSum!=p_lRecvBytes[u8_lRecvBytesCnt-1]) BSC_LOGI(TAG,"checksum wrong"); 
+          } 
+          else u8_checlSum+=u8_lRecvByte;
           break;
       
         default:
           break;
-        }
+      }
+    
+
     }
-
-    if(u8_lRecvBytesCnt==u8_lRecvBytesCntPacket)
-    {
-      //Überprüfe Cheksum
-      if(u8_checlSum!=p_lRecvBytes[u8_lRecvBytesCnt-1]) return false; 
-    } 
-
+    //else delay(1);
+    
     if(u8_lRecvBytesCnt==(DALY_FRAME_SIZE*packets)) break; //Recv Pakage complete   
   }
 
-  #ifdef DALY_DEBUG
+  /*#ifdef DALY_DEBUG
   String recvBytes="";
+  uint8_t logBytCnt=0;
   for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
   {
     recvBytes+=String(p_lRecvBytes[x]);
     recvBytes+=" ";
+    logBytCnt++;
+    if(logBytCnt>=13)
+    {
+      BSC_LOGI(TAG,"RX: %s", recvBytes.c_str());
+      recvBytes="";
+      logBytCnt=0;
+    }
   }
-  BSC_LOGD(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
-  #endif
+  BSC_LOGI(TAG,"RX: %s", recvBytes.c_str());
+  #endif*/
 
   return true;
 }
@@ -264,7 +288,7 @@ static void parseMessage(uint8_t * t_message)
       break;
 
     case DALY_REQUEST_CELL_VOLTAGE:
-      for (size_t n = 0; n <= (u8_mNumberOfCells/3); n++)
+      for (size_t n = 0; n <= (u8_mNumberOfCells/3+u8_mNumberOfCells%3); n++)
       {
         for (size_t i = 0; i < 3; i++)
         {

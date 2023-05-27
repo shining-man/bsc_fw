@@ -6,6 +6,8 @@
 
 #include "BmsData.h"
 
+//static const char * TAG = "BMSDATA";
+
 static SemaphoreHandle_t mBmsDataMutex = NULL;
 
 static struct bmsData_s bmsData;

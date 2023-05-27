@@ -40,6 +40,7 @@ static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
 bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
+  bool ret = true;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
@@ -72,22 +73,30 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData));
       mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData));
     }
-    else return false;
-    
+    else
+    {
+      ret=false; 
+      break;
+    }
+
     getDataFromBms(u8_lSeplosAdr, 0x44); //Alarms
     if(recvAnswer(response))
     {
       parseMessage_Alarms(response, u8_lSeplosAdrBmsData);
     }
-    else return false;
+    else
+    {
+      ret=false;
+      break;
+    }
 
-    setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData,millis());
+    if(ret==true) setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData,millis());
 
     u8_lSeplosAdrBmsData++;
   }
 
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  return true;  
+  return ret;  
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
@@ -202,6 +211,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
           break;
         }
     }
+    //else vTaskDelay(pdMS_TO_TICKS(1));
 
     if(bo_lDataComplete) break; //Recv Pakage complete   
   }

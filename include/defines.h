@@ -8,14 +8,14 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.2"
+#define BSC_SW_VERSION      "V0.4.7"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
 
 //Debug
-#define DEBUG_ON_FS
-//#define DEBUG_ON_HW_SERIAL
+//#define DEBUG_ON_FS        //wird in der platformio.ini gesetzt
+//#define DEBUG_ON_HW_SERIAL //wird in der platformio.ini gesetzt
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
@@ -27,7 +27,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
-#define WLAN_DEBUG        
+//#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define WEBSET_DEBUG
@@ -90,11 +90,11 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define SERIAL1_PIN_TX_EN            18
 #define SERIAL2_PIN_RX               23
 #define SERIAL2_PIN_TX               25
-#define SERIAL2_PIN_RX_EN             3
 #define SERIAL2_PIN_TX_EN             2
 #define SERIAL3_PIN_RX               35
 #define SERIAL3_PIN_TX               33
-#define SERIAL3_PIN_TX_EN            32
+#define SERIAL3_PIN_TX_EN             3
+#define SERIAL3_PIN_RX_EN            32
 
 //Onewire (Temperatur)
 #define OW_PIN                       19
@@ -209,10 +209,10 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN                   79
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC                   80
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC        81
-#define ID_PARAM_INVERTER_LADESTROM_SPERRZEIT                           82
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME                   82
 #define ID_PARAM_BMS_CAN_DATASOURCE_SS1                                 83
-#define ID_PARAM_BMS_CAN_DATASOURCE_SS2                                 84
-#define ID_PARAM_BMS_CAN_DATASOURCE_SS3                                 85
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT                84
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC                    85
 
 #define ID_PARAM_MQTT_USERNAME                                          86
 #define ID_PARAM_MQTT_PWD                                               87
@@ -268,6 +268,11 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 //#define ID_PARAM_SYSTEM_NTP_SERVER_PORT          123
 
 #define ID_PARAM_JBD_CELL_VOLTAGE_100            124
+
+#define ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE    125
+
+#define ID_PARAM_BTDEV_DEACTIVATE                126
+
 
 
 //Auswahl Bluetooth Geräte
@@ -386,6 +391,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define MQTT_TOPIC2_FET_STATE_CHARGE            39
 #define MQTT_TOPIC2_FET_STATE_DISCHARGE         40
 #define MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE     41
+#define MQTT_TOPIC2_BMS_DATA_VALID              42
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -430,7 +436,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "stateCharge",               // 39
   "stateDischarge",            // 40
   "chargeVoltage",             // 41
-  "",                          // 42
+  "valid",                     // 42
   "",                          // 43
   "",                          // 44
   "",                          // 45
