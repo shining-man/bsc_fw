@@ -125,6 +125,8 @@ const char HTML_ENTRY_MULTI_COLLAPSIBLE_END[] PROGMEM =
 "</fieldset></div></div></td><td class='t1'></td></tr>\n";
 
 const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='3'><b>%s</b></td></tr>\n";
+const char HTML_GROUP_START_DETAILS[] PROGMEM = "</table><details><summary><b>%s</b></summary><table>\n"; //<details open>
+const char HTML_GROUP_END_DETAILS[]   PROGMEM = "</table></details><table>\n";
 
 const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
 
@@ -184,7 +186,9 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
 
   if (!prefs.begin("prefs"))
   {
-    //BSC_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
+    #ifdef WEBSET_DEBUG
+    BSC_LOGE(TAG,"Fehler beim Oeffnen des NVS-Namespace");
+    #endif
   }
   else
   {
@@ -194,6 +198,9 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   readConfig();
   getDefaultValuesFromNewKeys(parameterFile, 0);
   if(bo_hasNewKeys) writeConfig();
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG, "initWebSettings() end");
+  #endif
 }
 
 void WebSettings::setTimerHandlerName(String handlerName, uint16_t timerSec)
@@ -266,6 +273,12 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
               #ifdef WEBSET_DEBUG
               BSC_LOGD(TAG,"Store in Flash; u32_argName=%i, dt=%i",u32_argName,u8_datatype);
               #endif
+
+              //Spezielle Parameter vor dem Speichern ändern
+              uint16_t u16_lParamId=0;
+              uint8_t u8_lParamGroup=0;
+              getIdFromParamId(u32_argName,u16_lParamId,u8_lParamGroup);
+              if(u16_lParamId==ID_PARAM_SS_BTDEVMAC) argValue.toLowerCase();
 
               uint8_t ret=0xFF;
               switch(u8_datatype)
@@ -442,7 +455,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
 
 void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos)
 {
-  uint8_t g, optionsCnt, optionGroupSize, jsonSize, u8_dataType;
+  uint8_t g, optionsCnt, optionGroupSize, jsonSize, u8_dataType, u8_jsonLabelOffset;
   uint16_t u32_jsonName, jsonNameBase;
   uint64_t u64_jsonName;
   String jsonLabel, st_jsonLabelEntry, strlHelp;
@@ -478,15 +491,18 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
     switch(u8_lJsonType)
     {
       case HTML_OPTIONGROUP:
+      case HTML_OPTIONGROUP_COLLAPSIBLE:
         //bo_lIsGroup=true;
         st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
+        u8_jsonLabelOffset = getJson_Key(parameter, "label_offset", a, jsonStartPos, "0").toInt();
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
         u16_lDepId = getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
         u8_lDepVal = getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
         u8_lDepDt = getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
         if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
-          sprintf(_buf,HTML_GROUP_START,jsonLabel.c_str());
+          if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE) sprintf(_buf,HTML_GROUP_START_DETAILS,jsonLabel.c_str());
+          else sprintf(_buf,HTML_GROUP_START,jsonLabel.c_str());
           sendContentHtml(server,_buf,false);
         }
         for(g=0; g<optionGroupSize; g++)
@@ -495,7 +511,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
 
           if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
 
-          sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g);
+          sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
           sendContentHtml(server,_buf,false);
 
           String retStr;
@@ -506,11 +522,11 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
           sendContentHtml(server,_buf,false);
         }
-        /*if(optionGroupSize>1 && !jsonLabel.equals(""))
+        if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE && optionGroupSize>1 && !jsonLabel.equals(""))
         {
-          sprintf(_buf,HTML_GROUP_END);
+          sprintf(_buf,HTML_GROUP_END_DETAILS);
           sendContentHtml(server,_buf,false);
-        }*/
+        }
         u8_mAktOptionGroupNr = 0;
         break;
       case HTML_INPUTTEXT: 
@@ -586,7 +602,8 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         break;
     }
 
-    if(getJsonType(parameter, a, jsonStartPos) != HTML_OPTIONGROUP)
+    uint8_t u8_lType=getJsonType(parameter, a, jsonStartPos);
+    if(u8_lType!=HTML_OPTIONGROUP && u8_lType!=HTML_OPTIONGROUP_COLLAPSIBLE)
     {
       sendContentHtml(server,_buf,false);
     }
@@ -611,7 +628,9 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
   uint32_t u32_tmp;
   String   retStr_default = "";
 
-  //BSC_LOGI(TAG,"getDefaultValuesFromNewKeys: str_mConfName=%s, arraySize=%i",str_mConfName.c_str(), json.getArraySize(parameter, jsonStartPos));
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"getDefaultValuesFromNewKeys: str_mConfName=%s, arraySize=%i",str_mConfName.c_str(), json.getArraySize(parameter, jsonStartPos));
+  #endif
   for (uint8_t a=0; a<json.getArraySize(parameter, jsonStartPos); a++)
   {
     uint8_t type, optionCnt; //, jsonSize;
@@ -626,7 +645,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
     json.getValue(parameter, a, "dt", jsonStartPos, retStr_default, u32_tmp);
     u8_dataType = retStr_default.toInt();
 
-    if (type == HTML_OPTIONGROUP)
+    if (type==HTML_OPTIONGROUP || type==HTML_OPTIONGROUP_COLLAPSIBLE)
     {
       optionGroupSize = getJsonGroupsize(parameter,a,jsonStartPos);
       for(g=0; g<optionGroupSize; g++)
@@ -703,6 +722,9 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
       }
     }
   }
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"getDefaultValuesFromNewKeys: finish");
+  #endif
 }
 
 
@@ -1315,6 +1337,10 @@ boolean WebSettings::readConfig()
   uint32_t str_name;
   uint8_t ui8_pos;
 
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG,"readConfig()");
+  #endif
+
   if (!SPIFFS.exists(str_mConfigfile.c_str()))
   {
     //wenn settingfile nicht vorhanden, dann schreibe default Werte
@@ -1325,9 +1351,17 @@ boolean WebSettings::readConfig()
   File f = SPIFFS.open(str_mConfigfile.c_str(),"r");
   if (f)
   {
+    #ifdef WEBSET_DEBUG
+    BSC_LOGI(TAG,"file open");
+    #endif
+
     uint32_t size = f.size();
     while (f.position() < size)
     {
+      #ifdef WEBSET_DEBUG
+      BSC_LOGI(TAG,"readConfig size=%i, pos=%i\n", size, (uint32_t)f.position());
+      #endif
+
       str_line = f.readStringUntil(10);
       ui8_pos = str_line.indexOf('=');
       str_name = str_line.substring(0,ui8_pos).toInt();
@@ -1344,9 +1378,14 @@ boolean WebSettings::readConfig()
       else if(str_dataType.equals("BO_")) setString(str_name, str_value, PARAM_DT_BO);
       else if(str_dataType.equals("STR")) setString(str_name, str_value, PARAM_DT_ST);
       
-      //BSC_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, settingValues[str_name].c_str());
+      #ifdef WEBSET_DEBUG
+      BSC_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, str_value.c_str());
+      #endif
     }
     f.close();
+    #ifdef WEBSET_DEBUG
+    BSC_LOGI(TAG,"readConfig() end");
+    #endif
     return true;
   }
   else
@@ -1363,7 +1402,9 @@ boolean WebSettings::writeConfig()
   String val2;
   uint32_t name;
 
-  //BSC_LOGI(TAG, "writeConfig()");
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG, "writeConfig()");
+  #endif
 
   if (!SPIFFS.exists(str_mConfigfile.c_str()))
   {
@@ -1443,6 +1484,9 @@ boolean WebSettings::writeConfig()
     BSC_LOGI(TAG,"Cannot write configuration");
     return false;
   }
+  #ifdef WEBSET_DEBUG
+  BSC_LOGI(TAG, "writeConfig() finish");
+  #endif
 }
 
 //Löschen des Parameterfiles

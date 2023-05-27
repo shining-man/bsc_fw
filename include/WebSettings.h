@@ -31,7 +31,9 @@
 #define HTML_INPUTMULTICHECK              11
 #define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
 #define HTML_OPTIONGROUP                  12
+#define HTML_OPTIONGROUP_COLLAPSIBLE      15
 #define HTML_SEPARATION                   13
+//Max Type = 15
 
 #define BACKGROUND_COLOR "#ffffff" 
 

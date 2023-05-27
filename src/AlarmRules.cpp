@@ -485,9 +485,8 @@ void rules_Bms()
   for(i=0; i<CNT_BT_ALARMS_RULES; i++)
   {
     u8_lAlarmruleBmsNr=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,i,DT_ID_PARAM_ALARM_BTDEV_BMS_SELECT);
-
-    if(u8_lAlarmruleBmsNr<=0) continue;
-    u8_lAlarmruleBmsNr--;
+    if(u8_lAlarmruleBmsNr==127) continue; //'AUS'
+    //u8_lAlarmruleBmsNr--;
 
     //bool b_lBmsOnline=true;
     //if((millis()-getBmsLastDataMillis(i))>10000) b_lBmsOnline=false; //Wenn 2000 ms keine Daten vom BMS kamen, dann ist es offline
@@ -518,7 +517,7 @@ void rules_Bms()
       }
 
       //Überwachung Zellspannung
-      BSC_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION));
+      //BSC_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION));
       if(/*b_lBmsOnline==true &&*/WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION)>0)
       {
       //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
@@ -531,14 +530,14 @@ void rules_Bms()
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
             setAlarm(tmp,true);
-            BSC_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
+            //BSC_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
           {
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
             setAlarm(tmp,false);
-            BSC_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
+            //BSC_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
       }

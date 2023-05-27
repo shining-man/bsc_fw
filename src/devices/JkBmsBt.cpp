@@ -290,7 +290,7 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     u16_lPos=112+u8_lOffset-u8_lFrameOffset;
     if (u8_frameVersion == FRAME_VERSION_JK02_32S)
     {    
-      setBmsTempature(devNr,0,(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
+      setBmsTempature(devNr,0,(float)(((int16_t)getJk16bit(u16_lPos))*0.1f));
       #ifdef JK_BT_DEBUG
       BSC_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #endif
@@ -347,11 +347,11 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
 
     // 130   2   0xBE 0x00              Temperature Sensor 1  0.1          °C
     u16_lPos=130+u8_lOffset-u8_lFrameOffset;
-    setBmsTempature(devNr,1,(float) ((int16_t) getJk16bit(u16_lPos))*0.1f);
+    setBmsTempature(devNr,1,(float)(((int16_t)getJk16bit(u16_lPos))*0.1f));
 
     // 132   2   0xBF 0x00              Temperature Sensor 2  0.1          °C
     u16_lPos=132+u8_lOffset-u8_lFrameOffset;
-    setBmsTempature(devNr,2,(float) ((int16_t) getJk16bit(u16_lPos))*0.1f);
+    setBmsTempature(devNr,2,(float)(((int16_t)getJk16bit(u16_lPos))*0.1f));
 
     // 134   2   0xD2 0x00              MOS Temperature       0.1          °C
     u16_lPos=134+u8_lOffset-u8_lFrameOffset;
@@ -362,7 +362,7 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     }
     else
     {
-      setBmsTempature(devNr,0,(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
+      setBmsTempature(devNr,0,(float)(((int16_t)getJk16bit(u16_lPos))*0.1f));
       #ifdef JK_BT_DEBUG
       BSC_LOGI(TAG,"MOS Temp: %f°C",(float)((int16_t) getJk16bit(u16_lPos))*0.1f);
       #endif

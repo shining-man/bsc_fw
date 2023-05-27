@@ -26,15 +26,30 @@ void NeeyBalancer::init()
 
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
+    #ifdef NEEY_DEBUG
+    BSC_LOGD(TAG,"RX len=%i",length);
+    //log_print_buf(pData, length);
+    
+    String log="";
+    uint8_t logLenCnt=0;
+    for(uint8_t i=0;i<length;i++)
+    {
+      logLenCnt++;
+      log+=String(pData[i], HEX); 
+      log+=" ";
+      if(logLenCnt==20)
+      {
+        logLenCnt=0;
+        BSC_LOGD(TAG,"RX: %s",log.c_str());
+        log="";
+      }
+    }
+    BSC_LOGD(TAG,"RX: %s",log.c_str()); 
+    log="";
+    #endif
+
   if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
   {
-    //BSC_LOGI(TAG,"RX");
-    //log_print_buf(pData, length);
-
-    //String log="";
-    //for(uint8_t i=0;i<length;i++){log+=String(pData[i], HEX); log+=" ";}
-    //BSC_LOGI(TAG,"RX: %s",log.c_str()); log="";
-
     bmsDataSemaphoreTake();
     memcpy(getBmsSettingsReadback(devNr), &pData[8], 32);
     bmsDataSemaphoreGive();
@@ -86,20 +101,25 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     STATUS_SOFT_LOCK      4096   //bit12 software lock MOS 
     */
     memcpy(&u32_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_ERRCELLOV, 4);
-  
-
     setBmsErrors(devNr, u32_lTmpValue);
  
     struct bmsData_s *p_lBmsData = getBmsData();
     bmsDataSemaphoreTake();
     //memcpy(&p_lBmsData->bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24); 
-    memcpy(&p_lBmsData->bmsTotalVoltage[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_TOTALVOLTAGE, 4);
     memcpy(&p_lBmsData->bmsMaxVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MAXVOLTCELLNR, 1);
     memcpy(&p_lBmsData->bmsMinVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MINVOLTCELLNR, 1);
     memcpy(&p_lBmsData->bmsIsBalancingActive[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCING, 1);
-    memcpy(&p_lBmsData->bmsBalancingCurrent[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCINGCUR, 4);
-    memcpy(&p_lBmsData->bmsTempature[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR, 4*2);
     bmsDataSemaphoreGive();
+
+    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TOTALVOLTAGE, 4);
+    setBmsTotalVoltage(devNr,f_lTmpValue);
+    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCINGCUR, 4);
+    setBmsBalancingCurrent(devNr,f_lTmpValue);
+    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR, 4);
+    setBmsTempature(devNr,0,f_lTmpValue);
+    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR+4, 4);
+    setBmsTempature(devNr,1,f_lTmpValue);
+    
 
     uint16_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
     uint16_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));

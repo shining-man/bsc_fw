@@ -318,10 +318,8 @@ void task_ConnectWiFi(void *param)
   unsigned long connectMqttTimer; //Timeout MQTT Verbindungsaufbau
   bool bo_lFirstRun=true;
 
-  #ifdef WLAN_DEBUG
   unsigned long tConnWifiHelpTimer=0;
   tConnWifiHelpTimer=millis();
-  #endif
 
   BSC_LOGD(TAG, "-> 'task_ConnectWiFi' runs on core %d", xPortGetCoreID());
   BSC_LOGD(TAG, "mConnectState=%i", mConnectStateEnums);

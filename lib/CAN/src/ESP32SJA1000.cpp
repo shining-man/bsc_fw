@@ -187,7 +187,7 @@ int ESP32SJA1000Class::endPacket()
   }
 
   // wait for TX buffer to free
-  canTxErrTimer=millis()+200;
+  canTxErrTimer=millis()+50;
   while ((readRegister(REG_SR) & 0x04) != 0x04)
   {
     //Timeout
@@ -197,6 +197,7 @@ int ESP32SJA1000Class::endPacket()
     }
 
     yield();
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
   int dataReg;
 

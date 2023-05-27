@@ -25,6 +25,7 @@ void sendCanMsg_359();
 void sendCanMsg_35a();
 void sendCanMsg_373_376_377();
 void sendCanMsgTemp();
+void sendCanMsgBmsData();
 void sendCanMsg_372();
 void sendCanMsg_35f();
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
@@ -48,9 +49,9 @@ bool alarmSetSocToFull;
 
 int16_t  i16_mMaxChargeCurrent=0;
 int16_t  i16_mAktualChargeCurrentSoll;
-uint8_t  u8_mTimerCalcMaxChareCurrent=0;
-uint16_t u16_mTimerChargeOff=0;
-uint16_t u16_mSperrzeitChargeOff;
+//uint8_t  u8_mTimerCalcMaxChareCurrent=0;
+//uint16_t u16_mTimerChargeOff=0;
+//uint16_t u16_mSperrzeitChargeOff;
 int16_t  i16_mAktualDischargeCurrentSoll=0;
 
 //Variablen: Wenn Zellspannung kleiner x mV wird SoC auf x% setzen
@@ -118,10 +119,10 @@ void canSetup()
   alarmSetDischargeCurrentToZero=false;
   alarmSetSocToFull=false;
 
-  u8_mTimerCalcMaxChareCurrent=0;
-  u16_mTimerChargeOff=0;
+  //u8_mTimerCalcMaxChareCurrent=0;
+  //u16_mTimerChargeOff=0;
 
-  u16_mSperrzeitChargeOff=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_SPERRZEIT,0,DT_ID_PARAM_INVERTER_LADESTROM_SPERRZEIT); //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
+  //u16_mSperrzeitChargeOff=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_SPERRZEIT,0,DT_ID_PARAM_INVERTER_LADESTROM_SPERRZEIT); //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
 
   u16_mSocZellspannungSperrzeitTimer=0;
   u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
@@ -131,7 +132,7 @@ void canSetup()
   
   CAN.setPins(5,4);
   if (!CAN.begin(500000)) // start the CAN bus at 500 kbps
-  //if (!CAN.begin(125E3)) // start the CAN bus at 250 kbps
+  //if (!CAN.begin(250E3)) // start the CAN bus at 250 kbps
   {
     BSC_LOGI(TAG,"Init CAN failed!");
   }
@@ -162,24 +163,26 @@ void loadCanSettings()
 {
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
-  u8_mBmsDatasourceAdd=0;
   
-  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0)
+  uint32_t bmsConnectFilter=0;
+  /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
   {
-    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL) u8_mBmsDatasourceAdd=1;
+    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)!=0)
+    {
+      bmsConnectFilter |= (1<<i);
+    }
+  }*/
+  for(uint8_t i;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  {
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0)
+    {
+      bmsConnectFilter |= (1<<i);
+    }
   }
 
-  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS2,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,1,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0)
-  {
-    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL+1) u8_mBmsDatasourceAdd |= (1<<1);
-  }  
+  u8_mBmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
 
-  if(WebSettings::getBool(ID_PARAM_BMS_CAN_DATASOURCE_SS3,0) && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0)
-  {
-    if(u8_mBmsDatasource!=BMSDATA_FIRST_DEV_SERIAL+2) u8_mBmsDatasourceAdd |= (1<<2);
-  } 
-
-  BSC_LOGI(TAG,"loadCanSettings(): u8_mBmsDatasource=%i",u8_mBmsDatasource);
+  BSC_LOGI(TAG,"loadCanSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_mBmsDatasource,bmsConnectFilter, u8_mBmsDatasourceAdd);
 }
 
 //Ladeleistung auf 0 einstellen
@@ -248,26 +251,25 @@ void sendBmsCanMessages()
     case ID_CAN_DEVICE_VICTRON:
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
       sendCanMsg_351();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_370_371();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35e();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35a(); //Alarms
-      vTaskDelay(pdMS_TO_TICKS(5));
 
       sendCanMsg_372();
       sendCanMsg_35f();
 
       sendCanMsg_355();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_356();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_373_376_377();
 
-      //sendCanMsgTemp();
+      //Send extended data
+      if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
+      {
+        sendCanMsgTemp();
+        sendCanMsgBmsData();
+      }
 
-      //374, 375, 376, 377, 359
+      //374, 359
       break;
 
     default:
@@ -416,7 +418,7 @@ uint16_t getMinCellSpannungFromBms()
           if(u16_lMinCellSpg<u16_lCellSpg)
           {
             u16_lCellSpg=u16_lMinCellSpg; 
-            u8_lBmsNr=i;
+            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
             u8_lCellNr=getBmsMinVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); 
           }
         }
@@ -490,10 +492,10 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
 {
     //Evtl. Sprünge im Batteriestrom und hohe Lastströme berücksichtigen
 
-    if(u16_mTimerChargeOff>0)u16_mTimerChargeOff--;
+    /*if(u16_mTimerChargeOff>0)u16_mTimerChargeOff--;
     if(u16_mTimerChargeOff==0)
     {
-      u8_mTimerCalcMaxChareCurrent++;
+      u8_mTimerCalcMaxChareCurrent++;*/
 
       /* Wird der neue Soll-Ladestrom kleiner, dann wird dieser sofort geändert 
       * um bei hoher Zellspannung schnell ausregeln zu können.
@@ -525,19 +527,19 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
         BSC_LOGD(TAG,"Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
         #endif
 
-        u8_mTimerCalcMaxChareCurrent=0;
+        /*u8_mTimerCalcMaxChareCurrent=0;
         if(i16_pNewChargeCurrent==0 && i16_mMaxChargeCurrent>0) //Strom wurde auf 0 geregelt -> Sperrzeit für Aufwärtsregelung starten
         {
           u16_mTimerChargeOff=u16_mSperrzeitChargeOff; //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
-        }
+        }*/
 
         i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
       }
       else
       {
-        if(u8_mTimerCalcMaxChareCurrent==15)
-        {
-          u8_mTimerCalcMaxChareCurrent=0;
+        //if(u8_mTimerCalcMaxChareCurrent==15)
+        //{
+          //u8_mTimerCalcMaxChareCurrent=0;
 
           if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
           {
@@ -548,9 +550,9 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
           }
 
           i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
-        }
+        //}
       }
-    }
+    //}
 }
 
 
@@ -607,13 +609,14 @@ int16_t calcLadestromBeiZelldrift(int16_t i16_pMaxChargeCurrent)
   {
     //Maximalen Ladestrom berechnen
     uint16_t u32_lMaxCellDrift = getMaxCellDifferenceFromBms();
+    uint16_t u16_lstartDrift = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG);
     if(u32_lMaxCellDrift>0)
     {
-      if(u32_lMaxCellDrift>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG)) //Wenn Drift groß genug ist
+      if(u32_lMaxCellDrift>u16_lstartDrift) //Wenn Drift groß genug ist
       {
         if(getMaxCellSpannungFromBms()>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE)) //Wenn höchste Zellspannung groß genug ist
         {
-          i16_lMaxChargeCurrent = i16_lMaxChargeCurrent-(u32_lMaxCellDrift*WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV));
+          i16_lMaxChargeCurrent = i16_lMaxChargeCurrent-((u32_lMaxCellDrift-u16_lstartDrift)*WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV));
           if(i16_lMaxChargeCurrent<0) i16_lMaxChargeCurrent=0;
         }
       }
@@ -653,7 +656,7 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
 
 /*
  * Ladestrom herunterregeln, wenn von einem Pack die Stromgrenze überschritten wird
-*/
+ */
 int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
 {
   if(u8_mBmsDatasourceAdd>0)
@@ -680,6 +683,57 @@ int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
   }
 
   return i16_pMaxChargeCurrent;
+}
+
+
+/********************************************************************************************
+ * calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
+ * Ladestrom auf 0 setzen, wenn längere Zeit mit einem geringen Ladestrom geladen wurde.
+ * 
+ ********************************************************************************************/
+int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
+{
+  static uint16_t u16_mChargeCurrentCutOfTimer=0;
+  float fl_lTotalCurrent=0;
+
+  uint16_t u16_lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);
+  if(u16_lCutOffTime==0) return u16_lChargeCurrent;
+
+  float fl_lCutOffCurrent = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT);
+  uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
+
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  uint8_t u8_lSoc = (uint8_t)inverterData.inverterSoc;
+  xSemaphoreGive(mInverterDataMutex);
+
+  //Aktuellen Ladestrom berechnen
+  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  {
+    if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
+    {
+      if(getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i) || getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
+      {
+        fl_lTotalCurrent += getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
+      }
+    }
+  }
+
+  if(u16_mChargeCurrentCutOfTimer>=u16_lCutOffTime)
+  {
+    if(u8_lSoc < u16_lCutOffSoc) //Wenn SoC zur Freigabe wieder unterschritten
+    {
+      u16_mChargeCurrentCutOfTimer=0;
+    }
+    else return 0;
+  }
+  else
+  {
+    //Timer hochzählen, wenn Strom kleiner 
+    if(fl_lTotalCurrent>=0 && fl_lTotalCurrent<fl_lCutOffCurrent) u16_mChargeCurrentCutOfTimer++;
+    else u16_mChargeCurrentCutOfTimer=0;
+  }
+
+  return u16_lChargeCurrent;
 }
 
 
@@ -847,11 +901,12 @@ void sendCanMsg_351()
       BSC_LOGI(TAG,"chargeCurrent Pack:%i",i16_lMaxChargeCurrent);
       #endif
 
-      int16_t i16_lMaxChargeCurrentList[3];
+      int16_t i16_lMaxChargeCurrentList[4];
       i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(i16_lMaxChargeCurrent);
       i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
       i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
-    //i16_lMaxChargeCurrentList[3] = calcChargecurrent_MaxCurrentPerPackToHigh(i16_lMaxChargeCurrent); //ToDO: Ein/Aus
+      //i16_lMaxChargeCurrentList[3] = calcChargecurrent_MaxCurrentPerPackToHigh(i16_lMaxChargeCurrent); //ToDO: Ein/Aus
+      i16_lMaxChargeCurrentList[3] = calcChargeCurrentCutOff(i16_lMaxChargeCurrent);
 
       #ifdef CAN_DEBUG
       BSC_LOGD(TAG,"chargeCurrent Zellspg.:%i, SoC:%i, Zelldrift:%i",i16_lMaxChargeCurrentList[0],i16_lMaxChargeCurrentList[1],i16_lMaxChargeCurrentList[2]);
@@ -890,17 +945,23 @@ void sendCanMsg_351()
     }
     else
     {
-      int16_t i16_lMaxCurrent = (int16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
+      int16_t i16_lMaxDischargeCurrent = (int16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT,0,DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
       //u8_mModulesCntDischarge=1;
 
       //Maximalen Entladestrom aus den einzelnen Packs errechnen
       if(u8_mBmsDatasourceAdd>0)
       {
+        int16_t i16_lMaxCurrent=0;
         for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
         {
           if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
           {
-            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)>5000) &&
+            #ifdef CAN_DEBUG
+            BSC_LOGD(TAG,"MaxDischargeCurrent Pack: i=%i, bmsErr=%i, FETdisState=%i, time=%i",
+              i,getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i),getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i),millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i));
+            #endif
+
+            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<5000) &&
               getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
             {
               i16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT);
@@ -908,21 +969,20 @@ void sendCanMsg_351()
             }
           }
         }
-        if(i16_lMaxCurrent<msgData.maxdischargecurrent) msgData.maxdischargecurrent=i16_lMaxCurrent;
+        if(i16_lMaxCurrent<i16_lMaxDischargeCurrent) i16_lMaxDischargeCurrent=i16_lMaxCurrent;
       }
       #ifdef CAN_DEBUG
-      BSC_LOGI(TAG,"dischargeCurrent Pack:%i",i16_lMaxCurrent);
+      BSC_LOGI(TAG,"dischargeCurrent Pack:%i",i16_lMaxDischargeCurrent);
       #endif
 
 
       //Wenn sich der Wert geändert hat per mqqt senden
-      if(i16_lMaxCurrent!=i16_mAktualDischargeCurrentSoll || u8_mMqttTxTimer==15)
+      if(i16_lMaxDischargeCurrent!=i16_mAktualDischargeCurrentSoll || u8_mMqttTxTimer==15)
       {
-        mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, i16_lMaxCurrent);
+        mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, i16_lMaxDischargeCurrent);
       }
 
-
-      msgData.maxdischargecurrent = i16_lMaxCurrent*10;
+      msgData.maxdischargecurrent = i16_lMaxDischargeCurrent*10;
     }
   }
 
@@ -959,35 +1019,25 @@ void sendCanMsg_355()
     msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
 
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
-    if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
-    {
-      if((u8_mBmsDatasourceAdd & 0x01) == 0x01)
-      {
-        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL);
-        msgData.soc/=2;
-      }
-      if((u8_mBmsDatasourceAdd & 0x02) == 0x02)
-      {
-        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1);
-        msgData.soc/=2;
-      }
-      if((u8_mBmsDatasourceAdd & 0x04) == 0x04) 
-      {
-        msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2);
-        msgData.soc/=2;
-      }
-    }
-    else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
-    {
-      //Wenn zusätzliche Datenquellen angegeben sind:
-      if((u8_mBmsDatasourceAdd & 0x01) == 0x01) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL)>msgData.soc) 
-        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL);
-      if((u8_mBmsDatasourceAdd & 0x02) == 0x02) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1)>msgData.soc)
-        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+1);
-      if((u8_mBmsDatasourceAdd & 0x04) == 0x04) if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2)>msgData.soc)
-        msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+2);
-    }
 
+    if(u8_mBmsDatasourceAdd>0)
+    {
+      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      {
+        if((u8_mBmsDatasourceAdd>>i)&0x01)
+        {
+          if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
+          {
+            msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+            msgData.soc/=2;
+          }
+          else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
+          {
+            if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i)>msgData.soc) msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+          }
+        }
+      }
+    }
 
     if(WebSettings::getBool(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN,0)==true)
     {
@@ -1430,7 +1480,7 @@ void sendCanMsg_373_376_377()
 
 void sendCanMsgTemp()
 {
-  uint32_t u16_lCanId = 0x400;
+  uint32_t u16_lCanId = 0x380;
 
   struct dataTemp
   {
@@ -1440,13 +1490,61 @@ void sendCanMsgTemp()
 
   for(uint8_t i=0;i<64;i+=4)
   {
-    for(uint8_t n=0;n<4;n++)
-    {
-      msgData.temperature[n] = (uint16_t)(owGetTemp(i+n)*100);
-    }
+    for(uint8_t n=0;n<4;n++) msgData.temperature[n] = (uint16_t)(owGetTemp(i+n)*100);
     sendCanMsg(u16_lCanId, (uint8_t *)&msgData, sizeof(dataTemp));
     u16_lCanId++;
   }
+}
+
+void sendCanMsgBmsData()
+{
+  uint32_t u16_lBaseCanId = 0x400;
+  uint32_t u16_lCanId=u16_lBaseCanId;
+  static uint8_t u8_mCanSendDataBmsNumber=0;
+
+  struct dataCellVoltage
+  {
+    uint16_t cellVoltage[4];
+  };
+  dataCellVoltage msgData;
+
+  struct dataBms1
+  {
+    bool stateFETCharge;
+    bool stateFETDischarge;
+    bool stateBalancingActive;
+  };
+  dataBms1 msgDataBms1;
+
+  struct dataBms2
+  {
+    int16_t value1;
+  };
+  dataBms2 msgDataBms2;
+
+
+  u16_lCanId=u16_lBaseCanId+(0x32*u8_mCanSendDataBmsNumber);
+
+  //Cellvoltage
+  for(uint8_t n=0;n<16;n+=4)
+  {
+    for(uint8_t x=0;x<4;x++) msgData.cellVoltage[x] = getBmsCellVoltage(u8_mCanSendDataBmsNumber,n+x);
+    sendCanMsg(u16_lCanId, (uint8_t *)&msgData, sizeof(dataCellVoltage));
+    u16_lCanId++;
+  }
+
+  msgDataBms1.stateFETCharge = getBmsStateFETsCharge(u8_mCanSendDataBmsNumber);
+  msgDataBms1.stateFETDischarge = getBmsStateFETsDischarge(u8_mCanSendDataBmsNumber);
+  msgDataBms1.stateBalancingActive = getBmsIsBalancingActive(u8_mCanSendDataBmsNumber);
+  sendCanMsg(u16_lCanId, (uint8_t *)&msgDataBms1, sizeof(dataBms1));
+  u16_lCanId++;
+  
+  msgDataBms2.value1 = (int16_t)(getBmsBalancingCurrent(u8_mCanSendDataBmsNumber)*100);
+  sendCanMsg(u16_lCanId, (uint8_t *)&msgDataBms2, sizeof(dataBms2));
+  u16_lCanId++;
+
+  u8_mCanSendDataBmsNumber++;
+  if(u8_mCanSendDataBmsNumber==BMSDATA_NUMBER_ALLDEVICES)u8_mCanSendDataBmsNumber=0;
 }
 
 
