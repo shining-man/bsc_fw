@@ -79,6 +79,10 @@ void debugInit()
   #ifdef NEEY_DEBUG
   esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
   #endif
+  #ifdef NEEY_WRITE_DATA_DEBUG
+  esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
+  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
+  #endif
   #ifdef JK_DEBUG
   esp_log_level_set("JK_BMS", ESP_LOG_DEBUG); 
   #endif
