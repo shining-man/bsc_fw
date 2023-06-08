@@ -389,7 +389,9 @@ void task_ConnectWiFi(void *param)
         //Wenn 30s keine Verbindung möglich, dann Verbindungsversuch abbrechen
         if(millis()-connectMqttTimer>=30000)
         {
+          #ifdef MAIN_DEBUG
           BSC_LOGI(TAG,"No Mqtt connection!");
+          #endif
           connectMqttTimer=millis();
           mConnectStateEnums=ConnState_connectBT;
           break;
@@ -546,7 +548,7 @@ void task_onewire(void *param)
 
   for (;;)
   {
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(1200));
     owCyclicRun();
     xSemaphoreTake(mutexTaskRunTime_ow, portMAX_DELAY);
     lastTaskRun_onewire=millis();
@@ -965,10 +967,10 @@ void setup()
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
 
-  webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Write Data to NEEY");
+  webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Write data to NEEY");
   webSettingsDeviceNeeyBalancer.registerOnButton1(&btnWriteNeeyData);
 
-  webSettingsDeviceJbdBms.setButtons(BUTTON_1,"Write Data to JBD");
+  webSettingsDeviceJbdBms.setButtons(BUTTON_1,"Write data to JBD");
   webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
   free_dump();  
 
@@ -1024,7 +1026,7 @@ void setup()
 
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
+  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   //server.on("/websettings.js", HTTP_GET, []() {server.send(200, "text/javascript", webSettingsJs);});
   //server.on("/websettings.css", HTTP_GET, []() {server.send(200, "text/css", webSettingsCss);});
@@ -1072,7 +1074,9 @@ void loop()
   u8_lTaskRunSate=checkTaskRun();
   if(u8_mTaskRunSate!=u8_lTaskRunSate)
   {
+    #ifdef MAIN_DEBUG
     BSC_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
+    #endif
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 }

@@ -22,7 +22,7 @@ static SemaphoreHandle_t alarmSettingsChangeMutex = NULL;
 bool bo_Alarm[CNT_ALARMS];
 bool bo_Alarm_old[CNT_ALARMS];
 
-uint32_t bo_DoPulsOffCounter[CNT_DIGITALOUT];
+uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
 uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
 
 bool bo_alarmActivate[CNT_ALARMS]; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
@@ -72,7 +72,7 @@ void initAlarmRules()
 
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
   {
-    bo_DoPulsOffCounter[i] = 0;
+    u16_DoPulsOffCounter[i] = 0;
     u8_DoVerzoegerungTimer[i] = 0xFF;
   }
 
@@ -177,7 +177,7 @@ void runAlarmRules()
     xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
     if(bo_mChangeAlarmSettings)
     {
-      BSC_LOGD(TAG,"Reset Alarms (Nr=%i)",i);
+      BSC_LOGD(TAG,"Reset Trigger (Nr=%i)",i);
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       //setAlarm(i+1, false); //Alarm zurücksetzen
@@ -186,13 +186,13 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      BSC_LOGD(TAG, "Alarm (%i) Flanke, new State=%i",i,bo_Alarm[i]);
+      BSC_LOGI(TAG, "Trigger %i, value=%i",i,bo_Alarm[i]);
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
       {
-        BSC_LOGI(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
+        BSC_LOGD(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
@@ -207,7 +207,7 @@ void runAlarmRules()
           {     
             if(u8_DoVerzoegerungTimer[b]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
-              BSC_LOGI(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
+              BSC_LOGD(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
               u8_DoVerzoegerungTimer[b] = WebSettings::getInt(ID_PARAM_DO_VERZOEGERUNG,b,DT_ID_PARAM_DO_VERZOEGERUNG);
             }
           }
@@ -216,7 +216,7 @@ void runAlarmRules()
             uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              BSC_LOGI(TAG, "Alarm geht (AlarmNr=%i)", i);
+              BSC_LOGD(TAG, "Trigger geht (AlarmNr=%i)", i);
               u8_mDoByte &= ~(1 << b); //bit loeschen
             }
           }
@@ -255,17 +255,17 @@ void setDOs()
     {
       u8_DoVerzoegerungTimer[b]=0xFF;
 
-      BSC_LOGI(TAG, "Set DO (DoNr=%i)", b);
+      BSC_LOGD(TAG, "Set DO (DoNr=%i)", b);
       u8_mDoByte |= (1 << b); //bit setzen
 
       uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
       if(doPulseOrPermanent==1) //Wenn Impuls
       {
-        uint32_t pulseDuration = WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
-        BSC_LOGI(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
+        uint16_t pulseDuration = (uint16_t)WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,b,DT_ID_PARAM_DO_IMPULSDAUER);
+        BSC_LOGD(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
               
         xSemaphoreTake(doMutex, portMAX_DELAY);
-        bo_DoPulsOffCounter[b] = (pulseDuration/10);
+        u16_DoPulsOffCounter[b] = (pulseDuration/10);
         if(bo_timerPulseOffIsRunning==false)
         {
           bo_timerPulseOffIsRunning=true;
@@ -298,16 +298,16 @@ void doOffPulse(TimerHandle_t xTimer)
   xSemaphoreTake(doMutex, portMAX_DELAY);
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
   {
-    if(bo_DoPulsOffCounter[i] > 1)
+    if(u16_DoPulsOffCounter[i] > 1)
     {
-      bo_DoPulsOffCounter[i]--;
+      u16_DoPulsOffCounter[i]--;
       restartTimer = true;
     }
-    else if(bo_DoPulsOffCounter[i] == 1)
+    else if(u16_DoPulsOffCounter[i] == 1)
     {
       BSC_LOGD(TAG, "DO off - Impuls(%i)",i);
 
-      bo_DoPulsOffCounter[i]=0;
+      u16_DoPulsOffCounter[i]=0;
 
       u8_mDoByte &= ~(1 << i); //bit loeschen
       changeDoData=true;
@@ -622,10 +622,24 @@ void rules_CanInverter()
   else canSetSocToFull(false);
 }
 
+uint16_t u16_mMerkerTemperaturTrigger=0;
+void setMerker(uint8_t merkerNr, bool val)
+{
+  if(val) u16_mMerkerTemperaturTrigger |= (1<<merkerNr);
+  else u16_mMerkerTemperaturTrigger &= ~(1<<merkerNr); //bit loeschen
+}
+
+bool isMerker(uint8_t merkerNr)
+{
+  if((u16_mMerkerTemperaturTrigger>>merkerNr)&0x01) return true;
+  else return false;
+}
 
 bool temperatur_maxWertUeberwachung(uint8_t i)
 {
+  bool bo_lHystMerker=true;
   float maxTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
+  float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
 
   if(maxTemp<=0) return false; //Wenn keine Max.Temp. angegeben ist
 
@@ -633,36 +647,62 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
   {
     if(owGetTemp(n)>maxTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
+      setMerker(i,true);
       return true;
     }
+    else if(isMerker(i) && owGetTemp(n)>maxTemp-hysterese && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    {
+      bo_lHystMerker=false;
+    }
   }
-  return false;
+
+  if(bo_lHystMerker)
+  {
+    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    return false;
+  }
+  else return true;
 }
 
 
 bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
 {
+  bool bo_lHystMerker=true;
   float aktTemp = 0;
   float tempOffset = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
+  float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
 
   aktTemp = tempOffset + owGetTemp(WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH));
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
     if(owGetTemp(n)>aktTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
+      setMerker(i,true);
       return true;
     }
+    else if(isMerker(i) && owGetTemp(n)>aktTemp-hysterese && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    {
+      bo_lHystMerker=false;
+    }
   }
-  return false;
+
+  if(bo_lHystMerker)
+  {
+    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    return false;
+  }
+  else return true;
 }
 
 
 bool temperatur_DifferenzUeberwachung(uint8_t i)
 {
+  bool bo_lHystMerker=true;
   float f_lTempMin = 0xFF;
   float f_lTempMax = 0;
 
   float f_lMaxTempDiff = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
+  float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
   
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
@@ -672,9 +712,20 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
 
   if(f_lTempMax-f_lTempMin>=f_lMaxTempDiff)
   {
+    setMerker(i,true);
     return true;
   }
-  return false;
+  else if(isMerker(i) && f_lTempMax-f_lTempMin>=f_lMaxTempDiff-hysterese)
+  {
+    bo_lHystMerker=false;
+  }
+
+  if(bo_lHystMerker)
+  {
+    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    return false;
+  }
+  else return true;
 }
 
 

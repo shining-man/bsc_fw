@@ -96,6 +96,30 @@ void takeOwSensorAddress()
   xSemaphoreGive(owMutex);
 }
 
+uint8_t owReadErrors[32];
+void addErrorCounter(uint8_t sensorNr)
+{
+    uint8_t m = sensorNr % 2;
+    uint8_t u8_lOwErrors = ((owReadErrors[sensorNr/2] >> (m * 4)) & 0xF);
+    if (u8_lOwErrors < 0xF)
+    {
+        u8_lOwErrors++;
+        owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
+        owReadErrors[sensorNr/2] |= (u8_lOwErrors << (m * 4));
+    }
+}
+
+void resetErrorCounter(uint8_t sensorNr)
+{
+  uint8_t m = sensorNr % 2;
+  owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
+}
+
+uint8_t getErrorCounter(uint8_t sensorNr)
+{
+    uint8_t m = sensorNr % 2;
+    return ((owReadErrors[sensorNr / 2] >> (m * 4)) & 0xF);
+}
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
@@ -146,29 +170,28 @@ void getTempC_allDevices(bool tempToOutBuffer)
   {
     if(owAddr[i][0]>0)
     {
-      for(uint8_t r=0;r<3;r++)
+      for(uint8_t r=0;r<3;r++) //Drei Versuche den Sensor auszulesen
       {
         tempC = (int16_t)(sensors.getTempC(&owAddr[i][0])*100);
         if (tempC == DEVICE_DISCONNECTED_C_U16)
         {
-          //debugPrintf("Error: Could not read temperature data [%i] r=%i",i,r);
-          if(owTempsC[i]>=TEMP_IF_SENSOR_READ_ERROR)
+          //BSC_LOGI(TAG, "Error read temp: seonsor=%i, r=%i",i,r);
+          if(r==2)
           {
-            if(owTempsC[i]<=0xFFFF) owTempsC[i]++;
+            addErrorCounter(i);
+            //BSC_LOGI(TAG, "Error sensor %i nicht lesbar",i); //ToDo Fehlerzähler addieren
           }
-          else owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
         }
         else
         {
+          resetErrorCounter(i);
+
           //Offset abziehen
           tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
 
-          if(firstMeasurement){
-            owTempsC_AvgCalc[i] = tempC;
-          }else{
-            owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
-          }
-          
+          if(firstMeasurement) owTempsC_AvgCalc[i] = tempC;
+          else owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
+                    
           if(tempToOutBuffer==true)
           {
             if( (owTempsC_AvgCalc[i]>=owTempsC[i]+8) || (owTempsC_AvgCalc[i]<=owTempsC[i]-8) ) //0.08
@@ -194,12 +217,7 @@ float owGetTemp(uint8_t sensNr)
 
 uint8_t owGetSensorError(uint8_t sensNr)
 {
-  if(owTempsC[sensNr]>=TEMP_IF_SENSOR_READ_ERROR)
-  {
-    return (owTempsC[sensNr]-TEMP_IF_SENSOR_READ_ERROR+1);
-  }
-
-  return 0;
+  return getErrorCounter(sensNr);
 }
 
 
@@ -210,7 +228,7 @@ uint8_t owGetAllSensorError()
 
  for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
  {
-  if(owTempsC[i]>=TEMP_IF_SENSOR_READ_ERROR)
+  if(getErrorCounter(i)>0)
   {
     u8_errors=(owTempsC[i]-TEMP_IF_SENSOR_READ_ERROR+1);
     if(u8_errors>u8_maxErrors)u8_maxErrors=u8_errors;

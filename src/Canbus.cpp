@@ -3,13 +3,14 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+
 #include "Canbus.h"
 #include "WebSettings.h"
 #include "defines.h"
 #include "BmsData.h"
 #include "Ow.h"
 #include "mqtt_t.h"
-#include <CAN.h>
+#include <ESP32TWAI.h>
 #include "log.h"
 #include "AlarmRules.h"
 
@@ -49,9 +50,6 @@ bool alarmSetSocToFull;
 
 int16_t  i16_mMaxChargeCurrent=0;
 int16_t  i16_mAktualChargeCurrentSoll;
-//uint8_t  u8_mTimerCalcMaxChareCurrent=0;
-//uint16_t u16_mTimerChargeOff=0;
-//uint16_t u16_mSperrzeitChargeOff;
 int16_t  i16_mAktualDischargeCurrentSoll=0;
 
 //Variablen: Wenn Zellspannung kleiner x mV wird SoC auf x% setzen
@@ -61,6 +59,7 @@ uint16_t u16_mSocZellspannungSperrzeitTimer;
 
 //uint8_t u8_mModulesCntCharge;
 //uint8_t u8_mModulesCntDischarge;
+
 
 struct data351
 {
@@ -119,29 +118,13 @@ void canSetup()
   alarmSetDischargeCurrentToZero=false;
   alarmSetSocToFull=false;
 
-  //u8_mTimerCalcMaxChareCurrent=0;
-  //u16_mTimerChargeOff=0;
-
-  //u16_mSperrzeitChargeOff=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_SPERRZEIT,0,DT_ID_PARAM_INVERTER_LADESTROM_SPERRZEIT); //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
-
   u16_mSocZellspannungSperrzeitTimer=0;
   u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
 
   loadCanSettings();
 
-  
-  CAN.setPins(5,4);
-  if (!CAN.begin(500000)) // start the CAN bus at 500 kbps
-  //if (!CAN.begin(250E3)) // start the CAN bus at 250 kbps
-  {
-    BSC_LOGI(TAG,"Init CAN failed!");
-  }
-  else
-  {
-    BSC_LOGI(TAG,"Init CAN ok");
-  } 
-
-  CAN.onReceive(onCanReceive);
+  esp_err_t err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_500KBPS);
+  BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 }
 
 void inverterDataSemaphoreTake()
@@ -223,28 +206,21 @@ void canTxCyclicRun()
 
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
 {
-  uint32_t err = CAN.beginPacket(identifier); //11 bit Id
-  err = CAN.write(buffer, length);
-  err = CAN.endPacket();
-  if(err>0) BSC_LOGE(TAG,"TX error: REG_ECC=%i, REG_SR=%i", ((err>>8)&0xff), (err&0xff));
+  esp_err_t err = CAN.write(TWAI_STD_FRAME,identifier,length,buffer);
+  if(err!=ESP_OK) BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
+  vTaskDelay(pdMS_TO_TICKS(5));
 }
-
 
 void sendBmsCanMessages()
 {
   switch (u8_mSelCanInverter)
   {
-    
     case ID_CAN_DEVICE_DEYE:
     case ID_CAN_DEVICE_SOLISRHI:
       sendCanMsg_351();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_355();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_356();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_35e();
-      vTaskDelay(pdMS_TO_TICKS(5));
       sendCanMsg_359(); //Alarms
       break;
 
@@ -268,13 +244,14 @@ void sendBmsCanMessages()
         sendCanMsgTemp();
         sendCanMsgBmsData();
       }
-
       //374, 359
       break;
 
     default:
       break;
   }
+
+  //Solis: ID:305 Heartbeat Inverter
 }
 
 
@@ -490,69 +467,52 @@ uint16_t getMaxCellDifferenceFromBms()
  */
 void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
 {
-    //Evtl. Sprünge im Batteriestrom und hohe Lastströme berücksichtigen
+  //Evtl. Sprünge im Batteriestrom und hohe Lastströme berücksichtigen
 
-    /*if(u16_mTimerChargeOff>0)u16_mTimerChargeOff--;
-    if(u16_mTimerChargeOff==0)
+  /* Wird der neue Soll-Ladestrom kleiner, dann wird dieser sofort geändert 
+  * um bei hoher Zellspannung schnell ausregeln zu können.
+  * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
+  if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
+  {
+    #ifdef CAN_DEBUG
+    BSC_LOGD(TAG,"Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+    #endif
+
+    if(i16_mMaxChargeCurrent>=50)
     {
-      u8_mTimerCalcMaxChareCurrent++;*/
+      i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
+    }
+    else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50)
+    {
+      i16_pNewChargeCurrent=i16_mMaxChargeCurrent-5;
+    }
+    else if(i16_mMaxChargeCurrent>=10 && i16_mMaxChargeCurrent<25)
+    {
+      i16_pNewChargeCurrent=i16_mMaxChargeCurrent-3;
+    }
+    else if(i16_mMaxChargeCurrent<10)
+    {
+      i16_pNewChargeCurrent=i16_mMaxChargeCurrent-1;
+    }
+    if(i16_pNewChargeCurrent<0)i16_pNewChargeCurrent=0;
+    #ifdef CAN_DEBUG
+    BSC_LOGD(TAG,"Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+    #endif
 
-      /* Wird der neue Soll-Ladestrom kleiner, dann wird dieser sofort geändert 
-      * um bei hoher Zellspannung schnell ausregeln zu können.
-      * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
-      if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
-      {
-        #ifdef CAN_DEBUG
-        BSC_LOGD(TAG,"Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
-        #endif
+    i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
+  }
+  else
+  {
+    if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
+    {
+      i16_pNewChargeCurrent=i16_mMaxChargeCurrent+10;
+      #ifdef CAN_DEBUG
+      BSC_LOGD(TAG,"Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
+      #endif
+    }
 
-        if(i16_mMaxChargeCurrent>=50)
-        {
-          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-10;
-        }
-        else if(i16_mMaxChargeCurrent>=25 && i16_mMaxChargeCurrent<50)
-        {
-          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-5;
-        }
-        else if(i16_mMaxChargeCurrent>=10 && i16_mMaxChargeCurrent<25)
-        {
-          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-3;
-        }
-        else if(i16_mMaxChargeCurrent<10)
-        {
-          i16_pNewChargeCurrent=i16_mMaxChargeCurrent-1;
-        }
-        if(i16_pNewChargeCurrent<0)i16_pNewChargeCurrent=0;
-        #ifdef CAN_DEBUG
-        BSC_LOGD(TAG,"Sprung unten: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
-        #endif
-
-        /*u8_mTimerCalcMaxChareCurrent=0;
-        if(i16_pNewChargeCurrent==0 && i16_mMaxChargeCurrent>0) //Strom wurde auf 0 geregelt -> Sperrzeit für Aufwärtsregelung starten
-        {
-          u16_mTimerChargeOff=u16_mSperrzeitChargeOff; //Sperrzeit ab wann wieder geladen werden darf wenn auf 0 gereglt wird
-        }*/
-
-        i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
-      }
-      else
-      {
-        //if(u8_mTimerCalcMaxChareCurrent==15)
-        //{
-          //u8_mTimerCalcMaxChareCurrent=0;
-
-          if(i16_pNewChargeCurrent-i16_mMaxChargeCurrent>10) //Maximal 10A Sprünge nach oben erlauben
-          {
-            i16_pNewChargeCurrent=i16_mMaxChargeCurrent+10;
-            #ifdef CAN_DEBUG
-            BSC_LOGD(TAG,"Sprung oben: i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%i",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
-            #endif
-          }
-
-          i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
-        //}
-      }
-    //}
+    i16_mMaxChargeCurrent = i16_pNewChargeCurrent;
+  }
 }
 
 
@@ -699,24 +659,17 @@ int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
   uint16_t u16_lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);
   if(u16_lCutOffTime==0) return u16_lChargeCurrent;
 
-  float fl_lCutOffCurrent = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT);
+  float fl_lCutOffCurrent = WebSettings::getFloat(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0);
   uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
-
+  
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
   uint8_t u8_lSoc = (uint8_t)inverterData.inverterSoc;
+  fl_lTotalCurrent = inverterData.inverterCurrent/10;
   xSemaphoreGive(mInverterDataMutex);
 
-  //Aktuellen Ladestrom berechnen
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-  {
-    if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
-    {
-      if(getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i) || getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
-      {
-        fl_lTotalCurrent += getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
-      }
-    }
-  }
+  #ifdef CAN_DEBUG
+  uint16_t u16_mChargeCurrentCutOfTimerOld = u16_mChargeCurrentCutOfTimer; //nur fürs Debug
+  #endif
 
   if(u16_mChargeCurrentCutOfTimer>=u16_lCutOffTime)
   {
@@ -724,14 +677,22 @@ int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
     {
       u16_mChargeCurrentCutOfTimer=0;
     }
-    else return 0;
+    else u16_lChargeCurrent=0;
   }
   else
   {
     //Timer hochzählen, wenn Strom kleiner 
-    if(fl_lTotalCurrent>=0 && fl_lTotalCurrent<fl_lCutOffCurrent) u16_mChargeCurrentCutOfTimer++;
+    if(fl_lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc) u16_mChargeCurrentCutOfTimer++;
     else u16_mChargeCurrentCutOfTimer=0;
   }
+
+  #ifdef CAN_DEBUG
+  if(u16_mChargeCurrentCutOfTimerOld!=u16_mChargeCurrentCutOfTimer)
+  {
+    if(u16_mChargeCurrentCutOfTimer==0 || u16_mChargeCurrentCutOfTimer==1 || u16_mChargeCurrentCutOfTimer==u16_lCutOffTime)
+    BSC_LOGI(TAG,"calcChargeCurrentCutOff: u16_mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", u16_mChargeCurrentCutOfTimer, u16_lChargeCurrent);
+  }
+  #endif
 
   return u16_lChargeCurrent;
 }
@@ -1076,9 +1037,13 @@ void sendCanMsg_356()
   msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
 
   //Wenn zusätzliche Datenquellen angegeben sind:
-  if((u8_mBmsDatasourceAdd & 0x01) == 0x01) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT)*10);
-  if((u8_mBmsDatasourceAdd & 0x02) == 0x02) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+1)*10);
-  if((u8_mBmsDatasourceAdd & 0x04) == 0x04) msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+2)*10);
+  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  {
+    if((u8_mBmsDatasourceAdd>>i)&0x01)
+    {
+        msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
+    }
+  }
 
   //Temperatur
   uint8_t u8_lBmsTempQuelle=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_QUELLE,0,DT_ID_PARAM_INVERTER_BATT_TEMP_QUELLE);
@@ -1548,13 +1513,21 @@ void sendCanMsgBmsData()
 }
 
 
-void onCanReceive(int packetSize)
+/*void onCanReceive(int packetSize)
 {
   u32_lastCanId = CAN.packetId();
-
+  
   if (CAN.packetRtr())
   {
     //requested length
+    uint8_t i=0;
+    uint8_t u8_canPacket[8];
+    while (CAN.available())
+    {
+      u8_canPacket[i]=(uint8_t)CAN.read();
+      i++;
+      if(i==8)break;
+    }
   }
   else
   {
@@ -1586,5 +1559,5 @@ void onCanReceive(int packetSize)
 
     }
   }
-}
+}*/
 

@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.7"
+#define BSC_SW_VERSION      "V0.4.9"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -24,6 +24,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
 //#define NEEY_DEBUG
+//#define NEEY_WRITE_DATA_DEBUG
 #define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
@@ -31,6 +32,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define WEBSET_DEBUG
+//#define MAIN_DEBUG
 
 //Tests
 //#define UTEST_BMS_FILTER
