@@ -51,7 +51,7 @@ void BscSerial::initSerial()
   pinMode(SERIAL1_PIN_TX_EN, OUTPUT);  //HW serial0
   pinMode(SERIAL2_PIN_TX_EN, OUTPUT);  //HW serial1
   pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //HW serial2
-  pinMode(SERIAL3_PIN_RX_EN, OUTPUT);  //HW serial2
+  if(getHwVersion()>=2) pinMode(SERIAL3_PIN_RX_EN, OUTPUT);  //HW serial2
 
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {

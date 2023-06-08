@@ -74,7 +74,7 @@ void debugInit()
   //esp_log_level_set("ALARM", ESP_LOG_DEBUG); 
   //esp_log_level_set("I2C", ESP_LOG_DEBUG); 
   //esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
- 
+  //TWAI 
 
   #ifdef NEEY_DEBUG
   esp_log_level_set("NEEY", ESP_LOG_DEBUG); 

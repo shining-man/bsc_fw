@@ -496,9 +496,9 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
         u8_jsonLabelOffset = getJson_Key(parameter, "label_offset", a, jsonStartPos, "0").toInt();
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
-        u16_lDepId = getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
-        u8_lDepVal = getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
-        u8_lDepDt = getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
+        u16_lDepId = (uint16_t)getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
+        u8_lDepVal = (uint8_t)getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
+        u8_lDepDt = (uint8_t)getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
         if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
           if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE) sprintf(_buf,HTML_GROUP_START_DETAILS,jsonLabel.c_str());
@@ -508,8 +508,9 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         for(g=0; g<optionGroupSize; g++)
         {
           u8_mAktOptionGroupNr=g;
-
+          //BSC_LOGI(TAG,"u16_lDepId=%i, u8_lDepVal=%i, u8_lDepDt=%i, g=%i, val=%i",u16_lDepId,u8_lDepVal,u8_lDepDt,g,getInt(u16_lDepId,g,u8_lDepDt));
           if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
+          //BSC_LOGI(TAG,"DEP OK");
 
           sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
           sendContentHtml(server,_buf,false);

@@ -22,10 +22,10 @@ const String comboAlarms PROGMEM = ""
   "{'v':'4','l':'Trigger 4','d':7491},"
   "{'v':'5','l':'Trigger 5','d':7492},"
   "{'v':'6','l':'Trigger 6','d':7493},"
-  "{'v':'7','l':'Trigger 7','d':7495},"
-  "{'v':'8','l':'Trigger 8','d':7496},"
-  "{'v':'9','l':'Trigger 9','d':7497},"
-  "{'v':'10','l':'Trigger 10','d':7498}";
+  "{'v':'7','l':'Trigger 7','d':7494},"
+  "{'v':'8','l':'Trigger 8','d':7495},"
+  "{'v':'9','l':'Trigger 9','d':7496},"
+  "{'v':'10','l':'Trigger 10','d':7497}";
 //PY_VAR_END
 
 //PY_VAR_ANF
@@ -535,7 +535,7 @@ const String paramAlarmTemp PROGMEM = "["
       "},"
       "{"
         "'name':"+String(ID_PARAM_TEMP_ALARM_WERT2)+","
-        "'label':'Wert 2',"
+        "'label':'Hysterese',"
         "'type':"+String(HTML_INPUTFLOAT)+","
         "'default':'',"
         "'min':0,"
@@ -1308,7 +1308,7 @@ const String paramDeviceJbdBms PROGMEM = "["
   "{"
     "'label':'JBD BMS',"
     "'label_entry':'Serial',"
-    "'groupsize':"+String(SERIAL_BMS_DEVICES_COUNT)+","
+    "'groupsize':11,"
     "'type':"+String(HTML_OPTIONGROUP)+","
     "'depId':"+String(ID_PARAM_SERIAL_CONNECT_DEVICE)+","    //dependence
     "'depVal':"+String(ID_SERIAL_DEVICE_JBDBMS)+","          //dependence
