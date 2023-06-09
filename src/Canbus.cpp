@@ -1173,6 +1173,17 @@ void sendCanMsg_359()
  
   uint32_t u32_bmsErrors = getBmsErrors(u8_mBmsDatasource);
 
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+      }
+    }
+  }
+
   msgData.u8_b0=0;
   if((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP) msgData.u8_b0 |= B00000010;    //1: Battery high voltage
   if((u32_bmsErrors&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP) msgData.u8_b0 |= B00000100;    //2: Battery low voltage alarm
@@ -1278,6 +1289,17 @@ void sendCanMsg_35a()
 
   uint32_t u32_bmsErrors = getBmsErrors(u8_mBmsDatasource);
   //BSC_LOGI(TAG,"u8_mBmsDatasource=%i, u32_bmsErrors=%i",u8_mBmsDatasource,u32_bmsErrors);
+
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+      }
+    }
+  }
 
   // 0 (bit 0+1) n.b.
   msgData.u8_b0 |= BB0_OK;
