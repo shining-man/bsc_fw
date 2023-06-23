@@ -33,6 +33,7 @@ struct serialDeviceData_s
 
 struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
 
+void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw);
 
 #ifdef UTEST_BMS_FILTER
 bool readBmsTestData(uint8_t devNr);
@@ -50,8 +51,8 @@ void BscSerial::initSerial()
 
   pinMode(SERIAL1_PIN_TX_EN, OUTPUT);  //HW serial0
   pinMode(SERIAL2_PIN_TX_EN, OUTPUT);  //HW serial1
-  pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //HW serial2
-  if(getHwVersion()>=2) pinMode(SERIAL3_PIN_RX_EN, OUTPUT);  //HW serial2
+  if(getHwVersion()>=2) pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //HW serial2
+  pinMode(SERIAL3_PIN_RX_EN, OUTPUT);  //HW serial2
 
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {
@@ -109,7 +110,7 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr, uint32_t baudrate)
   if(u8_devNr==0)
   {
     #ifndef DEBUG_ON_HW_SERIAL
-    Serial.end();
+    //Serial.end();
     setHwSerial(u8_devNr, baudrate);
     #else
     static_cast<SoftwareSerial*>(serialDeviceData[u8_devNr].stream_mPort)->end();
@@ -118,12 +119,12 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr, uint32_t baudrate)
   }
   else if(u8_devNr==1)
   {
-    Serial1.end();
+    //Serial1.end();
     setHwSerial(u8_devNr, baudrate);
   }
   else if(u8_devNr>=2)
   {
-    Serial2.end();
+    //Serial2.end();
     setHwSerial(u8_devNr, baudrate);
   }
 }
@@ -140,10 +141,11 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   serialDeviceData[u8_devNr].u8_mAddData=0;
-
+  
   switch (funktionsTyp)
   {
     case ID_SERIAL_DEVICE_NB:
+      if(u8_devNr==2) cbSetRxTxEn(u8_devNr, serialRxTx_RxTxDisable);
       serialDeviceData[u8_devNr].readBms = 0;
       break;
 
@@ -194,8 +196,6 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
 {
-  //BSC_LOGI(TAG, "RxTxEnCallback dev=%i, rw=%i, hw=%i", u8_devNr, e_rw, getHwVersion());
-
   if(u8_devNr==0)
   {
     if(e_rw==serialRxTx_TxEn)
@@ -218,19 +218,26 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
   {
     if(e_rw==serialRxTx_RxTxDisable) //RX + TX aus
     {
-      if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_RX_EN, HIGH);  //32=RXTX_EN; 3=TX_EN
-      digitalWrite(SERIAL3_PIN_TX_EN, LOW);
+      if(getHwVersion()<2)
+      {
+        digitalWrite(SERIAL3_PIN_RX_EN, LOW);
+      }
+      else
+      {
+        digitalWrite(SERIAL3_PIN_RX_EN, HIGH);  //32=RXTX_EN; 3=TX_EN
+        digitalWrite(SERIAL3_PIN_TX_EN, LOW);
+      }
     }
     else if(e_rw==serialRxTx_TxEn) //TX
     {
-      if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_RX_EN, HIGH); //LOW
-      digitalWrite(SERIAL3_PIN_TX_EN, HIGH); //HIGH
+      digitalWrite(SERIAL3_PIN_RX_EN, HIGH); //LOW
+      if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_TX_EN, HIGH); //HIGH
       usleep(20);
     }
     else if(e_rw==serialRxTx_RxEn) //RX
     {
-      if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_RX_EN, LOW); 
-      digitalWrite(SERIAL3_PIN_TX_EN, LOW); //LOW
+      digitalWrite(SERIAL3_PIN_RX_EN, LOW); 
+      if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_TX_EN, LOW); //LOW
     }
   }
   else if(u8_devNr>2 && u8_devNr<=10 && getHwVersion()>=2)
@@ -242,7 +249,10 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
 
 void BscSerial::cyclicRun()
 {
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  uint8_t u8_lNumberOfSerials = 3;
+  if(getHwVersion()>=2 && isSerialExtEnabled()) u8_lNumberOfSerials=SERIAL_BMS_DEVICES_COUNT;
+
+  for(uint8_t i=0;i<u8_lNumberOfSerials;i++)
   {  
     if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
     {
@@ -252,6 +262,15 @@ void BscSerial::cyclicRun()
 
     bool    bo_lBmsReadOk=false;
     uint8_t u8_lReason=1;
+
+    //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
+    //Unklar wo das Verhalten herkommt.
+    if(i>2)
+    {
+      cbSetRxTxEn(2,serialRxTx_RxEn);
+      usleep(50);
+      cbSetRxTxEn(2,serialRxTx_RxTxDisable);
+    }
 
     if(i>=2) setSerialBaudrate(i); //Baudrate wechslen
 
@@ -305,7 +324,6 @@ void BscSerial::cyclicRun()
     }
   }
 }
-
 
 
 

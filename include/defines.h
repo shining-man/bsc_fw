@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.9"
+#define BSC_SW_VERSION      "V0.4.12"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -25,7 +25,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define SEPLOS_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
-#define DALY_DEBUG
+//#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
 //#define WLAN_DEBUG        
@@ -33,6 +33,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define CAN_DEBUG
 //#define WEBSET_DEBUG
 //#define MAIN_DEBUG
+//#define LOG_BMS_DATA
 
 //Tests
 //#define UTEST_BMS_FILTER
@@ -275,6 +276,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define ID_PARAM_BTDEV_DEACTIVATE                126
 
+#define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE 127
 
 
 //Auswahl Bluetooth Geräte

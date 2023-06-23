@@ -5,8 +5,9 @@
 
 
 #include "BmsData.h"
+#include "WebSettings.h"
 
-//static const char * TAG = "BMSDATA";
+static const char * TAG = "BMSDATA";
 
 static SemaphoreHandle_t mBmsDataMutex = NULL;
 
@@ -288,6 +289,19 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
 }
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
+  if(devNr>BT_DEVICES_COUNT)
+  {
+    uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    if(u16_CellvoltSoc100>0 && bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100)
+    {
+      value=100;
+    }
+    else
+    {
+      if(value==100) value=99;
+    }
+  }
+
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsChargePercentage[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
@@ -449,3 +463,31 @@ uint8_t * getBmsSettingsReadback(uint8_t bmsNr)
 {
   return &bmsSettingsReadback[bmsNr][0];
 }
+
+
+#ifdef LOG_BMS_DATA
+void logBmsData(uint8_t bmsNr)
+{
+  uint8_t i=0;
+  BSC_LOGI(TAG,"----------------------");
+  BSC_LOGI(TAG,"BMS: %i",bmsNr);
+  for(i=0;i<24;i++) BSC_LOGI(TAG,"Cellvoltage #%i: %i",i,getBmsCellVoltage(bmsNr,i)); //Cellvoltage
+  BSC_LOGI(TAG,"Totalvoltage: %f",getBmsTotalVoltage(bmsNr));
+  BSC_LOGI(TAG,"Totalcurrent: %f",getBmsTotalCurrent(bmsNr));
+  BSC_LOGI(TAG,"Max. cellvotage: %i",getBmsMaxCellVoltage(bmsNr));
+  BSC_LOGI(TAG,"Max. voltage Cellnr: %i",getBmsMaxVoltageCellNumber(bmsNr));
+  BSC_LOGI(TAG,"Min. cellvoltage: %i",getBmsMinCellVoltage(bmsNr));
+  BSC_LOGI(TAG,"Min. voltage Cellnr: %i",getBmsMinVoltageCellNumber(bmsNr));
+  BSC_LOGI(TAG,"AvgVoltage: %i",getBmsAvgVoltage(bmsNr));
+  BSC_LOGI(TAG,"MaxCellDif. voltage: %i",getBmsMaxCellDifferenceVoltage(bmsNr));
+  
+  BSC_LOGI(TAG,"Charge percentage: %i",getBmsChargePercentage(bmsNr));
+  BSC_LOGI(TAG,"Is balancing active: %i",getBmsIsBalancingActive(bmsNr));
+  BSC_LOGI(TAG,"Balancing current: %f",getBmsBalancingCurrent(bmsNr));
+  BSC_LOGI(TAG,"State FETs: %i",getBmsStateFETs(bmsNr));
+  BSC_LOGI(TAG,"Errors: %i",getBmsErrors(bmsNr));
+  
+  for(i=0;i<3;i++) BSC_LOGI(TAG,"Temp. #%i: %f",i,getBmsTempature(bmsNr,i)); 
+  BSC_LOGI(TAG,"LastDataMillis: %i",getBmsLastDataMillis(bmsNr));
+}
+#endif
