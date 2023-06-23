@@ -146,6 +146,7 @@ void loadCanSettings()
 {
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
+  uint8_t u8_lNumberOfSeplos = WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID);
   
   uint32_t bmsConnectFilter=0;
   /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
@@ -161,6 +162,7 @@ void loadCanSettings()
     {
       bmsConnectFilter |= (1<<i);
     }
+    else if(i>=3 && u8_lNumberOfSeplos-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
   }
 
   u8_mBmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
@@ -377,10 +379,14 @@ uint16_t getMinCellSpannungFromBms()
 {
   uint8_t u8_lBmsNr=0;
   uint8_t u8_lCellNr=0;
+  uint16_t u16_lCellSpg=0xFFFF;
 
-  uint16_t u16_lCellSpg = getBmsMinCellVoltage(u8_mBmsDatasource);
-  u8_lBmsNr=u8_mBmsDatasource; 
-  u8_lCellNr=getBmsMinVoltageCellNumber(u8_mBmsDatasource);
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000) 
+  {
+    u16_lCellSpg = getBmsMinCellVoltage(u8_mBmsDatasource);
+    u8_lBmsNr=u8_mBmsDatasource; 
+    u8_lCellNr=getBmsMinVoltageCellNumber(u8_mBmsDatasource);
+  }
 
   if(u8_mBmsDatasourceAdd>0)
   {
@@ -977,8 +983,10 @@ void sendCanMsg_355()
   }
   else
   {
-    msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+    msgData.soc=0;
 
+    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000) msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+    
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
     if(u8_mBmsDatasourceAdd>0)
@@ -987,14 +995,17 @@ void sendCanMsg_355()
       {
         if((u8_mBmsDatasourceAdd>>i)&0x01)
         {
-          if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
+          if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
           {
-            msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
-            msgData.soc/=2;
-          }
-          else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
-          {
-            if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i)>msgData.soc) msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+            if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
+            {
+              msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+              msgData.soc/=2;
+            }
+            else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
+            {
+              if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i)>msgData.soc) msgData.soc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+            }
           }
         }
       }
@@ -1033,16 +1044,52 @@ void sendCanMsg_356()
 {
   data356 msgData;
 
+  //Batteriespannung
+  msgData.voltage = 0;
+
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000)
+  {
+    msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
+  }
+  else //Wenn Masterquelle offline, dann nächstes BMS nehmen das online ist
+  {
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
+      if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000)) 
+      {
+          msgData.voltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100);
+          break;
+      }
+    }
+  }
+
+  //Batteriestrom
   msgData.current = (int16_t)(getBmsTotalCurrent(u8_mBmsDatasource)*10);
-  msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
+  #ifdef CAN_DEBUG
+  BSC_LOGI(TAG,"Battery current: u8_mBmsDatasource=%i, cur=%i, u8_mBmsDatasourceAdd=%i",u8_mBmsDatasource, msgData.current, u8_mBmsDatasourceAdd);
+  #endif
 
   //Wenn zusätzliche Datenquellen angegeben sind:
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {
-    if((u8_mBmsDatasourceAdd>>i)&0x01)
-    {
-        msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
+    #ifdef CAN_DEBUG
+    long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
+    #endif
+    //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
+    if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000)) 
+    {   
+      msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
+      #ifdef CAN_DEBUG
+      BSC_LOGI(TAG,"Battery current (T): dev=%i, time=%i, cur=%i",i,millis()-lTime, msgData.current);
+      #endif
     }
+    #ifdef CAN_DEBUG
+    else
+    {
+      BSC_LOGI(TAG,"Battery current (F): dev=%i, time1=%i, time2=%i, cur=%i",i,millis()-lTime,lTime,msgData.current);
+    }
+    #endif
   }
 
   //Temperatur
@@ -1052,11 +1099,11 @@ void sendCanMsg_356()
   {
     if(u8_lBmsTempSensorNr<3)
     {
-      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,u8_lBmsTempQuelle)*10);
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,u8_lBmsTempSensorNr)*10);
     }
     else
     {
-      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
   else if(u8_lBmsTempQuelle==2)
@@ -1067,12 +1114,12 @@ void sendCanMsg_356()
     }
     else
     {
-      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+      msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
   else
   {
-    msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10); //Im Fehlerfall immer Senor 0 des BMS nehmen
+    msgData.temperature = (int16_t)(getBmsTempature(u8_mBmsDatasource,0)*10);  //Im Fehlerfall immer Sensor 0 des BMS nehmen
   }
 
 
