@@ -49,6 +49,7 @@
 #include "bscTime.h"
 #include "restapi.h"
 #include "devices/NeeyBalancer.h"
+
 /*extern "C"
 {
   #include "esp_core_dump.h"
@@ -122,6 +123,10 @@ static uint16_t u16_lWlanConnTimeout;
 static boolean bo_lWlanNeverAp;
 static unsigned long wlanConnectTimer;
 static const char *hostname = {"bsc"};
+
+#ifdef LOG_BMS_DATA
+long debugLogTimer;
+#endif
 
 //
 void task_ble(void *param);
@@ -856,6 +861,13 @@ void btnWriteNeeyData()
   bleHandler->sendDataToNeey();
 }
 
+void btnReadNeeyData()
+{
+  BSC_LOGI(TAG,"StartReadDataFromNeey");
+  bleHandler->readDataFromNeey();
+}
+
+
 
 void btnWriteJbdBmsData()
 {
@@ -967,8 +979,10 @@ void setup()
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
 
-  webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Write data to NEEY");
-  webSettingsDeviceNeeyBalancer.registerOnButton1(&btnWriteNeeyData);
+  webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Read data from NEEY");
+  webSettingsDeviceNeeyBalancer.registerOnButton1(&btnReadNeeyData);
+  webSettingsDeviceNeeyBalancer.setButtons(BUTTON_2,"Write data to NEEY");
+  webSettingsDeviceNeeyBalancer.registerOnButton2(&btnWriteNeeyData);
 
   webSettingsDeviceJbdBms.setButtons(BUTTON_1,"Write data to JBD");
   webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
@@ -1049,6 +1063,9 @@ void setup()
 
   free_dump();  
 
+  #ifdef LOG_BMS_DATA
+  debugLogTimer=millis();
+  #endif
 
   /*delay(1000);
   Serial.println("RESTART ::");
@@ -1079,4 +1096,12 @@ void loop()
     #endif
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
+
+  #ifdef LOG_BMS_DATA
+  if(millis()-debugLogTimer>=10000)
+  {
+    debugLogTimer = millis();
+    logBmsData(10); //0-6 BT; 7-9 serial 0-2; 10-17 serial ext. 
+  }
+  #endif
 }

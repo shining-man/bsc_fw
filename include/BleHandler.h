@@ -44,6 +44,7 @@ public:
   bool isScanFinish();
   static bool isNotAllDeviceConnectedOrScanRunning();
   void sendDataToNeey();
+  void readDataFromNeey();
   static void setBalancerState(uint8_t u8_devNr, boolean bo_state);
 
 private:
