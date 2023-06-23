@@ -76,23 +76,25 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     else
     {
       ret=false; 
-      break;
     }
 
-    getDataFromBms(u8_lSeplosAdr, 0x44); //Alarms
-    if(recvAnswer(response))
+    if(ret==true)
     {
-      parseMessage_Alarms(response, u8_lSeplosAdrBmsData);
-    }
-    else
-    {
-      ret=false;
-      break;
-    }
+      getDataFromBms(u8_lSeplosAdr, 0x44); //Alarms
+      if(recvAnswer(response))
+      {
+        parseMessage_Alarms(response, u8_lSeplosAdrBmsData);
+      }
+      else
+      {
+        ret=false;
+      }
 
-    if(ret==true) setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData,millis());
+      if(ret==true) setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNr+u8_lSeplosAdrBmsData,millis());
+    }
 
     u8_lSeplosAdrBmsData++;
+    vTaskDelay(pdMS_TO_TICKS(25));
   }
 
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
@@ -118,7 +120,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   u8_lData[3]=function;       // CID2 (0x42)
   u8_lData[4]=(lenid >> 8);   // LCHKSUM (0xE0)
   u8_lData[5]=(lenid >> 0);   // LENGTH (0x02)
-  u8_lData[6]=0x0;            // VALUE (0x00)
+  u8_lData[6]=address;        // VALUE (0x00)
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
@@ -426,52 +428,52 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // The following are 24 byte alarms 
   //   8    Number of cells M=16
   //   9    Cell 1 alarm
-  //  11    Cell 2 alarm
-  //  12    Cell 3 alarm
-  //  13    Cell 4 alarm
-  //  14    Cell 5 alarm
-  //  15    Cell 6 alarm
-  //  16    Cell 7 alarm
-  //  17    Cell 8 alarm
-  //  18    Cell 9 alarm
-  //  19    Cell 10 alarm
-  //  20    Cell 11 alarm
-  //  21    Cell 12 alarm
-  //  22    Cell 13 alarm
-  //  23    Cell 14 alarm
-  //  24    Cell 15 alarm
-  //  25    Cell 16 alarm
-  //  26    Number of temperatures N=6
-  //  27    Cell temperature alarm 1 
-  //  28    Cell temperature alarm 2
-  //  29    Cell temperature alarm 3
-  //  30    Cell temperature alarm 4
-  //  31    Environment temperature alarm 
-  //  32    Power temperature alarm 1 
-  //  33    Charge/discharge current alarm
-  //  34    Total battery voltage alarm
+  //  10    Cell 2 alarm
+  //  11    Cell 3 alarm
+  //  12    Cell 4 alarm
+  //  13    Cell 5 alarm
+  //  14    Cell 6 alarm
+  //  15    Cell 7 alarm
+  //  16    Cell 8 alarm
+  //  17    Cell 9 alarm
+  //  18    Cell 10 alarm
+  //  19    Cell 11 alarm
+  //  20    Cell 12 alarm
+  //  21    Cell 13 alarm
+  //  22    Cell 14 alarm
+  //  23    Cell 15 alarm
+  //  24    Cell 16 alarm
+  //  25    Number of temperatures N=6
+  //  26    Cell temperature alarm 1 
+  //  27    Cell temperature alarm 2
+  //  28    Cell temperature alarm 3
+  //  29    Cell temperature alarm 4
+  //  30    Environment temperature alarm 
+  //  31    Power temperature alarm 1 
+  //  32    Charge/discharge current alarm
+  //  33    Total battery voltage alarm
   // The following are 20 bit alarms (Vmtl. sind nicht bit sondern byte gemeint) 
-  //  35    Number of custom alarms P=20
-  //  36    Alarm event 1
-  //  37    Alarm event 2
-  //  38    Alarm event 3
-  //  39    Alarm event 4
-  //  40    Alarm event 5
-  //  41    Alarm event 6
-  //  42    On-off state 
-  //  43    Equilibrium state 1 
-  //  44    Equilibrium state 2
-  //  45    System state
-  //  46    Disconnection state 1
-  //  47    Disconnection state 2
-  //  48    Alarm event 7
-  //  49    Alarm event 8
+  //  34    Number of custom alarms P=20
+  //  35    Alarm event 1
+  //  36    Alarm event 2
+  //  37    Alarm event 3
+  //  38    Alarm event 4
+  //  39    Alarm event 5
+  //  40    Alarm event 6
+  //  41    On-off state 
+  //  42    Equilibrium state 1 
+  //  43    Equilibrium state 2
+  //  44    System state
+  //  45    Disconnection state 1
+  //  46    Disconnection state 2
+  //  47    Alarm event 7
+  //  48    Alarm event 8
+  //  49    Reservation extension 
   //  50    Reservation extension 
   //  51    Reservation extension 
   //  52    Reservation extension 
   //  53    Reservation extension 
-  //  54    Reservation extension 
-  //  55    Reservation extension  
+  //  54    Reservation extension  
  
 
   //  Comments on byte alarms 
@@ -624,8 +626,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // <-: 7E 32 30 30 30 34 36 30 30 38 30 36 32 30 30 30 31 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 36 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 31 34 30 30 30 30 30 30 30 30 30 30 30 30 30 33 30 30 30 30 30 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 31 45 42 33 32 0D Response Ok
 
 
-  uint8_t  u8_lMsgoffset;
-  uint8_t  u8_dataLen = t_message[5];
+  uint8_t  u8_dataLen = convertAsciiHexToByte(t_message[10], t_message[11]); //5
   uint32_t u32_alarm = 0;
   boolean  bo_lValue=false;
 
@@ -648,21 +649,19 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
   #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
-  u8_lMsgoffset = 7; 
-  for (uint8_t i = 0; i < u8_dataLen; i++)
+  for (uint8_t i = 70; i < u8_dataLen+14; i+=2) //14=offset
   {
-    u8_lMsgoffset++;
-    uint8_t u8_lByte = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
+    uint8_t u8_lByte = convertAsciiHexToByte(t_message[i], t_message[i+1]);
 
-    switch (u8_lByte)
+    switch (i)
     {
-      //  36    Alarm event 1
-      case 36:
+      //  35    Alarm event 1
+      case 70: //35*2
         if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
         break;
 
-      //  37    Alarm event 2
-      case 37:
+      //  36    Alarm event 2
+      case 72:
         if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
         if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
         if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
@@ -673,8 +672,8 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP; //?
         break;
 
-      //  38    Alarm event 3
-      case 38:
+      //  37    Alarm event 3
+      case 74:
         if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
         if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OTP; //?
         if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
@@ -685,13 +684,13 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_DSG_UTP; //?
         break;
 
-      //  39    Alarm event 4
-      case 39:
+      //  38    Alarm event 4
+      case 76:
         if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
         break;
 
-      //  40    Alarm event 5
-      case 40:
+      //  39    Alarm event 5
+      case 78:
         if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
         if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP; //?
         if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
@@ -702,13 +701,13 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
         break;
 
-      //  41    Alarm event 6
-      case 41:
+      //  40    Alarm event 6
+      case 80:
         if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
         break;
 
-      //  42    On-off state - Flag bit information (1: on, 0: off)
-      case 42: 
+      //  41    On-off state - Flag bit information (1: on, 0: off)
+      case 82: 
         // 0 Discharge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
