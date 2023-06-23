@@ -27,7 +27,7 @@ void NeeyBalancer::init()
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
     #ifdef NEEY_DEBUG
-    BSC_LOGD(TAG,"RX len=%i",length);
+    BSC_LOGD(TAG,"RX devNr=%i, len=%i",devNr,length);
     //log_print_buf(pData, length);
     
     String log="";
@@ -50,6 +50,24 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
   if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
   {
+    /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
+    String log="";
+    uint8_t logLenCnt=0;
+    for(uint8_t i=0;i<length;i++)
+    {
+      logLenCnt++;
+      log+=String(pData[i], HEX); 
+      log+=" ";
+      if(logLenCnt==20)
+      {
+        logLenCnt=0;
+        BSC_LOGI(TAG,"RX: %s",log.c_str());
+        log="";
+      }
+    }
+    BSC_LOGI(TAG,"RX: %s",log.c_str()); 
+    log="";*/
+
     bmsDataSemaphoreTake();
     memcpy(getBmsSettingsReadback(devNr), &pData[8], 32);
     bmsDataSemaphoreGive();
@@ -347,9 +365,14 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
   return ret;
 }
 
-void NeeyBalancer::neeyWriteData_GotoStartStep()
+/*
+Default startStep = 1
+*/
+void NeeyBalancer::neeyWriteData_GotoStartStep(uint8_t startStep)
 {
-  u8_neeySendStep=1;
+  if(startStep==0) startStep=1;
+
+  u8_neeySendStep=startStep; //1
   #ifdef NEEY_WRITE_DATA_DEBUG
   BSC_LOGI(TAG,"neeyWriteData_GotoStartStep");
   #endif

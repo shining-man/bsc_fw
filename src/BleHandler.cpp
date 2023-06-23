@@ -505,8 +505,20 @@ bool BleHandler::isNotAllDeviceConnectedOrScanRunning()
 
 void BleHandler::sendDataToNeey()
 {
-  BSC_LOGI(TAG,"NEEY SEND DATA (B)");
-  u8_mSendDataToNeey=1;
+  if(u8_mSendDataToNeey==0)
+  {
+    //BSC_LOGI(TAG,"sendDataToNeey()");
+    u8_mSendDataToNeey=1;
+  }
+}
+
+void BleHandler::readDataFromNeey()
+{
+  if(u8_mSendDataToNeey==0)
+  {
+    BSC_LOGI(TAG,"readDataFromNeey()");
+    u8_mSendDataToNeey=2;
+  }
 }
 
 
@@ -697,8 +709,13 @@ bool BleHandler::handleConnectionToDevices()
                   {
                     if(u8_mSendDataToNeey==1)
                     {
-                      NeeyBalancer::neeyWriteData_GotoStartStep();
-                      u8_mSendDataToNeey=2;
+                      NeeyBalancer::neeyWriteData_GotoStartStep(1);
+                      u8_mSendDataToNeey=10;
+                    }
+                    else if(u8_mSendDataToNeey==2) //Nur lesen der Settings
+                    {
+                      NeeyBalancer::neeyWriteData_GotoStartStep(10);
+                      u8_mSendDataToNeey=10;
                     }
                     //if(NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr)) {u8_mSendDataToNeey=false;}
                     NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr);
@@ -736,7 +753,7 @@ bool BleHandler::handleConnectionToDevices()
           }
         }
       }
-      if(u8_mSendDataToNeey==2)
+      if(u8_mSendDataToNeey==10)
       {
         if(NeeyBalancer::neeyWriteData_GotoNextStep()) u8_mSendDataToNeey=0;
       }
