@@ -3,7 +3,7 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-#include "Wire.h"
+#include "i2c.h"
 #include "Wire.h"
 #include "defines.h"
 #include "log.h"
@@ -15,7 +15,6 @@
 
 static const char *TAG = "I2C";
 
-//TwoWire I2C = TwoWire(0);
 
 struct  bmsData_s *p_lBmsData;
 struct  inverterData_s *p_lInverterData;
@@ -36,8 +35,7 @@ void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, co
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
 void i2cInitExtSerial();
-void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, boolean bo_write);
-
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn);
 
 /*
  * Slave
@@ -166,6 +164,12 @@ void isI2CdeviceConn()
     BSC_LOGI(TAG,"Serial Ext. not found (%i)",u8_lErr);
   }   
   
+}
+
+
+bool isSerialExtEnabled()
+{
+  return bo_mSerialExtEnabled;
 }
 
 
