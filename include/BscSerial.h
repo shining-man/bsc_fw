@@ -13,31 +13,21 @@
 class BscSerial {
 public:
   BscSerial();
-  BscSerial(uint8_t u8_lSerialNr, uint8_t uart_nr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
-  BscSerial(uint8_t u8_lSerialNr, uint8_t rx, uint8_t tx, uint8_t txEnRS485pin);
-
-  void setHwSerial(uint32_t baudrate);
-  void setSoftSerial(uint32_t baudrate);
 
   void initSerial();
+  void setHwSerial(uint8_t u8_devNr, uint32_t baudrate);
+  void setSoftSerial(uint8_t u8_devNr, uint32_t baudrate);
+  void setSerialBaudrate(uint8_t u8_devNr);
 
   void cyclicRun();
-  void setReadBmsFunktion(uint8_t funktionsTyp);
+
+  void setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp);
   
   
 private:
   SemaphoreHandle_t mSerialMutex = NULL;
 
-  bool isSoftSerial;
-  bool (*readBms)(Stream*, uint8_t, uint8_t) = 0; // Funktionszeiger anlegen, Initialisierung mit 0
-  Stream * stream_mPort;
-  uint8_t u8_mHwUartNr;
-  uint8_t u8_mSerialNr;
-  uint8_t u8_mTxEnRS485pin;
-  uint8_t u8_mRx;
-  uint8_t u8_mTx;
-
-  void setSerialBaudrate(uint32_t baudrate);
+  void setSerialBaudrate(uint8_t u8_devNr, uint32_t baudrate);
 
 };
 

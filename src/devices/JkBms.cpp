@@ -11,7 +11,7 @@
 static const char *TAG = "JK_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mDevNr, u8_mTxEnRS485pin;
+static uint8_t u8_mDevNr;
 static uint16_t u16_mLastRecvBytesCnt;
 
 enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, SEARCH_END};
@@ -23,17 +23,19 @@ static void sendMessage(uint8_t *sendMsg);
 static bool recvAnswer(uint8_t * t_outMessage);
 static void parseData(uint8_t * t_message);
 
+static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
+
+bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
   mPort = port;
   u8_mDevNr = devNr;
-  u8_mTxEnRS485pin = txEnRS485pin;
+  callbackSetTxRxEn=callback;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
   #ifdef JK_DEBUG 
-  ESP_LOGD(TAG,"Serial %i send",u8_mDevNr);
+  BSC_LOGD(TAG,"Serial %i send",u8_mDevNr);
   #endif
   sendMessage(getDataMsg);
   if(recvAnswer(response))
@@ -44,27 +46,20 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, uint8_t txEnRS485pin)
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
-  else
-  {
-    ESP_LOGI(TAG,"bmsData checksum wrong; Serial(%i)",u8_mDevNr);
-    bo_lRet=false;
-  }
-
-
-  if(bo_lRet==false) return bo_lRet;
+  else bo_lRet=false;
   
+  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;  
 }
 
 
 static void sendMessage(uint8_t *sendMsg)
 {
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, HIGH); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(sendMsg, 21);
   mPort->flush();  
-  //usleep(50);
-  if(u8_mTxEnRS485pin>0) digitalWrite(u8_mTxEnRS485pin, LOW); 
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
@@ -81,12 +76,12 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if(millis()-u32_lStartTime > 200) 
+    if((millis()-u32_lStartTime)>200) 
     {
-      ESP_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
+      BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       /*for(uint16_t x=0;x<u16_mLastRecvBytesCnt;x++)
       {
-        ESP_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
+        BSC_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));
       }*/
       return false;
     }
@@ -137,7 +132,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   #ifdef JK_DEBUG 
   if(u16_mLastRecvBytesCnt>5)
   {
-    ESP_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
+    BSC_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
       p_lRecvBytes[u16_mLastRecvBytesCnt-3], p_lRecvBytes[u16_mLastRecvBytesCnt-2], p_lRecvBytes[u16_mLastRecvBytesCnt-1]);
   }
   #endif
@@ -149,7 +144,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   uint8_t crcB4 = crc & 0xFF;         // Byte 4
 
   #ifdef JK_DEBUG 
-  ESP_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
+  BSC_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
   #endif
   if(p_lRecvBytes[u16_mLastRecvBytesCnt-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCnt-1]!=crcB4) return false; 
 
@@ -163,6 +158,8 @@ uint32_t mqttSendeTimer_jk=0;
 void parseData(uint8_t * t_message)
 {
   int16_t  i16_lTmpValue;
+  uint16_t u16_lTmpValue;
+  uint32_t u32_lTmpValue;
   uint32_t u32_lBalanceCapacity=0;
   uint16_t u16_lCycle=0;
 
@@ -171,6 +168,8 @@ void parseData(uint8_t * t_message)
   uint16_t u16_lZellMinVoltage = 0;
   uint16_t u16_lZellMaxVoltage = 0;
   uint16_t u16_lZellDifferenceVoltage = 0;
+  uint8_t  u8_lZellNumberMinVoltage = 0;
+  uint8_t  u8_lZellNumberMaxVoltage = 0;
   uint16_t u16_lCellSum = 0;
   uint16_t u16_lZellVoltage = 0;
   uint16_t u16_lCellLow = 0xFFFF; 
@@ -183,7 +182,7 @@ void parseData(uint8_t * t_message)
 
         u8_lNumOfCells = t_message[i+1]/3;
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"NumOfCells=%i", u8_lNumOfCells);
+        BSC_LOGD(TAG,"NumOfCells=%i", u8_lNumOfCells);
         #endif
         i+=2;
         for(uint8_t n=0;n<u8_lNumOfCells;n++)
@@ -191,7 +190,7 @@ void parseData(uint8_t * t_message)
           if(t_message[i]>u8_lNumOfCells)
           {
             #ifdef JK_DEBUG 
-            ESP_LOGD(TAG,"n>NOC: %i, %i, %i, %i", i, n, u8_lNumOfCells, t_message[i]);
+            BSC_LOGD(TAG,"n>NOC: %i, %i, %i, %i", i, n, u8_lNumOfCells, t_message[i]);
             #endif
             break;
           }
@@ -201,20 +200,30 @@ void parseData(uint8_t * t_message)
 
           u16_lCellSum += u16_lZellVoltage;
 
-          if (u16_lZellVoltage > u16_lCellHigh){u16_lCellHigh = u16_lZellVoltage;}
-          if (u16_lZellVoltage < u16_lCellLow){u16_lCellLow = u16_lZellVoltage;}
+          if (u16_lZellVoltage > u16_lCellHigh)
+          {
+            u16_lCellHigh = u16_lZellVoltage;
+            u8_lZellNumberMaxVoltage=n;
+          }
+          if (u16_lZellVoltage < u16_lCellLow)
+          {
+            u16_lCellLow = u16_lZellVoltage;
+            u8_lZellNumberMinVoltage=n;
+          }
 
           u16_lZellMinVoltage = u16_lCellLow;
           u16_lZellMaxVoltage = u16_lCellHigh;
           u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow; 
 
           #ifdef JK_DEBUG 
-          ESP_LOGD(TAG,"V%i=%i",n, u16_lZellVoltage);
+          BSC_LOGD(TAG,"V%i=%i",n, u16_lZellVoltage);
           #endif
         }
         
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
         setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
+        setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
+        setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMinVoltage);
         setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
         setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
 
@@ -223,7 +232,7 @@ void parseData(uint8_t * t_message)
       case 0x80: // Read tube temp. 
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break; 
@@ -231,7 +240,7 @@ void parseData(uint8_t * t_message)
       case 0x81: // Battery inside temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break; 
@@ -239,7 +248,7 @@ void parseData(uint8_t * t_message)
       case 0x82: // Battery temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
+        BSC_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
         break;   
@@ -247,7 +256,7 @@ void parseData(uint8_t * t_message)
       case 0x83: // Total Batery Voltage
         setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        BSC_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #endif
         i+=3;
         break; 
@@ -259,7 +268,7 @@ void parseData(uint8_t * t_message)
 
         setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)i16_lTmpValue*0.01);
         #ifdef JK_DEBUG 
-        ESP_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
+        BSC_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
         #endif
         i+=3;
         break; 
@@ -280,45 +289,71 @@ void parseData(uint8_t * t_message)
         break; 
 
       case 0x8b: // Battery_Warning_Massage
+        /*bmsErrors
+        #define BMS_ERR_STATUS_OK                0
+        #define BMS_ERR_STATUS_CELL_OVP          1  - //bit0  single cell over voltage 
+        #define BMS_ERR_STATUS_CELL_UVP          2  - //bit1  single cell under voltage    
+        #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  pack over voltage 
+        #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  pack under voltage     
+        #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature 
+        #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature 
+        #define BMS_ERR_STATUS_DSG_OTP          64  - //bit6  Discharge over temperature  
+        #define BMS_ERR_STATUS_DSG_UTP         128  - //bit7  discharge low temperature   
+        #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging over current 
+        #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge over current       
+        #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  - //bit10 short circuit              
+        #define BMS_ERR_STATUS_AFE_ERROR      2048  - //bit11 Front-end detection IC error 
+        #define BMS_ERR_STATUS_SOFT_LOCK      4096  - //bit12 software lock MOS 
+        #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+        #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
+        #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
-/*bmsErrors                                           | JBD | JK |
-bit0  single cell overvoltage protection              |  x  |    |
-bit1  single cell undervoltage protection             |  x  |    |
-bit2  whole pack overvoltage protection (Batterie)    |  x  | x  |
-bit3  Whole pack undervoltage protection (Batterie)   |  x  | x  |
-bit4  charging over-temperature protection            |  x  |    |
-bit5  charging low temperature protection             |  x  |    |
-bit6  Discharge over temperature protection           |  x  |    |
-bit7  discharge low temperature protection            |  x  |    |
-bit8  charging overcurrent protection                 |  x  | x  |
-bit9  Discharge overcurrent protection                |  x  | x  |
-bit10 short circuit protection                        |  x  |    |
-bit11 Front-end detection IC error                    |  x  |    |
-bit12 software lock MOS                               |  x  |    |
-*/
+        u16_lTmpValue = ((uint16_t)t_message[i+1]<<8 | t_message[i+2]);
 
-        /* JKBMS
-        Bit 0:  Low capacity alarm
-        Bit 1:  MOS tube overtemperature alarm
-        Bit 2:  Charge over voltage alarm
-        Bit 3:  Discharge undervoltage alarm
-        Bit 4:  Battery overtemperature alarm
-        Bit 5:  Charge overcurrent alarm                        -> Bit 8
-        Bit 6:  discharge over current alarm                    -> Bit 9
-        Bit 7:  core differential pressure alarm
-        Bit 8:  overtemperature alarm in the battery box 
-        Bit 9:  Battery low temperature
-        Bit 10: Unit overvoltage                                -> Bit 2
-        Bit 11: Unit undervoltage                               -> Bit 3
-        Bit 12: 309_A protection 
-        Bit 13: 309_B protection
-        Bit 14: reserved
-        Bit 15: Reserved
-        */
-       
-        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, (((uint16_t)t_message[i+1] << 8 | t_message[i+2])));
+        u32_lTmpValue = BMS_ERR_STATUS_OK;
+        //Bit 0:  Low capacity alarm
+        if((u16_lTmpValue&0x1)==0x1) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;         // Bit 1:  MOS tube over temperature alarm                 -> ?
+        if((u16_lTmpValue&0x2)==0x2) u32_lTmpValue |= BMS_ERR_STATUS_BATTERY_OVP;     // Bit 2:  Charge over voltage alarm                       -> ?
+        if((u16_lTmpValue&0x4)==0x4) u32_lTmpValue |= BMS_ERR_STATUS_CELL_OVP;        // Bit 3:  cell over voltage                               -> x
+        if((u16_lTmpValue&0x8)==0x8) u32_lTmpValue |= BMS_ERR_STATUS_CELL_UVP;        // Bit 4:  cell under voltage                              -> x
+        if((u16_lTmpValue&0x10)==0x10) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 5:  Charge over temperature                         -> x
+        if((u16_lTmpValue&0x20)==0x20) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 6:  discharge over current alarm                    -> ?
+        if((u16_lTmpValue&0x40)==0x40) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 7:  discharge overcurent                            -> x
+        if((u16_lTmpValue&0x80)==0x80) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 8:  over temperature alarm in the battery box       -> ?
+        if((u16_lTmpValue&0x100)==0x100) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OCP;     // Bit 9:  Battery low temperature                         -> ?
+        if((u16_lTmpValue&0x200)==0x200) u32_lTmpValue |= BMS_ERR_STATUS_CHG_UTP ;    // Bit 10: Charge under temperature                        -> x
+        if((u16_lTmpValue&0x400)==0x400) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 11:                                                 -> ?
+        if((u16_lTmpValue&0x800)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 12: 309_A protection                                -> ?
+        if((u16_lTmpValue&0x1000)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
+
+        //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
+        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
         i+=3;
         break;  
+
+      case 0x8C:  // Battery status information
+        u16_lTmpValue = ((uint16_t)t_message[i+1] << 8 | t_message[i+2]);
+        if((u16_lTmpValue>>3)&0x01)
+        {
+          setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+          setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+        }
+        else
+        {
+          //Bit 0: charging on
+          if(u16_lTmpValue&0x01) setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+
+          //Bit 1: discharge on
+          if((u16_lTmpValue>>1)&0x01) setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+
+          //Bit 2: equilization on
+          if((u16_lTmpValue>>2)&0x01) setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,true);
+          else setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,false);
+        }
+        i+=3;
+        break;
 
       case 0x86:
       case 0x9D:
@@ -334,7 +369,6 @@ bit12 software lock MOS                               |  x  |    |
         break;
 
       case 0x8A:
-      case 0x8C:
       case 0x8E:
       case 0x8F:
       case 0x90:
@@ -401,7 +435,7 @@ bit12 software lock MOS                               |  x  |    |
   }
 
 
-  if(millis()>(mqttSendeTimer_jk+10000))
+  if((millis()-mqttSendeTimer_jk)>10000)
   {
     //Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);

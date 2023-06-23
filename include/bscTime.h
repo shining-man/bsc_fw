@@ -8,9 +8,11 @@
 
 #include "Arduino.h"
 
-void initTime();
-void timeRunCyclic();
+void   initTime();
+void   timeRunCyclic(bool bo_resetTimeout);
 String getBscTime();
 String getBscDateTime();
+const char* getBscDateTimeCc();
+void   setTimeFromNTP();
 
 #endif

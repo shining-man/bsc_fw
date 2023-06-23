@@ -6,23 +6,49 @@
 #ifndef DEFINES_H
 #define DEFINES_H
 
+#include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.3.1"
+#define BSC_SW_VERSION      "V0.4.12"
 static const char COMPILE_DATE_TIME[] = "";
 
+#define HTML_MINIFY
+
 //Debug
-#define DEBUG_ON_FS
-//#define DEBUG_ON_HW_SERIAL
+//#define DEBUG_ON_FS        //wird in der platformio.ini gesetzt
+//#define DEBUG_ON_HW_SERIAL //wird in der platformio.ini gesetzt
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
+//#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
+//#define NEEY_DEBUG
+//#define NEEY_WRITE_DATA_DEBUG
+//#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
 //#define WLAN_DEBUG        
+//#define WLAN_DEBUG2
 //#define CAN_DEBUG
+//#define WEBSET_DEBUG
+//#define MAIN_DEBUG
+//#define LOG_BMS_DATA
+
+//Tests
+//#define UTEST_BMS_FILTER
+
+
+//WebSettings Datatypes
+#define PARAM_DT_U8  1
+#define PARAM_DT_I8  2
+#define PARAM_DT_U16 3
+#define PARAM_DT_I16 4
+#define PARAM_DT_U32 5
+#define PARAM_DT_I32 6
+#define PARAM_DT_FL  7
+#define PARAM_DT_ST  8
+#define PARAM_DT_BO  9
 
 //System
 #define WEBSERVER_PORT               80
@@ -30,7 +56,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Alarmrules
 #define CNT_ALARMS                   10
 #define CNT_BT_ALARMS_RULES          10
-
+//
 //DI/DO
 #define H_CLK                        14
 #define H_MOSI                       13
@@ -40,7 +66,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define CNT_DIGITALIN                 4
 #define GPIO_LED1_HW1                 0
 
-//Tcho
+//Tacho
 #define TACHO_ADDR0                   6
 #define TACHO_ADDR1                   7
 #define TACHO_ADDR2                  15
@@ -48,9 +74,9 @@ static const char COMPILE_DATE_TIME[] = "";
 #define TACHO_MEAS_TIME            3000
 
 //Onewire
-#define MAX_ANZAHL_OW_SENSOREN       64
-#define TEMP_IF_SENSOR_READ_ERROR  0xFF
-#define OW_TEMP_AVG_CYCELS            3
+#define MAX_ANZAHL_OW_SENSOREN         64
+#define TEMP_IF_SENSOR_READ_ERROR  0xFF00
+#define OW_TEMP_AVG_CYCELS              3
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
@@ -58,7 +84,9 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
 
 //Serial
-#define SERIAL_BMS_DEVICES_COUNT      3
+#define SERIAL_BMS_DEVICES_COUNT      3+8
+#define SERIAL_BMS_SEPLOS_COUNT       2
+enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define SERIAL1_PIN_RX               16
 #define SERIAL1_PIN_TX               17
@@ -68,18 +96,45 @@ static const char COMPILE_DATE_TIME[] = "";
 #define SERIAL2_PIN_TX_EN             2
 #define SERIAL3_PIN_RX               35
 #define SERIAL3_PIN_TX               33
-#define SERIAL3_PIN_TX_EN            32
+#define SERIAL3_PIN_TX_EN             3
+#define SERIAL3_PIN_RX_EN            32
 
 //Onewire (Temperatur)
 #define OW_PIN                       19
 #define COUNT_TEMP_RULES             10
 
 //I2C
-#define I2C_DEV_ADDR_DISPLAY       0x55
-#define I2C_SDA_PIN                  21
-#define I2C_SCL_PIN                  22
-#define I2C_FREQUENCY          1000000U
+#define ID_I2C_MASTER                  0 //Auswahl Master/Slave
+#define I2C_DEV_ADDR_DISPLAY        0x55
+#define I2C_DEV_ADDR_SLAVE1           16
+#define I2C_DEV_ADDR_SLAVE2           17
+#define I2C_DEV_ADDR_SERIAL_EXTENSION 32
+#define I2C_SDA_PIN                   21
+#define I2C_SCL_PIN                   22
+#define I2C_FREQUENCY           1000000U
+//#define I2C_FREQUENCY           400000U
+#define I2C_CNT_SLAVES                2
 
+
+//BMS Data
+#define SERIAL_BMS_EXT_COUNT        8
+
+#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1 
+#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1 
+#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1 
+#define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
+
+
+#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT //+SERIAL_BMS_EXT_COUNT
+
+
+// Register
+#define RTC_CNTL_SDIO_CONF_REG 0x3FF48074
+
+// Rester RTC_CNTL_SDIO_CONF_REG
+#define RTC_CNTL_XPD_SDIO_VREG 0x80000000
+#define RTC_CNTL_SDIO_TIEH     0x800000
 
 
 /*********************************************
@@ -90,15 +145,15 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_SERIAL_ALARM_TIME_OUT               7
 
 #define ID_PARAM_SS_CAN                              2
-#define ID_PARAM_SS_BT                               3
+//#define ID_PARAM_SS_BT                               3
 #define ID_PARAM_SS_BTDEV                            4
 #define ID_PARAM_SS_BTDEVMAC                         5
 
 #define ID_PARAM_ALARM_BTDEV_BMS_SELECT              9
-#define ID_PARAM_ALARM_BT                           10
-#define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
+//#define ID_PARAM_ALARM_BT                           10
+//#define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
 #define ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT         12
-#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON         13
+//#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON         13
 #define ID_PARAM_ALARM_BT_CNT_CELL_CTRL             14
 #define ID_PARAM_ALARM_BT_CELL_SPG_MIN              15
 #define ID_PARAM_ALARM_BT_CELL_SPG_MAX              16
@@ -134,13 +189,13 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_ONEWIRE_ADR                        51
 #define ID_PARAM_ONWIRE_TEMP_OFFSET                 52
 
-#define ID_PARAM_BMS_CAN_ENABLE                     60
-#define ID_PARAM_BMS_CAN_DATASOURCE                 61
-#define ID_PARAM_BMS_MAX_CHARGE_SPG                 62
-#define ID_PARAM_BMS_MAX_CHARGE_CURRENT             64
-#define ID_PARAM_BMS_MAX_DISCHARGE_CURRENT          65
-#define ID_PARAM_BMS_LADELEISTUNG_AUF_NULL          66
-#define ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL       67
+#define ID_PARAM_BMS_CAN_ENABLE                                         60
+#define ID_PARAM_BMS_CAN_DATASOURCE                                     61
+#define ID_PARAM_BMS_MAX_CHARGE_SPG                                     62
+#define ID_PARAM_BMS_MAX_CHARGE_CURRENT                                 64
+#define ID_PARAM_BMS_MAX_DISCHARGE_CURRENT                              65
+#define ID_PARAM_BMS_LADELEISTUNG_AUF_NULL                              66
+#define ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL                           67
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN             68
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG          69
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV                 70
@@ -157,51 +212,103 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN                   79
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC                   80
 #define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC        81
-#define ID_PARAM_INVERTER_LADESTROM_SPERRZEIT                           82
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME                   82
 #define ID_PARAM_BMS_CAN_DATASOURCE_SS1                                 83
-#define ID_PARAM_BMS_CAN_DATASOURCE_SS2                                 84
-#define ID_PARAM_BMS_CAN_DATASOURCE_SS3                                 85
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT                84
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC                    85
 
-#define ID_PARAM_MQTT_USERNAME  86
-#define ID_PARAM_MQTT_PWD       87
+#define ID_PARAM_MQTT_USERNAME                                          86
+#define ID_PARAM_MQTT_PWD                                               87
 
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN      88 
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG     89
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC     90
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME    91
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END 92
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN                     88 
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG                    89
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC                    90
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME                   91
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END                92
 
-#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN       93
-#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG  94
-#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA    95
+#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_EN              93
+#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG         94
+#define ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA           95
 
-#define ID_PARAM_WLAN_CONNECT_TIMEOUT 96
+#define ID_PARAM_WLAN_CONNECT_TIMEOUT             96
 
-#define ID_PARAM_INVERTER_BATT_TEMP_QUELLE 97
-#define ID_PARAM_INVERTER_BATT_TEMP_SENSOR 98
+#define ID_PARAM_INVERTER_BATT_TEMP_QUELLE        97
+#define ID_PARAM_INVERTER_BATT_TEMP_SENSOR        98
+
+#define ID_PARAM_NEEY_CELLS                       99
+#define ID_PARAM_NEEY_START_VOLTAGE              100
+#define ID_PARAM_NEEY_MAX_BALANCE_CURRENT        101
+#define ID_PARAM_NEEY_SLEEP_VOLTAGE              102
+#define ID_PARAM_NEEY_EQUALIZATION_VOLTAGE       103
+#define ID_PARAM_NEEY_BAT_CAPACITY               104
+#define ID_PARAM_NEEY_BAT_TYPE                   105
+#define ID_PARAM_NEEY_BUZZER                     106 //not use
+#define ID_PARAM_NEEY_BALANCER_ON                107
+
+#define ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID     108
+
+#define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER     109
+#define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME        110
+
+#define ID_PARAM_MASTER_SLAVE_TYP                111
+
+#define ID_PARAM_BMS_ALARM_HIGH_BAT_VOLTAGE      112
+#define ID_PARAM_BMS_ALARM_LOW_BAT_VOLTAGE       113
+#define ID_PARAM_BMS_ALARM_HIGH_TEMPERATURE      114
+#define ID_PARAM_BMS_ALARM_LOWTEMPERATURE        115
+
+#define ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC    116
+
+#define ID_PARAM_TRIGGER_NAMES                   117
+
+#define ID_PARAM_BATTERY_PACK_CHARGE_CURRENT     118
+#define ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT  119
+
+#define ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT 120
+#define ID_PARAM_BMS_FILTER_RX_ERROR_COUNT       121
+
+#define ID_PARAM_SYSTEM_NTP_SERVER_NAME          122
+//#define ID_PARAM_SYSTEM_NTP_SERVER_PORT          123
+
+#define ID_PARAM_JBD_CELL_VOLTAGE_100            124
+
+#define ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE    125
+
+#define ID_PARAM_BTDEV_DEACTIVATE                126
+
+#define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE 127
 
 
 //Auswahl Bluetooth Geräte
-#define ID_BT_DEVICE_NB           0
-#define ID_BT_DEVICE_NEEY4A       1
+#define ID_BT_DEVICE_NB             0
+#define ID_BT_DEVICE_NEEY4A         1
+#define ID_BT_DEVICE_JKBMS_JK02     2
+#define ID_BT_DEVICE_JKBMS_JK02_32S 3
 
 //Auswahl Serial Geräte
-#define ID_SERIAL_DEVICE_NB        0
-#define ID_SERIAL_DEVICE_JBDBMS    1
-#define ID_SERIAL_DEVICE_JKBMS     2
-#define ID_SERIAL_DEVICE_SEPLOSBMS 3
+#define ID_SERIAL_DEVICE_NB         0
+#define ID_SERIAL_DEVICE_JBDBMS     1
+#define ID_SERIAL_DEVICE_JKBMS      2
+#define ID_SERIAL_DEVICE_SEPLOSBMS  3
+#define ID_SERIAL_DEVICE_DALYBMS    4
 
 //Auswahl CAN Geräte
-#define ID_CAN_DEVICE_NB          0
-#define ID_CAN_DEVICE_SOLISRHI    1
-#define ID_CAN_DEVICE_DEYE        2
-#define ID_CAN_DEVICE_VICTRON     3
+#define ID_CAN_DEVICE_NB            0
+#define ID_CAN_DEVICE_SOLISRHI      1
+#define ID_CAN_DEVICE_DEYE          2
+#define ID_CAN_DEVICE_VICTRON       3
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT          1
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT_REFERENZ 2
 #define ID_TEMP_ALARM_FUNKTION_DIFFERENZ        3
+
+//Auswahl
+#define OPTION_MULTI_BMS_SOC_AVG                1
+#define OPTION_MULTI_BMS_SOC_MAX                2
+
+
 
 
 
@@ -213,6 +320,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BMS_DATA                          0x01  //BMS-Daten
 #define INVERTER_DATA                     0x02  //Inverter-Daten
 #define BSC_DATA                          0x03  //
+#define BSC_GET_SLAVE_DATA                0x0A  //
 
 //BMS_DATA 0x01
 #define BMS_CELL_VOLTAGE                  0x01  
@@ -229,6 +337,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BMS_TEMPERATURE                   0x0C
 #define BMS_CHARGE_PERCENT                0x0D
 #define BMS_ERRORS                        0x0E
+#define BMS_LAST_DATA_MILLIS              0x0F
 
 //INVERTER_DATA 0x02
 #define INVERTER_VOLTAGE                  0x01 
@@ -241,6 +350,8 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BSC_ALARMS                        0x01 
 #define BSC_IP_ADDR                       0x02
 
+//BSC_GET_SLAVE_DATA 0x0A
+//#define BMS_GET_ALL_DATA                  0x01
 
 
 /*********************************************
@@ -268,7 +379,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_TOTAL_CURRENT               23
 #define MQTT_TOPIC2_FULL_CAPACITY               24
 #define MQTT_TOPIC2_BALANCE_STATUS              25
-#define MQTT_TOPIC2_FET_STATUS                  26
+#define MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL      26 
 #define MQTT_TOPIC2_CHARGED_ENERGY              27
 #define MQTT_TOPIC2_DISCHARGED_ENERGY           28
 #define MQTT_TOPIC2_CHARGE_CURRENT_SOLL         29
@@ -281,12 +392,16 @@ static const char COMPILE_DATE_TIME[] = "";
 #define MQTT_TOPIC2_HIGHWATER_TASK_CAN          36
 #define MQTT_TOPIC2_HIGHWATER_TASK_SERIAL       37
 #define MQTT_TOPIC2_HIGHWATER_TASK_WIFICONN     38
+#define MQTT_TOPIC2_FET_STATE_CHARGE            39
+#define MQTT_TOPIC2_FET_STATE_DISCHARGE         40
+#define MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE     41
+#define MQTT_TOPIC2_BMS_DATA_VALID              42
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
   "bms/bt",        // 1
   "temperatur",    // 2
-  "alarm",         // 3
+  "trigger",       // 3
   "inverter",      // 4
   "sys",           // 5
   "bms/serial",    // 6
@@ -309,7 +424,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalCurrent",              // 23
   "FullCapacity",              // 24
   "BalanceStatus",             // 25
-  "FetStatus",                 // 26
+  "dischargeCurrentSoll",      // 26  frei
   "ChargedEnergy",             // 27
   "DischargedEnergy",          // 28
   "chargeCurrentSoll",         // 29
@@ -322,13 +437,46 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "highWater_task_can",        // 36
   "highWater_task_serial",     // 37
   "highWater_task_wifi",       // 38
-  "",                          // 39
-  "",                          // 40
-  "",                          // 41
-  "",                          // 42
+  "stateCharge",               // 39
+  "stateDischarge",            // 40
+  "chargeVoltage",             // 41
+  "valid",                     // 42
   "",                          // 43
   "",                          // 44
   "",                          // 45
   };
+
+
+/*
+#define BSC_LOGE ESP_LOGE
+#define BSC_LOGW ESP_LOGW
+#define BSC_LOGI ESP_LOGI
+#define BSC_LOGD ESP_LOGD
+#define BSC_LOGV ESP_LOGV
+*/
+
+// CONFIG_LOG_TIMESTAMP_SOURCE_RTOS
+// CONFIG_LOG_TIMESTAMP_SOURCE_SYSTEM
+
+
+#include "bscTime.h"
+#define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)
+#define BSC_LOGW( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_WARN,    tag, format, ##__VA_ARGS__)
+#define BSC_LOGI( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_INFO,    tag, format, ##__VA_ARGS__)
+#define BSC_LOGD( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_DEBUG,   tag, format, ##__VA_ARGS__)
+#define BSC_LOGV( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
+
+#define ESP_LOG_LEVEL_LOCAL_BSC(level, tag, format, ...) do {               \
+        if ( LOG_LOCAL_LEVEL_BSC >= level ) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
+    } while(0)
+
+#define ESP_LOG_LEVEL_BSC(level, tag, format, ...) do {                     \
+        if (level==ESP_LOG_ERROR )          { esp_log_write(ESP_LOG_ERROR,      tag, LOG_SYSTEM_TIME_FORMAT(E, format), getBscDateTimeCc(), tag, ##__VA_ARGS__); } \
+        else if (level==ESP_LOG_WARN )      { esp_log_write(ESP_LOG_WARN,       tag, LOG_SYSTEM_TIME_FORMAT(W, format), getBscDateTimeCc(), tag, ##__VA_ARGS__); } \
+        else if (level==ESP_LOG_DEBUG )     { esp_log_write(ESP_LOG_DEBUG,      tag, LOG_SYSTEM_TIME_FORMAT(D, format), getBscDateTimeCc(), tag, ##__VA_ARGS__); } \
+        else if (level==ESP_LOG_VERBOSE )   { esp_log_write(ESP_LOG_VERBOSE,    tag, LOG_SYSTEM_TIME_FORMAT(V, format), getBscDateTimeCc(), tag, ##__VA_ARGS__); } \
+        else                                { esp_log_write(ESP_LOG_INFO,       tag, LOG_SYSTEM_TIME_FORMAT(I, format), getBscDateTimeCc(), tag, ##__VA_ARGS__); } \
+    } while(0)
+
 
 #endif

@@ -8,9 +8,10 @@
 
 #include "Arduino.h"
 #include "defines.h"
+#include "devices/serialDevData.h"
 
 #define SEPLOSBMS_MAX_ANSWER_LEN   0xff
 
-bool SeplosBms_readBmsData(Stream *port, uint8_t devNrv, uint8_t txEnRS485pin);
+bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
 
 #endif 
