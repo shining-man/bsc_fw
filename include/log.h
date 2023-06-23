@@ -9,6 +9,9 @@
 #include <Arduino.h>
   
 void debugInit();
+
+#ifdef DEBUG_ON_FS
 void writeLogToFS();
+#endif
 
 #endif

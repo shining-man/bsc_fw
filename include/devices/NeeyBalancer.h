@@ -9,6 +9,21 @@
 
 #include "Arduino.h"
 #include "defines.h"
+#include "NimBLEDevice.h"
+
+//
+#define NEEYBAL4A_CMD_WRITE                          0x05
+
+#define NEEYBAL4A_FUNC_SETTING_CELLS                 0x01
+#define NEEYBAL4A_FUNC_SETTING_START_VOL             0x02
+#define NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT       0x03
+#define NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE         0x04
+#define NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE  0x17
+#define NEEYBAL4A_FUNC_SETTING_BAT_CAP               0x16
+#define NEEYBAL4A_FUNC_SETTING_BAT_TYPE              0x15
+#define NEEYBAL4A_FUNC_SETTING_BUZZER_MODE           0x14
+#define NEEYBAL4A_FUNC_SETTING_BALLANCER_ON_OFF      0x0D
+
 
 //Head
 #define OFFSET_NEEYBAL4A_HEAD_STARTFRAME1             0
@@ -151,9 +166,21 @@ public:
 
   void init();
   static void neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length);
+  static void neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value);
+  static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value);
+  static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, float value);
+  static bool neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pChr);
+  static void neeyWriteData_GotoStartStep(uint8_t startStep);
+  static bool neeyWriteData_GotoNextStep();
+  static void neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolean u8_state);
+  static void neeyWriteMsg2(NimBLERemoteCharacteristic* pChr);
 
+  static float    neeyGetReadbackDataFloat(uint8_t devNr, uint8_t dataType);
+  static uint32_t neeyGetReadbackDataInt(uint8_t devNr, uint8_t dataType);
+  static void     getNeeyReadbackDataAsString(String &value);
 
 private:
+  static uint8_t neeyBtCrc(uint8_t* data, uint16_t len);
 
 };
 

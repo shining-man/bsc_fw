@@ -14,9 +14,12 @@ static const char *TAG = "OW";
 
 static SemaphoreHandle_t owMutex = NULL;
 
-uint8_t owAddr[MAX_ANZAHL_OW_SENSOREN][8];
-float owTempsC[MAX_ANZAHL_OW_SENSOREN];
-float owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
+//enum enumOwSenprStae{owSensorOk, owSensorFailure};
+
+uint8_t  owAddr[MAX_ANZAHL_OW_SENSOREN][8];
+int16_t owTempsC[MAX_ANZAHL_OW_SENSOREN];
+int16_t owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
+//uint8_t owSensorState[MAX_ANZAHL_OW_SENSOREN]; //0=ok
 
 uint8_t cycleCounter;
 bool firstMeasurement;
@@ -38,7 +41,7 @@ uint8_t getSensorAdrFromParams()
   uint8_t owAmount = 0;
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
-    owAdr = WebSettings::getString(ID_PARAM_ONEWIRE_ADR,0,0,i);
+    owAdr = WebSettings::getStringFlash(ID_PARAM_ONEWIRE_ADR,i);
 
     if (8 == sscanf(owAdr.c_str(), "%x:%x:%x:%x:%x:%x:%x:%x%*c",
         &owAddr[i][0], &owAddr[i][1], &owAddr[i][2], &owAddr[i][3],
@@ -53,6 +56,10 @@ uint8_t getSensorAdrFromParams()
       {
         owAddr[i][n]=0;
       }
+
+      //Wenn Adresse ungültig, dann Temp zurücksetzen
+      owTempsC[i]=0;
+      owTempsC_AvgCalc[i]=0;
     }
   }
 
@@ -89,13 +96,37 @@ void takeOwSensorAddress()
   xSemaphoreGive(owMutex);
 }
 
+uint8_t owReadErrors[32];
+void addErrorCounter(uint8_t sensorNr)
+{
+    uint8_t m = sensorNr % 2;
+    uint8_t u8_lOwErrors = ((owReadErrors[sensorNr/2] >> (m * 4)) & 0xF);
+    if (u8_lOwErrors < 0xF)
+    {
+        u8_lOwErrors++;
+        owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
+        owReadErrors[sensorNr/2] |= (u8_lOwErrors << (m * 4));
+    }
+}
+
+void resetErrorCounter(uint8_t sensorNr)
+{
+  uint8_t m = sensorNr % 2;
+  owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
+}
+
+uint8_t getErrorCounter(uint8_t sensorNr)
+{
+    uint8_t m = sensorNr % 2;
+    return ((owReadErrors[sensorNr / 2] >> (m * 4)) & 0xF);
+}
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
 void owCyclicRun()
 {
   //Wenn onewire aktiviert wurde
-  if(WebSettings::getBool(ID_PARAM_ONWIRE_ENABLE,0,0,0))
+  if(WebSettings::getBool(ID_PARAM_ONWIRE_ENABLE,0))
   {
     xSemaphoreTake(owMutex, portMAX_DELAY);
     if(cycleCounter==0)
@@ -139,28 +170,31 @@ void getTempC_allDevices(bool tempToOutBuffer)
   {
     if(owAddr[i][0]>0)
     {
-      for(uint8_t r=0;r<3;r++)
+      for(uint8_t r=0;r<3;r++) //Drei Versuche den Sensor auszulesen
       {
-        tempC = sensors.getTempC(&owAddr[i][0]);
-        if (tempC == DEVICE_DISCONNECTED_C)
+        tempC = (int16_t)(sensors.getTempC(&owAddr[i][0])*100);
+        if (tempC == DEVICE_DISCONNECTED_C_U16)
         {
-          //debugPrintf("Error: Could not read temperature data [%i] r=%i",i,r);
-          owTempsC[i]=TEMP_IF_SENSOR_READ_ERROR;
+          //BSC_LOGI(TAG, "Error read temp: seonsor=%i, r=%i",i,r);
+          if(r==2)
+          {
+            addErrorCounter(i);
+            //BSC_LOGI(TAG, "Error sensor %i nicht lesbar",i); //ToDo Fehlerzähler addieren
+          }
         }
         else
         {
-          //Offset abziehen
-          tempC += WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,0,i,0);
+          resetErrorCounter(i);
 
-          if(firstMeasurement){
-            owTempsC_AvgCalc[i] = tempC;
-          }else{
-            owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
-          }
-          
+          //Offset abziehen
+          tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
+
+          if(firstMeasurement) owTempsC_AvgCalc[i] = tempC;
+          else owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
+                    
           if(tempToOutBuffer==true)
           {
-            if( (owTempsC_AvgCalc[i]>=owTempsC[i]+0.08) || (owTempsC_AvgCalc[i]<=owTempsC[i]-0.08) )
+            if( (owTempsC_AvgCalc[i]>=owTempsC[i]+8) || (owTempsC_AvgCalc[i]<=owTempsC[i]-8) ) //0.08
             {
               owTempsC[i]=owTempsC_AvgCalc[i];
             }
@@ -177,7 +211,31 @@ void getTempC_allDevices(bool tempToOutBuffer)
 
 float owGetTemp(uint8_t sensNr)
 {
-  return owTempsC[sensNr];
+  return (float)owTempsC[sensNr]/100;
+}
+
+
+uint8_t owGetSensorError(uint8_t sensNr)
+{
+  return getErrorCounter(sensNr);
+}
+
+
+uint8_t owGetAllSensorError()
+{
+ uint8_t u8_maxErrors=0;
+ uint8_t u8_errors=0;
+
+ for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
+ {
+  if(getErrorCounter(i)>0)
+  {
+    u8_errors=(owTempsC[i]-TEMP_IF_SENSOR_READ_ERROR+1);
+    if(u8_errors>u8_maxErrors)u8_maxErrors=u8_errors;
+  }
+ }
+
+ return u8_maxErrors;
 }
 
 
@@ -220,7 +278,7 @@ String findDevices()
       owAddresses+=owAdr;
       if(newAdr){owAddresses+="</b>";}
       owAddresses+="</td><td>";
-      owAddresses+="<button onclick='navigator.clipboard.writeText(\"";
+      owAddresses+="<button onclick='copyStringToClipboard(\"";
       owAddresses+=owAdr;
       owAddresses+="\")'>Copy</button>";
       owAddresses+="</td></tr>";
