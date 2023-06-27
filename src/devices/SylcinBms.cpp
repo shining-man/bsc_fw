@@ -157,6 +157,9 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 }
 
 
+/// @brief 
+/// @param p_lRecvBytes 
+/// @return 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
   uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen;
@@ -171,17 +174,29 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200) 
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
-      #ifdef SYLCIN_DEBUG
-      String recvBytes="";
-      for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
+      // Leider schickt das BMS immer wieder Daten mit der CID2 0x34 und ner Datenlänge von 119 Byte. Da dadurch immer Timeouts generiert werden, diese nicht ins LOG schreiben!
+      if(u8_lRecvBytesCnt != 119)
       {
-        recvBytes+="0x";
-        recvBytes+=String(p_lRecvBytes[x],16);
-        recvBytes+=" ";
+        BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+        #ifdef SYLCIN_DEBUG
+        String recvBytes="";
+        uint8_t u8_logByteCount=0;
+        for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
+        {
+          u8_logByteCount++;
+          recvBytes+="0x";
+          recvBytes+=String(p_lRecvBytes[x],16);
+          recvBytes+=" ";
+          if(u8_logByteCount==20)
+          {
+            BSC_LOGE(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+            recvBytes="";
+            u8_logByteCount=0;
+          }
+        }
+        BSC_LOGE(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+        #endif
       }
-      BSC_LOGD(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
-      #endif
       return false;
     }
 
@@ -240,6 +255,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
   }
   #endif
+
 
   //Überprüfe Cheksum
   if(!checkCrc(p_lRecvBytes,u8_lRecvBytesCnt)) return false;
@@ -667,8 +683,8 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_GENERAL; 
 
   // OEM Byte 5
-  // Bit 0 - Status Charge FET
-  // Bit 1 - Status Discharge FET
+  // Bit 0 - Status Discharge FET
+  // Bit 1 - Status Charge FET
   // Bit 2 - Status Precharge FET
   // Bit 3 - -
   // Bit 4 - Status Full Charge
@@ -679,12 +695,12 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 0  Discharge switch state
   bo_lValue=false;
   if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
-  setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
+  setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
 
   // Bit 1 Charge switch state
   bo_lValue=false;
   if ((u8_lByte & 0x2) == 0x2) bo_lValue=true;
-  setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
+  setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr+address,bo_lValue);
 
   // OEM Byte 6
   // Bit 0 - -

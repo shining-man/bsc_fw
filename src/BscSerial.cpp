@@ -331,9 +331,9 @@ void BscSerial::cyclicRun()
     else
     {
       String str_lReaseon="";
-      if(u8_lReason=1) str_lReaseon=F("Cheksum wrong");
+      if(u8_lReason=1) str_lReaseon=F("Checksum wrong");
       else str_lReaseon=F("Filter");
-      BSC_LOGE(TAG,"Error: device=%i, reason=%s",i,str_lReaseon.c_str());
+      BSC_LOGD(TAG,"Error: device=%i, reason=%s",i,str_lReaseon.c_str());
     }
   }
 }
