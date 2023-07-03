@@ -172,11 +172,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if((millis()-u32_lStartTime)>200) 
+    if((millis()-u32_lStartTime)>300) 
     {
-      // Leider schickt das BMS immer wieder Daten mit der CID2 0x34 und ner Datenlänge von 119 Byte. Da dadurch immer Timeouts generiert werden, diese nicht ins LOG schreiben!
-      if(u8_lRecvBytesCnt != 119)
-      {
         BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
         String recvBytes="";
@@ -196,7 +193,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
         }
         BSC_LOGE(TAG,"Timeout: RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
         #endif
-      }
       return false;
     }
 
@@ -663,10 +659,10 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_UTP; 
   if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OTP; 
   if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_UTP; 
-  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_GENERAL; 
-  if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_GENERAL;
+  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+  if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
 
   // OEM Byte 4
   // Bit 0 - Protect Inverse Charge
@@ -678,9 +674,9 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 6 - Status Charge
   // Bit 7 - Status Discharge
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+8], t_message[u8_startOEMData+9]);
-  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_GENERAL; 
+  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
 
   // OEM Byte 5
   // Bit 0 - Status Discharge FET
@@ -722,12 +718,12 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 6 - -
   // Bit 7 - -
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+26], t_message[u8_startOEMData+27]);
-  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_GENERAL;
+  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
   if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_GENERAL;
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
 
   // OEM Byte 14
   // Bit 0 - -
@@ -739,9 +735,9 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 6 - -
   // Bit 7 - -
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+28], t_message[u8_startOEMData+29]);
-  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_GENERAL;
-  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_GENERAL;
+  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+  if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
 
 
 
