@@ -25,8 +25,8 @@ static uint32_t mqttSendeTimer=0;
 //
 static void      getDataFromBms(uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage);
-static void      parseMessage(uint8_t * t_message, uint8_t address);
-static void      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
+static bool      parseMessage(uint8_t * t_message, uint8_t address);
+static bool      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
 
 uint8_t         sylcinconvertAsciiHexToByte(char a, char b);
 static char     sylcinconvertByteToAsciiHex(uint8_t v);
@@ -67,11 +67,17 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     getDataFromBms(u8_lSylcinAdr, 0x42);
     if(recvAnswer(response))
     {
-      parseMessage(response, u8_lSylcinAdrBmsData);
+      if(parseMessage(response, u8_lSylcinAdrBmsData))
+      {
 
-      //mqtt
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData));
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData));
+        //mqtt
+        mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData));
+        mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr+u8_lSylcinAdrBmsData));
+      }
+      else
+      {
+        ret=false; 
+      }
     }
     else
     {
@@ -83,7 +89,10 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
       getDataFromBms(u8_lSylcinAdr, 0x44); //Alarms
       if(recvAnswer(response))
       {
-        parseMessage_Alarms(response, u8_lSylcinAdrBmsData);
+        if(!parseMessage_Alarms(response, u8_lSylcinAdrBmsData))
+        {
+          ret=false; 
+        }
       }
       else
       {
@@ -260,7 +269,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-static void parseMessage(uint8_t * t_message, uint8_t address)
+static bool parseMessage(uint8_t * t_message, uint8_t address)
 {
   //lambda get16bitFromMsg(i)
 	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
@@ -273,6 +282,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   #endif
 
   uint8_t u8_lNumOfCells = 0;
+  uint8_t u8_lDatalength = 0;
   uint16_t u16_lZellVoltage = 0;
   uint16_t u16_lZellMinVoltage = 0;
   uint16_t u16_lZellMaxVoltage = 0;
@@ -294,14 +304,32 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   //   2,3    0x01             Device address        ADR      Adresse 1
   //   4,5    0x46             Device type           CID1     Lithium iron phosphate battery BMS
   //   6,7    0x00             Function code         CID2     0x00: Normal, 0x01 VER error, 0x02 Chksum error, ...
-  //   8     0x4              Data length checksum  LCHKSUM
-  //   9-11  0x084            Data length           LENID    132 / 2 = 66
+  //   8      0x4              Data length checksum  LCHKSUM
+  //   9-11   0x084            Data length           LENID     132 / 2 = 66
   //   12,13  0x01             Batterie Nummer                Adresse 1
   //   14,15  0x10             Number of cells                16  
   //   16,17,18,19  0x0D1A     Cell voltage 1                 3354 * 0.001f = 3.354         V
   //   20,21,22,23  0x0D1D     Cell voltage 2                 3357 * 0.001f = 3.357         V
   //   ...    ...            ...
   //   76,77,78,79  0x0D19     Cell voltage 16                3353 * 0.001f = 3.353         V  
+
+
+  // Kontrolle ob Function Code OK
+  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00) 
+  {
+    BSC_LOGE(TAG, "Function Code nicht OK: 0x%02x", sylcinconvertAsciiHexToByte(t_message[6], t_message[7]));
+    return false;
+  }
+
+  // Kontrolle Datenpaketlänge
+  u8_lDatalength = sylcinconvertAsciiHexToByte(t_message[10], t_message[11]);
+  if(u8_lDatalength != 132)
+  {
+    BSC_LOGE(TAG, "Falsche Datenpaketlaenge (132 erwartet): %d byte lang", sylcinconvertAsciiHexToByte(t_message[10], t_message[11]));
+    return false;
+  }
+
+
 
 	u8_lNumOfCells = sylcinconvertAsciiHexToByte(t_message[14], t_message[14+1]);  //Number of cells 0-16
   #ifdef SYLCIN_DEBUG
@@ -412,10 +440,13 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
     mqttSendeTimer=millis();
   }
+
+    return true;
+
 }
 
 
-static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
+static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 {
   #ifdef SYLCIN_DEBUG
   BSC_LOGI(TAG, "parseMessage: serialDev=%i",u8_mDevNr+address);
@@ -577,6 +608,21 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   uint8_t  u8_startOEMData = u8_countCells * 2 + 16 + 2 + u8_countTemps *2 + 10; 
   uint32_t u32_alarm = 0;
   boolean  bo_lValue=false;
+
+  // Kontrolle ob Function Code OK
+  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00) 
+  {
+    BSC_LOGE(TAG, "Function Code Alarme nicht OK: 0x%02x", sylcinconvertAsciiHexToByte(t_message[6], t_message[7]));
+    return false;
+  }
+
+  // Kontrolle Datenpaketlänge
+  uint8_t u8_lDatalength = sylcinconvertAsciiHexToByte(t_message[10], t_message[11]);
+  if(u8_lDatalength != 92)
+  {
+    BSC_LOGE(TAG, "Falsche Datenpaketlaenge Alarme (92 erwartet): %d byte lang", sylcinconvertAsciiHexToByte(t_message[10], t_message[11]));
+    return false;
+  }
 
   #ifdef SYLCIN_DEBUG
   BSC_LOGD(TAG, "Start Alarmdaten=%i",u8_startOEMData);
@@ -742,6 +788,9 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 
 
   setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr+address, u32_alarm);
+  
+  return true;
+
 }
 
 
