@@ -59,7 +59,7 @@ struct bmsData_s
 #define BMS_ERR_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS 
 #define BMS_ERR_STATUS_RESERVED1      8192   //bit13 Reserved 
 #define BMS_ERR_STATUS_RESERVED2     16384   //bit14 Reserved
-#define BMS_ERR_STATUS_GENERAL       32768   //bit15 general Alarm 
+#define BMS_ERR_STATUS_RESERVED3     32768   //bit15 Reserved
 
 
 //Filter
