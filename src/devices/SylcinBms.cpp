@@ -180,8 +180,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
   for(;;)
   {
-    //Timeout
-    if((millis()-u32_lStartTime)>300) 
+    //Timeout 
+    // wenn innerhalb von 400ms das Telegram noch nicht begonnen hat, dann Timeout
+    // oder wenn es begonnen hat, dann 600ms
+    if( ((millis()-u32_lStartTime)>400 and u8_lRecvBytesCnt==0) or ((millis()-u32_lStartTime)>600 and u8_lRecvBytesCnt>0))      
     {
         BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
