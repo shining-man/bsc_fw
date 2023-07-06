@@ -104,12 +104,12 @@ bool isTriggerSelected(uint16_t paramId, uint8_t groupNr, uint8_t dataType, uint
 
 bool isTriggerActive(uint16_t paramId, uint8_t groupNr, uint8_t dataType)
 {
-  uint8_t u8_lValue = WebSettings::getInt(paramId,groupNr,dataType);
-  if(u8_lValue>0)
+  uint16_t u16_lValue = WebSettings::getInt(paramId,groupNr,dataType);
+  if(u16_lValue>0)
   {
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    for(uint16_t i=0;i<CNT_ALARMS;i++)
     {
-      if((u8_lValue>>i)&0x1)
+      if((u16_lValue>>i)&0x1)
       {
         if(getAlarm(i))
         {
