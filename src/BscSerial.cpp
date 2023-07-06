@@ -188,14 +188,9 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 
   if(u8_devNr==2)
   {
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_devNr,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_SEPLOSBMS)
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_devNr,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_SEPLOSBMS or WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_devNr,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_SYLCINBMS)
     {
-      serialDeviceData[u8_devNr].u8_mAddData=WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID);
-      //BSC_LOGI(TAG, "setReadBmsFunktion: dev=%i, devCount=%i",u8_devNr,serialDeviceData[u8_devNr].u8_mAddData);
-    }
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_devNr,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_SYLCINBMS)
-    {
-      serialDeviceData[u8_devNr].u8_mAddData=WebSettings::getInt(ID_PARAM_SERIAL_SYLCIN_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SYLCIN_CONNECT_TO_ID);
+      serialDeviceData[u8_devNr].u8_mAddData=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
       //BSC_LOGI(TAG, "setReadBmsFunktion: dev=%i, devCount=%i",u8_devNr,serialDeviceData[u8_devNr].u8_mAddData);
     }
   }
