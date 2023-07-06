@@ -56,7 +56,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Alarmrules
 #define CNT_ALARMS                   10
-#define CNT_BT_ALARMS_RULES          10
+#define CNT_BT_ALARMS_RULES          20
 //
 //DI/DO
 #define H_CLK                        14
