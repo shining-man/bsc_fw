@@ -17,8 +17,7 @@
 static const char *TAG = "CAN";
 
 void sendBmsCanMessages();
-void sendCanMsg_370_371();
-void sendCanMsg_35e();
+void sendCanMsg_35e_370_371();
 void sendCanMsg_351();
 void sendCanMsg_355();
 void sendCanMsg_356();
@@ -35,9 +34,6 @@ void onCanReceive(int packetSize);
 
 static SemaphoreHandle_t mInverterDataMutex = NULL;
 static struct inverterData_s inverterData;
-
-char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
-char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
 uint8_t u8_mMqttTxTimer=0;
 
@@ -223,15 +219,14 @@ void sendBmsCanMessages()
       sendCanMsg_351();
       sendCanMsg_355();
       sendCanMsg_356();
-      sendCanMsg_35e();
+      sendCanMsg_35e_370_371();
       sendCanMsg_359(); //Alarms
       break;
 
     case ID_CAN_DEVICE_VICTRON:
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
       sendCanMsg_351();
-      sendCanMsg_370_371();
-      sendCanMsg_35e();
+      sendCanMsg_35e_370_371();
       sendCanMsg_35a(); //Alarms
 
       sendCanMsg_372();
@@ -790,14 +785,11 @@ uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc)
 
 
 // Transmit hostname
-void sendCanMsg_370_371()
+void sendCanMsg_35e_370_371()
 {
-  sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
-  sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
-}
+  char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+  char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
-void sendCanMsg_35e()
-{
     switch (u8_mSelCanInverter)
   {
     case ID_CAN_DEVICE_DEYE:
@@ -805,6 +797,8 @@ void sendCanMsg_35e()
       sendCanMsg(0x35e, (uint8_t *)&hostname_pylon, 6);
       break;
     case ID_CAN_DEVICE_VICTRON:
+      sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
+      sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
       sendCanMsg(0x35e, (uint8_t *)&hostname_general, 6);
       break;
   }
