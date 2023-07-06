@@ -177,7 +177,7 @@ void runAlarmRules()
     xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
     if(bo_mChangeAlarmSettings)
     {
-      BSC_LOGD(TAG,"Reset Trigger (Nr=%i)",i);
+      BSC_LOGD(TAG,"Reset Trigger (Nr=%i) - %s",i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       //setAlarm(i+1, false); //Alarm zurücksetzen
@@ -186,13 +186,13 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      BSC_LOGI(TAG, "Trigger %i, value=%i",i,bo_Alarm[i]);
+      BSC_LOGI(TAG, "Trigger %i, value=%i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
       {
-        BSC_LOGD(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
+        BSC_LOGD(TAG, "Trigger %i: %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
@@ -216,7 +216,7 @@ void runAlarmRules()
             uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              BSC_LOGD(TAG, "Trigger geht (AlarmNr=%i)", i);
+              BSC_LOGD(TAG, "Trigger geht (AlarmNr=%i) - %s", i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
               u8_mDoByte &= ~(1 << b); //bit loeschen
             }
           }
