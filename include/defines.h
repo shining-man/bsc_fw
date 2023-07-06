@@ -247,7 +247,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_NEEY_BUZZER                     106 //not use
 #define ID_PARAM_NEEY_BALANCER_ON                107
 
-#define ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID     108
+#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108
 
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER     109
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME        110
@@ -279,9 +279,6 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_BTDEV_DEACTIVATE                126
 
 #define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE 127
-
-#define ID_PARAM_SERIAL_SYLCIN_CONNECT_TO_ID     128
-
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0

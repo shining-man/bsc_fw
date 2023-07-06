@@ -146,7 +146,7 @@ void loadCanSettings()
 {
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
-  uint8_t u8_lNumberOfSeplos = WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID);
+  uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   
   uint32_t bmsConnectFilter=0;
   /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
@@ -162,7 +162,7 @@ void loadCanSettings()
     {
       bmsConnectFilter |= (1<<i);
     }
-    else if(i>=3 && u8_lNumberOfSeplos-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
+    else if(i>=3 && u8_lNumberOfSerial2BMSs-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
   }
 
   u8_mBmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
