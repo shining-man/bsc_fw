@@ -289,7 +289,7 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
 }
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
-  if(devNr>BT_DEVICES_COUNT)
+  if(devNr>=BT_DEVICES_COUNT)
   {
     uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
     if(u16_CellvoltSoc100>0 && bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100)
