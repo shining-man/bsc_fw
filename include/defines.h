@@ -186,6 +186,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_MQTT_SERVER_PORT                   43
 #define ID_PARAM_MQTT_SERVER_ENABLE                 44
 #define ID_PARAM_MQTT_DEVICE_NAME                   45
+#define ID_PARAM_MQTT_TOPIC_NAME                    46
 
 #define ID_PARAM_ONWIRE_ENABLE                      50
 #define ID_PARAM_ONEWIRE_ADR                        51
