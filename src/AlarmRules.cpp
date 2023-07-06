@@ -88,6 +88,20 @@ void initAlarmRules()
   }
 }
 
+bool isTriggerSelected(uint16_t paramId, uint8_t groupNr, uint8_t dataType, uint8_t triggerNr)
+{
+  uint16_t u16_lValue = WebSettings::getInt(paramId,groupNr,dataType);
+  if(u16_lValue>0)
+  {
+    if((u16_lValue>>triggerNr)&0x1)
+    {
+        return true;
+    }
+
+  }
+  return false;
+}
+
 bool isTriggerActive(uint16_t paramId, uint8_t groupNr, uint8_t dataType)
 {
   uint8_t u8_lValue = WebSettings::getInt(paramId,groupNr,dataType);
@@ -200,8 +214,7 @@ void runAlarmRules()
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
-        u8_lTriggerNrDo=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI)-1;
-        if(u8_lTriggerNrDo==i)
+        if(isTriggerSelected(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI,i))
         {
           if(bo_Alarm[i]==true)
           {     
