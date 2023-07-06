@@ -36,7 +36,8 @@ void onCanReceive(int packetSize);
 static SemaphoreHandle_t mInverterDataMutex = NULL;
 static struct inverterData_s inverterData;
 
-char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
 uint8_t u8_mMqttTxTimer=0;
 
@@ -791,13 +792,23 @@ uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc)
 // Transmit hostname
 void sendCanMsg_370_371()
 {
-  sendCanMsg(0x370, (uint8_t *)&hostname, 8);
-  sendCanMsg(0x371, (uint8_t *)&hostname[8], 8);
+  sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
+  sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
 }
 
 void sendCanMsg_35e()
 {
-  sendCanMsg(0x35e, (uint8_t *)&hostname, 6);
+    switch (u8_mSelCanInverter)
+  {
+    case ID_CAN_DEVICE_DEYE:
+    case ID_CAN_DEVICE_SOLISRHI:
+      sendCanMsg(0x35e, (uint8_t *)&hostname_pylon, 6);
+      break;
+    case ID_CAN_DEVICE_VICTRON:
+      sendCanMsg(0x35e, (uint8_t *)&hostname_general, 6);
+      break;
+  }
+
 }
 
 /*
