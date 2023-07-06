@@ -171,19 +171,20 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 /// @return 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
-  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen;
+  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen, u8_CyclesWithoutData;
   uint32_t u32_lStartTime=millis();
   SMrecvState=SEARCH_START;
   u8_lRecvBytesCnt=0;
   u8_lRecvDataLen=0xFF;
+  u8_CyclesWithoutData=0;
   bool bo_lDataComplete=false;
 
   for(;;)
   {
     //Timeout 
-    // wenn innerhalb von 400ms das Telegram noch nicht begonnen hat, dann Timeout
-    // oder wenn es begonnen hat, dann 600ms
-    if( ((millis()-u32_lStartTime)>400 and u8_lRecvBytesCnt==0) or ((millis()-u32_lStartTime)>600 and u8_lRecvBytesCnt>0))      
+    // wenn innerhalb von 500ms das Telegram noch nicht begonnen hat, dann Timeout
+    // oder wenn es begonnen hat, dann 700ms
+    if( ((millis()-u32_lStartTime)>500 and u8_lRecvBytesCnt==0) or ((millis()-u32_lStartTime)>700 and u8_lRecvBytesCnt>0))      
     {
         BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
@@ -234,8 +235,15 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
         default:
           break;
         }
+      u8_CyclesWithoutData=0;
     }
-    //else vTaskDelay(pdMS_TO_TICKS(1));
+    else if (u8_lRecvBytesCnt==0) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
+    else if (u8_lRecvBytesCnt>0 and u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
+    {
+      u8_CyclesWithoutData++;
+    vTaskDelay(pdMS_TO_TICKS(1));
+    }
 
     if(bo_lDataComplete) break; //Recv Pakage complete   
   }
