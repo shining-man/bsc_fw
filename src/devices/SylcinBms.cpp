@@ -184,7 +184,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout 
     // wenn innerhalb von 500ms das Telegram noch nicht begonnen hat, dann Timeout
     // oder wenn es begonnen hat, dann 700ms
-    if( ((millis()-u32_lStartTime)>500 and u8_lRecvBytesCnt==0) or ((millis()-u32_lStartTime)>700 and u8_lRecvBytesCnt>0))      
+    if( ((millis()-u32_lStartTime)>500 && u8_lRecvBytesCnt==0) || ((millis()-u32_lStartTime)>700 && u8_lRecvBytesCnt>0))      
     {
         BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
@@ -238,7 +238,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       u8_CyclesWithoutData=0;
     }
     else if (u8_lRecvBytesCnt==0) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
-    else if (u8_lRecvBytesCnt>0 and u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else if (u8_lRecvBytesCnt>0 && u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
     else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
     {
       u8_CyclesWithoutData++;
