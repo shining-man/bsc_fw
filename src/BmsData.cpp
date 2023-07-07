@@ -297,7 +297,7 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
     
     uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100  or bo_SOC100CellvolHasBeenReached[devNr]) )
+    if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
