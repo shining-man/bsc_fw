@@ -88,14 +88,28 @@ void initAlarmRules()
   }
 }
 
+bool isTriggerSelected(uint16_t paramId, uint8_t groupNr, uint8_t dataType, uint8_t triggerNr)
+{
+  uint16_t u16_lValue = WebSettings::getInt(paramId,groupNr,dataType);
+  if(u16_lValue>0)
+  {
+    if((u16_lValue>>triggerNr)&0x1)
+    {
+        return true;
+    }
+
+  }
+  return false;
+}
+
 bool isTriggerActive(uint16_t paramId, uint8_t groupNr, uint8_t dataType)
 {
-  uint8_t u8_lValue = WebSettings::getInt(paramId,groupNr,dataType);
-  if(u8_lValue>0)
+  uint16_t u16_lValue = WebSettings::getInt(paramId,groupNr,dataType);
+  if(u16_lValue>0)
   {
-    for(uint8_t i=0;i<CNT_ALARMS;i++)
+    for(uint16_t i=0;i<CNT_ALARMS;i++)
     {
-      if((u8_lValue>>i)&0x1)
+      if((u16_lValue>>i)&0x1)
       {
         if(getAlarm(i))
         {
@@ -177,7 +191,7 @@ void runAlarmRules()
     xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
     if(bo_mChangeAlarmSettings)
     {
-      BSC_LOGD(TAG,"Reset Trigger (Nr=%i)",i);
+      BSC_LOGD(TAG,"Reset Trigger (Nr=%i) - %s",i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       //setAlarm(i+1, false); //Alarm zurücksetzen
@@ -186,13 +200,13 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      BSC_LOGI(TAG, "Trigger %i, value=%i",i,bo_Alarm[i]);
+      BSC_LOGI(TAG, "Trigger %i, value=%i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
       if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
       {
-        BSC_LOGD(TAG, "Trigger %i: %i",i+1,bo_Alarm[i]);
+        BSC_LOGD(TAG, "Trigger %i: %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
       
@@ -200,8 +214,7 @@ void runAlarmRules()
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
-        u8_lTriggerNrDo=WebSettings::getInt(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI)-1;
-        if(u8_lTriggerNrDo==i)
+        if(isTriggerSelected(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI,i))
         {
           if(bo_Alarm[i]==true)
           {     
@@ -216,7 +229,7 @@ void runAlarmRules()
             uint8_t doPulseOrPermanent = WebSettings::getInt(ID_PARAM_DO_AUSLOESEVERHALTEN,b,DT_ID_PARAM_DO_AUSLOESEVERHALTEN);
             if(doPulseOrPermanent==0) //Wenn Permanent
             {
-              BSC_LOGD(TAG, "Trigger geht (AlarmNr=%i)", i);
+              BSC_LOGD(TAG, "Trigger geht (AlarmNr=%i) - %s", i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
               u8_mDoByte &= ~(1 << b); //bit loeschen
             }
           }
