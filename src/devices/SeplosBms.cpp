@@ -21,6 +21,7 @@ static uint16_t u16_mBalanceCapacityOld=0xFFFF;
 static uint32_t u32_mChargeMAh=0;
 static uint32_t u32_mDischargeMAh=0;
 static uint32_t mqttSendeTimer=0;
+static uint16_t u16_mRecvBytesLastMsg=0; //for debug
 
 //
 static void      getDataFromBms(uint8_t address, uint8_t function);
@@ -225,6 +226,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
     if(bo_lDataComplete) break; //Recv Pakage complete   
   }
+  u16_mRecvBytesLastMsg=u8_lRecvBytesCnt; //for debug
 
   #ifdef SEPLOS_DEBUG
   String recvBytes="";
@@ -250,6 +252,31 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   if(!checkCrc(p_lRecvBytes,u8_lRecvBytesCnt)) return false;
 
   return true;
+}
+
+
+void message2Log(uint8_t * t_message, uint8_t address)
+{
+  //#ifdef SEPLOS_DEBUG
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
+  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, u16_mRecvBytesLastMsg);
+  for(uint8_t x=0;x<u16_mRecvBytesLastMsg;x++)
+  {
+    u8_logByteCount++;
+    recvBytes+="0x";
+    recvBytes+=String(t_message[x],16);
+    recvBytes+=" ";
+    if(u8_logByteCount==20)
+    {
+      BSC_LOGI(TAG,"%s",recvBytes.c_str());
+      recvBytes="";
+      u8_logByteCount=0;
+    }
+  }
+  BSC_LOGI(TAG,"%s",recvBytes.c_str());
+  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
+  //#endif
 }
 
 
@@ -374,6 +401,17 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   uint16_t u16_lFullCapacity=get16bitFromMsg(u8_lMsgoffset+7)/100;
 
   //   63     0x03 0x13      Stage of charge                  787 * 0.1f = 78.7             %
+  #ifdef SEPLOS_DEBUG
+  uint8_t u8_lSoc = get16bitFromMsg(u8_lMsgoffset+9)/10;
+  uint8_t u8_lSocOld = getBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr+address);
+  uint8_t u8_lSocOld5Percent = u8_lSocOld/100*5;
+  if(u8_lSoc<u8_lSocOld-u8_lSocOld5Percent || u8_lSoc>u8_lSocOld+u8_lSocOld5Percent)
+  {
+    digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+    BSC_LOGI(TAG, "SoC Abweichung > 5%; SoC_alt=%i, SoC_neu=%i",u8_lSocOld,u8_lSoc);
+    message2Log(t_message, address);
+  }
+  #endif
   setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr+address, get16bitFromMsg(u8_lMsgoffset+9)/10);
 
   //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah

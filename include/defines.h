@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.12"
+#define BSC_SW_VERSION      "V0.4.13"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -19,6 +19,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
+#ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
@@ -35,6 +36,26 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WEBSET_DEBUG
 //#define MAIN_DEBUG
 //#define LOG_BMS_DATA
+#endif
+
+#ifdef DEBUG_ON_HW_SERIAL
+//Erweitertes Logging (zum debuggen)
+//#define JK_DEBUG
+//#define JK_BT_DEBUG
+//#define SEPLOS_DEBUG
+//#define SYLCIN_DEBUG
+//#define NEEY_DEBUG
+//#define NEEY_WRITE_DATA_DEBUG
+//#define DALY_DEBUG
+//#define BT_DEBUG        //Bluetooth
+//#define MQTT_DEBUG        
+#define WLAN_DEBUG        
+#define WLAN_DEBUG2
+#define CAN_DEBUG
+//#define WEBSET_DEBUG
+#define MAIN_DEBUG
+//#define LOG_BMS_DATA
+#endif
 
 //Tests
 //#define UTEST_BMS_FILTER
