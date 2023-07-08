@@ -16,9 +16,12 @@ struct bmsFilterData_s bmsFilterData;
 
 static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
 
+static bool bo_SOC100CellvolHasBeenReached[BMSDATA_NUMBER_ALLDEVICES];
+
 uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
 
 uint8_t u8_readWriteDataSerialBms[SERIAL_BMS_DEVICES_COUNT];
+
 
 
 void bmsDataInit()
@@ -289,11 +292,14 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
 }
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
-  if(devNr>BT_DEVICES_COUNT)
+  if(devNr>=BT_DEVICES_COUNT)
   {
+    if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
+    
     uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    if(u16_CellvoltSoc100>0 && bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100)
+    if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
+      bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
     }
     else

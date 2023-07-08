@@ -215,6 +215,7 @@ bool mqttConnect()
   }
 
   str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  str_mMqttTopicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
   String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0);
   String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0);
 
@@ -293,7 +294,7 @@ bool mqttPublishLoopFromTxBuffer()
     {
       struct mqttEntry_s mqttEntry = txBuffer.at(0);
 
-      String topic = str_mMqttDeviceName + "/" + mqttTopics[mqttEntry.t1];
+      String topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
       if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
       if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
       if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}

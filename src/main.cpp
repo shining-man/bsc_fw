@@ -124,6 +124,10 @@ static boolean bo_lWlanNeverAp;
 static unsigned long wlanConnectTimer;
 static const char *hostname = {"bsc"};
 
+// Zeitstempel vom letzten Boot
+static boolean bo_BootTimeStamp = false;
+static String str_BootTimeStamp;
+
 #ifdef LOG_BMS_DATA
 long debugLogTimer;
 #endif
@@ -376,6 +380,14 @@ void task_ConnectWiFi(void *param)
         timeRunCyclic(true); //Hole 1x die Zeit
         BSC_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
         
+        // Zeitstempel der ersten Zeit nach dem Booten ermitteln
+        if(!bo_BootTimeStamp)
+        {
+          str_BootTimeStamp=getBscDateTime().c_str();
+          bo_BootTimeStamp=true;
+          //BSC_LOGI(TAG,"Boottime: %s",str_BootTimeStamp.c_str());
+        }
+
         mConnectStateEnums=ConnState_connectMQTTstart;
         break;
 
@@ -795,6 +807,10 @@ void handle_getDashboardData()
   //7. WLAN RSSI
   tmp += "|";
   tmp += String(WiFi.RSSI()+100); //0...100 => bad...good
+
+  //8. Boot Time
+  tmp += "|";
+  tmp += str_BootTimeStamp.c_str();
 
   server.send(200, "text/html", tmp.c_str());
 }

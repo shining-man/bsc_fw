@@ -142,12 +142,13 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 
 static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
 {
-  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvBytesCntPacket, u8_checlSum;
+  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvBytesCntPacket, u8_checlSum, u8_CyclesWithoutData;
   uint32_t u32_lStartTime=millis();
   SMrecvState=SEARCH_START;
   u8_lRecvBytesCnt=0;
   u8_lRecvBytesCntPacket=0;
   u8_checlSum=0;
+  u8_CyclesWithoutData=0;
 
   for(;;)
   {
@@ -204,11 +205,16 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
       
         default:
           break;
-      }
-    
-
+        }
+      u8_CyclesWithoutData=0;
     }
-    //else delay(1);
+    else if (u8_lRecvBytesCnt==0) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
+    else if (u8_lRecvBytesCnt>0 && u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
+    {
+      u8_CyclesWithoutData++;
+    vTaskDelay(pdMS_TO_TICKS(1));
+    }
     
     if(u8_lRecvBytesCnt==(DALY_FRAME_SIZE*packets)) break; //Recv Pakage complete   
   }

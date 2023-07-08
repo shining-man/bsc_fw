@@ -23,6 +23,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
+//#define SYLCIN_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
@@ -55,7 +56,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Alarmrules
 #define CNT_ALARMS                   10
-#define CNT_BT_ALARMS_RULES          10
+#define CNT_BT_ALARMS_RULES          20
 //
 //DI/DO
 #define H_CLK                        14
@@ -86,6 +87,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      3+8
 #define SERIAL_BMS_SEPLOS_COUNT       2
+#define SERIAL_BMS_SYLCIN_COUNT       2
 enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define SERIAL1_PIN_RX               16
@@ -184,6 +186,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_MQTT_SERVER_PORT                   43
 #define ID_PARAM_MQTT_SERVER_ENABLE                 44
 #define ID_PARAM_MQTT_DEVICE_NAME                   45
+#define ID_PARAM_MQTT_TOPIC_NAME                    46
 
 #define ID_PARAM_ONWIRE_ENABLE                      50
 #define ID_PARAM_ONEWIRE_ADR                        51
@@ -245,7 +248,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_NEEY_BUZZER                     106 //not use
 #define ID_PARAM_NEEY_BALANCER_ON                107
 
-#define ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID     108
+#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108
 
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER     109
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME        110
@@ -278,7 +281,6 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE 127
 
-
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
 #define ID_BT_DEVICE_NEEY4A         1
@@ -291,6 +293,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_SERIAL_DEVICE_JKBMS      2
 #define ID_SERIAL_DEVICE_SEPLOSBMS  3
 #define ID_SERIAL_DEVICE_DALYBMS    4
+#define ID_SERIAL_DEVICE_SYLCINBMS  5
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0

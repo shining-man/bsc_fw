@@ -17,8 +17,7 @@
 static const char *TAG = "CAN";
 
 void sendBmsCanMessages();
-void sendCanMsg_370_371();
-void sendCanMsg_35e();
+void sendCanMsg_35e_370_371();
 void sendCanMsg_351();
 void sendCanMsg_355();
 void sendCanMsg_356();
@@ -35,8 +34,6 @@ void onCanReceive(int packetSize);
 
 static SemaphoreHandle_t mInverterDataMutex = NULL;
 static struct inverterData_s inverterData;
-
-char hostname[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
 uint8_t u8_mMqttTxTimer=0;
 
@@ -146,7 +143,7 @@ void loadCanSettings()
 {
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
-  uint8_t u8_lNumberOfSeplos = WebSettings::getInt(ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL_SEPLOS_CONNECT_TO_ID);
+  uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   
   uint32_t bmsConnectFilter=0;
   /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
@@ -162,7 +159,7 @@ void loadCanSettings()
     {
       bmsConnectFilter |= (1<<i);
     }
-    else if(i>=3 && u8_lNumberOfSeplos-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
+    else if(i>=3 && u8_lNumberOfSerial2BMSs-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
   }
 
   u8_mBmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
@@ -222,15 +219,14 @@ void sendBmsCanMessages()
       sendCanMsg_351();
       sendCanMsg_355();
       sendCanMsg_356();
-      sendCanMsg_35e();
+      sendCanMsg_35e_370_371();
       sendCanMsg_359(); //Alarms
       break;
 
     case ID_CAN_DEVICE_VICTRON:
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
       sendCanMsg_351();
-      sendCanMsg_370_371();
-      sendCanMsg_35e();
+      sendCanMsg_35e_370_371();
       sendCanMsg_35a(); //Alarms
 
       sendCanMsg_372();
@@ -599,7 +595,7 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
   if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN,0)==true) //wenn enabled
   {
     uint8_t u8_lReduzierenAbSoc = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC);
-    if(u8_lSoc>=u8_lReduzierenAbSoc && u8_lSoc<100)
+    if(u8_lSoc>=u8_lReduzierenAbSoc)
     {
       uint8_t u8_lReduzierenUmA = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC);
 
@@ -789,15 +785,24 @@ uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc)
 
 
 // Transmit hostname
-void sendCanMsg_370_371()
+void sendCanMsg_35e_370_371()
 {
-  sendCanMsg(0x370, (uint8_t *)&hostname, 8);
-  sendCanMsg(0x371, (uint8_t *)&hostname[8], 8);
-}
+  char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+  char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
-void sendCanMsg_35e()
-{
-  sendCanMsg(0x35e, (uint8_t *)&hostname, 6);
+    switch (u8_mSelCanInverter)
+  {
+    case ID_CAN_DEVICE_DEYE:
+    case ID_CAN_DEVICE_SOLISRHI:
+      sendCanMsg(0x35e, (uint8_t *)&hostname_pylon, 6);
+      break;
+    case ID_CAN_DEVICE_VICTRON:
+      sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
+      sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
+      sendCanMsg(0x35e, (uint8_t *)&hostname_general, 6);
+      break;
+  }
+
 }
 
 /*

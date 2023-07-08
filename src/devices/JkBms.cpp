@@ -65,12 +65,13 @@ static void sendMessage(uint8_t *sendMsg)
 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
-  uint8_t SMrecvState, u8_lRecvByte;
+  uint8_t SMrecvState, u8_lRecvByte, u8_CyclesWithoutData;
   uint16_t u16_lRecvDataLen;
   uint32_t u32_lStartTime=millis();
   SMrecvState=SEARCH_START_BYTE1;
   u16_mLastRecvBytesCnt=0;
   u16_lRecvDataLen=0xFFFF;
+  u8_CyclesWithoutData=0;
   uint16_t crc=0;
 
   for(;;)
@@ -123,6 +124,14 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
         default:
           break;
         }
+      u8_CyclesWithoutData=0;
+    }
+    else if (u16_mLastRecvBytesCnt==0) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
+    else if (u16_mLastRecvBytesCnt>0 && u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else // Wenn in diesem Zyklus keine Daten Empfangen wurden, dann setze den Task 1ms aus
+    {
+      u8_CyclesWithoutData++;
+    vTaskDelay(pdMS_TO_TICKS(1));
     }
 
     if(u16_mLastRecvBytesCnt==u16_lRecvDataLen) break; //Recv Pakage complete
