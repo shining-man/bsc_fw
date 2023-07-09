@@ -648,6 +648,27 @@ bool isMerker(uint8_t merkerNr)
   else return false;
 }
 
+/*
+ * Hohlt die Temperaturen von der entsprechenden Quelle (BMS, onewire) für die Alarmrules
+ */
+float getTemp_TempAlarmrule(uint8_t u8_ruleNr, uint8_t u8_sensorNr)
+{
+  uint8_t u8_lRuleTempQuelle=WebSettings::getInt(ID_PARAM_TEMP_ALARM_TEMP_QUELLE,u8_ruleNr,DT_ID_PARAM_TEMP_ALARM_TEMP_QUELLE);
+
+  if(u8_lRuleTempQuelle==1) //BMS
+  {
+    uint8_t u8_lRuleBmsQuelle=WebSettings::getInt(ID_PARAM_TEMP_ALARM_BMS_QUELLE,u8_ruleNr,DT_ID_PARAM_TEMP_ALARM_BMS_QUELLE);
+    return getBmsTempature(u8_lRuleBmsQuelle,u8_sensorNr);
+  }
+  else if(u8_lRuleTempQuelle==2) //Onewire
+  {
+    return owGetTemp(u8_sensorNr);
+  }
+
+  BSC_LOGE(TAG,"Error while reading the temperatures for the alarm rules");
+  return 0; //Fehler
+}
+
 bool temperatur_maxWertUeberwachung(uint8_t i)
 {
   bool bo_lHystMerker=true;
@@ -658,12 +679,12 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
 
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
-    if(owGetTemp(n)>maxTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    if(getTemp_TempAlarmrule(i,n)>maxTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       setMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && owGetTemp(n)>maxTemp-hysterese && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>maxTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -685,15 +706,15 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
   float tempOffset = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
   float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
 
-  aktTemp = tempOffset + owGetTemp(WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH));
+  aktTemp = tempOffset + getTemp_TempAlarmrule(i,WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VERGLEICH));
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
-    if(owGetTemp(n)>aktTemp && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    if(getTemp_TempAlarmrule(i,n)>aktTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       setMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && owGetTemp(n)>aktTemp-hysterese && owGetTemp(n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>aktTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -719,8 +740,8 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
   
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
-    if(owGetTemp(n)>f_lTempMax) f_lTempMax=owGetTemp(n);
-    if(owGetTemp(n)<f_lTempMin) f_lTempMin=owGetTemp(n);
+    if(getTemp_TempAlarmrule(i,n)>f_lTempMax) f_lTempMax=getTemp_TempAlarmrule(i,n);
+    if(getTemp_TempAlarmrule(i,n)<f_lTempMin) f_lTempMin=getTemp_TempAlarmrule(i,n);
   }
 
   if(f_lTempMax-f_lTempMin>=f_lMaxTempDiff)
