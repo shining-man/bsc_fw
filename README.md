@@ -82,7 +82,7 @@ A lot of further information about commissioning, supported devices, information
 
 ### Use with an ESP32 DevKit
 ### GPIOs
-Interface | RX / A | TX / B
+Interface | RX | TX
 -------- | -------- | --------
 **Serial 0**   | GPIO 16   | GPIO 17
 **Serial 1**   | GPIO 23   | GPIO 25
