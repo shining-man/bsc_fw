@@ -250,14 +250,8 @@ void JkBmsV13_parseData(uint8_t * t_message)
   BSC_LOGD(TAG_V13,"TotalV=%i, MaxV=%i, MinV=%i", sum, u16_lZellMaxVoltage, u16_lZellMinVoltage);
   #endif
 
-  //berechne SOC anhand der spannung TODO ... Einstellbar machen
-  //const uint32_t minVoltage = 1800;
-  //const uint32_t maxVoltage = 2550;
-  //uint32_t soc;
-
-  //soc = ((u16_lAVGZellVoltage - minVoltage)*100)/(maxVoltage-minVoltage);
-
-  //setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNrJkV13, soc); //in %
+  //Rufe SOC funktion auf ... dummy 0, sollte anhand einstellungen berechnet werden
+  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNrJkV13, 0);
 
   //#ifdef JKV13_DEBUG 
   //BSC_LOGD(TAG_V13,"SOC=%i, SumV=%i", soc,sum);
