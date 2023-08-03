@@ -16,6 +16,7 @@
 
 static const char *TAG = "CAN";
 
+void readCanMessages();
 void sendBmsCanMessages();
 void sendCanMsg_35e_370_371();
 void sendCanMsg_351();
@@ -120,6 +121,7 @@ void canSetup()
 
   loadCanSettings();
 
+  CAN.setAlert(true);
   esp_err_t err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_500KBPS);
   BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 }
@@ -197,8 +199,26 @@ void canTxCyclicRun()
   if(WebSettings::getBool(ID_PARAM_BMS_CAN_ENABLE,0))
   {
     u8_mMqttTxTimer++;
+    readCanMessages();
     sendBmsCanMessages();
     if(u8_mMqttTxTimer>=15)u8_mMqttTxTimer=0;
+  }
+}
+
+
+void readCanMessages()
+{
+  twai_message_t canMessage;
+  twai_status_info_t canStatus;
+
+  for(uint8_t i=0;i<5;i++)
+  {
+    canStatus = CAN.getStatus();
+    if(canStatus.msgs_to_rx==0) break;
+    CAN.read(&canMessage);
+    #ifdef CAN_DEBUG
+    BSC_LOGI(TAG,"RX ID: %i",canMessage.identifier);
+    #endif
   }
 }
 
@@ -207,6 +227,32 @@ void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
 {
   esp_err_t err = CAN.write(TWAI_STD_FRAME,identifier,length,buffer);
   if(err!=ESP_OK) BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
+
+  #ifdef CAN_DEBUG_STATUS
+  twai_status_info_t canStatus = CAN.getStatus();
+
+  if(err!=ESP_OK || canStatus.state!=1 || canStatus.tx_error_counter!=0 || canStatus.tx_failed_count!=0 || canStatus.arb_lost_count!=0 || canStatus.bus_error_count!=0)
+  {
+    BSC_LOGE(TAG, "state=%i, msgs_to_tx=%i, msgs_to_rx=%i, tx_error=%i, rx_error=%i, tx_failed=%i, rx_missed=%i, rx_overrun=%i, arb_lost=%i, bus_error=%i", \
+    canStatus.state, canStatus.msgs_to_tx, canStatus.msgs_to_rx, canStatus.tx_error_counter, canStatus.rx_error_counter, \
+    canStatus.tx_failed_count, canStatus.rx_missed_count, canStatus.rx_overrun_count, canStatus.arb_lost_count, canStatus.bus_error_count);
+  }
+
+  /*
+    twai_state_t state;             //< Current state of TWAI controller (Stopped/Running/Bus-Off/Recovery) 
+    uint32_t msgs_to_tx;            //< Number of messages queued for transmission or awaiting transmission completion 
+    uint32_t msgs_to_rx;            //< Number of messages in RX queue waiting to be read 
+    uint32_t tx_error_counter;      //< Current value of Transmit Error Counter 
+    uint32_t rx_error_counter;      //< Current value of Receive Error Counter 
+    uint32_t tx_failed_count;       //< Number of messages that failed transmissions 
+    uint32_t rx_missed_count;       //< Number of messages that were lost due to a full RX queue (or errata workaround if enabled) 
+    uint32_t rx_overrun_count;      //< Number of messages that were lost due to a RX FIFO overrun 
+    uint32_t arb_lost_count;        //< Number of instances arbitration was lost 
+    uint32_t bus_error_count;       //< Number of instances a bus error has occurred 
+  */
+  BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
+  #endif
+
   vTaskDelay(pdMS_TO_TICKS(5));
 }
 
@@ -219,6 +265,7 @@ void sendBmsCanMessages()
       sendCanMsg_351();
       sendCanMsg_355();
       sendCanMsg_356();
+      vTaskDelay(pdMS_TO_TICKS(50));
       sendCanMsg_35e_370_371();
       sendCanMsg_359(); //Alarms
       break;
