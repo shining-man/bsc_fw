@@ -308,6 +308,8 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_TEMP_ALARM_TEMP_QUELLE          129
 #define ID_PARAM_TEMP_ALARM_BMS_QUELLE           130
 
+#define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE 128
+
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
 #define ID_BT_DEVICE_NEEY4A         1
