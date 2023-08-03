@@ -813,6 +813,23 @@ void handle_getDashboardData()
   tmp += "|";
   tmp += str_BootTimeStamp.c_str();
 
+  //9-11. BMS data (serial 0-2)
+  for(uint8_t i=0;i<3;i++)
+  {
+    tmp += "|";
+    if(millis()-getBmsLastDataMillis(BT_DEVICES_COUNT+i)<5000)
+    {
+      float fl_lBmsTotalVolage = getBmsTotalVoltage(BT_DEVICES_COUNT+i);
+      float fl_lBmsTotalCurrent = getBmsTotalCurrent(BT_DEVICES_COUNT+i);
+      uint8_t u8_lBmsSoc = getBmsChargePercentage(BT_DEVICES_COUNT+i);
+      tmp += String(fl_lBmsTotalVolage) + ";" + String(fl_lBmsTotalCurrent) + ";" + String(u8_lBmsSoc);
+    }
+    else
+    {
+      tmp += "--;--;--";
+    }
+  }
+
   server.send(200, "text/html", tmp.c_str());
 }
 
