@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.13"
+#define BSC_SW_VERSION      "V0.4.16"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -33,6 +33,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
+//#define CAN_DEBUG_STATUS
 //#define WEBSET_DEBUG
 //#define MAIN_DEBUG
 //#define LOG_BMS_DATA
@@ -51,7 +52,8 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define MQTT_DEBUG        
 #define WLAN_DEBUG        
 #define WLAN_DEBUG2
-#define CAN_DEBUG
+//#define CAN_DEBUG
+#define CAN_DEBUG_STATUS
 //#define WEBSET_DEBUG
 #define MAIN_DEBUG
 //#define LOG_BMS_DATA
@@ -301,6 +303,11 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_BTDEV_DEACTIVATE                126
 
 #define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE 127
+
+#define ID_PARAM_TEMP_ALARM_TEMP_QUELLE          128
+#define ID_PARAM_TEMP_ALARM_BMS_QUELLE           129
+
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
