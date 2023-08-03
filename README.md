@@ -1,54 +1,109 @@
-
 # Battery safety controller (BSC)
-![bsc_pcb_3d](https://github.com/shining-man/bsc_hw/blob/main/img/bsc_3d.png?raw=true)
+![bsc_dashboard](https://github.com/shining-man/bsc_fw/blob/main/doc/README_Dashboard.png?raw=true)
 
-The Battery Safety Controller (BSC) is a configurable controller for monitoring and protecting DIY (LiFePo4) storage devices. It should be noted that the BSC is not a BMS (battery management system). I.e. the BSC itself does not measure e.g. cell voltages. These must be made available to it via the serial interface or via Bluetooth from e.g. a BMS or a balancer. These parameters can then be monitored by the BSC.
+The Battery Safety Controller (BSC) is a freely configurable controller that can be used for a wide range of control and monitoring tasks for DIY batteries. The BSC can take over the central control of the Energy-Sorange system and can be used to implement a second safety level in addition to the BMS.
 
-The BSC also has an onewire interface to which up to 64 temperature sensors (DS18B20) can be connected. These can then also be monitored.
+The BSC consists of two components. The BSC hardware and the corresponding software.
 
-In addition to the monitoring function, the BSC can also control an inverter connected via the CAN bus. This can be used, for example, to regulate the charging current. Either for charge control or, for example, to control the charge current to 0 in the event of danger.
+1. The [BSC Hardware](https://github.com/shining-man/bsc_hw), which is used as middleware between the BMS and the inverter. One advantage of the BSC hardware is its secure operation. The components and design are such that all physical interfaces are galvanically isolated.
 
-If one of the monitored parameters exceeds/falls below the set limits, then a set relay output can be switched. This can then be used, for example, by a circuit breaker to disconnect the battery. 
+2. The BSC software, which makes the Battery Safety Controller hardware a freely configurable controller that can be used for a wide range of control and monitoring tasks in DIY battery systems.
 
-The BSC can also be used to send the data of the BMS/balancer to a MQTT broker.
+The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. In this case, for example, the NEEY balancer data can be transmitted to MQTT.  
 
-All settings can be freely parameterized via a web interface.
+The BSC display can also be used for visualization.
 
-**German**<br>
-Der Battery Safety Controller (BSC) ist ein konfigurierbarer Controller zum Überwachen und Schützen von DIY (LiFePo4) Speichern. Zu beachten ist, dass der BSC kein BMS (Batteriemanagementsystem) ist. D.h. der BSC misst selber z.B. keine Zellspannungen. Diese müssen ihm über die serielle Schnittstelle oder über Bluetooth von z.B. einem BMS oder einem Balancer zur Verfügung gestellt werden. Diese Parameter können dann vom BSC überwacht werden.
+## Use cases of the BSC
+### 1. Monitoring of connected devices (serial, Bluetooth)
+For this purpose, the BSC can send the data from the connected devices (BMS, balancer, temperature sensors) via MQTT to a broker to display them graphically with Grafana, for example, or to further process the data from an automation system (ioBroker, NodRed, Home Assistant, ...).
 
-Der BSC verfügt auch über eine onewire Schnittstellen an der bis zu 64 Temperatursensoren (DS18B20) angeschlossen werden können. Diese können dann auch überwacht werden.
+It is possible to use the VenusOS dbus driver ([dbus-bsc-can](https://github.com/shining-man/dbus-bsc-can)) to transfer the extended data (cell voltages, temperatures, ...) via the CAN bus to the Victron system.
 
-Zusätzlich zu der Überwachungsfunktion kann der BSC auch einen über den CAN-Bus angeschlossenen Wechselrichter steuern. Hierüber kann z.B. der Ladestrom geregelt werden. Entweder zur Laderegelung oder um z.B. im Gefahrenfall den Ladestrom auf 0 zu regeln.
+### 2. Charge control
+For this, the BSC takes the data from the connected devices to control the inverter (Victron, Solis, DEYE, ...) connected via the CAN bus. Here are several functions available to adapt the charge control to your own DIY battery.
+- Cell voltage dependent throttling of the charge current
+- Reduce charge current in case of cell drift
+- SoC dependent charge current reduction
+- Charge current cut-off: prevents continuous recharging when the battery is full
+- Combining data from the individual physical battery packs into an overall virtual battery pack, with consideration of many parameters, such as can/does the battery pack charge/discharge at all.
 
-Wenn einer der überwachten Parameter die eingestellten Grenzen über-/unterschreitet, dann kann z.B. ein eingestellter Relaisausgang geschaltet werden. Über dieses kann dann z.B. ein Leistungsschalter die Batterie trennen. 
+### 3. Second safety level besides the BMS.
+The BSC can monitor various configurable parameters on connected devices (serial, Bluetooth) to create a second level of security. <br>
+Parameters that can be monitored include:
+- Does the connected BMS respond regularly
+- Cell voltages (min/max)
+- Total voltage (min/max)
+- Temperatures
 
-Der BSC kann aber auch genutzt werden um die Daten des BMS/Balancer an einen MQTT-Broker zu senden.
+This can be used, for example, to control the relay outputs to trigger a load break switch.
 
-Alle Einstellungen sind frei über eine Weboberfläche parametrierbar.
+### 4. Temperature monitoring
+Up to 64 OneWire temperature sensors (DS18B20) can be connected and monitored. There are different regulations for monitoring the temperature:
+- Maximum value monitoring
+- Maximum value monitoring with one sensor as reference value
+- Differential value monitoring
 
-**Features**
-* 6x relay outputs
-* 4x digital inputs (isolated)
-* 3x serial interface (isolated); RS232, RS485
-* Onewire (DS18B20)
+All settings can be freely parameterized via a web interface. <br>
+As an example a part of the Inverter Settings:<br>
+![bsc_inverter_settings](https://github.com/shining-man/bsc_fw/blob/main/doc/README_inverter_settings.png?raw=true)
+
+## Supported BMS (RS485)
+- JBD (Jiabaida)
+- JK
+- Seplos [1]
+- DALY
+- Sylcin [1]
+
+[1]: With the Seplos and the Sylcin BMS, up to 8 devices can be connected to one serial port.
+
+## Supported Inverter
+- Victron
+- Solis, DEYE, ...
+
+## Supported Bluetooth devices
+- NEEY (up to 7 pieces) [2]
+- JK-BMS (Test phase)
+
+[2]: Special function: With the NEEY Balancer, not only can the data be read, it can also be configured via the BSC.
+
+## Features der BSC-Hardware
+* 6x Relay outputs
+* 4x Digital inputs (isolated)
+* 3x Serial interface (isolated) [3] 
+* Onewire (64x DS18B20)
 * CAN (isolated)
 * Bluetooth
 * WLAN
-* I2C for extensions
 
-**Supported Devices**
+[3]: With the [Serial Extension](https://github.com/shining-man/bsc_extension_serial) the BSC can be extended by 8 additional physical and galvanically isolated serial ports.
+
+## First steps
+A lot of further information about commissioning, supported devices, information about the WebUI can be found in the [Wiki](https://github.com/shining-man/bsc_fw/wiki).
+
+### Use with an ESP32 DevKit
+### GPIOs
+Interface | RX | TX
+-------- | -------- | --------
+**Serial 0**   | GPIO 16   | GPIO 17
+**Serial 1**   | GPIO 23   | GPIO 25
+**Serial 2**   | GPIO 35   | GPIO 33
+**CAN**   | GPIO 5   | GPIO 4
+
+## More information
+* [Discord Forum](https://discord.gg/VFUw9X44)
 * [Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
-
-**Weitere Informationen**
 * [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
 * [Discussions](https://github.com/shining-man/bsc_fw/discussions)
 * [PCB](https://github.com/shining-man/bsc_hw)
 * [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
 
-## Statusdisplay
-Um den Status des BSC und den verbundenen BMSen anzuzeigen gibt es für den BSC ein Statusdisplay.<br>
-Weitere Details dazu sind im Github Projekt des Displays.<br>
-[GitHub-Projekt Display](https://github.com/shining-man/bsc_display)<br>
-<br>
-![Picture_BSC_Display_Home](https://github.com/shining-man/bsc_display/blob/main/img/Disp_Home.jpg?raw=true)<br>
+# Status display
+To show the status of the BSC and the connected BMSes there is a status display for the BSC.<br>
+More details are in the Github project of the display.
+[GitHub project Display](https://github.com/shining-man/bsc_display)
+
+![Picture_BSC_Display_Home](https://github.com/shining-man/bsc_display/blob/main/img/Disp_Home.jpg?raw=true)
+
+# VenusOS dbus driver
+To display more data in VenusOS (Victron) like the cell voltages of the connected BMS or the temperatures of the OneWire sensors, there is a dbus driver. Here the data is not transmitted via WLAN to the VenusOS, but via the CAN bus. <br>
+For more info see the github project: [dbus-bsc-can](https://github.com/shining-man/dbus-bsc-can)
