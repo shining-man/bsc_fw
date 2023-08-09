@@ -24,7 +24,7 @@ static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 
 enum SM_readDataV13 {SEARCH_START_BYTE1, SEARCH_START_BYTE2, SLAVE_ADDR, CMD_CODE, RECV_DATA};
 
-uint8_t getDataMsgV13[] = { 0x55, 0xAA, 0x00, 0xFF, 0x00, 0x00, 0xFE };
+
 
 void      JkBmsV13_sendMessage(uint8_t *sendMsg, uint32_t size);
 bool      JkBmsV13_recvAnswer(uint8_t * t_outMessage);
@@ -38,6 +38,7 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   mPortJkV13 = port;
   u8_mDevNrJkV13 = devNr;
   callbackSetTxRxEn = callback;
+  uint8_t getDataMsgV13[] = { 0x55, 0xAA, 0x00, 0xFF, 0x00, 0x00, 0xFE };
 
   uint8_t response[JKBMSV13_MAX_ANSWER_LEN];
 
