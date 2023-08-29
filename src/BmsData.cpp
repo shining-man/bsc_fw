@@ -311,7 +311,14 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       const int32_t lo = bmsData.bmsMinCellVoltage[devNr];
       const int32_t sdiff = (int32_t)u16_CellvoltSoc100-(int32_t)u16_CellvoltSoc0;
       const int32_t input = (((hi-(int32_t)u16_CellvoltSoc0)*hi)+(((int32_t)u16_CellvoltSoc100-hi)*lo))/(sdiff);
-      value = ((input - u16_CellvoltSoc0)*100)/sdiff;
+      int32_t result = ((input - u16_CellvoltSoc0)*100)/sdiff;
+
+      if(result < 0 || lo <= u16_CellvoltSoc0)
+        value = 0;
+      else if(result > 100 || hi >= u16_CellvoltSoc100)
+        value = 100;
+      else
+        value = result;
     }
     else
     {
@@ -338,7 +345,6 @@ void setBmsErrors(uint8_t devNr, uint32_t value)
   bmsData.bmsErrors[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
 }
-
 
 uint8_t getBmsStateFETs(uint8_t devNr)
 {
