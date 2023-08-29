@@ -231,12 +231,12 @@ void JkBmsV13_parseData(uint8_t * t_message)
     sum += u16_lZellVoltage;
     setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13,n, u16_lZellVoltage);
 
-    if(u16_lZellVoltage < u16_lZellMinVoltage){
+    if(u16_lZellVoltage <= u16_lZellMinVoltage){
       u16_lZellMinVoltage = u16_lZellVoltage;
       u16_lCellLow = n;
     }
 
-    if(u16_lZellVoltage > u16_lZellMaxVoltage){
+    if(u16_lZellVoltage >= u16_lZellMaxVoltage){
       u16_lZellMaxVoltage = u16_lZellVoltage;
       u16_lCellHigh = n;
     }
@@ -246,6 +246,8 @@ void JkBmsV13_parseData(uint8_t * t_message)
   setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, sum/1000.0);
   setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lZellMaxVoltage);
   setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lZellMinVoltage);
+  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lCellHigh+1);
+  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lCellLow+1);
 
   #ifdef JKV13_DEBUG 
   BSC_LOGD(TAG_V13,"TotalV=%i, MaxV=%i, MinV=%i", sum, u16_lZellMaxVoltage, u16_lZellMinVoltage);
@@ -265,6 +267,8 @@ void JkBmsV13_parseData(uint8_t * t_message)
   BSC_LOGD(TAG_V13,"BMStemp=%i", i16_temperature);
   #endif
 
+
+  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNrJkV13,millis());
 
   /*if(millis()>(mqttSendeTimer_jk_v13+10000))
   {
