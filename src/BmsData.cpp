@@ -297,10 +297,28 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
     
     uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    
+
     if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
+    }
+    else if(u16_CellvoltSoc100>0 && u16_CellvoltSoc0>0){
+      //Berechne SOC Linear
+      const int32_t hi = bmsData.bmsMaxCellVoltage[devNr];
+      const int32_t lo = bmsData.bmsMinCellVoltage[devNr];
+      const int32_t sdiff = (int32_t)u16_CellvoltSoc100-(int32_t)u16_CellvoltSoc0;
+      const int32_t input = (((hi-(int32_t)u16_CellvoltSoc0)*hi)+(((int32_t)u16_CellvoltSoc100-hi)*lo))/(sdiff);
+      int32_t result = ((input - u16_CellvoltSoc0)*100)/sdiff;
+
+      if(result < 0 || lo <= u16_CellvoltSoc0)
+        value = 0;
+      else if(result > 100 || hi >= u16_CellvoltSoc100)
+        value = 100;
+      else
+        value = result;
     }
     else
     {
@@ -327,7 +345,6 @@ void setBmsErrors(uint8_t devNr, uint32_t value)
   bmsData.bmsErrors[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
 }
-
 
 uint8_t getBmsStateFETs(uint8_t devNr)
 {
