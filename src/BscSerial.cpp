@@ -19,6 +19,7 @@
 #include "devices/SeplosBms.h"
 #include "devices/SylcinBms.h"
 #include "devices/DalyBms.h"
+#include "devices/JkBmsV13.h"
 
 static const char *TAG = "BSC_SERIAL";
 
@@ -181,6 +182,12 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       serialDeviceData[u8_devNr].readBms = &SylcinBms_readBmsData;
       serialDeviceData[u8_devNr].u8_mAddData=1;
       break;
+
+    case ID_SERIAL_DEVICE_JKBMS_V13:
+      BSC_LOGI(TAG,"Set serial device %i: JKBMS V1.3",u8_devNr);
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &JkBmsV13_readBmsData;
+      break;      
    
     default:
       serialDeviceData[u8_devNr].readBms = 0;
