@@ -166,7 +166,7 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
 #ifdef GOBEL_DEBUG
-  ESP_LOGD(TAG, "Serial %i send", u8_mDevNr);
+  BSC_LOGD(TAG, "Serial %i send", u8_mDevNr);
 #endif
   sendMessage(getDataMsg, ARRAY_SIZE(getDataMsg));
   if (recvAnswer(response))
@@ -179,7 +179,7 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   }
   else
   {
-    ESP_LOGI(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
+    BSC_LOGI(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
     bo_lRet = false;
   }
 
@@ -213,7 +213,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     // Timeout
     if (millis() - u32_lStartTime > 200)
     {
-      ESP_LOGI(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
+      BSC_LOGI(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       return false;
     }
 
@@ -270,7 +270,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 #ifdef GOBEL_DEBUG
   if (u16_mLastRecvBytesCnt > 5)
   {
-    ESP_LOGD(TAG, "RecvBytes=%x, %x, %x, %x, %x, %x", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt - 5], p_lRecvBytes[u16_mLastRecvBytesCnt - 4],
+    BSC_LOGD(TAG, "RecvBytes=%x, %x, %x, %x, %x, %x", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt - 5], p_lRecvBytes[u16_mLastRecvBytesCnt - 4],
              p_lRecvBytes[u16_mLastRecvBytesCnt - 3], p_lRecvBytes[u16_mLastRecvBytesCnt - 2], p_lRecvBytes[u16_mLastRecvBytesCnt - 1]);
   }
 #endif
@@ -284,7 +284,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   uint8_t cksumL = cksum & 0xFF;
 
 #ifdef GOBEL_DEBUG
-  ESP_LOGD(TAG, "ckhsum=%2.2x %2.2x", cksumH, cksumL);
+  BSC_LOGD(TAG, "ckhsum=%2.2x %2.2x", cksumH, cksumL);
 #endif
   if (p_lRecvBytes[u16_mLastRecvBytesCnt - 3] != cksumH && p_lRecvBytes[u16_mLastRecvBytesCnt - 2] != cksumL)
     return false;
@@ -338,7 +338,7 @@ void parseData(uint8_t *t_message)
       p.getuint8();                                                       // slave addr
       u8_lNumOfCells = p.getuint8();
 #ifdef GOBEL_DEBUG
-      ESP_LOGD(TAG, "n>NOC:  %i", u8_lNumOfCells);
+      BSC_LOGD(TAG, "n>NOC:  %i", u8_lNumOfCells);
 #endif
       for (uint8_t n = 0; n < u8_lNumOfCells; n++)
       {
@@ -360,7 +360,7 @@ void parseData(uint8_t *t_message)
         u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow;
 
 #ifdef GOBEL_DEBUG
-        ESP_LOGD(TAG, "V%i=%i", n, u16_lZellVoltage);
+        BSC_LOGD(TAG, "V%i=%i", n, u16_lZellVoltage);
 #endif
       }
 
@@ -398,7 +398,7 @@ void parseData(uint8_t *t_message)
   }
   catch (const std::exception &e)
   {
-    ESP_LOGI(TAG, "Parser Error: %s Rx%d", e.what(), u16_mLastRecvBytesCnt);
+    BSC_LOGI(TAG, "Parser Error: %s Rx%d", e.what(), u16_mLastRecvBytesCnt);
   }
 
   /*bmsErrors
