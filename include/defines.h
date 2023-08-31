@@ -323,6 +323,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_SERIAL_DEVICE_DALYBMS    4
 #define ID_SERIAL_DEVICE_SYLCINBMS  5
 #define ID_SERIAL_DEVICE_JKBMS_V13  6
+#define ID_SERIAL_DEVICE_GOBELBMS   7
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
