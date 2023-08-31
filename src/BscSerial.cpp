@@ -20,6 +20,7 @@
 #include "devices/SylcinBms.h"
 #include "devices/DalyBms.h"
 #include "devices/JkBmsV13.h"
+#include "devices/GobelBms.h"
 
 static const char *TAG = "BSC_SERIAL";
 
@@ -188,7 +189,13 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &JkBmsV13_readBmsData;
       break;      
-   
+
+    case ID_SERIAL_DEVICE_GOBELBMS:
+      ESP_LOGI(TAG,"setReadBmsFunktion Gobel");
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &GobelBms_readBmsData;
+      break;
+
     default:
       serialDeviceData[u8_devNr].readBms = 0;
   }
