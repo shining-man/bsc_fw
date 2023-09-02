@@ -85,6 +85,7 @@ bool setBmsCellVoltage(uint8_t devNr, uint8_t cellNr, uint16_t value);
 
 float getBmsTotalVoltage(uint8_t devNr);
 void setBmsTotalVoltage(uint8_t devNr, float value);
+void setBmsTotalVoltage_int(uint8_t devNr, int16_t value);
 
 uint16_t getBmsMaxCellDifferenceVoltage(uint8_t devNr);
 void setBmsMaxCellDifferenceVoltage(uint8_t devNr, uint16_t value);
@@ -94,6 +95,7 @@ void setBmsAvgVoltage(uint8_t devNr, uint16_t value);
 
 float getBmsTotalCurrent(uint8_t devNr);
 void setBmsTotalCurrent(uint8_t devNr, float value);
+void setBmsTotalCurrent_int(uint8_t devNr, int16_t value);
 
 uint8_t getBmsMaxVoltageCellNumber(uint8_t devNr);
 void setBmsMaxVoltageCellNumber(uint8_t devNr, uint8_t value);
