@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.16"
+#define BSC_SW_VERSION      "V0.4.16_T2"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -322,12 +322,14 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_SERIAL_DEVICE_SEPLOSBMS  3
 #define ID_SERIAL_DEVICE_DALYBMS    4
 #define ID_SERIAL_DEVICE_SYLCINBMS  5
+#define ID_SERIAL_DEVICE_JKBMS_CAN  6
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
 #define ID_CAN_DEVICE_SOLISRHI      1
 #define ID_CAN_DEVICE_DEYE          2
 #define ID_CAN_DEVICE_VICTRON       3
+#define ID_CAN_DEVICE_VICTRON_250K  4
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0

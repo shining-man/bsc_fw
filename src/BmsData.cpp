@@ -131,6 +131,12 @@ void setBmsTotalVoltage(uint8_t devNr, float value)
   bmsData.bmsTotalVoltage[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
+void setBmsTotalVoltage_int(uint8_t devNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsTotalVoltage[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 
 uint16_t getBmsMaxCellDifferenceVoltage(uint8_t devNr)
@@ -174,6 +180,12 @@ void setBmsTotalCurrent(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTotalCurrent[devNr] = (int16_t)(value*100);
+  xSemaphoreGive(mBmsDataMutex);
+}
+void setBmsTotalCurrent_int(uint8_t devNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsTotalCurrent[devNr] = value;
   xSemaphoreGive(mBmsDataMutex);
 }
 

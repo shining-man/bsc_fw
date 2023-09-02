@@ -101,11 +101,6 @@ struct data373
 };
 
 
-//Test
-uint32_t u32_lastCanId;
-uint16_t can_batVolt=0;
-int16_t can_batCurr=0;
-uint8_t can_soc=0;
 
 void canSetup()
 {
@@ -122,7 +117,16 @@ void canSetup()
   loadCanSettings();
 
   CAN.setAlert(true);
-  esp_err_t err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_500KBPS);
+  CAN.setRxQueueLen(10);
+  esp_err_t err;
+  if(u8_mSelCanInverter==ID_CAN_DEVICE_VICTRON_250K)
+  {
+    err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_250KBPS);
+  }
+  else
+  {
+    err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_500KBPS);
+  }
   BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 }
 
@@ -211,14 +215,105 @@ void readCanMessages()
   twai_message_t canMessage;
   twai_status_info_t canStatus;
 
-  for(uint8_t i=0;i<5;i++)
+
+
+
+  canStatus = CAN.getStatus();
+  BSC_LOGE(TAG, "state=%i, msgs_to_tx=%i, msgs_to_rx=%i, tx_error=%i, rx_error=%i, tx_failed=%i, rx_missed=%i, rx_overrun=%i, arb_lost=%i, bus_error=%i", \
+  canStatus.state, canStatus.msgs_to_tx, canStatus.msgs_to_rx, canStatus.tx_error_counter, canStatus.rx_error_counter, \
+  canStatus.tx_failed_count, canStatus.rx_missed_count, canStatus.rx_overrun_count, canStatus.arb_lost_count, canStatus.bus_error_count);
+  /*
+    twai_state_t state;             //< Current state of TWAI controller (Stopped/Running/Bus-Off/Recovery) 
+    uint32_t msgs_to_tx;            //< Number of messages queued for transmission or awaiting transmission completion 
+    uint32_t msgs_to_rx;            //< Number of messages in RX queue waiting to be read 
+    uint32_t tx_error_counter;      //< Current value of Transmit Error Counter 
+    uint32_t rx_error_counter;      //< Current value of Receive Error Counter 
+    uint32_t tx_failed_count;       //< Number of messages that failed transmissions 
+    uint32_t rx_missed_count;       //< Number of messages that were lost due to a full RX queue (or errata workaround if enabled) 
+    uint32_t rx_overrun_count;      //< Number of messages that were lost due to a RX FIFO overrun 
+    uint32_t arb_lost_count;        //< Number of instances arbitration was lost 
+    uint32_t bus_error_count;       //< Number of instances a bus error has occurred 
+  */
+  BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
+
+
+
+
+  // JK-BMS CAN
+  bool isJkCanBms=false;
+  uint8_t u8_jkCanBms;
+  for(uint8_t i=0; i<3; i++)
+  {
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)==ID_SERIAL_DEVICE_JKBMS_CAN)
+    {
+      isJkCanBms=true;
+      u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
+      BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
+      break;
+    }
+  }
+
+  for(uint8_t i=0;i<10;i++)
   {
     canStatus = CAN.getStatus();
     if(canStatus.msgs_to_rx==0) break;
     CAN.read(&canMessage);
+
     #ifdef CAN_DEBUG
     BSC_LOGI(TAG,"RX ID: %i",canMessage.identifier);
     #endif
+
+    uint16_t canId11bit=(canMessage.identifier&0x7FF);
+    BSC_LOGI(TAG,"RX Extd=%i, ID=%i, 11bit=%i, len=%i",canMessage.extd,canMessage.identifier,canId11bit,canMessage.data_length_code);
+    if(canMessage.data_length_code>0)
+    {
+      String data="";
+      for(uint8_t i=0; i<canMessage.data_length_code;i++)
+      {
+        data+=canMessage.data[i];
+        data+=" ";
+      }
+      BSC_LOGI(TAG,"RX data=%s",data.c_str());
+    }
+
+    if(isJkCanBms)
+    {
+      if(canMessage.identifier==0x02F4) //756; Battery status informatio
+      {
+        int16_t can_batVolt=0;
+        int16_t can_batCurr=0;
+        uint8_t can_soc=0;
+
+        can_batVolt = ((int16_t)canMessage.data[1]<<8 | canMessage.data[0])*10; //Strom mit 10 multiplizieren; für BmsData
+
+        can_batCurr = ((int16_t)canMessage.data[3]<<8 | canMessage.data[2])-4000;
+        if (can_batCurr&0x8000){can_batCurr=(can_batCurr&0x7fff);}
+        else {can_batCurr*=-1;} // Wenn negativ
+        can_batCurr*=10; //Strom mit 10 multiplizieren; für BmsData
+
+        can_soc = canMessage.data[4];
+
+        setBmsTotalVoltage_int(u8_jkCanBms,can_batVolt);
+        setBmsTotalCurrent_int(u8_jkCanBms,can_batCurr);
+        setBmsChargePercentage(u8_jkCanBms,can_soc);
+        setBmsLastDataMillis(u8_jkCanBms,millis());
+
+        BSC_LOGI(TAG,"JK: volt=%i, curr=%i, soc=%i",can_batVolt,can_batCurr,can_soc);
+      }
+      else if(canMessage.identifier==0x04F4) //1268; Cell voltage
+      {
+
+      }
+      else if(canMessage.identifier==0x05F4) //1524; Cell temperature
+      {
+
+      }
+      else if(canMessage.identifier==0x07F4) //2036; Warning message
+      {
+
+      }
+    }
+
   }
 }
 
@@ -271,6 +366,7 @@ void sendBmsCanMessages()
       break;
 
     case ID_CAN_DEVICE_VICTRON:
+    case ID_CAN_DEVICE_VICTRON_250K:
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
       sendCanMsg_351();
       sendCanMsg_35e_370_371();
