@@ -219,7 +219,7 @@ void readCanMessages()
 
 
   canStatus = CAN.getStatus();
-  BSC_LOGE(TAG, "state=%i, msgs_to_tx=%i, msgs_to_rx=%i, tx_error=%i, rx_error=%i, tx_failed=%i, rx_missed=%i, rx_overrun=%i, arb_lost=%i, bus_error=%i", \
+  //BSC_LOGE(TAG, "state=%i, msgs_to_tx=%i, msgs_to_rx=%i, tx_error=%i, rx_error=%i, tx_failed=%i, rx_missed=%i, rx_overrun=%i, arb_lost=%i, bus_error=%i", \
   canStatus.state, canStatus.msgs_to_tx, canStatus.msgs_to_rx, canStatus.tx_error_counter, canStatus.rx_error_counter, \
   canStatus.tx_failed_count, canStatus.rx_missed_count, canStatus.rx_overrun_count, canStatus.arb_lost_count, canStatus.bus_error_count);
   /*
@@ -234,7 +234,7 @@ void readCanMessages()
     uint32_t arb_lost_count;        //< Number of instances arbitration was lost 
     uint32_t bus_error_count;       //< Number of instances a bus error has occurred 
   */
-  BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
+  //BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
 
 
 
@@ -248,7 +248,7 @@ void readCanMessages()
     {
       isJkCanBms=true;
       u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
-      BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
+      //BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
       break;
     }
   }
@@ -263,7 +263,7 @@ void readCanMessages()
     BSC_LOGI(TAG,"RX ID: %i",canMessage.identifier);
     #endif
 
-    uint16_t canId11bit=(canMessage.identifier&0x7FF);
+    /*uint16_t canId11bit=(canMessage.identifier&0x7FF);
     BSC_LOGI(TAG,"RX Extd=%i, ID=%i, 11bit=%i, len=%i",canMessage.extd,canMessage.identifier,canId11bit,canMessage.data_length_code);
     if(canMessage.data_length_code>0)
     {
@@ -274,7 +274,7 @@ void readCanMessages()
         data+=" ";
       }
       BSC_LOGI(TAG,"RX data=%s",data.c_str());
-    }
+    }*/
 
     if(isJkCanBms)
     {
@@ -298,7 +298,7 @@ void readCanMessages()
         setBmsChargePercentage(u8_jkCanBms,can_soc);
         setBmsLastDataMillis(u8_jkCanBms,millis());
 
-        BSC_LOGI(TAG,"JK: volt=%i, curr=%i, soc=%i",can_batVolt,can_batCurr,can_soc);
+        //BSC_LOGI(TAG,"JK: volt=%i, curr=%i, soc=%i",can_batVolt,can_batCurr,can_soc);
       }
       else if(canMessage.identifier==0x04F4) //1268; Cell voltage
       {
