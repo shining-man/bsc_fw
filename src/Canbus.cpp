@@ -249,6 +249,8 @@ void readCanMessages()
       isJkCanBms=true;
       u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
       //BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
+      
+      setBmsLastDataMillis(u8_jkCanBms,millis()); //Nur zum Test
       break;
     }
   }
@@ -287,8 +289,6 @@ void readCanMessages()
         can_batVolt = ((int16_t)canMessage.data[1]<<8 | canMessage.data[0])*10; //Strom mit 10 multiplizieren; für BmsData
 
         can_batCurr = ((int16_t)canMessage.data[3]<<8 | canMessage.data[2])-4000;
-        if (can_batCurr&0x8000){can_batCurr=(can_batCurr&0x7fff);}
-        else {can_batCurr*=-1;} // Wenn negativ
         can_batCurr*=10; //Strom mit 10 multiplizieren; für BmsData
 
         can_soc = canMessage.data[4];
