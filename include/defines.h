@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.16_T2"
+#define BSC_SW_VERSION      "V0.4.16_T6"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -309,6 +309,9 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE 130
 
+#define ID_PARAM_ALARM_BT_GESAMT_SPG_HYSTERESE   131
+
+
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
 #define ID_BT_DEVICE_NEEY4A         1
@@ -515,3 +518,6 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 
 
 #endif
+
+
+#define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
