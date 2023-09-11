@@ -1357,6 +1357,7 @@ boolean WebSettings::readConfig()
     #endif
 
     uint32_t size = f.size();
+    uint32_t fPosOld=0xFFFFFFFF;
     while (f.position() < size)
     {
       #ifdef WEBSET_DEBUG
@@ -1382,6 +1383,12 @@ boolean WebSettings::readConfig()
       #ifdef WEBSET_DEBUG
       BSC_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, str_value.c_str());
       #endif
+      if(fPosOld==f.position())
+      {
+        BSC_LOGE(TAG,"Read config break: pos=%i\n",(uint32_t)f.position());
+        break;
+      }
+      fPosOld=f.position();
     }
     f.close();
     #ifdef WEBSET_DEBUG
