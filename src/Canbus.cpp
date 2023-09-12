@@ -215,29 +215,7 @@ void readCanMessages()
   twai_message_t canMessage;
   twai_status_info_t canStatus;
 
-
-
-
   canStatus = CAN.getStatus();
-  //BSC_LOGE(TAG, "state=%i, msgs_to_tx=%i, msgs_to_rx=%i, tx_error=%i, rx_error=%i, tx_failed=%i, rx_missed=%i, rx_overrun=%i, arb_lost=%i, bus_error=%i", \
-  canStatus.state, canStatus.msgs_to_tx, canStatus.msgs_to_rx, canStatus.tx_error_counter, canStatus.rx_error_counter, \
-  canStatus.tx_failed_count, canStatus.rx_missed_count, canStatus.rx_overrun_count, canStatus.arb_lost_count, canStatus.bus_error_count);
-  /*
-    twai_state_t state;             //< Current state of TWAI controller (Stopped/Running/Bus-Off/Recovery) 
-    uint32_t msgs_to_tx;            //< Number of messages queued for transmission or awaiting transmission completion 
-    uint32_t msgs_to_rx;            //< Number of messages in RX queue waiting to be read 
-    uint32_t tx_error_counter;      //< Current value of Transmit Error Counter 
-    uint32_t rx_error_counter;      //< Current value of Receive Error Counter 
-    uint32_t tx_failed_count;       //< Number of messages that failed transmissions 
-    uint32_t rx_missed_count;       //< Number of messages that were lost due to a full RX queue (or errata workaround if enabled) 
-    uint32_t rx_overrun_count;      //< Number of messages that were lost due to a RX FIFO overrun 
-    uint32_t arb_lost_count;        //< Number of instances arbitration was lost 
-    uint32_t bus_error_count;       //< Number of instances a bus error has occurred 
-  */
-  //BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
-
-
-
 
   // JK-BMS CAN
   bool isJkCanBms=false;
@@ -302,15 +280,19 @@ void readCanMessages()
       }
       else if(canMessage.identifier==0x04F4) //1268; Cell voltage
       {
-
+        setBmsMaxCellVoltage(u8_jkCanBms,((uint16_t)canMessage.data[1]<<8 | canMessage.data[0]));
+        setBmsMaxVoltageCellNumber(u8_jkCanBms,canMessage.data[2]);
+        setBmsMinCellVoltage(u8_jkCanBms,((uint16_t)canMessage.data[4]<<8 | canMessage.data[3]));
+        setBmsMinVoltageCellNumber(u8_jkCanBms,canMessage.data[5]);
+        setBmsLastDataMillis(u8_jkCanBms,millis()); 
       }
       else if(canMessage.identifier==0x05F4) //1524; Cell temperature
       {
-
+        setBmsLastDataMillis(u8_jkCanBms,millis()); 
       }
       else if(canMessage.identifier==0x07F4) //2036; Warning message
       {
-
+        setBmsLastDataMillis(u8_jkCanBms,millis()); 
       }
     }
 
@@ -482,7 +464,7 @@ uint16_t getMaxCellSpannungFromBms()
     {
       if((u8_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
           u16_lMaxCellSpg=getBmsMaxCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMaxCellSpg>u16_lCellSpg)
@@ -520,7 +502,7 @@ uint16_t getMinCellSpannungFromBms()
   uint8_t u8_lCellNr=0;
   uint16_t u16_lCellSpg=0xFFFF;
 
-  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000) 
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) 
   {
     u16_lCellSpg = getBmsMinCellVoltage(u8_mBmsDatasource);
     u8_lBmsNr=u8_mBmsDatasource; 
@@ -534,7 +516,7 @@ uint16_t getMinCellSpannungFromBms()
     {
       if((u8_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
           u16_lMinCellSpg=getBmsMinCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMinCellSpg<u16_lCellSpg)
@@ -580,7 +562,7 @@ uint16_t getMaxCellDifferenceFromBms()
     {
       if((u8_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
           u16_lMaxCellDiff=getBmsMaxCellDifferenceVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMaxCellDiff>u16_lCellDiff)
@@ -771,7 +753,7 @@ int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
     {
       if((u8_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
           float fl_lTotalCurrent=getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
           if(fl_lTotalCurrent>(float)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_CHARGE_CURRENT))
@@ -1002,7 +984,7 @@ void sendCanMsg_351()
         {
           if((u8_mBmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (u8_mBmsDatasourceAdd>>i)&0x01)
           {
-            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<5000) &&
+            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<CAN_BMS_COMMUNICATION_TIMEOUT) &&
               getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
             {
               u16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_CHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_CHARGE_CURRENT);
@@ -1076,7 +1058,7 @@ void sendCanMsg_351()
               i,getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i),getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i),millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i));
             #endif
 
-            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<5000) &&
+            if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<CAN_BMS_COMMUNICATION_TIMEOUT) &&
               getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
             {
               i16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_DISCHARGE_CURRENT);
@@ -1133,7 +1115,7 @@ void sendCanMsg_355()
   {
     msgData.soc=0;
 
-    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000) msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
     
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
@@ -1143,7 +1125,7 @@ void sendCanMsg_355()
       {
         if((u8_mBmsDatasourceAdd>>i)&0x01)
         {
-          if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000) //So lang die letzten 5000ms Daten kamen ist alles gut
+          if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
           {
             if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
             {
@@ -1195,7 +1177,7 @@ void sendCanMsg_356()
   //Batteriespannung
   msgData.voltage = 0;
 
-  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<5000)
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
   {
     msgData.voltage = (int16_t)(getBmsTotalVoltage(u8_mBmsDatasource)*100);
   }
@@ -1204,7 +1186,7 @@ void sendCanMsg_356()
     for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
     {
       //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-      if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000)) 
+      if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT)) 
       {
           msgData.voltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100);
           break;
@@ -1225,7 +1207,7 @@ void sendCanMsg_356()
     long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
     #endif
     //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-    if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<5000)) 
+    if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT)) 
     {   
       msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
       #ifdef CAN_DEBUG
