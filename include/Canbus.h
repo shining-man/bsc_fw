@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 
+#define CAN_BMS_COMMUNICATION_TIMEOUT 5000
+
 struct inverterData_s
 {
   int16_t    inverterVoltage;
