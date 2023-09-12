@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.16_T6"
+#define BSC_SW_VERSION      "V0.4.17_T1c"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -53,7 +53,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define WLAN_DEBUG        
 #define WLAN_DEBUG2
 //#define CAN_DEBUG
-#define CAN_DEBUG_STATUS
+//#define CAN_DEBUG_STATUS
 //#define WEBSET_DEBUG
 #define MAIN_DEBUG
 //#define LOG_BMS_DATA
@@ -154,10 +154,14 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT //+SERIAL_BMS_EXT_COUNT
 
 
+//Alarmrules
+#define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
+
+
 // Register
 #define RTC_CNTL_SDIO_CONF_REG 0x3FF48074
 
-// Rester RTC_CNTL_SDIO_CONF_REG
+// Register RTC_CNTL_SDIO_CONF_REG
 #define RTC_CNTL_XPD_SDIO_VREG 0x80000000
 #define RTC_CNTL_SDIO_TIEH     0x800000
 
@@ -310,6 +314,8 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE 130
 
 #define ID_PARAM_ALARM_BT_GESAMT_SPG_HYSTERESE   131
+
+#define ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE 132
 
 
 //Auswahl Bluetooth Geräte

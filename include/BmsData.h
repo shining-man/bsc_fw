@@ -37,6 +37,8 @@ struct bmsData_s
   uint32_t   bmsErrors[BMSDATA_NUMBER_ALLDEVICES];                   // * | x | x |   |   |   | x | * | - |
   uint8_t    bmsStateFETs[BMSDATA_NUMBER_ALLDEVICES];                // - | x | x | x | x | x | x | - | - | bit 0=FET charge, bit 1=FET discharge
   unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x | x | x |   | x | x | x |
+  uint16_t   bmsCellVoltageCrc[BMSDATA_NUMBER_ALLDEVICES];           // Wird nach dem Holen Daten vom BMS berechnet
+  uint8_t    bmsLastChangeCellVoltageCrc[BMSDATA_NUMBER_ALLDEVICES]; // Wird nach dem Holen Daten vom BMS berechnet
   //                                                                 // *=Teilweise; -=Nicht verfügbar; c=wird berechnet
 };
 
@@ -130,6 +132,11 @@ boolean getBmsStateFETsCharge(uint8_t devNr);
 void    setBmsStateFETsCharge(uint8_t devNr, boolean value);
 boolean getBmsStateFETsDischarge(uint8_t devNr);
 void    setBmsStateFETsDischarge(uint8_t devNr, boolean value);
+
+uint16_t getBmsCellVoltageCrc(uint8_t devNr);
+void setBmsCellVoltageCrc(uint8_t devNr, uint16_t value);
+uint8_t getBmsLastChangeCellVoltageCrc(uint8_t devNr);
+void setBmsLastChangeCellVoltageCrc(uint8_t devNr, uint8_t value);
 
 unsigned long getBmsLastDataMillis(uint8_t devNr);
 void setBmsLastDataMillis(uint8_t devNr, unsigned long value);

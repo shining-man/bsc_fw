@@ -53,6 +53,7 @@ void tachoInit();
 bool tachoRead(uint16_t &tachoRpm);
 void tachoSetMux(uint8_t channel);
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
+void rules_PlausibilityCeck();
 
 
 void initAlarmRules()
@@ -179,6 +180,9 @@ void runAlarmRules()
 
   //Temperatur Alarm
   rules_Temperatur();
+
+  //Plausibility ceck (Zellvoltage)
+  rules_PlausibilityCeck();
 
   //Inverter (CAN)
   rules_CanInverter();
@@ -822,5 +826,26 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm)
   {
     uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,DT_ID_PARAM_NEEY_BALANCER_ON);
     if(u8_AlarmNr==u8_lTriggerNr) BleHandler::setBalancerState(d,bo_Alarm);
+  }
+}
+
+
+void rules_PlausibilityCeck()
+{
+  uint8_t u8_lTriggerPlausibilityCeckCellVoltage = WebSettings::getInt(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE,0,DT_ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE);
+  if(u8_lTriggerPlausibilityCeckCellVoltage>0)
+  {
+    for(uint8_t i=BT_DEVICES_COUNT;i<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;i++)
+    {  
+      uint8_t u8_lCrcErrorCounter = getBmsLastChangeCellVoltageCrc(i);
+      if(u8_lCrcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) //Wenn sich der Wert x Zyklen nicht mehr geändert hat
+      {
+        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,true); //Trigger setzen
+      }
+      else
+      {
+        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,false); //Trigger zurücksetzen
+      }
+    }
   }
 }
