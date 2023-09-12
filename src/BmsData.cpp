@@ -402,6 +402,33 @@ void setBmsStateFETsDischarge(uint8_t devNr, boolean value)
   xSemaphoreGive(mBmsDataMutex);
 }
 
+uint16_t getBmsCellVoltageCrc(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  unsigned long ret = bmsData.bmsCellVoltageCrc[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsCellVoltageCrc(uint8_t devNr, uint16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsCellVoltageCrc[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+uint8_t getBmsLastChangeCellVoltageCrc(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  unsigned long ret = bmsData.bmsLastChangeCellVoltageCrc[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+void setBmsLastChangeCellVoltageCrc(uint8_t devNr, uint8_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsLastChangeCellVoltageCrc[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 unsigned long getBmsLastDataMillis(uint8_t devNr)
 {

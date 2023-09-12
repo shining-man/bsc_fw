@@ -315,6 +315,23 @@ const String paramSerial PROGMEM = "["
     "'dt':"+String(PARAM_DT_U8)+""
   "},"
 
+  //Cell voltage plausibility check
+  "{"
+    "'label':'Plausibility check',"
+    "'type':"+String(HTML_SEPARATION)+","
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE)+","
+    "'label':'Cellvoltage plausibility check',"
+    "'type':"+String(HTML_INPUTSELECT)+","
+    "'options':["
+      "{'v':'0','l':'Aus'},"
+      +comboAlarms+
+      "],"
+    "'default':'0',"
+    "'dt':"+String(PARAM_DT_U8)+""
+  "},"
+
   //Value adjustments
   "{"
     "'label':'Value adjustments',"
