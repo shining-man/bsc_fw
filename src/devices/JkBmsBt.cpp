@@ -6,6 +6,7 @@
 
 #include "devices/JkBmsBt.h"
 #include "BmsData.h"
+#include "mqtt_t.h"
 
 static const char *TAG = "JKBT";
 
@@ -225,8 +226,7 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
     uint8_t  u8_lZellNumberMaxVoltage = 0;
     for (uint8_t i = 0; i < u8_lCells; i++)
     {
-      uint16_t u16_lCellVoltage = getJk16bit(i*2+6) ;
-      //uint16_t u16_lCellResistance = (float)getJk16bit(i*2+64+u8_lOffset)*0.001f;
+      uint16_t u16_lCellVoltage = getJk16bit(i*2+6);
       if (u16_lCellVoltage > 0 && u16_lCellVoltage < u16_lMinCellVoltage)
       {
         u16_lMinCellVoltage = u16_lCellVoltage;
@@ -238,7 +238,9 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
         u8_lZellNumberMaxVoltage=i;
       }
       setBmsCellVoltage(devNr,i,u16_lCellVoltage);
-      //u16_lCellResistance
+ 
+      float fl_lCellResistance = (float)getJk16bit(i*2+64+u8_lOffset)*0.001f;
+      mqttPublish(MQTT_TOPIC_BMS_BT, devNr, MQTT_TOPIC2_CELL_RESISTANCE, i, String(fl_lCellResistance,3));
     }
     setBmsMinCellVoltage(devNr,u16_lMinCellVoltage);
     setBmsMaxCellVoltage(devNr,u16_lMaxCellVoltage);
