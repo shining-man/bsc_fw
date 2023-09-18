@@ -95,6 +95,18 @@ void buildJsonRest(WebServer * server)
     genJsonEntryArray(entrySingle, F("nr"), bmsDevNr, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("cells"), 20, str_htmlOut, false);
 
+    genJsonEntryArray(entrySingle, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
+
     genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
     for(uint8_t i=0;i<19;i++)
     {
@@ -127,6 +139,18 @@ void buildJsonRest(WebServer * server)
   {
     genJsonEntryArray(entrySingle, F("nr"), bmsDevNr-BT_DEVICES_COUNT, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("cells"), 20, str_htmlOut, false);
+
+    genJsonEntryArray(entrySingle, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
 
     genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
     uint16_t u16_lZellVoltage=0;

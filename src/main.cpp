@@ -645,7 +645,9 @@ void handlePage_alarm(){server.send(200, "text/html", htmlPageAlarm);}
 void handlePage_schnittstellen(){server.send(200, "text/html", htmlPageSchnittstellen);}
 void handle_htmlPageBmsSpg(){server.send(200, "text/html", htmlPageBmsSpg);}
 void handlePage_status(){server.send(200, "text/html", htmlPageStatus);}
+void handlePage_htmlPageMenuLivedata(){server.send(200, "text/html", htmlPageMenuLivedata);}
 void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
+void handlePage_htmlPageBscDataLive(){server.send(200, "text/html", htmlPageBscDataLive);}
 
 
 /*
@@ -860,6 +862,12 @@ void handle_getOwTempData()
   server.send(200, "text/html", sendData.c_str());
 }
 
+void handle_getBscLiveData()
+{
+  buildJsonRest(&server);
+}
+
+
 void handle_getBtDevices()
 {
   if(bleHandler!=nullptr)
@@ -1068,8 +1076,11 @@ void setup()
   server.on("/settings/schnittstellen/bt/getBtDevices",handle_getBtDevices);
   server.on("/getDashboardData",handle_getDashboardData);
   server.on("/bmsSpg/getBmsSpgData",handle_getBmsSpgData);
-  server.on("/owTempLive",handlePage_htmlPageOwTempLive);
-  server.on("/getOwTempData",handle_getOwTempData);
+  server.on("/livedata/",handlePage_htmlPageMenuLivedata);
+  server.on("/livedata/owTempLive/",handlePage_htmlPageOwTempLive);
+  server.on("/livedata/owTempLive/getOwTempData",handle_getOwTempData);
+  server.on("/livedata/bscDataLive/",handlePage_htmlPageBscDataLive);
+  server.on("/livedata/bscDataLive/getBscLiveData",handle_getBscLiveData);
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
 
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
