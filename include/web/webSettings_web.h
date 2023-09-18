@@ -134,7 +134,7 @@ const char webSettingsScript[] PROGMEM = R"rawliteral(
 function btnClick(btn) {
   var xhttp = new XMLHttpRequest();
   xhttp.open('POST','?'+btn+'=',true);
-  xhttp.timeout=1000;
+  xhttp.timeout=5000;
   xhttp.send();  
 }
 
@@ -191,7 +191,7 @@ for (let i = 0; i < collection.length; i++){
       }
     };
     xhttp.open('GET','?SAVE=&'+name+'='+urlencode(val),true);
-    xhttp.timeout=5000;
+    xhttp.timeout=10000;
     xhttp.send();
   });
   collection[i].appendChild(button);
@@ -213,7 +213,7 @@ function copyStringToClipboard (str) {
 #else
 const char webSettingsScript[] PROGMEM = R"rawliteral(
 <script>
-function btnClick(e){var t=new XMLHttpRequest;t.open("POST","?"+e+"=",!0),t.timeout=1e3,t.send()}function urlencode(e){return e=(e+"").toString(),encodeURIComponent(e).replace("!","%21").replace("'","%27").replace("(","%28").replace(")","%29").replace("*","%2A").replace("%20","+")}const collection=document.getElementsByClassName("t1");for(let e=0;e<collection.length;e++){var button=document.createElement("button");button.type="button",button.innerHTML="S",button.className="sb",button.addEventListener("click",(function(t){let n=this.parentNode.previousSibling.firstChild;if(null!=n.nextSibling&&"toggle"===n.nextSibling.className&&(n=this.parentNode.previousSibling.childNodes[5].childNodes[1].childNodes[1]),!1!==n.checkValidity()){var o=n.getAttribute("name"),l=0;if("SELECT"==n.nodeName)l=n.options[n.selectedIndex].value;else if("INPUT"==n.nodeName)l="checkbox"==n.type?n.checked?1:0:n.value;else if("FIELDSET"==n.nodeName){var c=n.getElementsByTagName("INPUT");for(o=c[0].getAttribute("name"),e=0;e<c.length;e++)c[e].checked&&(l|=1<<e)}else l=n.value;var i=new XMLHttpRequest;i.onreadystatechange=function(){4==this.readyState&&200==this.status&&alert(this.responseText)},i.open("GET","?SAVE=&"+o+"="+urlencode(l),!0),i.timeout=5e3,i.send()}else alert("Fehler")})),collection[e].appendChild(button)}function copyStringToClipboard(e){var t=document.createElement("textarea");t.value=e,t.setAttribute("readonly",""),t.style={position:"absolute",left:"-9999px"},document.body.appendChild(t),t.select(),document.execCommand("copy"),document.body.removeChild(t)}document.getElementById("lc").style.display="none";
+function btnClick(e){var t=new XMLHttpRequest;t.open("POST","?"+e+"=",!0),t.timeout=5e3,t.send()}function urlencode(e){return e=(e+"").toString(),encodeURIComponent(e).replace("!","%21").replace("'","%27").replace("(","%28").replace(")","%29").replace("*","%2A").replace("%20","+")}const collection=document.getElementsByClassName("t1");for(let e=0;e<collection.length;e++){var button=document.createElement("button");button.type="button",button.innerHTML="S",button.className="sb",button.addEventListener("click",(function(t){let n=this.parentNode.previousSibling.firstChild;if(null!=n.nextSibling&&"toggle"===n.nextSibling.className&&(n=this.parentNode.previousSibling.childNodes[5].childNodes[1].childNodes[1]),!1!==n.checkValidity()){var o=n.getAttribute("name"),l=0;if("SELECT"==n.nodeName)l=n.options[n.selectedIndex].value;else if("INPUT"==n.nodeName)l="checkbox"==n.type?n.checked?1:0:n.value;else if("FIELDSET"==n.nodeName){var c=n.getElementsByTagName("INPUT");for(o=c[0].getAttribute("name"),e=0;e<c.length;e++)c[e].checked&&(l|=1<<e)}else l=n.value;var i=new XMLHttpRequest;i.onreadystatechange=function(){4==this.readyState&&200==this.status&&alert(this.responseText)},i.open("GET","?SAVE=&"+o+"="+urlencode(l),!0),i.timeout=10e3,i.send()}else alert("Fehler")})),collection[e].appendChild(button)}function copyStringToClipboard(e){var t=document.createElement("textarea");t.value=e,t.setAttribute("readonly",""),t.style={position:"absolute",left:"-9999px"},document.body.appendChild(t),t.select(),document.execCommand("copy"),document.body.removeChild(t)}document.getElementById("lc").style.display="none";
 </script>
 )rawliteral";
 #endif
