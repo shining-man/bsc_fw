@@ -135,6 +135,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     }
 
     if(u16_mLastRecvBytesCnt==u16_lRecvDataLen) break; //Recv Pakage complete
+    if(u16_mLastRecvBytesCnt>=JKBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
   
@@ -169,7 +170,7 @@ void parseData(uint8_t * t_message)
   int16_t  i16_lTmpValue;
   uint16_t u16_lTmpValue;
   uint32_t u32_lTmpValue;
-  uint32_t u32_lBalanceCapacity=0;
+  uint32_t u32_lCycleCapacity=0;
   uint16_t u16_lCycle=0;
 
   // Variables for 0x79
@@ -293,7 +294,7 @@ void parseData(uint8_t * t_message)
         break;   
 
       case 0x89: // Total Battery cycle Capacity
-        u32_lBalanceCapacity = (((uint16_t)t_message[i+1] << 24 | t_message[i+2] << 16 | t_message[i+3] << 8 | t_message[i+4])); 
+        u32_lCycleCapacity = (((uint16_t)t_message[i+1] << 24 | t_message[i+2] << 16 | t_message[i+3] << 8 | t_message[i+4])); 
         i+=5;
         break; 
 
@@ -447,7 +448,7 @@ void parseData(uint8_t * t_message)
   if((millis()-mqttSendeTimer_jk)>10000)
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u32_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
     mqttSendeTimer_jk=millis();

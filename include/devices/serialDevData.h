@@ -14,7 +14,11 @@ struct serialDevData_s
   uint8_t u8_deviceNr;
   uint8_t u8_NumberOfDevices;
   uint8_t u8_BmsDataAdr;
-  bool    bo_writeData;
+
+  bool               bo_writeData;    
+  serialDataRwTyp_e  rwDataTyp;
+  uint8_t            rwDataLen;
+  uint8_t            *rwData;
 };
 
 #endif 

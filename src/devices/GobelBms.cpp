@@ -263,8 +263,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       }
     }
 
-    if (u16_mLastRecvBytesCnt == u16_lRecvDataLen)
-      break; // Recv Pakage complete
+    if (u16_mLastRecvBytesCnt == u16_lRecvDataLen) break; // Recv Pakage complete
+    if(u16_mLastRecvBytesCnt>=GOBELBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
 #ifdef GOBEL_DEBUG

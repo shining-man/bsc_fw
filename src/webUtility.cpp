@@ -7,7 +7,9 @@
 #include "log.h"
 #include <SPIFFS.h>
 #include <WebServer.h>
+#include "defines.h"
 
+static const char * TAG = "WEB";
 
 String getContentType(WebServer *server, String filename)
 {
@@ -75,4 +77,30 @@ bool handleFileRead(WebServer *server, String path)
   return false;
 }
 
+
+void handleFileUpload(WebServer *server, String fileName) 
+{
+  static File fsUploadFile;
+  HTTPUpload& upload = server->upload();
+  if (upload.status == UPLOAD_FILE_START)
+  {
+    //if (upload.filename.length() > 30)
+    //{
+    //  upload.filename = upload.filename.substring(upload.filename.length() - 30, upload.filename.length());  // Dateinamen auf 30 Zeichen kürzen
+    //}
+    upload.filename=fileName;
+    BSC_LOGI(TAG,"handleFileUpload Name: /%s", upload.filename.c_str());
+    fsUploadFile = SPIFFS.open("/" + server->urlDecode(upload.filename), "w");
+  } else if (upload.status == UPLOAD_FILE_WRITE)
+  {
+    //BSC_LOGI(TAG,"handleFileUpload Data: %u\n", upload.currentSize);
+    if (fsUploadFile)
+      fsUploadFile.write(upload.buf, upload.currentSize);
+  } else if (upload.status == UPLOAD_FILE_END)
+  {
+    if (fsUploadFile) fsUploadFile.close();
+    //BSC_LOGI(TAG,"handleFileUpload Size: %u\n", upload.totalSize);
+    BSC_LOGI(TAG,"handleFileUpload finish");
+  }
+}
 

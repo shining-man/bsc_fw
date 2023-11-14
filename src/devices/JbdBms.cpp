@@ -179,6 +179,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     }
 
     if(u8_lRecvBytesCnt==4+u8_lRecvDataLen+3) break; //Recv Pakage complete
+    if(u8_lRecvBytesCnt>=JBDBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
   if(p_lRecvBytes[2]!=0x0) return false; //0x0 ok; 0x80 Fehler
