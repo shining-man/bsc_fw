@@ -159,6 +159,9 @@ void debugInit()
   #ifdef GOBEL_DEBUG
   esp_log_level_set("GOBEL_BMS", ESP_LOG_DEBUG); 
   #endif
+  #ifdef GOBELPC200_DEBUG
+  esp_log_level_set("GOBEL_BMS_PC200", ESP_LOG_DEBUG); 
+  #endif
   #ifdef WLAN_DEBUG  
   #endif      
   #ifdef WLAN_DEBUG2

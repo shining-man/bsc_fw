@@ -23,6 +23,7 @@
 #include "devices/JkBmsV13.h"
 #include "devices/GobelBms.h"
 #include "devices/SmartShunt.h"
+#include "devices/GobelBms_PC200.h"
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
@@ -218,7 +219,13 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       setSerialBaudrate(u8_devNr, 19200);
       serialDeviceData[u8_devNr].readBms = &SmartShunt_readBmsData;
       break;
-    
+
+    case ID_SERIAL_DEVICE_GOBEL_PC200:
+      BSC_LOGI(TAG,"setReadBmsFunktion Gobel PC200");
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &GobelBmsPC200_readBmsData;
+      break;
+
     default:
       serialDeviceData[u8_devNr].readBms = 0;
   }
@@ -290,7 +297,8 @@ void BscSerial::cyclicRun()
   bool bo_lMqttSendMsg=false;
   uint8_t u8_lNumberOfSeplosBms = 0;
   uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-  if(u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SYLCINBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_GOBELBMS)
+  if(u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SYLCINBMS || 
+      u8_lBmsOnSerial2==ID_SERIAL_DEVICE_GOBELBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_GOBEL_PC200)
   {
     if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
