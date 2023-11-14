@@ -10,6 +10,7 @@
 static const char * TAG = "BMSDATA";
 
 static SemaphoreHandle_t mBmsDataMutex = NULL;
+static SemaphoreHandle_t mBmsDataReadMutex = NULL;
 
 static struct bmsData_s bmsData;
 struct bmsFilterData_s bmsFilterData;
@@ -20,13 +21,24 @@ static bool bo_SOC100CellvolHasBeenReached[BMSDATA_NUMBER_ALLDEVICES];
 
 uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
 
-uint8_t u8_readWriteDataSerialBms[SERIAL_BMS_DEVICES_COUNT];
 
+// Write serial data
+uint32_t          u32_wDataSerialBmsEnable=0; //Hier bitseise die BMS-Adressen eintragen, an den die Daten gesendet werden sollen
+serialDataRwTyp_e e_wDataSerialBmsTyp=BPN_NO_DATA;
+uint8_t           *u8_wDataSerialBmsData=0;
+uint8_t           e_wDataSerialBmsDataLen=0; 
 
+// Read serial data
+uint8_t           u8_rDataSerialBmsEnable=0; 
+serialDataRwTyp_e e_rDataSerialBmsTyp=BPN_NO_DATA;
+uint8_t           *u8_rDataSerialBmsData=0;
+uint8_t           e_rDataSerialBmsDataLen=0; 
 
 void bmsDataInit()
 {
+  //BSC_LOGI(TAG,"bmsDataInit");
   mBmsDataMutex = xSemaphoreCreateMutex();
+  mBmsDataReadMutex = xSemaphoreCreateMutex();
 
   for(uint8_t i=0;i<BMSDATA_NUMBER_ALLDEVICES;i++)
   {
@@ -38,6 +50,15 @@ void bmsDataInit()
     u8_mBmsFilterErrorCounter[i]=0;
   }
   
+  u32_wDataSerialBmsEnable=0;
+  e_wDataSerialBmsTyp=BPN_NO_DATA;
+  e_wDataSerialBmsDataLen=0;
+
+  u8_rDataSerialBmsEnable=0;
+  e_rDataSerialBmsTyp=BPN_NO_DATA;
+  e_rDataSerialBmsDataLen=0;
+  
+
   bmsFilterData.u8_mFilterBmsCellVoltagePercent=0;
   //bmsFilterData.u8_mFilterBmsCellVoltageMaxCount=0;
 }
@@ -445,22 +466,78 @@ void setBmsLastDataMillis(uint8_t devNr, unsigned long value)
 }
 
 
-bool getSerialBmsWriteData(uint8_t devNr)
+uint8_t *getSerialBmsWriteData(uint8_t devNr, serialDataRwTyp_e *dataTyp, uint8_t *rwDataLen)
 {
-  bool ret=false;
-  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  if(u8_readWriteDataSerialBms[devNr]==1)ret=true;
-  xSemaphoreGive(mBmsDataMutex);
-  return ret;
+  if((u32_wDataSerialBmsEnable>>devNr)&0x01)
+  {
+    *dataTyp=e_wDataSerialBmsTyp;
+    *rwDataLen=e_wDataSerialBmsDataLen;
+    return u8_wDataSerialBmsData;
+  }
+  return NULL;
 }
-void setSerialBmsWriteData(uint8_t devNr, bool value)
+void setSerialBmsWriteData(serialDataRwTyp_e dataTyp, uint8_t *data, uint8_t dataLen)
 {
-  uint8_t val=0;
-  if(value)val=1;
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  u8_readWriteDataSerialBms[devNr] = val;
+  e_wDataSerialBmsTyp=dataTyp;
+  e_wDataSerialBmsDataLen=dataLen;
+  u8_wDataSerialBmsData = (uint8_t*)malloc(dataLen);
+  memcpy(u8_wDataSerialBmsData, data, dataLen);
   xSemaphoreGive(mBmsDataMutex);
 }
+void addSerialBmsWriteDevNr(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  u32_wDataSerialBmsEnable |= (1<<devNr);
+  xSemaphoreGive(mBmsDataMutex);
+}
+void clearSerialBmsWriteData(uint8_t devNr)
+{
+  u32_wDataSerialBmsEnable &= ~(1<<devNr);
+  if(e_wDataSerialBmsDataLen>0 && u32_wDataSerialBmsEnable==0)
+  {
+    free(u8_wDataSerialBmsData);  
+  }
+}
+
+
+void setSerialBmsReadData(uint8_t devNr, serialDataRwTyp_e dataTyp, uint8_t *data, uint8_t dataLen)
+{
+  xSemaphoreTake(mBmsDataReadMutex, portMAX_DELAY);
+  BSC_LOGI(TAG,"setSerialBmsReadData");
+  u8_rDataSerialBmsEnable = devNr;
+  e_rDataSerialBmsTyp=dataTyp;
+  e_rDataSerialBmsDataLen=dataLen;
+  u8_rDataSerialBmsData = (uint8_t*)malloc(dataLen);
+  memcpy(u8_rDataSerialBmsData, data, dataLen);
+  xSemaphoreGive(mBmsDataReadMutex);
+}
+uint8_t *getSerialBmsReadeData(uint8_t devNr, serialDataRwTyp_e *dataTyp, uint8_t *rwDataLen)
+{
+  xSemaphoreTake(mBmsDataReadMutex, portMAX_DELAY);
+  if(e_rDataSerialBmsTyp!=BPN_NO_DATA)
+  {
+    *dataTyp=e_rDataSerialBmsTyp;
+    *rwDataLen=e_rDataSerialBmsDataLen;
+    xSemaphoreGive(mBmsDataReadMutex);
+    return u8_rDataSerialBmsData;
+  }
+  xSemaphoreGive(mBmsDataReadMutex);
+  return NULL;
+}
+void clearSerialBmsReadData(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataReadMutex, portMAX_DELAY);
+  u8_rDataSerialBmsEnable=0;
+  e_rDataSerialBmsTyp=BPN_NO_DATA;
+  if(e_rDataSerialBmsDataLen>0)
+  {
+    e_rDataSerialBmsDataLen=0;
+    free(u8_rDataSerialBmsData);  
+  }
+  xSemaphoreGive(mBmsDataReadMutex);
+}
+
 
 
 

@@ -62,10 +62,14 @@ public:
   static bool     getBool(uint16_t name, uint8_t groupNr);
 
   static int getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
+  static int getIntFlash(uint16_t name, uint8_t groupNr);
   static float getFloatFlash(uint16_t name, uint8_t groupNr);
+  static float getFloatFlash(uint16_t name);
   static boolean getBoolFlash(uint16_t name, uint8_t groupNr);
+  static boolean getBoolFlash(uint16_t name);
   static String getStringFlash(uint16_t name, uint8_t groupNr);
   String getStringFlash(String name);
+  String getStringFlash(uint16_t name);
 
 
   //setButtons
@@ -79,6 +83,8 @@ public:
   
   void setTimerHandlerName(String handlerName, uint16_t timerSec=1000);
   void handleHtmlFormRequest(WebServer * server);
+  void handleGetValues(WebServer *server);
+  void handleSetValues(WebServer *server);
 
   static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);

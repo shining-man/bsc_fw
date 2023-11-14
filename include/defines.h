@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.17_T1c"
+#define BSC_SW_VERSION      "V0.4.18"
 static const char COMPILE_DATE_TIME[] = "";
 
 #define HTML_MINIFY
@@ -18,6 +18,9 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define DEBUG_ON_HW_SERIAL //wird in der platformio.ini gesetzt
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
+
+//#define BPN
+//#define INSIDER_V1
 
 #ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
@@ -43,7 +46,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
-//#define SEPLOS_DEBUG
+#define SEPLOS_DEBUG
 //#define SYLCIN_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
@@ -158,6 +161,13 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
 
 
+//Send serial Data
+enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
+#define SERIAL_DATA_RW_LEN__BPN_READ_SETTINGS 20
+
+
+
+
 // Register
 #define RTC_CNTL_SDIO_CONF_REG 0x3FF48074
 
@@ -170,25 +180,27 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
  * Parameter IDs
  *********************************************/
 #define ID_PARAM_SERIAL_CONNECT_DEVICE               1
-#define ID_PARAM_SERIAL_ALARM_AKTION                 6          //0=AUS; 1-5=Alarm 1-5
+#define ID_PARAM_SERIAL_ALARM_AKTION                 6          
+// ID_PARAM_SERIAL_ALARM_AKTION: 0=AUS; 1-5=Alarm 1-5
 #define ID_PARAM_SERIAL_ALARM_TIME_OUT               7
 
 #define ID_PARAM_SS_CAN                              2
-//#define ID_PARAM_SS_BT                               3
+//#define ID_PARAM_SS_BT                             3
 #define ID_PARAM_SS_BTDEV                            4
 #define ID_PARAM_SS_BTDEVMAC                         5
 
 #define ID_PARAM_ALARM_BTDEV_BMS_SELECT              9
-//#define ID_PARAM_ALARM_BT                           10
-//#define ID_PARAM_ALARM_BTDEV_ALARM_ON               11
+//#define ID_PARAM_ALARM_BT                         10
+//#define ID_PARAM_ALARM_BTDEV_ALARM_ON             11
 #define ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT         12
-//#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON         13
+//#define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_ON       13
 #define ID_PARAM_ALARM_BT_CNT_CELL_CTRL             14
 #define ID_PARAM_ALARM_BT_CELL_SPG_MIN              15
 #define ID_PARAM_ALARM_BT_CELL_SPG_MAX              16
 #define ID_PARAM_ALARM_BTDEV_ALARM_AKTION           17
 #define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION     18
-#define ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION   19          //0=AUS; 1-5=Alarm 1-5
+#define ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION   19          
+// ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION: 0=AUS; 1-5=Alarm 1-5
 
 #define ID_PARAM_TEMP_ALARM                         20
 #define ID_PARAM_TEMP_ALARM_SENSOR_VON              21
@@ -334,6 +346,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define ID_SERIAL_DEVICE_JKBMS_V13  6
 #define ID_SERIAL_DEVICE_GOBELBMS   7
 #define ID_SERIAL_DEVICE_JKBMS_CAN  8
+#define ID_SERIAL_DEVICE_BPN        9
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
@@ -440,6 +453,8 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define MQTT_TOPIC2_FET_STATE_DISCHARGE         40
 #define MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE     41
 #define MQTT_TOPIC2_BMS_DATA_VALID              42
+#define MQTT_TOPIC2_CELL_RESISTANCE             43
+#define MQTT_TOPIC2_CYCLE_CAPACITY              44
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -485,10 +500,42 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "stateDischarge",            // 40
   "chargeVoltage",             // 41
   "valid",                     // 42
-  "",                          // 43
-  "",                          // 44
+  "cellResistance",            // 43
+  "CycleCapacity",             // 44
   "",                          // 45
+  "",                          // 46
+  "",                          // 47
+  "",                          // 48
+  "",                          // 49
+  "",                          // 50
   };
+
+
+
+/*
+ * BPN
+ */
+#define BPN_SETTINGS_NR_OF_CELLS 1
+
+//Alarm
+#define BPN_SETTINGS_LOW_CELL_VOLTAGE 2
+#define BPN_SETTINGS_HIGH_CELL_VOLTAGE 3
+#define BPN_SETTINGS_ALARM_DDELAY_CELL_VOLTAGE 4
+#define BPN_SETTINGS_LOW_BATTERY_VOLTAGE 5
+#define BPN_SETTINGS_HIGH_BATTERY_VOLTAGE 6
+#define BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE 7
+#define BPN_SETTINGS_MAX_CHARGE_CURRENT 8
+#define BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT 9
+#define BPN_SETTINGS_MAX_DISCHARGE_CURRENT 10
+#define BPN_SETTINGS_ALARM_DELAY_MAX_DISCHARGE_CURRENT 11
+
+//Shunt
+#define BPN_SETTINGS_NOMINAL_BAT_CAPACITY 12
+
+
+
+
+
 
 
 /*
@@ -498,10 +545,6 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 #define BSC_LOGD ESP_LOGD
 #define BSC_LOGV ESP_LOGV
 */
-
-// CONFIG_LOG_TIMESTAMP_SOURCE_RTOS
-// CONFIG_LOG_TIMESTAMP_SOURCE_SYSTEM
-
 
 #include "bscTime.h"
 #define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)

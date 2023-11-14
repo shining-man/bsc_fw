@@ -27,9 +27,17 @@ datei = open('./include/params_py.h','r')
 pyVar = 0
 pyVarVarName=""
 pyVarValue=""
+lineCnt=0
 for zeile in datei:
     zeileNeu = ""
 
+    if(lineCnt>10):
+        zeile = zeile.replace("\"", "")
+        zeile = zeile.replace("'", "\"")
+
+    #zeile = zeile.replace("'", "\\\"")
+    zeile = zeile.replace("\\n", "<br>")
+    
     defFoundStart = zeile.find("//PY_VAR_ANF")
     if defFoundStart >= 0:
         pyVar=1
@@ -51,11 +59,29 @@ for zeile in datei:
         pyVarVarName = zeile.strip().split(' ',3)[2].strip()
 
     if pyVar == 0:
+        if(zeile.find("//")>=0):
+            if(zeile.find("//")<=10):
+                zeile = "";
+            else:
+                zeile = zeile[0:zeile.find("//")] + "\n";
+        
+        #if(lineCnt>10):
+        #    zeile = zeile.replace("\"", "")
+        #    zeile = zeile.replace("'", "\"")
+
         defFoundStart = zeile.find("const String ")
+        defFoundVarEnde = zeile.find("];")
+        defFoundVarEnde2 = zeile.find("};")
         if defFoundStart >= 0:
             zeileNeu = zeile.replace("const String ", "const char ")
+            zeileNeu = zeileNeu.replace("=", "= R\"rawliteral(")
             varName = zeileNeu.strip().split(' ',3)
             zeileNeu = zeileNeu.replace(varName[2], varName[2]+"[]")
+            zeileNeu = zeileNeu.replace("\n","");
+        elif defFoundVarEnde >= 0:
+            zeileNeu = zeile.replace("];", "] )rawliteral\";")
+        elif defFoundVarEnde2 >= 0:
+            zeileNeu = zeile.replace("};", "} )rawliteral\";")
         else:
             defFoundStart = zeile.find("+String(")
             if defFoundStart >= 0:
@@ -64,7 +90,7 @@ for zeile in datei:
                     defn = zeile[defFoundStart+8:defFoundEnd]
                     if defn in defines_dict:
                         defNr = defines_dict.get(defn)
-                        zeileNeu = zeile.replace(zeile[defFoundStart-1:defFoundEnd+3],defNr);
+                        zeileNeu = zeile.replace(zeile[defFoundStart:defFoundEnd+2],defNr);
                     else:
                         zeileNeu=zeile
                 else:
@@ -79,17 +105,25 @@ for zeile in datei:
                 if defFoundStart >= 0:
                     varName2 = zeile.split("+")[1]
                     if varName2 in defines_dict:
-                        zeileNeu = zeile.replace("+"+varName2+"+","\""+defines_dict.get(varName2)+"\"");
+                        #zeileNeu = zeile.replace("+"+varName2+"+","\""+defines_dict.get(varName2)+"\"");
+                        zeileNeu = zeile.replace("+"+varName2+"+",""+defines_dict.get(varName2)+"");
                 else:
                     zeileNeu=zeile
+                   
+            if(lineCnt>54): 
+                zeileNeu = zeileNeu.replace("\n","");
 
-        dateiOut.write(zeileNeu)
+        if(len(zeileNeu)>1):
+            zeileNeu = zeileNeu.lstrip();
+            dateiOut.write(zeileNeu)
  
     if pyVar == 1:
         pyVar=2
 
     if pyVar == 4:
         pyVar=0
+
+    lineCnt=lineCnt+1
 
 datei.close()
 dateiOut.close()
@@ -162,8 +196,8 @@ for zeile in datei:
     zeileNeu = ""
 
     defFoundStart = zeile.find("'name':")
-    if defFoundStart >= 0:
-        #print(zeile)
+    defFoundStartZ2 = zeile.find("(")
+    if defFoundStart >= 0 and defFoundStartZ2 >= 0:
         defName = zeile.split("(")[1]
         defName = defName.split(")")[0]
 

@@ -196,7 +196,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   }
   
   readConfig();
-  getDefaultValuesFromNewKeys(parameterFile, 0);
+  getDefaultValuesFromNewKeys(parameterFile, 8);
   if(bo_hasNewKeys) writeConfig();
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG, "initWebSettings() end");
@@ -242,7 +242,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
   std::vector<String> options;
   std::vector<String> optionLabels;
 
-  if(json.getArraySize(parameterFile,0)==0)
+  if(json.getArraySize(parameterFile, 8)==0)
   {
     BSC_LOGI(TAG,"Error read json");
   }
@@ -364,7 +364,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
       sprintf(_buf,HTML_START_2,str_mConfName.c_str());
       sendContentHtml(server,_buf,false);
 
-      buildSendHtml(server, parameterFile, 0);
+      buildSendHtml(server, parameterFile, 8);
       
       sendContentHtml(server,HTML_END_1,false); 
 
@@ -1296,15 +1296,49 @@ int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType
   }
   return ret;
 }
+int WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
+{
+  int ret=0;
+  switch(u8_dataType)
+  {
+    case PARAM_DT_U8:
+      ret = prefs.getChar(String(name).c_str());
+      break;
+    case PARAM_DT_I8:
+      ret = prefs.getChar(String(name).c_str());
+      break;
+    case PARAM_DT_U16:
+      ret = prefs.getInt(String(name).c_str());
+      break;
+    case PARAM_DT_I16:
+      ret = prefs.getInt(String(name).c_str());
+      break;
+    case PARAM_DT_U32:
+      ret = prefs.getLong(String(name).c_str());
+      break;
+    case PARAM_DT_I32:
+      ret = prefs.getLong(String(name).c_str());
+      break;
+  }
+  return ret;
+}
 float WebSettings::getFloatFlash(uint16_t name, uint8_t groupNr)
 {
   uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getFloat(String(u32_name).c_str());
 }
+float WebSettings::getFloatFlash(uint16_t name)
+{
+  return prefs.getFloat(String(name).c_str());
+}
 boolean WebSettings::getBoolFlash(uint16_t name, uint8_t groupNr)
 {
   uint16_t u32_name = getParmId(name, groupNr);
   return prefs.getBool(String(u32_name).c_str());
+}
+boolean WebSettings::getBoolFlash(uint16_t name)
+{
+  return prefs.getBool(String(name).c_str());
 }
 String WebSettings::getStringFlash(uint16_t name, uint8_t groupNr)
 {
@@ -1315,6 +1349,10 @@ String WebSettings::getStringFlash(String name)
 {
   if(name.equals(""))return "";
   return prefs.getString(name.c_str());
+}
+String WebSettings::getStringFlash(uint16_t name)
+{
+  return prefs.getString(String(name).c_str());
 }
 
 
@@ -1540,3 +1578,186 @@ void WebSettings::registerOnButton3(void (*callback)())
 {
   fn_mOnButton3 = callback;
 }
+
+
+
+
+
+
+
+#ifdef INSIDER_V1
+void addJsonElem(char *buf, int id, bool val)
+{
+  uint16_t bufLen = strlen(buf);
+  if (bufLen == 0) sprintf(&buf[bufLen], "[");
+  else sprintf(&buf[bufLen], ",");
+  bufLen++;
+  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%u}",id,val);
+}
+void addJsonElem(char *buf, int id, int32_t val)
+{
+  uint16_t bufLen = strlen(buf);
+  if (bufLen == 0) sprintf(&buf[bufLen], "[");
+  else sprintf(&buf[bufLen], ",");
+  bufLen++;
+  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%i}",id,val);
+}
+void addJsonElem(char *buf, int id, float val)
+{
+  uint16_t bufLen = strlen(buf);
+  if (bufLen == 0) sprintf(&buf[bufLen], "[");
+  else sprintf(&buf[bufLen], ",");
+  bufLen++;
+  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%.2f}",id,val);
+}
+void addJsonElem(char *buf, int id, String val)
+{
+  uint16_t bufLen = strlen(buf);
+  if (bufLen == 0) sprintf(&buf[bufLen], "[");
+  else sprintf(&buf[bufLen], ",");
+  bufLen++;
+  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":\"%s\"}",id,val.c_str());
+}
+
+void WebSettings::handleGetValues(WebServer *server)
+{
+  uint32_t argName;
+  char data[4096] = { 0 };
+  //BSC_LOGI(TAG,"handleGetValues: args=%i",server->args());
+  for(uint8_t i=0; i<server->args(); i++)
+  {
+    //BSC_LOGI(TAG,"handleGetValues: argNr=%i",i);
+    //BSC_LOGI(TAG,"handleGetValues: name=%s, arg=%s",server->argName(i).c_str(), server->arg(i).c_str());
+    if(isNumber(server->argName(i))) //Wenn keine Zahl, dann Fehler
+    {
+      argName = server->argName(i).toInt();
+      
+      //uint16_t u16_name = (argName&0xFFFF);
+      uint8_t u8_storeInFlash = ((argName>>16)&0xff);
+      uint8_t u8_dataType = ((argName>>24)&0xff);
+
+      if(u8_storeInFlash==0)
+      {
+        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBool((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloat((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getString((uint16_t)(argName&0xFFFF),false,PARAM_DT_ST));
+        else addJsonElem(data, argName, getInt((uint16_t)(argName&0xFFFF), u8_dataType));
+      }
+      else if(u8_storeInFlash==1)
+      {
+        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBoolFlash((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloatFlash((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getStringFlash((uint16_t)(argName&0xFFFF)));
+        else addJsonElem(data, argName, getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
+      }
+    }
+    else
+    {
+      BSC_LOGE(TAG,"handleGetValues: not number");
+    }
+  }
+  sprintf(&data[strlen(data)], "]");
+
+  server->send(200, "application/json", data);
+}
+
+void WebSettings::handleSetValues(WebServer *server)
+{
+  //BSC_LOGI(TAG,"handleSetValues args=%i",server->args());
+
+  uint8_t u8_storeInFlash,u8_datatype,ret,u8_lParamGroup;
+  uint16_t u16_argName,u16_lParamId;
+  uint32_t u32_argName;
+  String argValue;
+
+  //BSC_LOGI(TAG,"handleSetValues: args=%i",server->args());
+  for(uint8_t i=0; i<server->args(); i++)
+  {
+    //BSC_LOGI(TAG,"handleSetValues: argNr=%i",i);
+    //BSC_LOGI(TAG,"handleSetValues: name=%s, arg=%s",server->argName(i).c_str(), server->arg(i).c_str());
+    if(server->argName(i)==F("SAVE"))
+    {
+      writeConfig(); //Schreiben der Einstellungen in das Config file
+    }
+    else if(isNumber(server->argName(i))) //Wenn keine Zahl, dann Fehler
+    {
+      //BSC_LOGI(TAG,"handleSetValues argNr=%i, argName=%s, val=%s", i, server->argName(i).c_str(), server->arg(i).c_str());
+
+      u32_argName = server->argName(i).toInt();
+      argValue = server->arg(i);
+
+      u8_storeInFlash = ((u32_argName>>16)&0xff);
+      u8_datatype = ((u32_argName>>24)&0xff);
+      u16_argName = (u32_argName&0xFFFF);
+
+      if(u8_storeInFlash==1) //Store  in Flash
+      {              
+        #ifdef WEBSET_DEBUG
+        BSC_LOGD(TAG,"Store in Flash; u16_argName=%i, dt=%i",u16_argName,u8_datatype);
+        #endif
+
+        //Spezielle Parameter vor dem Speichern ändern
+        u16_lParamId=0;
+        u8_lParamGroup=0;
+        getIdFromParamId(u16_argName,u16_lParamId,u8_lParamGroup);
+        if(u16_lParamId==ID_PARAM_SS_BTDEVMAC) argValue.toLowerCase();
+
+        ret=0xFF;
+        switch(u8_datatype)
+        {
+          case PARAM_DT_U8:
+            ret=prefs.putChar(String(u16_argName).c_str(),(uint8_t)argValue.toInt());
+            break;
+          case PARAM_DT_I8:
+            ret=prefs.putChar(String(u16_argName).c_str(),(int8_t)argValue.toInt());
+            break;
+          case PARAM_DT_U16:
+            ret=prefs.putInt(String(u16_argName).c_str(),(uint16_t)argValue.toInt());
+            break;
+          case PARAM_DT_I16:
+            ret=prefs.putInt(String(u16_argName).c_str(),(int16_t)argValue.toInt());
+            break;
+          case PARAM_DT_U32:
+            ret=prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
+            break;
+          case PARAM_DT_I32:
+            ret=prefs.putLong(String(u16_argName).c_str(),argValue.toInt());
+            break;
+          case PARAM_DT_FL:
+            ret=prefs.putFloat(String(u16_argName).c_str(),argValue.toFloat());
+            break;
+          case PARAM_DT_ST:
+            ret=prefs.putString(String(u16_argName).c_str(),argValue);
+            break;
+          case PARAM_DT_BO:
+            ret=prefs.putBool(String(u16_argName).c_str(),argValue.toInt());
+            break;
+        }
+      }
+      else //Store in RAM
+      {
+        #ifdef WEBSET_DEBUG
+        BSC_LOGD(TAG,"Store in RAM; u16_argName=%i, dt=%i",u16_argName,u8_datatype);
+        #endif
+
+        setString(u16_argName, argValue, u8_datatype); 
+      }
+    }
+    else
+    {
+      BSC_LOGE(TAG,"handleSetValues: not number");
+    }
+  }
+  server->send(200, "application/json", "{\"state\":1}");
+}
+#endif
+
+
+
+
+
+
+
+
+
+

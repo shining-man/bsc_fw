@@ -3,6 +3,8 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
+#include "Arduino.h"
+#include "defines.h"
 
 /* ***********************************************************************************
  * Wichtiger Hinweis!
@@ -481,7 +483,7 @@ const char htmlPageBscDataLive[] PROGMEM = "<!doctype html>"
     "newCard.getElementById('bms0_soc').id=devIdName+devNr+'_soc';"
     "newCard.getElementById('bms0_totalVolt').id=devIdName+devNr+'_totalVolt';"
     "newCard.getElementById('bms0_totalCurr').id=devIdName+devNr+'_totalCurr';"
-    "document.getElementById('cards').appendChild(newCard)"
+    "document.getElementById('cards').appendChild(newCard);"
   "}"
      
   "function addAllBmsCards(){"
@@ -607,4 +609,99 @@ const char htmlPageBscDataLive[] PROGMEM = "<!doctype html>"
 "</script>"
 
 "</body>"
+"</html>";
+
+
+
+
+const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
+"<html>"
+"<head>"
+  "<title>BSC</title>"
+  "<meta name='viewport' content='width=device-width, initial-scale=1'>"
+  "<link rel='icon' href='data:,'>"
+  "__PYVAR_HTML_WEBPAGES_STYLE__"
+
+  "<STYLE>"
+  "td {text-align: left; vertical-align: top;}"
+  "</STYLE>"
+
+  "<script>\n"
+    "function getData() {\n"
+    "var xhttp = new XMLHttpRequest();\n"
+    "xhttp.onreadystatechange = function(){\n"
+      "if (this.readyState == 4 && this.status == 200){\n"
+        "if(this.responseText!='ok'){\n"
+          //"console.log(this.responseText);\n"
+          "var jsonObj = JSON.parse(this.responseText);\n"
+          "for (let i=0; i<jsonObj.length; i++) {\n"
+            "elem = document.getElementById(jsonObj[i].id);\n"
+            "if(elem!=null){\n"
+              "elem.value=jsonObj[i].val;\n"
+            "}\n"
+          "}\n"
+        "}\n"
+      "}\n"
+    "};\n"
+    "xhttp.open('GET', 'getBpnData', true);\n"
+    "xhttp.timeout=1000;\n"
+    "xhttp.send();\n"
+    "var timer = window.setTimeout('getData()', 1000);\n"
+    "}\n"
+  "</script>\n"
+"</head>"
+
+"<body>"
+  "<div class='topnav'>"
+    "<span class='btnBack' onclick=\"location.href='../'\">&#10094;</span>"
+    "<span class='btnBack' onclick=location.href='/'>&#10094;&#10094;</span>"
+    "<span class='hl'>Einstellungen - Schnittstellen</span>"
+  "</div>"
+  "<div class='content'><form method='post'>"
+    "<table>"
+      //General
+      "<tr><td><b>General</b></td><td></td></tr>"
+      "<tr><td>Anzahl Zellen</td><td><input type='number' step='1' min='0' max='18' value='0' id='__BPN_SETTINGS_NR_OF_CELLS__' name='__BPN_SETTINGS_NR_OF_CELLS__'></td></tr>" //Anzahl Zellen pro Pack
+      "<tr><td><br></td><td></td></tr>"
+      
+      //Alarm
+      "<tr><td><b>Alarm</b></td><td></td></tr>"
+      "<tr><td>Low Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='__BPN_SETTINGS_LOW_CELL_VOLTAGE__' name='__BPN_SETTINGS_LOW_CELL_VOLTAGE__'></td><td>mV</td></tr>"
+      "<tr><td>High Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='__BPN_SETTINGS_HIGH_CELL_VOLTAGE__' name='__BPN_SETTINGS_HIGH_CELL_VOLTAGE__'></td><td>mV</td></tr>"
+      "<tr><td>Alarm Delay - Cell Voltage</td><td><input type='number' step='1' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DDELAY_CELL_VOLTAGE__' name='__BPN_SETTINGS_ALARM_DDELAY_CELL_VOLTAGE__'></td><td>s</td></tr>"
+      "<tr><td><br></td><td></td></tr>"
+      
+      "<tr><td>Low Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='__BPN_SETTINGS_LOW_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_LOW_BATTERY_VOLTAGE__'></td><td>V</td></tr>"
+      "<tr><td>High Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='__BPN_SETTINGS_HIGH_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_HIGH_BATTERY_VOLTAGE__'></td><td>V</td></tr>"
+      "<tr><td>Alarm Delay - Battery Voltage</td><td><input type='number' step='0' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE__'></td><td>s</td></tr>"
+      "<tr><td><br></td><td></td></tr>"
+      
+      "<tr><td>Max Charge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='__BPN_SETTINGS_MAX_CHARGE_CURRENT__' name='__BPN_SETTINGS_MAX_CHARGE_CURRENT__'></td><td>A</td></tr>"
+      "<tr><td>Alarm Delay - Charge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT__' name='__BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT__'></td><td>s</td></tr>"
+      "<tr><td><br></td><td></td></tr>"
+
+      "<tr><td>Max Discharge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='__BPN_SETTINGS_MAX_DISCHARGE_CURRENT__' name='__BPN_SETTINGS_MAX_DISCHARGE_CURRENT__'></td><td>A</td></tr>"
+      "<tr><td>Alarm Delay - Discharge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_MAX_DISCHARGE_CURRENT__' name='__BPN_SETTINGS_ALARM_DELAY_MAX_DISCHARGE_CURRENT__'></td><td>s</td></tr>"
+      "<tr><td><br></td><td></td></tr>"
+
+      //Shunt
+      "<tr><td><b>Shunt</b></td><td></td></tr>"
+      "<tr><td>Nominal Capacity</td><td><input type='number' step='1' min='1' max='1000' value='0' id='__BPN_SETTINGS_NOMINAL_BAT_CAPACITY__' name='__BPN_SETTINGS_NOMINAL_BAT_CAPACITY__'></td><td>Ah</td></tr>"
+      "<tr><td><br></td><td></td></tr>"
+
+    "</table>"
+    "<button type='Submit' name='S_BPN_SET'>Übernehmen</button>"
+  "</form></div>"
+
+  "<script>"
+    "getData();"
+  "</script>"
+"</body>"
+"</html>";
+
+
+const char htmlPageUpload[] PROGMEM = "<!DOCTYPE HTML>"
+"<html>"
+"<form method='POST' action='/uploadPbnFw' enctype='multipart/form-data'>"
+"<input type='file' name='[]' multiple><button>Upload</button></form>"
 "</html>";

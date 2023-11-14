@@ -22,6 +22,9 @@
 #include "devices/DalyBms.h"
 #include "devices/JkBmsV13.h"
 #include "devices/GobelBms.h"
+#ifdef BPN
+#include "devices/bpnSerial.h"
+#endif
 
 static const char *TAG = "BSC_SERIAL";
 
@@ -196,8 +199,16 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       ESP_LOGI(TAG,"setReadBmsFunktion Gobel");
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &GobelBms_readBmsData;
-      break;
+      break; 
 
+    #ifdef BPN
+    case ID_SERIAL_DEVICE_BPN:
+      ESP_LOGI(TAG,"setReadBmsFunktion BPN");
+      setSerialBaudrate(u8_devNr, 19200);
+      serialDeviceData[u8_devNr].readBms = &bpn_readBmsData;
+      break;
+    #endif
+    
     default:
       serialDeviceData[u8_devNr].readBms = 0;
   }
@@ -280,8 +291,7 @@ void BscSerial::cyclicRun()
     if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
     {
       if(u8_lNumberOfSeplosBms==0 || i<2 || i>(u8_lNumberOfSeplosBms+1))
-      {
-        setSerialBmsWriteData(i,false);
+      {  
         continue;
       }
     }
@@ -310,7 +320,24 @@ void BscSerial::cyclicRun()
     devData.u8_NumberOfDevices=1;
     devData.u8_deviceNr=0;
     devData.u8_BmsDataAdr=i;
-    devData.bo_writeData=getSerialBmsWriteData(i); //Hier true setzen, wenn Daten geschrieben werden sollen
+    devData.bo_writeData=false;
+    devData.rwDataLen=0;
+
+    //Überprüfen ob Daten an das BMS gesendet werden sollen
+    bmsDataSemaphoreTake();
+    uint8_t *lRwDataP=getSerialBmsWriteData(i,&devData.rwDataTyp,&devData.rwDataLen);
+    uint8_t *lRwData;
+    if(devData.rwDataLen>0)
+    {
+      devData.bo_writeData=true;
+
+      lRwData = (uint8_t*)malloc(devData.rwDataLen);
+      memcpy(lRwData, lRwDataP, devData.rwDataLen);
+      devData.rwData = lRwData;
+
+      clearSerialBmsWriteData(i);
+    }
+    bmsDataSemaphoreGive();
 
     //Wenn Spelos (o.ä.) an Serial 2 verbunden
     if(i>=2 && u8_lNumberOfSeplosBms>0)
@@ -322,9 +349,8 @@ void BscSerial::cyclicRun()
     }
 
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
-    
     bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
-    setSerialBmsWriteData(i,false);
+    if(devData.bo_writeData) free(lRwData);
     #else
     bmsReadOk=readBmsTestData(BT_DEVICES_COUNT+u8_mSerialNr);
     BSC_LOGI(TAG,"Filter: RX serial Data; errCnt=%i",*u8_pBmsFilterErrorCounter);

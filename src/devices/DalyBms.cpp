@@ -217,6 +217,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     }
     
     if(u8_lRecvBytesCnt==(DALY_FRAME_SIZE*packets)) break; //Recv Pakage complete   
+    if(u8_lRecvBytesCnt>=(DALY_FRAME_SIZE*16)) return false; //Answer too long!
   }
 
   /*#ifdef DALY_DEBUG

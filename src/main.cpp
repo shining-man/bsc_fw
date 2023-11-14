@@ -23,7 +23,6 @@
 #define CONFIG_BTDM_CTRL_MODEM_SLEEP_MODE_ORIG 0    //1->0  shiningman
 */
 
-
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -49,6 +48,13 @@
 #include "bscTime.h"
 #include "restapi.h"
 #include "devices/NeeyBalancer.h"
+#ifdef BPN
+#include "devices/bpnWebHandler.h"
+#endif
+
+#ifdef INSIDER_V1
+#include "webapp2.h"
+#endif
 
 /*extern "C"
 {
@@ -56,6 +62,7 @@
 }*/
 
 static const char *TAG = "MAIN";
+uint8_t bo_supportEn=true;
 
 WebServer server;
 BleHandler* bleHandler;
@@ -131,6 +138,10 @@ static String str_BootTimeStamp;
 #ifdef LOG_BMS_DATA
 long debugLogTimer;
 #endif
+
+//Für Tests
+//uint32_t loopDuration=0;
+
 
 //
 void task_ble(void *param);
@@ -231,8 +242,8 @@ boolean connectWiFi()
   doConnectWiFi=true;
 
   bo_mWifiConnected=false;
-  str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
-  str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
+  str_lWlanSsid = "wl220225"; //webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
+  str_lWlanPwd  = "05101545206425660824"; //webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
   u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
   bo_lWlanNeverAp=false;
 
@@ -649,6 +660,13 @@ void handlePage_htmlPageMenuLivedata(){server.send(200, "text/html", htmlPageMen
 void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
 void handlePage_htmlPageBscDataLive(){server.send(200, "text/html", htmlPageBscDataLive);}
 
+#ifdef BPN
+void handlePage_htmlPageBpnSettings()
+{
+  server.send(200, "text/html", htmlPageBpnSettings);
+  bpnHandleHtmlFormRequest(&server);
+}
+#endif
 
 /*
   Handle WebSettings
@@ -910,13 +928,12 @@ void btnReadNeeyData()
 }
 
 
-
 void btnWriteJbdBmsData()
 {
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  /*for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {
     setSerialBmsWriteData(i,true);
-  }
+  }*/
 }
 
 
@@ -966,6 +983,18 @@ uint8_t checkTaskRun()
   }
 
   return ret;
+}
+
+
+void sendResponceUpdateBpnFw()
+{
+
+  BSC_LOGI(TAG,"Upload ok");
+  uint8_t data=0;
+  setSerialBmsWriteData(BPN_START_FWUPDATE, &data, 1);
+  addSerialBmsWriteDevNr(2);
+
+  server.send(200, "text/plain", "Upload ok");
 }
 
 
@@ -1047,7 +1076,12 @@ void setup()
   }
 
   //ini WebPages
+  #ifdef INSIDER_V1
+  if(bo_supportEn==true) server.on("/old",handlePage_root);
+  else server.on("/",handlePage_root);
+  #else
   server.on("/",handlePage_root);
+  #endif
   server.on("/htmlPageStatus/",handlePage_status);
   server.on("/settings/",handlePage_settings);
   server.on("/settings/alarm/",handlePage_alarm);
@@ -1083,12 +1117,17 @@ void setup()
   server.on("/livedata/bscDataLive/getBscLiveData",handle_getBscLiveData);
   server.on("/settings/schnittstellen/ow/getOwDevices",handle_getOnewireDeviceAdr);
 
+  //BPN
+  #ifdef BPN
+  server.on("/bpn",handlePage_htmlPageBpnSettings);
+  server.on("/getBpnData",[]() {handle_getBpnData(&server);});
+  server.on("/upload", HTTP_GET, []() {server.send(200, "text/html", htmlPageUpload);});
+  server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, "bpnFw.bin");});
+  #endif
+
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
   server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
-
-  //server.on("/websettings.js", HTTP_GET, []() {server.send(200, "text/javascript", webSettingsJs);});
-  //server.on("/websettings.css", HTTP_GET, []() {server.send(200, "text/css", webSettingsCss);});
+  server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   webota.init(&server, "/settings/webota/"); //webota
 
@@ -1098,6 +1137,10 @@ void setup()
     sleep(2);
     ESP.restart();
   });
+
+  #ifdef INSIDER_V1
+  initWebApp2(&server, &webSettingsSystem, bleHandler);
+  #endif
 
   //Erstelle Tasks
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
@@ -1121,8 +1164,11 @@ void setup()
 
 
 uint8_t u8_lTaskRunSate;
+//uint32_t loopRunTime=0;
 void loop()
 {
+  //loopDuration=millis()-loopRunTime;
+  //loopRunTime=millis();
   #ifdef DEBUG_ON_FS
   writeLogToFS();
   #endif

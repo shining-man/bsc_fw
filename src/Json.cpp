@@ -107,7 +107,7 @@ uint16_t Json::getArraySize(const char *json, long startPos)
             arrayCnt++;
             arrayCntMerker=0;
         }
-        if (arrayOpenCnt == arrayCloseCnt)
+        if (arrayOpenCnt>0 && arrayOpenCnt == arrayCloseCnt)
         {
             return arrayCnt;
         }
@@ -125,9 +125,9 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
     jsonIndexPos_Array(json, idx, startPos, endPos);
 
     String label = "";
-    String sName = "'";
+    String sName = "\"";
     sName += name;
-    sName += "':";
+    sName += "\":";
     const char* cName = sName.c_str();
     uint8_t cNameLen = strlen(cName);
     uint8_t cNameFoundToPos = 0;
@@ -163,7 +163,7 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
                 //Wenn json[startPos-1] kein "'" ist dann startPos--
                 if (p > 0)
                 {
-                    if (json[p] != '\'')
+                    if (json[p] != '"')
                     {
                         p--;
                     }
@@ -178,7 +178,7 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
         }
         else if (searchState == 3) //Kein Array
         {
-            if ((json[p]=='\'') || ((json[p]==',')&&(json[p+1]!=' ')) || (json[p]=='}')) //String Ende
+            if ((json[p]=='"') || ((json[p]==',')&&(json[p+1]!=' ')) || (json[p]=='}')) //String Ende
             {
                 retValue = label;
                 return true;

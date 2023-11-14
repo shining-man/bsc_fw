@@ -10,5 +10,6 @@
 #include <WebServer.h>
 
 bool handleFileRead(WebServer *server, String path);
+void handleFileUpload(WebServer *server, String fileName);
 
 #endif

@@ -141,10 +141,16 @@ void setBmsLastChangeCellVoltageCrc(uint8_t devNr, uint8_t value);
 unsigned long getBmsLastDataMillis(uint8_t devNr);
 void setBmsLastDataMillis(uint8_t devNr, unsigned long value);
 
+//write serial data
+uint8_t *getSerialBmsWriteData(uint8_t devNr, serialDataRwTyp_e *dataTyp, uint8_t *rwDataLen);
+void setSerialBmsWriteData(serialDataRwTyp_e dataTyp, uint8_t *data, uint8_t dataLen);
+void addSerialBmsWriteDevNr(uint8_t devNr);
+void clearSerialBmsWriteData(uint8_t devNr);
 
-bool getSerialBmsWriteData(uint8_t devNr);
-void setSerialBmsWriteData(uint8_t devNr, bool value);
-
+//read serial data
+void setSerialBmsReadData(uint8_t devNr, serialDataRwTyp_e dataTyp, uint8_t *data, uint8_t dataLen);
+uint8_t *getSerialBmsReadeData(uint8_t devNr, serialDataRwTyp_e *dataTyp, uint8_t *rwDataLen);
+void clearSerialBmsReadData(uint8_t devNr);
 
 uint8_t getBmsDataBytes(uint8_t dataType);
 

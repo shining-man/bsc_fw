@@ -230,10 +230,11 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
     {
       u8_CyclesWithoutData++;
-    vTaskDelay(pdMS_TO_TICKS(1));
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
 
     if(bo_lDataComplete) break; //Recv Pakage complete   
+    if(u8_lRecvBytesCnt>=SYLCINBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
   #ifdef SYLCIN_DEBUG
