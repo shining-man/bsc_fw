@@ -329,6 +329,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 
 #define ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE 132
 
+#define ID_PARAM_MQTT_SEND_DELAY 133
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0

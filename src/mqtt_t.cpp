@@ -383,7 +383,8 @@ void mqttDataToTxBuffer()
   //Sende Daten via mqtt, wenn aktiv
   if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
   {
-    if(millis()-sendeTimerBmsMsg>=15000)
+    uint32_t u8_lMqttSendDelay = (uint32_t)WebSettings::getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000;
+    if(millis()-sendeTimerBmsMsg>=u8_lMqttSendDelay)
     {
       sendeTimerBmsMsg = millis();
       sendeDelayTimer10ms = millis();
