@@ -49,10 +49,9 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
 
   uint8_t u8_lSylcinAdr=devData->u8_deviceNr;
   uint8_t u8_lSylcinAdrBmsData=devData->u8_BmsDataAdr;
-  if(u8_mCountOfPacks>1)
-  {
-    u8_lSylcinAdr+=1;
-  }
+
+  // Beim Sylcin BMS fängt die erste Adresse immer mit 1 an!
+  u8_lSylcinAdr+=1;
 
   #ifdef SYLCIN_DEBUG
   BSC_LOGI(TAG,"SylcinBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i, Packs=%i",u8_mDevNr,u8_lSylcinAdr,u8_lSylcinAdrBmsData,u8_mCountOfPacks,devData->u8_addData);
