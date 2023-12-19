@@ -24,7 +24,6 @@ static float     f_mTotalVoltageOld=0xFFFF;
 static uint16_t  u16_mBalanceCapacityOld=0xFFFF;
 static uint32_t  u32_mChargeMAh=0;
 static uint32_t  u32_mDischargeMAh=0;
-static uint32_t  mqttSendeTimer=0;
 
 //
 static void      buildMessage(uint8_t* frame, bool bo_write, uint8_t cmd, uint16_t value);
@@ -40,10 +39,12 @@ static bool      checkCrc(uint8_t *recvMsg);
 static uint16_t  calcCrc(uint8_t *recvMsg);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+static serialDevData_s *mDevData;
 
 bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
+  mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
@@ -59,7 +60,8 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
   else bo_lRet=false;
-   
+  
+  vTaskDelay(pdMS_TO_TICKS(40));
   sendMessage(cellMsg,7);
   if(recvAnswer(response)) parseCellVoltageMessage(response);
   else bo_lRet=false;
@@ -175,7 +177,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
     {
       u8_CyclesWithoutData++;
-    vTaskDelay(pdMS_TO_TICKS(1));
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
 
     if(u8_lRecvBytesCnt==4+u8_lRecvDataLen+3) break; //Recv Pakage complete
@@ -234,7 +236,7 @@ static void parseBasicMessage(uint8_t * t_message)
   u16_mBalanceCapacityOld=u16_lBalanceCapacity;
   
 
-  if((millis()-mqttSendeTimer)>10000)
+  if(mDevData->bo_sendMqttMsg)
   {
     uint16_t u16_lFullCapacity, u16_lCycle, u16_lBalanceStatus, u16_lFetStatus;
     u16_lFullCapacity = convertToUint16(t_message[JBD_BYTE_FULL_CAPACITY], t_message[JBD_BYTE_FULL_CAPACITY+1]); //10mAH
@@ -262,8 +264,6 @@ static void parseBasicMessage(uint8_t * t_message)
 
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
-
-    mqttSendeTimer=millis();
   }
 
 }

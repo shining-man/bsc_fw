@@ -156,10 +156,12 @@ static bool recvAnswer(uint8_t *t_outMessage);
 static void parseData(uint8_t *t_message);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+static serialDevData_s *mDevData;
 
 bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet = true;
+  mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn = callback;
@@ -292,7 +294,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   return true;
 }
 
-uint32_t mqttSendeTimer_gobel = 0;
 void parseData(uint8_t *t_message)
 {
   uint16_t u16_lBalanceCapacity = 0;
@@ -418,7 +419,7 @@ void parseData(uint8_t *t_message)
   */
   //        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, uint16_t); TODO: Handle errors
 
-  if (millis() > (mqttSendeTimer_gobel + 10000))
+  if(mDevData->bo_sendMqttMsg)
   {
     // Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
@@ -428,7 +429,5 @@ void parseData(uint8_t *t_message)
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
-
-    mqttSendeTimer_gobel = millis();
   }
 }

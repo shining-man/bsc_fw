@@ -147,6 +147,7 @@ struct inverterData_s * getInverterData()
 
 void loadCanSettings()
 {
+  inverterData.noBatteryPackOnline = true;
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
   uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
@@ -207,6 +208,7 @@ void canTxCyclicRun()
     sendBmsCanMessages();
     if(u8_mMqttTxTimer>=15)u8_mMqttTxTimer=0;
   }
+  else inverterData.noBatteryPackOnline = true;
 }
 
 
@@ -942,8 +944,9 @@ void sendCanMsg_351()
 {
   data351 msgData;
   uint8_t errors = 0;
-  //@ToDo: Fehler feststellen
+  int16_t i16_lMaxChargeCurrentList[4];
 
+  //@ToDo: Fehler feststellen
 
   if (errors!=0) //wenn Fehler
   {    
@@ -998,7 +1001,6 @@ void sendCanMsg_351()
       BSC_LOGI(TAG,"chargeCurrent Pack:%i",i16_lMaxChargeCurrent);
       #endif
 
-      int16_t i16_lMaxChargeCurrentList[4];
       i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(i16_lMaxChargeCurrent);
       i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
       i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
@@ -1086,6 +1088,11 @@ void sendCanMsg_351()
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
   inverterData.inverterChargeCurrent = msgData.maxchargecurrent;
   inverterData.inverterDischargeCurrent = msgData.maxdischargecurrent;
+
+  inverterData.calcChargeCurrentCellVoltage = i16_lMaxChargeCurrentList[0];
+  inverterData.calcChargeCurrentSoc = i16_lMaxChargeCurrentList[1];
+  inverterData.calcChargeCurrentCelldrift = i16_lMaxChargeCurrentList[2];
+  inverterData.calcChargeCurrentCutOff = i16_lMaxChargeCurrentList[3];
   xSemaphoreGive(mInverterDataMutex);
 
   i16_mAktualDischargeCurrentSoll=msgData.maxdischargecurrent/10;
@@ -1173,6 +1180,7 @@ void sendCanMsg_355()
 void sendCanMsg_356()
 {
   data356 msgData;
+  bool isOneBatteryPackOnline=false;
 
   //Batteriespannung
   msgData.voltage = 0;
@@ -1196,6 +1204,7 @@ void sendCanMsg_356()
 
   //Batteriestrom
   msgData.current = (int16_t)(getBmsTotalCurrent(u8_mBmsDatasource)*10);
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
   #ifdef CAN_DEBUG
   BSC_LOGI(TAG,"Battery current: u8_mBmsDatasource=%i, cur=%i, u8_mBmsDatasourceAdd=%i",u8_mBmsDatasource, msgData.current, u8_mBmsDatasourceAdd);
   #endif
@@ -1209,6 +1218,7 @@ void sendCanMsg_356()
     //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
     if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT)) 
     {   
+      isOneBatteryPackOnline=true;
       msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
       #ifdef CAN_DEBUG
       BSC_LOGI(TAG,"Battery current (T): dev=%i, time=%i, cur=%i",i,millis()-lTime, msgData.current);
@@ -1258,6 +1268,8 @@ void sendCanMsg_356()
   #endif
 
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  if(isOneBatteryPackOnline) inverterData.noBatteryPackOnline=false;
+  else inverterData.noBatteryPackOnline=true;
   inverterData.inverterVoltage = msgData.voltage;
   inverterData.inverterCurrent = msgData.current;
   xSemaphoreGive(mInverterDataMutex);

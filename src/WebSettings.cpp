@@ -8,12 +8,19 @@
 #include "web/webSettings_web.h"
 #include "defines.h"
 #include <Arduino.h>
-#include "SPIFFS.h"
+#include <FS.h>
+#ifdef USE_LittleFS
+  #define SPIFFS LittleFS
+  #include <LITTLEFS.h> 
+#else
+  #include <SPIFFS.h>
+#endif 
 #include <WebServer.h>
 #include <FS.h>
 #include "log.h"
 #include <sparsepp/spp.h>
 #include <Preferences.h>
+#include "crc.h"
 
 using spp::sparse_hash_map;
 
@@ -171,6 +178,7 @@ WebSettings::WebSettings() {
 
 void WebSettings::initWebSettings(const char *parameter, String confName, String configfile)
 {
+  static bool paramFileRead=false;
   u8_mJsonArraySize = 0;
   str_mConfName = confName.c_str();
   str_mConfigfile = configfile.c_str();
@@ -179,10 +187,10 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
 
   if (!SPIFFS.begin())
   {
+    BSC_LOGE(TAG,"Mount Failed");
     SPIFFS.format();
     SPIFFS.begin();
   }
-
 
   if (!prefs.begin("prefs"))
   {
@@ -195,7 +203,11 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
     BSC_LOGI(TAG,"Free flash entries: %d", prefs.freeEntries());
   }
   
-  readConfig();
+  if(paramFileRead==false) //Parameterfile nur einmal einlesen
+  {
+    paramFileRead=true;
+    readConfig();
+  }
   getDefaultValuesFromNewKeys(parameterFile, 8);
   if(bo_hasNewKeys) writeConfig();
   #ifdef WEBSET_DEBUG
@@ -1108,6 +1120,13 @@ bool WebSettings::isKeyExist(uint16_t key, uint8_t u8_dataType)
   return ret;
 }
 
+
+void WebSettings::setParameter(uint16_t name, uint8_t group, String value, uint8_t u8_dataType)
+{
+  setString(getParmId(name, group), value, u8_dataType);
+}
+
+
 void WebSettings::setString(uint16_t name, String value, uint8_t u8_dataType)
 {
   #ifdef WEBSET_DEBUG
@@ -1372,7 +1391,7 @@ void WebSettings::getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &grou
 //Lese Parameter aus Datei
 boolean WebSettings::readConfig()
 {
-  String  str_line, str_value, str_dataType;
+  String  str_line, str_value, str_dataType, confFile;
   uint32_t str_name;
   uint8_t ui8_pos;
 
@@ -1380,14 +1399,51 @@ boolean WebSettings::readConfig()
   BSC_LOGI(TAG,"readConfig()");
   #endif
 
-  if (!SPIFFS.exists(str_mConfigfile.c_str()))
+  confFile=str_mConfigfile;
+
+  if (SPIFFS.exists(confFile.c_str()))
+  {
+    uint32_t crc = calcCrc(confFile.c_str());
+    if(prefs.getULong("confCrc")!=crc) // Wrong CRC
+    {
+      if(SPIFFS.exists("/WebSettings.sich"))
+      {
+        BSC_LOGI(TAG,"Fehler beim lesen der Parameter (falsche CRC)! Lade Backup.");
+        confFile="/WebSettings.sich";
+      }
+      else
+      {
+        BSC_LOGI(TAG,"Fehler beim lesen der Parameter (falsche CRC)!");
+        writeConfig();
+      }
+    }
+    else
+    {
+      //Wenn Crc der Config ok ist, aber noch kein Backup-File exisiteirt
+      uint32_t crcBackup = copyFile(str_mConfigfile.c_str(), "/WebSettings.sich");
+      if(crc!=crcBackup) //CRC des Backups falsch -> Bakup wieder löschen
+      {
+        BSC_LOGI(TAG,"Fehler beim erstellen des Backups (falsche CRC)");
+        SPIFFS.remove("/WebSettings.sich");
+      }
+    }
+  }
+  else
   {
     //wenn settingfile nicht vorhanden, dann schreibe default Werte
-    BSC_LOGI(TAG,"readConfig: file not exist");
-    writeConfig();
+    if(SPIFFS.exists("/WebSettings.sich"))
+    {
+      BSC_LOGI(TAG,"Kein Parameterfile vorhanden. Lade Backup.");
+      confFile="/WebSettings.sich";
+    }
+    else
+    {
+      BSC_LOGI(TAG,"Kein Parameterfile vorhanden");
+      writeConfig();
+    }
   }
 
-  File f = SPIFFS.open(str_mConfigfile.c_str(),"r");
+  File f = SPIFFS.open(confFile.c_str(),"r");
   if (f)
   {
     #ifdef WEBSET_DEBUG
@@ -1399,7 +1455,7 @@ boolean WebSettings::readConfig()
     while (f.position() < size)
     {
       #ifdef WEBSET_DEBUG
-      BSC_LOGI(TAG,"readConfig size=%i, pos=%i\n", size, (uint32_t)f.position());
+      BSC_LOGI(TAG,"readConfig size=%i, pos=%i", size, (uint32_t)f.position());
       #endif
 
       str_line = f.readStringUntil(10);
@@ -1419,11 +1475,11 @@ boolean WebSettings::readConfig()
       else if(str_dataType.equals("STR")) setString(str_name, str_value, PARAM_DT_ST);
       
       #ifdef WEBSET_DEBUG
-      BSC_LOGI(TAG,"readConfig key:%lu, val:%s\n",str_name, str_value.c_str());
+      BSC_LOGI(TAG,"readConfig key:%lu, val:%s",str_name, str_value.c_str());
       #endif
       if(fPosOld==f.position())
       {
-        BSC_LOGE(TAG,"Read config break: pos=%i\n",(uint32_t)f.position());
+        BSC_LOGE(TAG,"Read config break: pos=%i",(uint32_t)f.position());
         break;
       }
       fPosOld=f.position();
@@ -1523,6 +1579,17 @@ boolean WebSettings::writeConfig()
     xSemaphoreGive(mParamMutex);
     f.flush();
     f.close();
+
+    //CRC speichern und Backup der Config erstellen
+    uint32_t crc = calcCrc(str_mConfigfile.c_str());
+    prefs.putULong("confCrc",crc);
+    uint32_t crcBackup = copyFile(str_mConfigfile.c_str(), "/WebSettings.sich");
+    if(crc!=crcBackup)
+    {
+      BSC_LOGI(TAG,"Fehler beim erstellen des Backup (falsche CRC)");
+      SPIFFS.remove("/WebSettings.sich");
+    }
+
     return true;
   }
   else
@@ -1538,9 +1605,46 @@ boolean WebSettings::writeConfig()
 //Löschen des Parameterfiles
 boolean WebSettings::deleteConfig()
 {
+  //return LittleFS.remove(str_mConfigfile.c_str());
   return SPIFFS.remove(str_mConfigfile.c_str());
 }
 
+uint32_t WebSettings::copyFile(String fileSrc, String fileDst)
+{
+  char buf[64];
+  uint32_t crc=0;
+
+  if (SPIFFS.exists(fileDst) == true) SPIFFS.remove(fileDst);
+  
+  File fSrc = SPIFFS.open(fileSrc, "r");
+  File fDst = SPIFFS.open(fileDst, "w");
+
+  while (fSrc.available() > 0)
+  {
+    uint8_t readBytes = fSrc.readBytes(buf, 64);
+    crc=calcCrc32(crc, (uint8_t*)buf, readBytes);
+    fDst.write((uint8_t*)buf, readBytes);
+  }
+    
+  fDst.close();
+  fSrc.flush();
+  fSrc.close();
+
+  return crc;
+}
+
+uint32_t WebSettings::calcCrc(String fileSrc)
+{
+  char buf[64];
+  uint32_t crc=0;
+  File fSrc = SPIFFS.open(fileSrc, "r");
+  while (fSrc.available() > 0)
+  {
+    uint8_t readBytes = fSrc.readBytes(buf, 64);
+    crc=calcCrc32(crc, (uint8_t*)buf, readBytes);
+  }
+  return crc;
+}
 
 void WebSettings::setButtons(uint8_t buttons, String btnLabel)
 {
@@ -1632,7 +1736,6 @@ void WebSettings::handleGetValues(WebServer *server)
     {
       argName = server->argName(i).toInt();
       
-      //uint16_t u16_name = (argName&0xFFFF);
       uint8_t u8_storeInFlash = ((argName>>16)&0xff);
       uint8_t u8_dataType = ((argName>>24)&0xff);
 
@@ -1675,11 +1778,7 @@ void WebSettings::handleSetValues(WebServer *server)
   {
     //BSC_LOGI(TAG,"handleSetValues: argNr=%i",i);
     //BSC_LOGI(TAG,"handleSetValues: name=%s, arg=%s",server->argName(i).c_str(), server->arg(i).c_str());
-    if(server->argName(i)==F("SAVE"))
-    {
-      writeConfig(); //Schreiben der Einstellungen in das Config file
-    }
-    else if(isNumber(server->argName(i))) //Wenn keine Zahl, dann Fehler
+    if(isNumber(server->argName(i))) //Wenn keine Zahl, dann Fehler
     {
       //BSC_LOGI(TAG,"handleSetValues argNr=%i, argName=%s, val=%s", i, server->argName(i).c_str(), server->arg(i).c_str());
 

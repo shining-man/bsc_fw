@@ -86,6 +86,8 @@ public:
   void handleGetValues(WebServer *server);
   void handleSetValues(WebServer *server);
 
+  void setParameter(uint16_t name, uint8_t group, String value, uint8_t u8_dataType);
+
   static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
   
@@ -106,6 +108,9 @@ private:
 
   //Parameterfile
   boolean readConfig();
+
+  uint32_t copyFile(String fileSrc, String fileDst);
+  uint32_t calcCrc(String fileSrc);
 
   void getDefaultValuesFromNewKeys(const char *parameter, uint32_t jsonStartPos);
   void buildSendHtml(WebServer * server, const char *parameter, uint32_t jsonStartPos);

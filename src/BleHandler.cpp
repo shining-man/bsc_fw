@@ -32,7 +32,11 @@ uint8_t u8_mSendDataToNeey;
 //NEEY
 NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
 NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
-byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
+//byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
+byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff}; 
+//aa	55	11	1	1	0	14	0	0	0	0	0	0	0	0	0	0	0	26	ff
+//aa	55	11	1	4	0	14	0	0	0	0	0	0	0	0	0	0	0	29	ff
+//aa	55	11	1	2	0	14	0	0	0	0	0	0	0	0	0	0	0	27	ff
 
 //JK-BMS
 NimBLEUUID BtServiceUUID("ffe0");
@@ -53,7 +57,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
         {
           case ID_BT_DEVICE_NEEY4A:
             // interval 1,25ms; timeout 10ms
-            pClient->updateConnParams(800,800,5,1500); //120,120,5,150
+            pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,5,300); //timeout 1500
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
           case ID_BT_DEVICE_JKBMS_JK02_32S:
@@ -131,13 +135,13 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
     devMacAdr = advertisedDevice->getAddress().toString();
 
     #ifdef BT_DEBUG
-    BSC_LOGI(TAG, "BT device found: %s",devMacAdr.c_str());
+    BSC_LOGI(TAG, "onResult() dev found: %s",devMacAdr.c_str());
     #endif
     
     for(uint8_t i=0; i<BT_DEVICES_COUNT; i++)
     {  
       #ifdef BT_DEBUG
-      BSC_LOGD(TAG, "BT device %i: mac=%s", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
+      BSC_LOGD(TAG, "onResult() dev=%i, mac=%s", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
       #endif
 
       if(!webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).equals(""))
@@ -170,6 +174,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* pData, size_t length, bool isNotify)
 {
   std::string notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
+  //BSC_LOGI(TAG,"neey_cb mac=%s, len=%i",notifyMacAdr.c_str(),length);
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
@@ -235,7 +240,7 @@ bool btDeviceConnect()
   NimBLEUUID serviceUUID;
   NimBLEUUID charUUID;
 
-  uint8_t devNr = u8_mAdvDeviceNumber; //devNr ist letztes gefundenes Device
+  uint8_t devNr = u8_mAdvDeviceNumber; //devNr ist letztes gefundenes Device!
 
   switch(bleDevices[devNr].deviceTyp)
   {
@@ -263,13 +268,14 @@ bool btDeviceConnect()
     pClient = NimBLEDevice::getClientByPeerAddress(advDevice->getAddress());
     if(pClient)
     {
-      if(!pClient->connect(advDevice, false))
+      //if(!pClient->connect(advDevice, false))
+      if(!pClient->connect(advDevice, true))
       {
-        BSC_LOGW(TAG, "Reconnect failed: dev=%i",devNr);
+        BSC_LOGW(TAG, "Reconnect failed: mac=%s",advDevice->getAddress().toString().c_str());
         return false;
       }
       #ifdef BT_DEBUG
-      BSC_LOGI(TAG, "Reconnect: dev=%i",devNr);
+      BSC_LOGI(TAG, "Reconnect: dev=%s",advDevice->getAddress().toString().c_str());
       #endif
     }
     /* We don't already have a client that knows this device,
@@ -368,32 +374,50 @@ bool btDeviceConnect()
         {
           // Disconnect if subscribe failed
           pClient->disconnect();
+          BSC_LOGW(TAG, "Device not connected; Can not subscribe; dev=%i",devNr);   
           return false;
         }
+        else
+        {
+          BSC_LOGI(TAG, "Device connected; dev=%i",devNr);
+          return true;
+        }
       }
+      else
+      {
+        pClient->disconnect();
+        BSC_LOGW(TAG, "Device not connected; Can not notify; dev=%i",devNr);
+        return false;
+      }
+    }
+    else
+    {
+      pClient->disconnect();
+      BSC_LOGW(TAG, "Device not connected; Characteristic not found; dev=%i",devNr);
+      return false;
     }
   }
   else
   {
-    BSC_LOGW(TAG, "Service not found.");
+    pClient->disconnect();
+    BSC_LOGW(TAG, "Device not connected; Service not found; dev=%i",devNr);
+    return false;
   }
 
-  #ifdef BT_DEBUG
-  BSC_LOGI(TAG, "Device connected; dev=%i",devNr);
-  #endif
-  return true;
+  BSC_LOGW(TAG, "Device not connected; dev=%i",devNr);
+  return false;
 }
 
 
 void btDeviceDisconnect(uint8_t devNr)
 {
   //#ifdef BT_DEBUG
-  BSC_LOGI(TAG, "btDeviceDisconnect() devNr=%i",devNr);
+  //BSC_LOGI(TAG, "btDeviceDisconnect()");
   //#endif
 
   NimBLEClient* pClient = nullptr;
 
-  for(uint8_t i=0;i<7;i++)
+  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
     if(NimBLEDevice::getClientListSize())
     {
@@ -413,6 +437,29 @@ void btDeviceDisconnect(uint8_t devNr)
   }
 }
 
+void btDeviceDisconnectSingle(uint8_t devNr)
+{
+  //#ifdef BT_DEBUG
+  //BSC_LOGI(TAG, "btDeviceDisconnectSingle() devNr=%i",devNr);
+  //#endif
+
+  if(devNr>=0 && devNr<BT_DEVICES_COUNT)
+  {
+    NimBLEClient* pClient = nullptr;
+    if(NimBLEDevice::getClientListSize())
+    {
+      std::string adrStr = std::string(bleDevices[devNr].macAdr.c_str());
+      NimBLEAddress adr = NimBLEAddress(adrStr);
+
+      pClient = NimBLEDevice::getClientByPeerAddress(adr);
+      if(pClient)
+      {
+        pClient->disconnect();
+        BSC_LOGI(TAG, "Device disconnected single, dev=%s",bleDevices[devNr].macAdr.c_str());
+      }
+    }
+  }
+}
 
 
 
@@ -456,7 +503,7 @@ void BleHandler::init()
   }
 
   NimBLEDevice::init("");
-  NimBLEDevice::setPower(ESP_PWR_LVL_P9); // +9db
+  NimBLEDevice::setPower(ESP_PWR_LVL_N0); // ESP_PWR_LVL_P9
 
   pBLEScan = NimBLEDevice::getScan();
   pBLEScan->setAdvertisedDeviceCallbacks(new MyAdvertisedDeviceCallbacks());
@@ -717,11 +764,31 @@ bool BleHandler::handleConnectionToDevices()
                       NeeyBalancer::neeyWriteData_GotoStartStep(10);
                       u8_mSendDataToNeey=10;
                     }
-                    //if(NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr)) {u8_mSendDataToNeey=false;}
                     NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr);
                   }
-                  else
+                  else //Hier befinden wir uns, wenn alle Devices verbunden sind und wir im normalen Betrieb sind
                   {
+                    //Überprüfen ob Daten noch aktuell sind
+                    uint8_t u8_lBtDevType, u8_devDeativateTriggerNr;
+                    bool bo_devDeactivateTrigger=false;
+                    for(uint8_t devNr=0;devNr<BT_DEVICES_COUNT;devNr++)
+                    {
+                      if((millis()-getBmsLastDataMillis(devNr))>5000)
+                      {
+                        u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,devNr,DT_ID_PARAM_SS_BTDEV);
+                        u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,devNr,DT_ID_PARAM_BTDEV_DEACTIVATE);
+                        bo_devDeactivateTrigger=false;
+                        if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
+
+                        //Überprüfen ob BT-Devices verbunden sein sollte
+                        if(u8_lBtDevType==ID_BT_DEVICE_NEEY4A && !bo_devDeactivateTrigger)
+                        {
+                          BSC_LOGI(TAG,"No cyclical data from dev %i", devNr);
+                          //btDeviceDisconnectSingle(devNr);
+                        }
+                      }
+                    }
+
                     if(bleDevices[i].balancerOn==e_BalancerChangeToOff)
                     {
                       bleDevices[i].balancerOn=e_BalancerIsOff;

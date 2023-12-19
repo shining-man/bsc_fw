@@ -18,7 +18,8 @@ public:
   void setHwSerial(uint8_t u8_devNr, uint32_t baudrate);
   void setSoftSerial(uint8_t u8_devNr, uint32_t baudrate);
   void setSerialBaudrate(uint8_t u8_devNr);
-
+  void setSerialRxBufferSize(uint8_t u8_devNr, uint16_t rxBufSize);
+  
   void cyclicRun();
 
   void setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp);

@@ -9,7 +9,7 @@
 #include <Arduino.h>
 #include <WebServer.h>
 
-bool handleFileRead(WebServer *server, String path);
-void handleFileUpload(WebServer *server, String fileName);
+bool handleFileRead(WebServer *server, bool fsIsSpiffs, String path);
+void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName);
 
 #endif

@@ -22,11 +22,14 @@
 #include "devices/DalyBms.h"
 #include "devices/JkBmsV13.h"
 #include "devices/GobelBms.h"
+#include "devices/SmartShunt.h"
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
 
 static const char *TAG = "BSC_SERIAL";
+
+uint32_t serialMqttSendeTimer;
 
 struct serialDeviceData_s
 {
@@ -36,7 +39,6 @@ struct serialDeviceData_s
   uint32_t u32_baudrate;
   uint8_t u8_mFilterBmsCellVoltageMaxCount=0;
 };
-
 struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
 
 void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw);
@@ -74,6 +76,8 @@ void BscSerial::initSerial()
     BSC_LOGI(TAG, "initSerial SerialNr=%i, funktionsTyp=%i",i,funktionsTyp);
     setReadBmsFunktion(i, funktionsTyp);
   }
+
+  serialMqttSendeTimer=millis();
 }
 
 
@@ -85,25 +89,25 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
   {
     Serial.end();
     Serial.begin(baudrate,SERIAL_8N1,SERIAL1_PIN_RX,SERIAL1_PIN_TX);
-    serialDeviceData[u8_devNr].stream_mPort=&Serial;
+        serialDeviceData[u8_devNr].stream_mPort=&Serial;
   }
   else if(u8_devNr==1) // Hw Serial 2
   {
     Serial1.end();
     Serial1.begin(baudrate,SERIAL_8N1,SERIAL2_PIN_RX,SERIAL2_PIN_TX);
-    serialDeviceData[u8_devNr].stream_mPort=&Serial1;
+        serialDeviceData[u8_devNr].stream_mPort=&Serial1;
   }
   else if(u8_devNr==2) // Hw Serial 0
   {
     Serial2.end();
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
-    serialDeviceData[u8_devNr].stream_mPort=&Serial2;
+        serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
   else if(u8_devNr>2 && isSerialExtEnabled()) // Hw Serial 0
   {
     Serial2.end();
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
-    serialDeviceData[u8_devNr].stream_mPort=&Serial2;
+        serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
 }
 
@@ -208,6 +212,12 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       serialDeviceData[u8_devNr].readBms = &bpn_readBmsData;
       break;
     #endif
+
+    case ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT:
+      ESP_LOGI(TAG,"setReadBmsFunktion SmartShunt");
+      setSerialBaudrate(u8_devNr, 19200);
+      serialDeviceData[u8_devNr].readBms = &SmartShunt_readBmsData;
+      break;
     
     default:
       serialDeviceData[u8_devNr].readBms = 0;
@@ -277,13 +287,19 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
 void BscSerial::cyclicRun()
 {
   //BSC_LOGI(TAG, "cyclicRun()");
-
+  bool bo_lMqttSendMsg=false;
   uint8_t u8_lNumberOfSeplosBms = 0;
   uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
   if(u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SYLCINBMS)
   {
     if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
+  }
+
+  if((millis()-serialMqttSendeTimer)>10000) 
+  {
+    serialMqttSendeTimer=millis();
+    bo_lMqttSendMsg=true;
   }
 
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
@@ -322,6 +338,7 @@ void BscSerial::cyclicRun()
     devData.u8_BmsDataAdr=i;
     devData.bo_writeData=false;
     devData.rwDataLen=0;
+    devData.bo_sendMqttMsg=bo_lMqttSendMsg;
 
     //Überprüfen ob Daten an das BMS gesendet werden sollen
     bmsDataSemaphoreTake();

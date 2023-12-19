@@ -12,6 +12,7 @@
 #include "AlarmRules.h"
 #include "BmsData.h"
 #include "mcp23017.h"
+#include "dio.h"
 
 static const char *TAG = "I2C";
 
@@ -442,6 +443,14 @@ void displaySendData_bms()
 
   uint16_t u16_lBscAlarms = getAlarm();
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);
+
+  //Relaistate
+  uint8_t ioData = getDoData();
+  i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
+
+  //Display Timeout
+  uint8_t dispTimeout = 1;
+  i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
 }
 
 

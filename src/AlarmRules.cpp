@@ -11,6 +11,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "FreqCountESP.h"
+#include "log.h"
 
 static const char *TAG = "ALARM";
 
@@ -21,6 +22,7 @@ static SemaphoreHandle_t alarmSettingsChangeMutex = NULL;
 
 bool bo_Alarm[CNT_ALARMS];
 bool bo_Alarm_old[CNT_ALARMS];
+uint16_t alarmCauseAktiv[CNT_ALARMS];
 
 uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
 uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
@@ -36,6 +38,7 @@ uint8_t u8_mTachoChannel;
 //Hysterese
 uint32_t u32_hystereseTotalVoltageMin=0;
 uint32_t u32_hystereseTotalVoltageMax=0;
+bool bo_merkerHysterese_TriggerAtSoc=false;
 
 void rules_Bms();
 void rules_Temperatur();
@@ -54,6 +57,7 @@ bool tachoRead(uint16_t &tachoRpm);
 void tachoSetMux(uint8_t channel);
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
+void rules_soc();
 
 
 void initAlarmRules()
@@ -61,11 +65,13 @@ void initAlarmRules()
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
   bo_mChangeAlarmSettings=false;
+  bo_merkerHysterese_TriggerAtSoc=false;
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
     bo_Alarm[i] = false;
     bo_Alarm_old[i] = false;
+    alarmCauseAktiv[i]=0;
 
     //Initialwerte per mqqt senden
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
@@ -141,7 +147,7 @@ uint16_t getAlarm()
   return u16_lAlm;
 }
 
-void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
+void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
 {
   if(alarmNr==0)return;
 
@@ -150,6 +156,12 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
   {
     //BSC_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
+    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==0)
+    {
+      BSC_LOGI(TAG,"setAlarm: alarmNr=%i, cause=%i, TRUE",alarmNr,cause);
+      logTrigger(alarmNr, cause, bo_lAlarm);
+    }
+    bitSet(alarmCauseAktiv[alarmNr],cause);
     bo_alarmActivate[alarmNr]=true;
   }
   else if(bo_alarmActivate[alarmNr]!=true)
@@ -160,6 +172,16 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm)
     {
       bo_alarmActivate[alarmNr]=true;
     }
+  }
+
+  if(bo_lAlarm==false)
+  {
+    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==1)
+    {
+      BSC_LOGI(TAG,"setAlarm: alarmNr=%i, cause=%i, FALSE",alarmNr,cause);
+      logTrigger(alarmNr, cause, bo_lAlarm);
+    }
+    bitClear(alarmCauseAktiv[alarmNr],cause);
   }
 }
 
@@ -193,6 +215,9 @@ void runAlarmRules()
   //Tacho auswerten
   //rules_Tacho();
 
+  //Rules Soc
+  rules_soc();
+
   //Bearbeiten der Alarme
   for(i=0; i<CNT_ALARMS; i++)
   {
@@ -202,6 +227,7 @@ void runAlarmRules()
       BSC_LOGD(TAG,"Reset Trigger (Nr=%i) - %s",i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
+      alarmCauseAktiv[i]=0;
       //setAlarm(i+1, false); //Alarm zurücksetzen
     }
     xSemaphoreGive(alarmSettingsChangeMutex);
@@ -290,7 +316,7 @@ void setDOs()
         if(bo_timerPulseOffIsRunning==false)
         {
           bo_timerPulseOffIsRunning=true;
-          if (xTimerStart(timer_doOffPulse, 10) != pdPASS){ /*Fehler beim Starten des Timers*/ }
+          if (xTimerStart(timer_doOffPulse, 10) != pdPASS){ BSC_LOGE(TAG, "Fehler beim Starten des DO-Timers"); }
         }
         xSemaphoreGive(doMutex);
       }
@@ -305,6 +331,7 @@ void setDOs()
   //Setze Ausgänge, lese Eingänge
   xSemaphoreTake(doMutex, portMAX_DELAY);
   setDoData(u8_mDoByte);
+  dioRwInOut();
   xSemaphoreGive(doMutex);
 }
 
@@ -355,7 +382,6 @@ void doOffPulse(TimerHandle_t xTimer)
   xSemaphoreGive(doMutex);
 }
 
-
 void getDIs()
 {
   //Lese der Eingänge
@@ -375,12 +401,12 @@ void getDIs()
     {
       if(!bo_lDiInvert)
       {
-        setAlarm(u8_lAlarmNr,true); 
+        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI); 
         //BSC_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
-        setAlarm(u8_lAlarmNr,false);
+        setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
         //BSC_LOGD(TAG,"Alarm (b) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
     }
@@ -388,12 +414,12 @@ void getDIs()
     {
       if(!bo_lDiInvert)
       {
-        setAlarm(u8_lAlarmNr,false);
+        setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
         //BSC_LOGD(TAG,"Alarm (c) DI FALSE; Alarm %i", u8_lAlarmNr);
       }
       else
       {
-        setAlarm(u8_lAlarmNr,true);
+        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
         //BSC_LOGD(TAG,"Alarm (d) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
     }
@@ -489,14 +515,15 @@ void rules_Tacho()
 
     if(u16_lTachoRpm<u16_lTachoRpmLowerLimit /*|| u16_lTachoRpm>u16_lTachoRpmUpperLimit*/)
     {
-      setAlarm(u8_lTachAlarmNr,true);
+      setAlarm(u8_lTachAlarmNr,true,ALARM_CAUSE_FAN);
     }
     else
     {
-      setAlarm(u8_lTachAlarmNr,false);
+      setAlarm(u8_lTachAlarmNr,false,ALARM_CAUSE_FAN);
     }
   }
 }
+
 
 
 void rules_Bms()
@@ -524,13 +551,13 @@ void rules_Bms()
           //Alarm
           //debugPrintf("BT Alarm (%i)",u8_lAlarmruleBmsNr);
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
-          setAlarm(tmp,true);
+          setAlarm(tmp,true,ALARM_CAUSE_BMS_NO_DATA);
           //BSC_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
         }
         else
         {
           tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
-          setAlarm(tmp,false);
+          setAlarm(tmp,false,ALARM_CAUSE_BMS_NO_DATA);
           //BSC_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
         }
       }
@@ -548,14 +575,14 @@ void rules_Bms()
           {
             //Alarm
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-            setAlarm(tmp,true);
+            setAlarm(tmp,true,ALARM_CAUSE_BMS_CELL_VOLTAGE);
             //BSC_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
             break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
           }
           else
           {
             tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-            setAlarm(tmp,false);
+            setAlarm(tmp,false,ALARM_CAUSE_BMS_CELL_VOLTAGE);
             //BSC_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
           }
         }
@@ -571,7 +598,7 @@ void rules_Bms()
           //Alarm
           bitSet(u32_hystereseTotalVoltageMin,i);
           bitClear(u32_hystereseTotalVoltageMax,i);
-          setAlarm(u8_lAlarm,true);
+          setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
           //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
         }
         //Total voltage Max
@@ -580,7 +607,7 @@ void rules_Bms()
           //Alarm
           bitSet(u32_hystereseTotalVoltageMax,i);
           bitClear(u32_hystereseTotalVoltageMin,i);
-          setAlarm(u8_lAlarm,true);
+          setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
           //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
         }
         else
@@ -591,18 +618,18 @@ void rules_Bms()
             if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) > (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i)+fl_totalVoltageHysterese))
             {
               bitClear(u32_hystereseTotalVoltageMin,i);
-              setAlarm(u8_lAlarm,false);
+              setAlarm(u8_lAlarm,false,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
             }
-            else setAlarm(u8_lAlarm,true);
+            else setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
           }
           else if(isBitSet(u32_hystereseTotalVoltageMax,i))
           {
             if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i)-fl_totalVoltageHysterese))
             {
               bitClear(u32_hystereseTotalVoltageMax,i);
-              setAlarm(u8_lAlarm,false);
+              setAlarm(u8_lAlarm,false,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
             }
-            else setAlarm(u8_lAlarm,true);
+            else setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
           }
           /*else
           {
@@ -651,7 +678,7 @@ void rules_Temperatur()
       }
 
       alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,i,DT_ID_PARAM_TEMP_ALARM_AKTION);
-      setAlarm(alarmNr,bo_lAlarm);
+      setAlarm(alarmNr,bo_lAlarm,ALARM_CAUSE_TEMPERATUR);
       //BSC_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
@@ -814,7 +841,7 @@ void temperatur_senorsErrors()
   if(u8_lTrigger>0) //If enabled
   {
     if(u8_lOwTempSensorErrors>u8_lSensorNoValueTime) bo_lAlarm=true;
-    setAlarm(u8_lTrigger,bo_lAlarm);
+    setAlarm(u8_lTrigger,bo_lAlarm,ALARM_CAUSE_OW_SENSOR_ERR);
   }
 }
 
@@ -840,12 +867,62 @@ void rules_PlausibilityCeck()
       uint8_t u8_lCrcErrorCounter = getBmsLastChangeCellVoltageCrc(i);
       if(u8_lCrcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) //Wenn sich der Wert x Zyklen nicht mehr geändert hat
       {
-        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,true); //Trigger setzen
+        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,true,ALARM_CAUSE_CELL_VOLTAGE_PLAUSIBILITY); //Trigger setzen
       }
       else
       {
-        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,false); //Trigger zurücksetzen
+        setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,false,ALARM_CAUSE_CELL_VOLTAGE_PLAUSIBILITY); //Trigger zurücksetzen
       }
     }
+  }
+}
+
+
+//
+void rules_soc()
+{
+  inverterDataSemaphoreTake();
+  inverterData_s *inverterData = getInverterData();
+  inverterDataSemaphoreGive();
+
+  if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
+  {
+    if(bo_merkerHysterese_TriggerAtSoc) bo_merkerHysterese_TriggerAtSoc=false;
+    return;
+  }
+
+  uint8_t u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,0,DT_ID_PARAM_TRIGGER_AT_SOC);
+  if(u8_lTriggerAtSocTriggerNr>0)
+  {
+    uint8_t u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,0,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
+    uint8_t u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,0,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
+
+    if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
+    {
+      if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || bo_merkerHysterese_TriggerAtSoc) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
+      {
+        bo_merkerHysterese_TriggerAtSoc=true;
+        setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+      }
+      else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && bo_merkerHysterese_TriggerAtSoc)
+      {
+        bo_merkerHysterese_TriggerAtSoc=false;
+        setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+      }
+    }
+    else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
+    {
+      if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || bo_merkerHysterese_TriggerAtSoc) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
+      {
+        bo_merkerHysterese_TriggerAtSoc=true;
+        setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+      }
+      else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && bo_merkerHysterese_TriggerAtSoc)
+      {
+        bo_merkerHysterese_TriggerAtSoc=false;
+        setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+      }
+    }
+    // else -> Error
   }
 }

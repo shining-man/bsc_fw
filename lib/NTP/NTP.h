@@ -222,6 +222,7 @@ class NTP {
      * @return int minutes
      */
     int8_t minutes();
+    int8_t minutesWithoutUpdate();
 
     /**
      * @brief get the seconds of a minute

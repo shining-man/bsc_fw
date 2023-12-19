@@ -20,7 +20,6 @@ static float    f_mTotalVoltageOld=0xFFFF;
 static uint16_t u16_mBalanceCapacityOld=0xFFFF;
 static uint32_t u32_mChargeMAh=0;
 static uint32_t u32_mDischargeMAh=0;
-static uint32_t mqttSendeTimer=0;
 
 //
 static void      getDataFromBms(uint8_t address, uint8_t function);
@@ -36,6 +35,7 @@ static bool     checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+static serialDevData_s *mDevData;
 
 
 bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
@@ -419,7 +419,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
   //   140,141,142,143     0x00 0x00      Reserved
   
 
-  if((millis()-mqttSendeTimer)>10000)
+  if(mDevData->bo_sendMqttMsg)
   {
     //Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
@@ -435,12 +435,9 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
     //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
-
-    mqttSendeTimer=millis();
   }
 
-    return true;
-
+  return true;
 }
 
 

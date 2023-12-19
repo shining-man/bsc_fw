@@ -11,9 +11,10 @@
 
 struct serialDevData_s
 {
-  uint8_t u8_deviceNr;
-  uint8_t u8_NumberOfDevices;
-  uint8_t u8_BmsDataAdr;
+  uint8_t  u8_deviceNr;
+  uint8_t  u8_NumberOfDevices;
+  uint8_t  u8_BmsDataAdr;
+  bool     bo_sendMqttMsg;
 
   bool               bo_writeData;    
   serialDataRwTyp_e  rwDataTyp;

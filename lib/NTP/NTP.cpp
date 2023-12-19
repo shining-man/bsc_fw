@@ -234,6 +234,10 @@ int8_t NTP::minutes() {
 	return current->tm_min;
 	}
 
+int8_t NTP::minutesWithoutUpdate() {
+	return current->tm_min;
+	}
+
 int8_t NTP::seconds() {
 	currentTime();
 	return current->tm_sec;

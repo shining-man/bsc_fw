@@ -4,12 +4,20 @@
 // https://opensource.org/licenses/MIT
 
 #include "webUtility.h"
-#include "log.h"
-#include <SPIFFS.h>
-#include <WebServer.h>
 #include "defines.h"
+#include "log.h"
+#include <FS.h>
+#ifdef USE_LittleFS
+  #define SPIFFS LittleFS
+  #include <LITTLEFS.h> 
+#else
+  #include <SPIFFS.h>
+#endif 
+#include <WebServer.h>
 
 static const char * TAG = "WEB";
+
+//void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
 
 String getContentType(WebServer *server, String filename)
 {
@@ -43,10 +51,11 @@ String getContentType(WebServer *server, String filename)
   return "text/plain";
 }
 
-bool exists(String path)
+bool exists(bool fsIsSpiffs, String path)
 {
   bool yes = false;
-  File file = SPIFFS.open(path, "r");
+  File file;
+  file = SPIFFS.open(path, "r");
   if(!file.isDirectory())
   {
     yes = true;
@@ -55,21 +64,28 @@ bool exists(String path)
   return yes;
 }
 
-bool handleFileRead(WebServer *server, String path)
+bool handleFileRead(WebServer *server, bool fsIsSpiffs, String path)
 {
+  if(!SPIFFS.begin())
+  {
+    BSC_LOGE(TAG,"LITTLEFS Mount Failed");
+  }
+
   if (path.endsWith("/"))
   {
     path += "index.htm";
   }
   String contentType = getContentType(server, path);
   String pathWithGz = path + ".gz";
-  if (exists(pathWithGz) || exists(path))
+  if (exists(fsIsSpiffs, pathWithGz) || exists(fsIsSpiffs, path))
   {
-    if (exists(pathWithGz))
+    /*if (exists(fsIsSpiffs, pathWithGz))
     {
       path += ".gz";
-    }
-    File file = SPIFFS.open(path, "r");
+    }*/
+    File file;
+    file = SPIFFS.open(path, "r");
+    //if(file==NULL) BSC_LOGI(TAG,"%s => null",path.c_str());
     server->streamFile(file, contentType);
     file.close();
     return true;
@@ -78,7 +94,7 @@ bool handleFileRead(WebServer *server, String path)
 }
 
 
-void handleFileUpload(WebServer *server, String fileName) 
+void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName) 
 {
   static File fsUploadFile;
   HTTPUpload& upload = server->upload();
@@ -91,12 +107,13 @@ void handleFileUpload(WebServer *server, String fileName)
     upload.filename=fileName;
     BSC_LOGI(TAG,"handleFileUpload Name: /%s", upload.filename.c_str());
     fsUploadFile = SPIFFS.open("/" + server->urlDecode(upload.filename), "w");
-  } else if (upload.status == UPLOAD_FILE_WRITE)
+  } 
+  else if (upload.status == UPLOAD_FILE_WRITE)
   {
     //BSC_LOGI(TAG,"handleFileUpload Data: %u\n", upload.currentSize);
-    if (fsUploadFile)
-      fsUploadFile.write(upload.buf, upload.currentSize);
-  } else if (upload.status == UPLOAD_FILE_END)
+    if(fsUploadFile) fsUploadFile.write(upload.buf, upload.currentSize);
+  } 
+  else if (upload.status == UPLOAD_FILE_END)
   {
     if (fsUploadFile) fsUploadFile.close();
     //BSC_LOGI(TAG,"handleFileUpload Size: %u\n", upload.totalSize);
@@ -104,3 +121,40 @@ void handleFileUpload(WebServer *server, String fileName)
   }
 }
 
+
+
+/*void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
+    BSC_LOGI(TAG, "Listing directory: %s", dirname);
+
+    File root = fs.open(dirname);
+    if(!root){
+        BSC_LOGI(TAG, "Failed to open directory");
+        return;
+    }
+    if(!root.isDirectory()){
+        BSC_LOGI(TAG, "Not a directory");
+        return;
+    }
+
+    File file = root.openNextFile();
+    while(file){
+        if(file.isDirectory()){
+            BSC_LOGI(TAG, "DIR=%s", file.name());
+            time_t t= file.getLastWrite();
+            struct tm * tmstruct = localtime(&t);
+            BSC_LOGI(TAG, "  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
+
+
+            if(levels){
+                listDir(fs, file.name(), levels -1);
+            }
+        } else {
+            BSC_LOGI(TAG, "FILE=%s, size=%i", file.name(), file.size());
+
+            time_t t= file.getLastWrite();
+            struct tm * tmstruct = localtime(&t);
+            BSC_LOGI(TAG, "  LAST WRITE: %d-%02d-%02d %02d:%02d:%02d",(tmstruct->tm_year)+1900,( tmstruct->tm_mon)+1, tmstruct->tm_mday,tmstruct->tm_hour , tmstruct->tm_min, tmstruct->tm_sec);
+        }
+        file = root.openNextFile();
+    }
+}*/

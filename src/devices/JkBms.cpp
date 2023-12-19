@@ -24,11 +24,13 @@ static bool recvAnswer(uint8_t * t_outMessage);
 static void parseData(uint8_t * t_message);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+static serialDevData_s *mDevData;
 
 
 bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
+  mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
@@ -162,9 +164,6 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-
-
-uint32_t mqttSendeTimer_jk=0;
 void parseData(uint8_t * t_message)
 {
   int16_t  i16_lTmpValue;
@@ -322,19 +321,19 @@ void parseData(uint8_t * t_message)
 
         u32_lTmpValue = BMS_ERR_STATUS_OK;
         //Bit 0:  Low capacity alarm
-        if((u16_lTmpValue&0x1)==0x1) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;         // Bit 1:  MOS tube over temperature alarm                 -> ?
-        if((u16_lTmpValue&0x2)==0x2) u32_lTmpValue |= BMS_ERR_STATUS_BATTERY_OVP;     // Bit 2:  Charge over voltage alarm                       -> ?
-        if((u16_lTmpValue&0x4)==0x4) u32_lTmpValue |= BMS_ERR_STATUS_CELL_OVP;        // Bit 3:  cell over voltage                               -> x
-        if((u16_lTmpValue&0x8)==0x8) u32_lTmpValue |= BMS_ERR_STATUS_CELL_UVP;        // Bit 4:  cell under voltage                              -> x
-        if((u16_lTmpValue&0x10)==0x10) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 5:  Charge over temperature                         -> x
-        if((u16_lTmpValue&0x20)==0x20) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 6:  discharge over current alarm                    -> ?
-        if((u16_lTmpValue&0x40)==0x40) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 7:  discharge overcurent                            -> x
-        if((u16_lTmpValue&0x80)==0x80) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 8:  over temperature alarm in the battery box       -> ?
-        if((u16_lTmpValue&0x100)==0x100) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OCP;     // Bit 9:  Battery low temperature                         -> ?
-        if((u16_lTmpValue&0x200)==0x200) u32_lTmpValue |= BMS_ERR_STATUS_CHG_UTP ;    // Bit 10: Charge under temperature                        -> x
-        if((u16_lTmpValue&0x400)==0x400) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 11:                                                 -> ?
-        if((u16_lTmpValue&0x800)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 12: 309_A protection                                -> ?
-        if((u16_lTmpValue&0x1000)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
+        if((u16_lTmpValue&0x1)==0x2) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;         // Bit 1:  MOS tube over temperature alarm                 -> ?
+        if((u16_lTmpValue&0x2)==0x4) u32_lTmpValue |= BMS_ERR_STATUS_BATTERY_OVP;     // Bit 2:  Charge over voltage alarm                       -> ?
+        if((u16_lTmpValue&0x4)==0x8) u32_lTmpValue |= BMS_ERR_STATUS_CELL_OVP;        // Bit 3:  cell over voltage                               -> x
+        if((u16_lTmpValue&0x8)==0x10) u32_lTmpValue |= BMS_ERR_STATUS_CELL_UVP;       // Bit 4:  cell under voltage                              -> x
+        if((u16_lTmpValue&0x10)==0x20) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;       // Bit 5:  Charge over temperature                         -> x
+        if((u16_lTmpValue&0x20)==0x40) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 6:  discharge over current alarm                    -> ?
+        if((u16_lTmpValue&0x40)==0x80) u32_lTmpValue |= BMS_ERR_STATUS_DSG_OCP;       // Bit 7:  discharge overcurent                            -> x
+        if((u16_lTmpValue&0x80)==0x100) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OTP;      // Bit 8:  over temperature alarm in the battery box       -> ?
+        if((u16_lTmpValue&0x100)==0x200) u32_lTmpValue |= BMS_ERR_STATUS_CHG_OCP;     // Bit 9:  Battery low temperature                         -> ?
+        if((u16_lTmpValue&0x200)==0x400) u32_lTmpValue |= BMS_ERR_STATUS_CHG_UTP ;    // Bit 10: Charge under temperature                        -> x
+        if((u16_lTmpValue&0x400)==0x800) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;   // Bit 11:                                                 -> ?
+        if((u16_lTmpValue&0x800)==0x1000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK;  // Bit 12: 309_A protection                                -> ?
+        if((u16_lTmpValue&0x1000)==0x2000) u32_lTmpValue |= BMS_ERR_STATUS_SOFT_LOCK; // Bit 13: 309_B protection                                -> ?
 
         //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
         setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
@@ -445,13 +444,11 @@ void parseData(uint8_t * t_message)
   }
 
 
-  if((millis()-mqttSendeTimer_jk)>10000)
+  if(mDevData->bo_sendMqttMsg)
   {
     //Nachrichten senden
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
-
-    mqttSendeTimer_jk=millis();
   }
 
 }

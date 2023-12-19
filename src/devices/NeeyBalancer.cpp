@@ -26,6 +26,8 @@ void NeeyBalancer::init()
 
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
+    //BSC_LOGI(TAG,"RX devNr=%i, len=%i",devNr,length);
+
     #ifdef NEEY_DEBUG
     BSC_LOGD(TAG,"RX devNr=%i, len=%i",devNr,length);
     //log_print_buf(pData, length);
@@ -50,6 +52,8 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
   if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
   {
+    BSC_LOGI(TAG,"RX settings");
+
     /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
     String log="";
     uint8_t logLenCnt=0;
@@ -146,6 +150,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);
     setBmsMinCellVoltage(devNr, f_lMinZellVoltage);
 
+    //BSC_LOGI(TAG,"setBmsLastDataMillis");
     setBmsLastDataMillis(devNr,millis());
   }
   else if(length==59)

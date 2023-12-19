@@ -63,7 +63,7 @@ const char ota_upload_form[] PROGMEM = R"!^!(
 
 <body>
   <div class="topnav">
-    <span class='btnBack' onclick=location.href='../'>&#10094;</span>
+    <span class='btnBack' onclick='history.back()'>&#10094;</span>
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">
