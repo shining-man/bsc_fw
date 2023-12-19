@@ -6,17 +6,26 @@
 #include "log.h"
 #include "defines.h"
 #include "SoftwareSerial.h"
-#include <SPIFFS.h>
+#include <FS.h>
+#ifdef USE_LittleFS
+  #define SPIFFS LittleFS
+  #include <LITTLEFS.h> 
+#else
+  #include <SPIFFS.h>
+#endif 
 #include <FS.h>
 #include "bscTime.h"
+#include "Canbus.h"
+#include "BmsData.h"
 
 static const char *TAG = "LOG";
 
 static SemaphoreHandle_t logMutex = NULL;
+static SemaphoreHandle_t deleteLogMutex = NULL;
+static SemaphoreHandle_t fsMutex = NULL;
 
-/*#ifndef DEBUG_ON_HW_SERIAL
-SoftwareSerial debugPort;
-#endif*/
+static File spiffsTriggerLogFile;
+static File spiffsValueLogFile;
 
 #ifdef DEBUG_ON_FS
 static File spiffsLogFile;
@@ -25,9 +34,32 @@ int vprintf_into_spiffs(const char* szFormat, va_list args);
 #endif
 
 
+#define VALUE_LOG_DATASET_SIZE 30
+
+
+//fsMutex
+void fsLock()
+{
+  xSemaphoreTake(fsMutex, portMAX_DELAY);
+}
+
+void fsUnlock()
+{
+  xSemaphoreGive(fsMutex);
+}
+
+bool isFsLock()
+{
+  if(xSemaphoreTake(fsMutex, (TickType_t)5) == pdTRUE) return true;
+  else return false;
+} 
+    
+    
 void debugInit()
 {
   logMutex = xSemaphoreCreateMutex();
+  deleteLogMutex = xSemaphoreCreateMutex();
+  fsMutex = xSemaphoreCreateMutex();
   #ifdef DEBUG_ON_HW_SERIAL
   Serial.end();
   Serial.setPins(18,1); // Als RX Pin den U1RXTX_En nehmen, da dieser hier nicht gebraucht wird
@@ -36,21 +68,38 @@ void debugInit()
   //Serial beenden um auf die Pins 3+1 die Softserial zu mappen
   Serial.end();
   Serial.setPins(SERIAL3_PIN_RX,SERIAL3_PIN_TX);
-
-  //debugPort.enableIntTx(false);
-  //debugPort.enableRx(false);
-  //debugPort.begin(DEBUG_SW_BAUDRATE, SWSERIAL_8N1, 3, 1, false, 64, 11);
   #endif
 
- 
-  #ifdef DEBUG_ON_FS
+  
   if(!SPIFFS.begin())
   {
+    BSC_LOGE(TAG,"LITTLEFS Mount Failed");
     SPIFFS.format();
   }
 
+  if(SPIFFS.begin())
+  {
+    if(SPIFFS.exists("/trigger.txt")) spiffsTriggerLogFile=SPIFFS.open("/trigger.txt", FILE_APPEND);
+    else spiffsTriggerLogFile=SPIFFS.open("/trigger.txt", FILE_WRITE);
+  }
+
+  /*if(SPIFFS.begin())
+  {
+    if(SPIFFS.exists("/values"))
+    {
+      spiffsValueLogFile=SPIFFS.open("/values", FILE_WRITE);
+    }
+    else
+    {
+      spiffsValueLogFile=SPIFFS.open("/values", FILE_WRITE);
+      for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) spiffsValueLogFile.write(0x0);
+    }
+  }*/
+
+  #ifdef DEBUG_ON_FS
   if (SPIFFS.begin())
   {
+    BSC_LOGE(TAG,"LITTLEFS Mount Failed (2)");
     esp_log_set_vprintf(&vprintf_into_spiffs);
 
     if(SPIFFS.exists("/log.txt")) spiffsLogFile=SPIFFS.open("/log.txt", FILE_APPEND);
@@ -68,13 +117,12 @@ void debugInit()
   //esp_log_level_set("ALARM", ESP_LOG_INFO); 
   //esp_log_level_set("OW", ESP_LOG_INFO); //onewire  
   //esp_log_level_set("CAN", ESP_LOG_INFO);  
-
   //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
-  
+
   //esp_log_level_set("ALARM", ESP_LOG_DEBUG); 
   //esp_log_level_set("I2C", ESP_LOG_DEBUG); 
   //esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
-  //TWAI 
+  
 
   #ifdef NEEY_DEBUG
   esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
@@ -112,9 +160,6 @@ void debugInit()
   #endif      
   #ifdef WLAN_DEBUG2
   #endif
-
-
-
   
 
   #ifdef DEBUG_ON_FS
@@ -125,48 +170,6 @@ void debugInit()
   BSC_LOGI(TAG, "Free Space total=%i, used=%i, logSize=%i",SPIFFS.totalBytes(),SPIFFS.usedBytes(),spiffsLogFile.size());
   #endif
 }
-
-/*#ifdef DEBUG_ON_FS
-bool logEn=true;
-int vprintf_into_spiffs(const char* szFormat, va_list args)
-{
-  int ret=0;
-  if(!logEn) return 0;
-	
-  if(xSemaphoreTake(logMutex, 10)) //portMAX_DELAY
-  {
-    //write evaluated format string into buffer
-    ret = vsnprintf (log_print_buffer, sizeof(log_print_buffer), szFormat, args);
-
-    if(ret >= 0)
-    {
-      #ifdef LOG_TO_SERIAL
-      #ifdef DEBUG_ON_HW_SERIAL
-      Serial.print(log_print_buffer);
-      //#else
-      //debugPort.print(log_print_buffer);
-      #endif
-      #endif
-
-      if(spiffsLogFile)
-      {
-        if(spiffsLogFile.size()>100000)
-        {
-          spiffsLogFile.close();
-          SPIFFS.remove("/log1.txt");
-          SPIFFS.rename("/log.txt","/log1.txt");
-          spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);
-        } 
-
-        spiffsLogFile.write((uint8_t*) log_print_buffer, (size_t) ret);
-        spiffsLogFile.flush();            
-      }
-    }
-    xSemaphoreGive(logMutex);
-  }
-	return ret;
-}
-#endif*/
 
 
 #ifdef DEBUG_ON_FS
@@ -214,12 +217,15 @@ void writeLogToFS()
   if((millis()-writeLogToFsTimer)>50) writeLogToFsTimer=millis();
   else return;
 
+  if(isFsLock()==false) return; //fsLock
   if(spiffsLogFile.size()>100000)
   {
+    xSemaphoreTake(deleteLogMutex, portMAX_DELAY);
     spiffsLogFile.close();
     SPIFFS.remove("/log1.txt");
     SPIFFS.rename("/log.txt","/log1.txt");
     spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);
+    xSemaphoreGive(deleteLogMutex);
   } 
 
   xSemaphoreTake(logMutex, portMAX_DELAY);
@@ -233,9 +239,11 @@ void writeLogToFS()
   else
   {
     xSemaphoreGive(logMutex);
+    fsUnlock();
     return;
   }
 
+  xSemaphoreTake(deleteLogMutex, portMAX_DELAY);
   if(u8_mAktivPrintBuffer==0)
   {
     spiffsLogFile.print(str_mPrintBuffer1);
@@ -248,5 +256,122 @@ void writeLogToFS()
   }
 
   spiffsLogFile.flush();   
+  xSemaphoreGive(deleteLogMutex);
+  fsUnlock();
+}
+
+void deleteLogfile()
+{
+  fsLock();
+  xSemaphoreTake(deleteLogMutex, portMAX_DELAY);
+  spiffsLogFile.close();
+  SPIFFS.remove("/log.txt");
+  SPIFFS.remove("/log1.txt");
+  if(SPIFFS.exists("/log.txt")) //Wenn Log-Datei immer noch vorhanden
+  {
+    BSC_LOGI(TAG, "Fehler beim löschen der Logfiles");
+  }
+  else
+  {
+    spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);
+    BSC_LOGI(TAG, "Logfiles gelöscht");
+  }
+  xSemaphoreGive(deleteLogMutex);
+  fsUnlock();
 }
 #endif
+
+void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
+{
+  fsLock();
+  if(spiffsTriggerLogFile.size()>10000)
+  {
+    spiffsTriggerLogFile.close();
+    SPIFFS.remove("/trigger1.txt");
+    SPIFFS.rename("/trigger.txt","/trigger1.txt");
+    spiffsTriggerLogFile = SPIFFS.open("/trigger.txt", FILE_WRITE);
+  } 
+
+  //spiffsTriggerLogFile.printf("%s%02x%02x%02x\r\n",getBscDateTimeCc2(),triggerNr,cause,trigger);
+  spiffsTriggerLogFile.printf("%08x%02x%02x%02x%02x",getEpoch(),triggerNr,cause,trigger,0xAA);
+  spiffsTriggerLogFile.flush();
+  fsUnlock();
+}
+
+//uint32_t timeMinutesOld;
+uint8_t u8_lGetMinutesOld;
+void logValues()
+{
+  uint8_t u8_lGetMinutes = getMinutes();
+  if(u8_lGetMinutes==u8_lGetMinutesOld) return;
+  u8_lGetMinutesOld=u8_lGetMinutes;
+  
+  uint32_t timeMinutes = getDayMinutes();
+  BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);
+  //if(timeMinutesOld==timeMinutes) return;
+  //timeMinutesOld=timeMinutes;
+
+
+  /*if(spiffsValueLogFile.size()>10000)
+  {
+    spiffsValueLogFile.close();
+    SPIFFS.remove("/values1");
+    SPIFFS.rename("/values","/values1");
+    spiffsValueLogFile = SPIFFS.open("/values", FILE_WRITE);
+  } */
+
+
+  inverterDataSemaphoreTake();
+  inverterData_s *inverterData = getInverterData();
+  int16_t inverterCurrent = inverterData->inverterCurrent;
+  int16_t inverterVoltage = inverterData->inverterVoltage;
+  uint16_t inverterSoc = inverterData->inverterSoc;
+  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
+  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
+
+  int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
+  int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
+  int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
+  int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
+  inverterDataSemaphoreGive();
+
+  /*bmsDataSemaphoreTake();
+  bmsData_s *bmsData = getBmsData();
+  uint16_t bmsMinCellVoltage = bmsData->bmsMaxCellVoltage;
+  uint16_t bmsMinCellVoltage = bmsData->bmsMinCellVoltage;
+  bmsDataSemaphoreGive();*/
+
+  // Test
+  inverterSoc = timeMinutes;
+
+
+  int16_t reserve=0;
+
+  fsLock();
+  spiffsValueLogFile.seek(timeMinutes*VALUE_LOG_DATASET_SIZE,SeekSet);
+  spiffsValueLogFile.write(inverterCurrent);
+  spiffsValueLogFile.write(inverterVoltage);
+  spiffsValueLogFile.write(inverterSoc);
+  spiffsValueLogFile.write(inverterChargeCurrent);
+  spiffsValueLogFile.write(inverterDischargeCurrent);
+
+  spiffsValueLogFile.write(calcChargeCurrentCellVoltage);
+  spiffsValueLogFile.write(calcChargeCurrentSoc);
+  spiffsValueLogFile.write(calcChargeCurrentCelldrift);
+  spiffsValueLogFile.write(calcChargeCurrentCutOff);
+  spiffsValueLogFile.write(reserve);
+  spiffsValueLogFile.write(reserve);
+  spiffsValueLogFile.write(reserve);
+  spiffsValueLogFile.write(reserve);
+  spiffsValueLogFile.write(0xAA);
+  spiffsValueLogFile.write(0x55);
+
+  spiffsValueLogFile.flush();
+  fsUnlock();
+
+
+
+}
+
+
+

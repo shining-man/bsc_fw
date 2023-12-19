@@ -32,6 +32,7 @@ for zeile in datei:
     zeileNeu = ""
 
     if(lineCnt>10):
+        zeile = zeile.replace("\\\"", "$$Q$$")
         zeile = zeile.replace("\"", "")
         zeile = zeile.replace("'", "\"")
 
@@ -114,6 +115,7 @@ for zeile in datei:
                 zeileNeu = zeileNeu.replace("\n","");
 
         if(len(zeileNeu)>1):
+            zeileNeu = zeileNeu.replace("$$Q$$", "'")
             zeileNeu = zeileNeu.lstrip();
             dateiOut.write(zeileNeu)
  

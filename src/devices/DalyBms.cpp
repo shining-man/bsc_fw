@@ -30,10 +30,12 @@ static bool      recvAnswer(uint8_t * t_outMessage, uint8_t packets);
 static void      parseMessage(uint8_t * t_message);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+static serialDevData_s *mDevData;
 
 bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_ret=true;
+  mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;

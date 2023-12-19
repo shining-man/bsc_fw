@@ -90,3 +90,16 @@ uint32_t calcCrc32(uint8_t* pData, uint32_t DataLength)
 	return u32_lChksum;
 }
 
+uint32_t calcCrc32(uint32_t crcIn, uint8_t* pData, uint32_t DataLength)
+{
+	uint32_t u32_lChksum = 0xFFFFFFFF;
+	if(crcIn!=0)u32_lChksum=crcIn;
+	for (unsigned int i = 0; i < DataLength; i++)
+	{
+		uint8_t top = (uint8_t)(u32_lChksum >> 24);
+		top ^= pData[i];
+		u32_lChksum = (u32_lChksum << 8) ^ crc32Table[top];
+	}
+	return u32_lChksum;
+}
+

@@ -8,9 +8,10 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.4.18"
+//#define BSC_SW_VERSION      "Vx.x.x" //Version in der platformio.ini setzen
 static const char COMPILE_DATE_TIME[] = "";
 
+//#define USE_LittleFS
 #define HTML_MINIFY
 
 //Debug
@@ -46,7 +47,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Erweitertes Logging (zum debuggen)
 //#define JK_DEBUG
 //#define JK_BT_DEBUG
-#define SEPLOS_DEBUG
+//#define SEPLOS_DEBUG
 //#define SYLCIN_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
@@ -54,7 +55,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
 #define WLAN_DEBUG        
-#define WLAN_DEBUG2
+//#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define CAN_DEBUG_STATUS
 //#define WEBSET_DEBUG
@@ -64,6 +65,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Tests
 //#define UTEST_BMS_FILTER
+//#define UTEST_FS
 
 
 //WebSettings Datatypes
@@ -109,6 +111,8 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BT_DEVICES_COUNT              7
 #define BT_SCAN_RESULTS               5
 #define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
+
+#define BT_NEEY_POLL_INTERVAL       725 //800 // x1,25ms
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      3+8
@@ -331,6 +335,12 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 
 #define ID_PARAM_MQTT_SEND_DELAY 133
 
+#define ID_PARAM_TRIGGER_AT_SOC     134
+#define ID_PARAM_TRIGGER_AT_SOC_ON  135
+#define ID_PARAM_TRIGGER_AT_SOC_OFF 136
+
+#define ID_PARAM_I_AM_A_SUPPORTER   137
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
@@ -349,6 +359,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 #define ID_SERIAL_DEVICE_GOBELBMS   7
 #define ID_SERIAL_DEVICE_JKBMS_CAN  8
 #define ID_SERIAL_DEVICE_BPN        9
+#define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
@@ -408,6 +419,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 //BSC_DATA 0x03
 #define BSC_ALARMS                        0x01 
 #define BSC_IP_ADDR                       0x02
+#define BSC_RELAIS                        0x03
+#define BSC_DISPLAY_TIMEOUT               0x04
 
 //BSC_GET_SLAVE_DATA 0x0A
 //#define BMS_GET_ALL_DATA                  0x01

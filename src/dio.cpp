@@ -47,6 +47,11 @@ void setDoData(uint8_t data)
     doOutData = data;
 }
 
+uint8_t getDoData()
+{
+  return doOutData;
+}
+
 //Eingänge lesen u. Ausgänge schreiben
 uint8_t dioRwInOut()
 {

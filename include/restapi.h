@@ -11,5 +11,6 @@
 
 
 void buildJsonRest(WebServer * server);
+void handle_setParameter(WebServer * server);
 
 #endif

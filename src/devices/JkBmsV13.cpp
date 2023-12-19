@@ -20,21 +20,19 @@ Stream *mPortJkV13;
 uint8_t u8_mDevNrJkV13;
 uint16_t u16_mLastRecvBytesCntJkV13;
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
-
+static serialDevData_s *mDevData;
 
 enum SM_readDataV13 {SEARCH_START_BYTE1, SEARCH_START_BYTE2, SLAVE_ADDR, CMD_CODE, RECV_DATA};
-
-
 
 void      JkBmsV13_sendMessage(uint8_t *sendMsg, uint32_t size);
 bool      JkBmsV13_recvAnswer(uint8_t * t_outMessage);
 void      JkBmsV13_parseData(uint8_t * t_message);
 
 
-
 bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool bo_lRet=true;
+  mDevData=devData;
   mPortJkV13 = port;
   u8_mDevNrJkV13 = devNr;
   callbackSetTxRxEn = callback;
@@ -155,9 +153,6 @@ bool JkBmsV13_recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-
-
-uint32_t mqttSendeTimer_jk_v13=0;
 void JkBmsV13_parseData(uint8_t * t_message)
 {
   uint32_t u32_lBalanceCapacity=0;

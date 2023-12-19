@@ -9,10 +9,14 @@
 #include "Arduino.h"
 
 void   initTime();
-void   timeRunCyclic(bool bo_resetTimeout);
+bool   timeRunCyclic(bool bo_resetTimeout);
 String getBscTime();
 String getBscDateTime();
 const char* getBscDateTimeCc();
+const char* getBscDateTimeCc2();
+uint32_t getEpoch();
+uint32_t getDayMinutes();
+uint8_t getMinutes();
 void   setTimeFromNTP();
 
 #endif

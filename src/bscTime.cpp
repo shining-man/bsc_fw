@@ -48,22 +48,25 @@ void initTime()
 }
 
 
-void timeRunCyclic(bool bo_resetTimeout)
+bool timeRunCyclic(bool bo_resetTimeout)
 {
-  if(bo_lNtpEnable==false) return;
+  if(bo_lNtpEnable==false) return false;
   if(bo_resetTimeout)u8_mNtpTiemout=0;
-  if(u8_mNtpTiemout>=3) return;
+  if(u8_mNtpTiemout>=3) return false;
 
   int8_t i8_lNtpRet=timeClient.update();
   if(i8_lNtpRet==1)
   {
     u8_mNtpTiemout=0;
     setTimeFromNTP();
+    return true;
   }
   else if(i8_lNtpRet==2) //timeout
   {
     u8_mNtpTiemout++;
   }
+
+  return false;
 }
 
 
@@ -80,7 +83,27 @@ String getBscDateTime()
 
 const char* getBscDateTimeCc()
 {
-  return timeClient.formattedTime("%Y-%m-%d %H:%M:%S"); //.%f
+  return timeClient.formattedTime("%Y-%m-%d %H:%M:%S");
+}
+
+const char* getBscDateTimeCc2()
+{
+  return timeClient.formattedTime("%Y%m%d%H%M%S");
+}
+
+uint32_t getEpoch()
+{
+  return (uint32_t) timeClient.epoch();
+}
+
+uint8_t getMinutes()
+{
+  return timeClient.minutes();
+}
+
+uint32_t getDayMinutes()
+{
+  return (timeClient.hours()*60) + timeClient.minutes();
 }
 
 void setTimeFromNTP()

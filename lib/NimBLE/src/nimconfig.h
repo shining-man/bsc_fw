@@ -78,12 +78,12 @@
 /** @brief Un-comment to see NimBLE host return codes as text debug log messages.
  *  Uses approx. 7kB of flash memory.
  */
- //#define CONFIG_NIMBLE_CPP_ENABLE_RETURN_CODE_TEXT
+//#define CONFIG_NIMBLE_CPP_ENABLE_RETURN_CODE_TEXT
 
 /** @brief Un-comment to see GAP event codes as text in debug log messages.
  *  Uses approx. 1kB of flash memory.
  */
- //#define CONFIG_NIMBLE_CPP_ENABLE_GAP_EVENT_CODE_TEXT
+//#define CONFIG_NIMBLE_CPP_ENABLE_GAP_EVENT_CODE_TEXT
 
 /** @brief Un-comment to see advertisement types as text while scanning in debug log messages.
  *  Uses approx. 250 bytes of flash memory.
@@ -106,12 +106,12 @@
 /** @brief Un-comment if not using NimBLE Server functions \n
  *  Reduces flash size by approx. 16kB.
  */
-// #define CONFIG_BT_NIMBLE_ROLE_PERIPHERAL_DISABLED
+#define CONFIG_BT_NIMBLE_ROLE_PERIPHERAL_DISABLED
 
 /** @brief Un-comment if not using NimBLE Advertising functions \n
  *  Reduces flash size by approx. 5kB.
  */
-// #define CONFIG_BT_NIMBLE_ROLE_BROADCASTER_DISABLED
+#define CONFIG_BT_NIMBLE_ROLE_BROADCASTER_DISABLED
 
 /** @brief Un-comment to change the number of devices allowed to store/bond with */
 // #define CONFIG_BT_NIMBLE_MAX_BONDS 3

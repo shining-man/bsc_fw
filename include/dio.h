@@ -12,6 +12,7 @@
 
 void    initDio(bool restore);
 void    setDoData(uint8_t data);
+uint8_t getDoData();
 uint8_t dioRwInOut();
 uint8_t getHwVersion();
 

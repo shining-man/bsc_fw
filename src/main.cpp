@@ -28,7 +28,14 @@
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <WebOTA.h>
-#include <SPIFFS.h>
+#include <FS.h>
+#ifdef USE_LittleFS
+  #define SPIFFS LittleFS
+  #include <LITTLEFS.h> 
+#else
+  #include <SPIFFS.h>
+#endif 
+#include <LITTLEFS.h>
 
 #include "defines.h"
 #include "WebSettings.h"
@@ -56,13 +63,12 @@
 #include "webapp2.h"
 #endif
 
-/*extern "C"
+extern "C"
 {
   #include "esp_core_dump.h"
-}*/
+}
 
 static const char *TAG = "MAIN";
-uint8_t bo_supportEn=true;
 
 WebServer server;
 BleHandler* bleHandler;
@@ -119,6 +125,7 @@ bool       firstWlanModeSTA=false;      //true, wenn der erste WLAN-Mode nach ei
 WiFiMode_t WlanStaApOk=WIFI_OFF;        //WIFI_OFF, wenn Wlan verbunden oder AP erstellt
 bool       wlanEventStaDisonnect=false;
 bool       wlanEventStaConnect=false;
+uint32_t   u32_getTimeTimer;            // Timer um regelmäig die Zeit zu holen
 
 bool       changeWlanDataForI2C=false;  //true, wenn sich die WLAN Verbindung geändert hat
 
@@ -146,20 +153,89 @@ long debugLogTimer;
 //
 void task_ble(void *param);
 boolean connectWiFi();
-//void readCoreDump();
-//esp_err_t esp_core_dump_image_erase();
 
 void free_dump()
 {
   BSC_LOGI(TAG, "Free Heap: %i", ESP.getFreeHeap());
 }
 
-/*
-void readCoreDump()
+/*void bscCoreDumpExport()
+{
+  if (esp_core_dump_image_check() == ESP_OK)
+  {
+    esp_core_dump_summary_t *summary = (esp_core_dump_summary_t *)malloc(sizeof(esp_core_dump_summary_t));
+    if (summary)
+    {
+      if (esp_core_dump_get_summary(summary) == ESP_OK)
+      {
+        char outputString[16];
+
+        //core["exc_task"] = summary->exc_task;
+        BSC_LOGI(TAG, "exc_task %s", summary->exc_task);
+        //core["app_elf_sha256"] = (char *)summary->app_elf_sha256;
+        BSC_LOGI(TAG, "app_elf_sha256 %s", (char *)summary->app_elf_sha256);
+        //core["dumpver"] = summary->core_dump_version;
+        BSC_LOGI(TAG, "dumpver %i", summary->core_dump_version);
+
+        ultoa(summary->exc_pc, outputString, 16);
+        //core["exc_pc"] = outputString;
+        BSC_LOGI(TAG, "exc_pc %s", outputString);
+
+        ultoa(summary->exc_tcb, outputString, 16);
+        //core["exc_tcb"] = outputString;
+        BSC_LOGI(TAG, "exc_tcb %s", outputString);
+
+        //core["bt_corrupted"] = summary->exc_bt_info.corrupted;
+        BSC_LOGI(TAG, "bt_corrupted %d", summary->exc_bt_info.corrupted);
+        //core["bt_depth"] = summary->exc_bt_info.depth;
+        BSC_LOGI(TAG, "bt_depth %i", summary->exc_bt_info.depth);
+        //auto backtrace = core.createNestedArray("backtrace");
+        for (auto value : summary->exc_bt_info.bt)
+        {
+          ultoa(value, outputString, 16);
+          //backtrace.add(outputString);
+          BSC_LOGI(TAG, "backtrace %s", outputString);
+        }
+
+        ltoa(summary->ex_info.epcx_reg_bits, outputString, 2);
+        //core["epcx_reg_bits"] = outputString;
+        BSC_LOGI(TAG, "epcx_reg_bits %s", outputString);
+        ltoa(summary->ex_info.exc_cause, outputString, 16);
+        //core["exc_cause"] = outputString;
+        BSC_LOGI(TAG, "exc_cause %s", outputString);
+        ultoa(summary->ex_info.exc_vaddr, outputString, 16);
+        //core["exc_vaddr"] = outputString;
+        BSC_LOGI(TAG, "exc_vaddr %s", outputString);
+
+        //auto exc_a = core.createNestedArray("exc_a");
+        for (auto value : summary->ex_info.exc_a)
+        {
+          ultoa(value, outputString, 16);
+          //exc_a.add(outputString);
+          BSC_LOGI(TAG, "exc_a %s", outputString);
+        }
+        //auto epcx = core.createNestedArray("epcx");
+        for (auto value : summary->ex_info.epcx)
+        {
+          ultoa(value, outputString, 16);
+          //epcx.add(outputString);
+          BSC_LOGI(TAG, "epcx %s", outputString);
+        }
+
+        esp_core_dump_image_erase();
+      }
+    }
+    free(summary);
+  }
+}*/
+
+/*void readCoreDump()
 {
   size_t size = 0;
   size_t address = 0;
-  if (esp_core_dump_image_get(&address, &size) == ESP_OK)
+  esp_err_t ret = esp_core_dump_image_get(&address, &size);
+  BSC_LOGI("ESP32", "esp_core_dump_image_get() ret=%i, %s, size=%i", ret, esp_err_to_name(ret), size);
+  if (ret == ESP_OK)
   {
     const esp_partition_t *pt = NULL;
     pt = esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_COREDUMP, "coredump");
@@ -178,8 +254,8 @@ void readCoreDump()
         esp_err_t er = esp_partition_read(pt, i * 256, bf, toRead);
         if (er != ESP_OK)
         {
-          Serial.printf("FAIL [%x]\n",er);
-          //ESP_LOGE("ESP32", "FAIL [%x]", er);
+          //Serial.printf("FAIL [%x]\n",er);
+          BSC_LOGE("ESP32", "FAIL [%x]", er);
           break;
         }
 
@@ -191,28 +267,75 @@ void readCoreDump()
           strcat(str_dst, str_tmp);
         }
 
-        printf("%s", str_dst);
+        //printf("%s", str_dst);
+        BSC_LOGE(TAG, "%s", str_dst);
       }
     }
     else
     {
-      Serial.println("Partition NULL");
-      //ESP_LOGE("ESP32", "Partition NULL");
+      //Serial.println("Partition NULL");
+      BSC_LOGE("ESP32", "Partition NULL");
     }
     esp_core_dump_image_erase();
   }
   else
   {
-    Serial.println("esp_core_dump_image_get() FAIL");
-    //ESP_LOGI("ESP32", "esp_core_dump_image_get() FAIL");
+    //Serial.println("esp_core_dump_image_get() FAIL");
+    BSC_LOGE("ESP32", "esp_core_dump_image_get() FAIL errno=%i, %s, size=%i", ret, esp_err_to_name(ret), size);
   }
-}
-*/
+}*/
 
 
 void onWiFiEvent(WiFiEvent_t event)
 {
-  BSC_LOGI(TAG, "[WiFi] event: %d", event);
+  switch(event)
+  {
+    case 	ARDUINO_EVENT_WIFI_READY:
+      BSC_LOGI(TAG, "WIFI ready (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_SCAN_DONE:
+      BSC_LOGI(TAG, "WIFI scan done (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_START:
+      BSC_LOGI(TAG, "WIFI STA start (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_STOP:
+      BSC_LOGI(TAG, "WIFI STA stop (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_CONNECTED:
+      BSC_LOGI(TAG, "WIFI STA connected (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+      BSC_LOGI(TAG, "WIFI STA disconnected (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_AUTHMODE_CHANGE:
+      BSC_LOGI(TAG, "WIFI STA authmode change (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_GOT_IP:
+      BSC_LOGI(TAG, "WIFI STA got IP (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_GOT_IP6:
+      BSC_LOGI(TAG, "WIFI STA got IP6 (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_STA_LOST_IP:
+      BSC_LOGI(TAG, "WIFI STA lost IP(%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_AP_START:
+      BSC_LOGI(TAG, "WIFI AP start (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_AP_STOP:
+      BSC_LOGI(TAG, "WIFI AP stop (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_AP_PROBEREQRECVED:
+      BSC_LOGI(TAG, "WIFI AP PROBEREQRECVED (%i)",event);
+      break;
+	  case 	ARDUINO_EVENT_WIFI_AP_GOT_IP6:
+      BSC_LOGI(TAG, "WIFI AP got IP6 (%i)",event);
+      break;
+    default:
+      BSC_LOGI(TAG, "WIFI event: %d", event);
+  }
+  
   switch(event)
   {
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
@@ -242,6 +365,8 @@ boolean connectWiFi()
   doConnectWiFi=true;
 
   bo_mWifiConnected=false;
+  //str_lWlanSsid = "wl220225";
+  //str_lWlanPwd  = "05101545206425660824";
   str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
   str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
   u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
@@ -307,7 +432,7 @@ boolean connectWiFi()
   
   if (!bo_mWifiConnected && (!firstWlanModeSTA || !bo_lWlanNeverAp))
   {
-    BSC_LOGI(TAG, "Wifi AP");
+    BSC_LOGI(TAG, "Open Wifi AP");
     WlanStaApOk=WIFI_AP;
     WiFi.mode(WIFI_AP);
     String str_lHostname = hostname;
@@ -482,6 +607,12 @@ void task_ConnectWiFi(void *param)
             mConnectStateEnums=ConnState_connectMQTTstart; //ConnState_connectMQTT;
             break;
           }
+          
+          if(millis()-u32_getTimeTimer>3600000)
+          {
+            u32_getTimeTimer=millis();
+            timeRunCyclic(true);
+          }
         }
         break;
 
@@ -647,6 +778,46 @@ void task_i2c(void *param)
 }
 
 
+#ifdef UTEST_FS
+void task_fsTest1(void *param)
+{
+  BSC_LOGD(TAG, "-> 'task_fsTest1' runs on core %d", xPortGetCoreID());
+  uint32_t fsTestCounter = 0;
+  for (;;)
+  {
+    vTaskDelay(pdMS_TO_TICKS(100));
+    fsTestCounter++;
+    BSC_LOGI(TAG,"Task FSTEST1 cnt=%i",fsTestCounter);
+  }
+}
+
+void task_fsTest2(void *param)
+{
+  BSC_LOGD(TAG, "-> 'task_fsTest2' runs on core %d", xPortGetCoreID());
+  uint32_t fsTestCounter = 0;
+  for (;;)
+  {
+    vTaskDelay(pdMS_TO_TICKS(100));
+    fsTestCounter++;
+    BSC_LOGI(TAG,"Task FSTEST2 cnt=%i",fsTestCounter);
+  }
+}
+
+void task_fsTest3(void *param)
+{
+  BSC_LOGD(TAG, "-> 'task_fsTest3' runs on core %d", xPortGetCoreID());
+  uint32_t fsTestCounter = 0;
+  for (;;)
+  {
+    vTaskDelay(pdMS_TO_TICKS(100));
+    logTrigger(fsTestCounter,0,true);
+    fsTestCounter++;
+    if(fsTestCounter==10)fsTestCounter=0;
+  }
+}
+#endif
+
+
 /*
   Handle WebPages
 */
@@ -790,7 +961,7 @@ void handle_getDashboardData()
 {
   //1. Free Heap
   String tmp = String(xPortGetFreeHeapSize());
-  tmp += "<br>";
+  tmp += " / ";
   tmp += String(xPortGetMinimumEverFreeHeapSize());
 
   //2. Alarme
@@ -1003,6 +1174,8 @@ void setup()
   //Register setzen
   *((volatile uint32_t *) (RTC_CNTL_SDIO_CONF_REG)) |= RTC_CNTL_SDIO_TIEH; 
 
+  //esp_core_dump_init();
+
   mutexTaskRunTime_ble = xSemaphoreCreateMutex();
   mutexTaskRunTime_alarmrules = xSemaphoreCreateMutex();
   mutexTaskRunTime_ow = xSemaphoreCreateMutex();
@@ -1019,7 +1192,7 @@ void setup()
 
   BSC_LOGI(TAG, "BSC %s", BSC_SW_VERSION);
   BSC_LOGI(TAG, "bootCounter=%i", bootCounter);
-  //readCoreDump();
+  //bscCoreDumpExport();
 
   //init DIO 
   if(bootCounter==1) initDio(false);
@@ -1077,10 +1250,19 @@ void setup()
 
   //ini WebPages
   #ifdef INSIDER_V1
-  if(bo_supportEn==true) server.on("/old",handlePage_root);
-  else server.on("/",handlePage_root);
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true) 
+  {
+    server.on("/old",handlePage_root);
+    server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
+  }
+  else
+  {
+    server.on("/",handlePage_root);
+    server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
+  }
   #else
   server.on("/",handlePage_root);
+  server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
   #endif
   server.on("/htmlPageStatus/",handlePage_status);
   server.on("/settings/",handlePage_settings);
@@ -1089,7 +1271,8 @@ void setup()
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
   server.on("/restapi", HTTP_GET, []() {buildJsonRest(&server);});
-
+  //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
+ 
   server.on("/settings/system/",handle_paramSystem);
   server.on("/settings/bms_can/",handle_paramBmsToInverter);
   server.on("/settings/alarm/alarmTemp/",handle_paramAlarmTemp);
@@ -1125,9 +1308,11 @@ void setup()
   server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, "bpnFw.bin");});
   #endif
 
-  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/trigger", HTTP_GET, []() {if(!handleFileRead(&server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(&server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
+  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   webota.init(&server, "/settings/webota/"); //webota
 
@@ -1139,7 +1324,10 @@ void setup()
   });
 
   #ifdef INSIDER_V1
-  initWebApp2(&server, &webSettingsSystem, bleHandler);
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
+  {
+    initWebApp2(&server, &webSettingsSystem, bleHandler, &bscSerial);
+  }
   #endif
 
   //Erstelle Tasks
@@ -1148,6 +1336,11 @@ void setup()
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
   xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
+  #ifdef UTEST_FS
+  xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, 5, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, 5, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_fsTest3, "fstest3", 2500, nullptr, 5, &task_handle_i2c, 1);
+  #endif
 
   free_dump();  
 
@@ -1156,7 +1349,8 @@ void setup()
   #endif
 
   /*delay(1000);
-  Serial.println("RESTART ::");
+  ESP_LOGI(TAG, "RESTART");
+  delay(1000);
   int a = 0;
   int b = 4;
   Serial.printf("%d\n", b / a);*/
@@ -1187,6 +1381,8 @@ void loop()
     #endif
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
+
+  //logValues();
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)

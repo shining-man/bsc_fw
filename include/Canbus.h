@@ -12,11 +12,18 @@
 
 struct inverterData_s
 {
+  bool       noBatteryPackOnline;
   int16_t    inverterVoltage;
   int16_t    inverterCurrent;
   uint16_t   inverterSoc;
   int16_t    inverterChargeCurrent;
   int16_t    inverterDischargeCurrent;
+
+  //Ströme von der Ladestromregelung
+  int16_t calcChargeCurrentCellVoltage;
+  int16_t calcChargeCurrentSoc;
+  int16_t calcChargeCurrentCelldrift;
+  int16_t calcChargeCurrentCutOff;
 };
 
 
