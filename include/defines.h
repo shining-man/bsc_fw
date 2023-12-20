@@ -35,6 +35,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
+//#define GOBEL_DEBUG
 //#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
@@ -55,6 +56,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
+//#define GOBEL_DEBUG
 #define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG

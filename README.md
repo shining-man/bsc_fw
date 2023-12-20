@@ -53,6 +53,7 @@ As an example a part of the Inverter Settings:<br>
 - Seplos [1]
 - DALY
 - Sylcin [1]
+- Gobel [1]
 
 [1]: With the Seplos and the Sylcin BMS, up to 8 devices can be connected to one serial port.
 
