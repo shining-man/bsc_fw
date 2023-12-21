@@ -8,7 +8,8 @@
 
 #include "params_dt.h"
 
-//#define BSC_SW_VERSION      "Vx.x.x" //Version in der platformio.ini setzen
+#define BSC_SW_VERSION      "V0.4.20"
+
 static const char COMPILE_DATE_TIME[] = "";
 
 //#define USE_LittleFS
