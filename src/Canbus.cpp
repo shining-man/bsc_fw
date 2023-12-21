@@ -944,7 +944,7 @@ void sendCanMsg_351()
 {
   data351 msgData;
   uint8_t errors = 0;
-  int16_t i16_lMaxChargeCurrentList[4];
+  int16_t i16_lMaxChargeCurrentList[4] = {0};
 
   //@ToDo: Fehler feststellen
 
