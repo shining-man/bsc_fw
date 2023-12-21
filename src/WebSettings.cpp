@@ -1404,7 +1404,7 @@ boolean WebSettings::readConfig()
   if (SPIFFS.exists(confFile.c_str()))
   {
     uint32_t crc = calcCrc(confFile.c_str());
-    if(prefs.getULong("confCrc")!=crc) // Wrong CRC
+    if(prefs.isKey("confCrc") && prefs.getULong("confCrc")!=crc) // Wrong CRC
     {
       if(SPIFFS.exists("/WebSettings.sich"))
       {
@@ -1419,7 +1419,10 @@ boolean WebSettings::readConfig()
     }
     else
     {
-      //Wenn Crc der Config ok ist, aber noch kein Backup-File exisiteirt
+      if(!prefs.isKey("confCrc")) BSC_LOGI(TAG,"Noch keine CRC der Settings vorhanden");
+      else BSC_LOGI(TAG,"Settings ok");
+
+      //Wenn die CRC der Config ok ist, aber noch kein Backup-File exisitiert
       uint32_t crcBackup = copyFile(str_mConfigfile.c_str(), "/WebSettings.sich");
       if(crc!=crcBackup) //CRC des Backups falsch -> Bakup wieder löschen
       {

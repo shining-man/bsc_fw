@@ -365,8 +365,6 @@ boolean connectWiFi()
   doConnectWiFi=true;
 
   bo_mWifiConnected=false;
-  //str_lWlanSsid = "wl220225";
-  //str_lWlanPwd  = "05101545206425660824";
   str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
   str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
   u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
