@@ -12,9 +12,8 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof(x[0]))
 
 static const char *TAG = "GOBEL_BMS";
-#define GOBEL_DEBUG
 
-Stream *mPort;
+static Stream *mPort;
 /*
 Protocol: https://github.com/fancyui/Gobel-Power-RN-BMS-RS485-ModBus
 
@@ -138,8 +137,7 @@ protected:
   uint16_t m_read;
 };
 
-static uint8_t u8_mDevNr, u8_mConnToId;
-;
+static uint8_t u8_mDevNr, u8_mConnToId, u8_mCountOfPacks;
 static uint16_t u16_mLastRecvBytesCnt;
 
 enum SM_readData
@@ -150,10 +148,12 @@ enum SM_readData
   SEARCH_END
 };
 
-static uint8_t getDataMsg[] = {0x37, 0x45, 0x11, 0x00, 0x46, 0xB0, 0x00, 0x00, 0xFE, 0xF9, 0x0D};
+static uint8_t getDataMsg[] = {0x11, 0x01, 0x46, 0xB0, 0x00, 0x00};
+static uint8_t getWarnMsg[] = {0x11, 0x01, 0x46, 0xB1, 0x00, 0x00};
 static void sendMessage(uint8_t *sendMsg, size_t len);
 static bool recvAnswer(uint8_t *t_outMessage);
-static void parseData(uint8_t *t_message);
+static void parseData(uint8_t *t_message, uint8_t address);
+static void parseWarnData(uint8_t *t_message, uint8_t address);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 static serialDevData_s *mDevData;
@@ -165,57 +165,98 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn = callback;
+  u8_mCountOfPacks = devData->u8_NumberOfDevices;
+  uint8_t u8_addr = 0;
+  uint8_t i;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
+  uint8_t u8_packAdr = 0;
+  if (u8_mCountOfPacks > 1)
+  {
+    u8_packAdr = 1;
+  }
+
+  for (u8_addr = 0; u8_addr < u8_mCountOfPacks; u8_addr++)
+  {
 #ifdef GOBEL_DEBUG
-  BSC_LOGD(TAG, "Serial %i send", u8_mDevNr);
+    BSC_LOGD(TAG, "Serial %i send, addr: %i", u8_mDevNr, u8_packAdr);
 #endif
-  sendMessage(getDataMsg, ARRAY_SIZE(getDataMsg));
-  if (recvAnswer(response))
-  {
-    parseData(response);
+    getDataMsg[1] = u8_packAdr;
+    sendMessage(getDataMsg, ARRAY_SIZE(getDataMsg));
+    if (recvAnswer(response))
+    {
+      parseData(response, u8_addr);
 
-    // mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr));
+      // mqtt
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + u8_addr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr + u8_addr));
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + u8_addr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr + u8_addr));
+
+      getWarnMsg[1] = u8_packAdr;
+      sendMessage(getWarnMsg, ARRAY_SIZE(getWarnMsg));
+      if (recvAnswer(response))
+      {
+        parseWarnData(response, u8_addr);
+      }
+
+      setBmsLastDataMillis(BT_DEVICES_COUNT + u8_mDevNr + u8_addr, millis());
+    }
+    else
+    {
+      BSC_LOGD(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
+      bo_lRet = false;
+    }
+
+    u8_packAdr++;
+    if (bo_lRet == false)
+      return bo_lRet;
+
+    vTaskDelay(pdMS_TO_TICKS(25));
   }
-  else
-  {
-    BSC_LOGI(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
-    bo_lRet = false;
-  }
-
-  if (bo_lRet == false)
-    return bo_lRet;
-
+  if (devNr >= 2)
+    callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 
 static void sendMessage(uint8_t *sendMsg, size_t len)
 {
+  uint16_t chksum = 0;
+  size_t i = 0;
   callbackSetTxRxEn(u8_mDevNr, serialRxTx_TxEn);
   usleep(20);
+  mPort->write(0x37);
+  mPort->write(0x45);
   mPort->write(sendMsg, len);
+  for (i = 0; i < len; i++)
+    chksum += sendMsg[i];
+
+  chksum = 1 + ~chksum;
+  mPort->write(chksum >> 8);
+  mPort->write(chksum & 0xff);
+
+  mPort->write(0x0d);
   mPort->flush();
   callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxEn);
 }
 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
-  uint8_t SMrecvState, u8_lRecvByte;
+  uint8_t SMrecvState, u8_lRecvByte, u8_CyclesWithoutData;
   uint16_t u16_lRecvDataLen;
   uint32_t u32_lStartTime = millis();
   SMrecvState = SEARCH_START_BYTE1;
   u16_mLastRecvBytesCnt = 0;
   u16_lRecvDataLen = 0xFFFF;
   uint16_t cksum = 0;
+  u8_CyclesWithoutData = 0;
 
   for (;;)
   {
     // Timeout
-    if (millis() - u32_lStartTime > 200)
+    //  wenn innerhalb von 500ms das Telegram noch nicht begonnen hat, dann Timeout
+    //  oder wenn es begonnen hat, dann 700ms
+    if (((millis() - u32_lStartTime) > 500 && u16_mLastRecvBytesCnt == 0) || ((millis() - u32_lStartTime) > 700 && u16_mLastRecvBytesCnt > 0))
     {
-      BSC_LOGI(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
+      BSC_LOGD(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       return false;
     }
 
@@ -263,6 +304,16 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       default:
         break;
       }
+      u8_CyclesWithoutData = 0;
+    }
+    else if (u16_mLastRecvBytesCnt == 0)
+      vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
+    else if (u16_mLastRecvBytesCnt > 0 && u8_CyclesWithoutData > 10)
+      vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else                             // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
+    {
+      u8_CyclesWithoutData++;
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
 
     if (u16_mLastRecvBytesCnt == u16_lRecvDataLen) break; // Recv Pakage complete
@@ -294,7 +345,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   return true;
 }
 
-void parseData(uint8_t *t_message)
+void parseData(uint8_t *t_message, uint8_t address)
 {
   uint16_t u16_lBalanceCapacity = 0;
   uint16_t u16_lFullCapacity = 0;
@@ -304,6 +355,8 @@ void parseData(uint8_t *t_message)
   uint8_t u8_lNumOfPacks = 0;
   uint16_t u16_lZellMinVoltage = 0;
   uint16_t u16_lZellMaxVoltage = 0;
+  uint8_t  u8_lZellNumberMinVoltage = 0;
+  uint8_t  u8_lZellNumberMaxVoltage = 0;
   uint16_t u16_lZellDifferenceVoltage = 0;
   uint16_t u16_lCellSum = 0;
   uint16_t u16_lZellVoltage = 0;
@@ -319,24 +372,26 @@ void parseData(uint8_t *t_message)
     p.seek(10);
     u8_lNumOfPacks = p.getuint8();
 
+    if (u8_lNumOfPacks != 0x01)
+      return;
     for (uint8_t pack = 0; pack < u8_lNumOfPacks; pack++)
     {
 
       if (pack == 1) // TODO: Handle more packs
         break;
       p.getuint8(); // Pack addr
-      setBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr, (float)p.getint16() * 0.01);
-      setBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr, (float)p.getuint32() * 0.001);
+      setBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr + address, (float)p.getint16() * 0.01);
+      setBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (float)p.getuint32() * 0.001);
 
-      u16_lBalanceCapacity = p.getuint16();                               // Remain capacity
-      p.getuint8();                                                       // 05
-      u16_lFullCapacity = p.getuint16();                                  // total capacity
-      p.getuint16();                                                      // design capacity
-      u16_lCycle = p.getuint16();                                         // cycle number
-      setBmsChargePercentage(BT_DEVICES_COUNT + u8_mDevNr, p.getuint8()); // SOC in %
-      p.getuint8();                                                       // SOH
-      p.getuint8();                                                       // parallel number
-      p.getuint8();                                                       // slave addr
+      u16_lBalanceCapacity = p.getuint16();                                         // Remain capacity
+      p.getuint8();                                                                 // 05
+      u16_lFullCapacity = p.getuint16();                                            // total capacity
+      p.getuint16();                                                                // design capacity
+      u16_lCycle = p.getuint16();                                                   // cycle number
+      setBmsChargePercentage(BT_DEVICES_COUNT + u8_mDevNr + address, p.getuint8()); // SOC in %
+      p.getuint8();                                                                 // SOH
+      p.getuint8();                                                                 // parallel number
+      p.getuint8();                                                                 // slave addr
       u8_lNumOfCells = p.getuint8();
 #ifdef GOBEL_DEBUG
       BSC_LOGD(TAG, "n>NOC:  %i", u8_lNumOfCells);
@@ -344,16 +399,18 @@ void parseData(uint8_t *t_message)
       for (uint8_t n = 0; n < u8_lNumOfCells; n++)
       {
         u16_lZellVoltage = (p.getuint16());
-        setBmsCellVoltage(BT_DEVICES_COUNT + u8_mDevNr, n, u16_lZellVoltage);
+        setBmsCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, n, u16_lZellVoltage);
         u16_lCellSum += u16_lZellVoltage;
 
         if (u16_lZellVoltage > u16_lCellHigh)
         {
           u16_lCellHigh = u16_lZellVoltage;
+          u8_lZellNumberMaxVoltage=n;
         }
         if (u16_lZellVoltage < u16_lCellLow)
         {
           u16_lCellLow = u16_lZellVoltage;
+          u8_lZellNumberMinVoltage=n;
         }
 
         u16_lZellMinVoltage = u16_lCellLow;
@@ -365,17 +422,19 @@ void parseData(uint8_t *t_message)
 #endif
       }
 
-      setBmsMaxCellVoltage(BT_DEVICES_COUNT + u8_mDevNr, u16_lCellHigh);
-      setBmsMinCellVoltage(BT_DEVICES_COUNT + u8_mDevNr, u16_lCellLow);
-      setBmsAvgVoltage(BT_DEVICES_COUNT + u8_mDevNr, (float)(u16_lCellSum / u8_lNumOfCells));
-      setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT + u8_mDevNr, (u16_lZellDifferenceVoltage));
+      setBmsMaxCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, u16_lCellHigh);
+      setBmsMinCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, u16_lCellLow);
+      setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT + u8_mDevNr + address, u8_lZellNumberMaxVoltage);
+      setBmsMinVoltageCellNumber(BT_DEVICES_COUNT + u8_mDevNr + address, u8_lZellNumberMinVoltage);
+      setBmsAvgVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (float)(u16_lCellSum / u8_lNumOfCells));
+      setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (u16_lZellDifferenceVoltage));
 
       u8_lCntTempSensors = p.getuint8(); // cell NTC
       for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
       {
         float temp = p.gettemp();
         if (i < 3)
-          setBmsTempature(BT_DEVICES_COUNT + u8_mDevNr, i, temp);
+          setBmsTempature(BT_DEVICES_COUNT + u8_mDevNr + address, i, temp);
       }
 
       u8_lCntTempSensors = p.getuint8(); // MOS NTC
@@ -395,39 +454,125 @@ void parseData(uint8_t *t_message)
       }
     }
 
-    p.getuint32(); // CRC32, TODO: clarify polynom and used input data
+    p.getuint32(); // CRC32, according to Gobel there is a problem. Ignore for now.
+
+    if (mDevData->bo_sendMqttMsg)
+    {
+      // Nachrichten senden
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+    }
   }
   catch (const std::exception &e)
   {
     BSC_LOGI(TAG, "Parser Error: %s Rx%d", e.what(), u16_mLastRecvBytesCnt);
   }
+}
 
-  /*bmsErrors
-  bit0  single cell overvoltage protection
-  bit1  single cell undervoltage protection
-  bit2  whole pack overvoltage protection
-  bit3  Whole pack undervoltage protection
-  bit4  charging over-temperature protection
-  bit5  charging low temperature protection
-  bit6  Discharge over temperature protection
-  bit7  discharge low temperature protection
-  bit8  charging overcurrent protection
-  bit9  Discharge overcurrent protection
-  bit10 short circuit protection
-  bit11 Front-end detection IC error
-  bit12 software lock MOS
-  */
-  //        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, uint16_t); TODO: Handle errors
+void parseWarnData(uint8_t *t_message, uint8_t address)
+{
 
-  if(mDevData->bo_sendMqttMsg)
+  uint8_t u8_lNumOfCells = 0;
+  uint8_t u8_lNumOfPacks = 0;
+  uint32_t u32_alarm = 0;
+  parser p(t_message, u16_mLastRecvBytesCnt);
+
+  try
   {
-    // Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    uint8_t val;
+    p.seek(10);
+    u8_lNumOfPacks = p.getuint8();
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+    if (u8_lNumOfPacks != 0x01)
+      return;
+
+    for (uint8_t pack = 0; pack < u8_lNumOfPacks; pack++)
+    {
+
+      if (pack == 1) // TODO: Handle more packs
+        break;
+      p.getuint8(); // Pack addr
+
+      u8_lNumOfCells = p.getuint8();
+#ifdef GOBEL_DEBUG
+      BSC_LOGD(TAG, "n>NOC:  %i", u8_lNumOfCells);
+#endif
+      for (uint8_t n = 0; n < u8_lNumOfCells; n++)
+      {
+        uint8_t cellwarning = p.getuint8();
+        if (cellwarning == 0x01)
+          u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
+        else if (cellwarning == 0x02)
+          u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+      }
+
+      uint8_t u8_lNumOfNTC = p.getuint8();
+      for (uint8_t n = 0; n < u8_lNumOfNTC; n++)
+      {
+        uint8_t ntcwarning = p.getuint8();
+        if (ntcwarning == 0x01)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_UTP | BMS_ERR_STATUS_DSG_UTP);
+        else if (ntcwarning == 0x02)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_OTP | BMS_ERR_STATUS_DSG_OTP);
+      }
+
+      uint8_t u8_lNumOfAmbietnNTC = p.getuint8();
+      for (uint8_t n = 0; n < u8_lNumOfAmbietnNTC; n++)
+      {
+        uint8_t ntcwarning = p.getuint8();
+        if (ntcwarning == 0x01)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_UTP | BMS_ERR_STATUS_DSG_UTP);
+        else if (ntcwarning == 0x02)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_OTP | BMS_ERR_STATUS_DSG_OTP);
+      }
+
+      uint8_t u8_lNumOfMOSNTC = p.getuint8();
+      for (uint8_t n = 0; n < u8_lNumOfMOSNTC; n++)
+      {
+        uint8_t ntcwarning = p.getuint8();
+        if (ntcwarning == 0x01)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_UTP | BMS_ERR_STATUS_DSG_UTP);
+        else if (ntcwarning == 0x02)
+          u32_alarm |= (BMS_ERR_STATUS_CHG_OTP | BMS_ERR_STATUS_DSG_OTP);
+      }
+
+      val = p.getuint8(); // Charge current warning
+      if (val == 0x02)
+        u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
+
+      val = p.getuint8(); // Pack voltage warning
+      if (val == 0x01)
+        u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
+      else if (val == 0x02)
+        u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+
+      val = p.getuint8(); // Discharge current warning
+      if (val == 0x02)
+        u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+
+      p.getuint32(); // Protection state code
+      p.getuint32(); // Function control code
+      p.getuint32(); // Working state code
+      p.getuint32(); // Fault state code
+      p.getuint32(); // Warning state code
+      p.getuint32(); // Cells balance state code
+      p.getuint32(); // Cells balance state code
+      p.getuint16(); // BMS&Inverter State code
+      p.getuint16(); // Max Charge current
+      p.getuint16(); // Max Discharge current
+      p.getuint32(); // CRC32, according to Gobel there is a problem. Ignore for now.
+
+      setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_alarm);
+    }
+  }
+  catch (const std::exception &e)
+  {
+    BSC_LOGI(TAG, "Parser Error: %s Rx%d", e.what(), u16_mLastRecvBytesCnt);
+    //    ESP_LOG_BUFFER_HEXDUMP(TAG, t_message, u16_mLastRecvBytesCnt, BSC_LOGI);
   }
 }
