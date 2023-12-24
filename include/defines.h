@@ -35,6 +35,8 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
+//#define GOBEL_DEBUG
+#define GOBELPC200_DEBUG
 //#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
@@ -55,6 +57,8 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
+//#define GOBEL_DEBUG
+#define GOBELPC200_DEBUG
 #define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
@@ -366,6 +370,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 #define ID_SERIAL_DEVICE_JKBMS_CAN  8
 #define ID_SERIAL_DEVICE_BPN        9
 #define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
+#define ID_SERIAL_DEVICE_GOBEL_PC200  11
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
