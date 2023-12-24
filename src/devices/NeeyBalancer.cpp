@@ -52,7 +52,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
   if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
   {
-    BSC_LOGI(TAG,"RX settings");
+    //BSC_LOGI(TAG,"RX settings");
 
     /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
     String log="";

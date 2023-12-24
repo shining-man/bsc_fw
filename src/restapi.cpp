@@ -138,6 +138,8 @@ void buildJsonRest(WebServer * server)
     int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
     int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
     int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
+
+    int16_t calcDischargeCurrentCellVoltage = inverterData->calcDischargeCurrentCellVoltage;
     inverterDataSemaphoreGive();
     genJsonEntryArray(entrySingle, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("voltage"), inverterVoltage, str_htmlOut, false);
@@ -149,7 +151,9 @@ void buildJsonRest(WebServer * server)
     genJsonEntryArray(entrySingle, F("cc_cellVoltage"), calcChargeCurrentCellVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("cc_soc"), calcChargeCurrentSoc, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, true);
+    genJsonEntryArray(entrySingle, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
+
+    genJsonEntryArray(entrySingle, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);

@@ -743,6 +743,53 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
 }
 
 
+/******************************************************************************************************* 
+ * Berechnet der Maximalzulässigen Entladestrom anhand der eigestellten Zellspannungsparameter 
+ *******************************************************************************************************/
+int16_t calcEntladestromZellspanung(int16_t i16_pMaxDischargeCurrent)
+{
+  uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG);
+
+  if(u16_lStartSpg>0) //wenn enabled
+  {
+    //Kleinste Zellspannung von den aktiven BMSen ermitteln
+    uint16_t u16_lAktuelleMinZellspg = getMinCellSpannungFromBms();
+
+    if(u16_lStartSpg>=u16_lAktuelleMinZellspg)
+    {
+      uint16_t u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_ENDSPG,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_ENDSPG);
+      int16_t i16_lMindestChargeCurrent = (WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM));
+
+      if(u16_lStartSpg<=u16_lEndSpg) return i16_pMaxDischargeCurrent; //Startspannung <= Endspannung => Fehler
+      if(i16_pMaxDischargeCurrent<=i16_lMindestChargeCurrent) return i16_pMaxDischargeCurrent; //Maximaler Entladestrom < Mindest-Entladestrom => Fehler
+
+      if(u16_lAktuelleMinZellspg<u16_lEndSpg) 
+      {
+        //Wenn die aktuelle Zellspannung bereits kleiner als die Endzellspannung ist, 
+        //dann Ladestrom auf Mindest-Entladestrom einstellen
+        return i16_lMindestChargeCurrent;
+      }
+      else
+      {
+        uint32_t u32_lAenderungProMv = ((u16_lStartSpg-u16_lEndSpg)*100)/(i16_pMaxDischargeCurrent-i16_lMindestChargeCurrent); //Änderung pro mV
+        uint32_t u32_lStromAenderung = ((u16_lStartSpg-u16_lAktuelleMinZellspg)*100)/u32_lAenderungProMv; //Ladestrom um den theoretisch reduziert werden muss
+        if(u32_lStromAenderung>(i16_pMaxDischargeCurrent-i16_lMindestChargeCurrent))
+        {
+          return i16_lMindestChargeCurrent;
+        }
+        else
+        {
+          uint16_t u16_lNewChargeCurrent = i16_pMaxDischargeCurrent-u32_lStromAenderung; //neuer Entladestrom
+          return u16_lNewChargeCurrent;
+        }
+
+      }
+    }
+  }
+  return i16_pMaxDischargeCurrent;
+}
+
+
 /*
  * Ladestrom herunterregeln, wenn von einem Pack die Stromgrenze überschritten wird
  */
@@ -945,6 +992,7 @@ void sendCanMsg_351()
   data351 msgData;
   uint8_t errors = 0;
   int16_t i16_lMaxChargeCurrentList[4] = {0};
+  int16_t i16_lMaxDischargeCurrentList[1] = {0};
 
   //@ToDo: Fehler feststellen
 
@@ -959,7 +1007,9 @@ void sendCanMsg_351()
   {
     msgData.dischargevoltage    = 0; //not use
 
-    //Ladespannung
+    /*******************************
+     * Ladespannung
+     *******************************/
     uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0); 
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(u16_lChargeVoltage);
     msgData.chargevoltagelimit = u16_lChargeVoltage;
@@ -968,7 +1018,9 @@ void sendCanMsg_351()
       mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(u16_lChargeVoltage/10.0));
     }
 
-    //Ladestrom
+    /*******************************
+     * Ladestrom
+     *******************************/
     if(alarmSetChargeCurrentToZero)
     {
       msgData.maxchargecurrent=0;
@@ -1037,7 +1089,9 @@ void sendCanMsg_351()
       }
     }
 
-    //Entladestrom
+    /*******************************
+     * Entladestrom
+     *******************************/
     if(alarmSetDischargeCurrentToZero)
     {
       msgData.maxdischargecurrent=0;
@@ -1073,15 +1127,27 @@ void sendCanMsg_351()
       #ifdef CAN_DEBUG
       BSC_LOGI(TAG,"dischargeCurrent Pack:%i",i16_lMaxDischargeCurrent);
       #endif
+      
+      
+      i16_lMaxDischargeCurrentList[0] = calcEntladestromZellspanung(i16_lMaxDischargeCurrent);
 
+      //Bestimmt kleinsten Entladestrom aller Optionen
+      for(uint8_t i=0;i<sizeof(i16_lMaxDischargeCurrentList)/sizeof(i16_lMaxDischargeCurrentList[0]);i++)
+      {
+        if(i16_lMaxDischargeCurrentList[i] < i16_lMaxDischargeCurrent)
+        {
+          i16_lMaxDischargeCurrent = i16_lMaxDischargeCurrentList[i];
+        }
+      }
+
+      //Soll-Entladestrom in die Ausgangs-Msg. schreiben
+      msgData.maxdischargecurrent = i16_lMaxDischargeCurrent*10;
 
       //Wenn sich der Wert geändert hat per mqqt senden
       if(i16_lMaxDischargeCurrent!=i16_mAktualDischargeCurrentSoll || u8_mMqttTxTimer==15)
       {
         mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, i16_lMaxDischargeCurrent);
       }
-
-      msgData.maxdischargecurrent = i16_lMaxDischargeCurrent*10;
     }
   }
 
@@ -1093,6 +1159,8 @@ void sendCanMsg_351()
   inverterData.calcChargeCurrentSoc = i16_lMaxChargeCurrentList[1];
   inverterData.calcChargeCurrentCelldrift = i16_lMaxChargeCurrentList[2];
   inverterData.calcChargeCurrentCutOff = i16_lMaxChargeCurrentList[3];
+  
+  inverterData.calcDischargeCurrentCellVoltage = i16_lMaxDischargeCurrentList[0];
   xSemaphoreGive(mInverterDataMutex);
 
   i16_mAktualDischargeCurrentSoll=msgData.maxdischargecurrent/10;

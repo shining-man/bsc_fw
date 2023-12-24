@@ -83,18 +83,18 @@ void debugInit()
     else spiffsTriggerLogFile=SPIFFS.open("/trigger.txt", FILE_WRITE);
   }
 
-  /*if(SPIFFS.begin())
+  if(SPIFFS.begin())
   {
     if(SPIFFS.exists("/values"))
     {
-      spiffsValueLogFile=SPIFFS.open("/values", FILE_WRITE);
+      spiffsValueLogFile=SPIFFS.open("/values", "r+");
     }
     else
     {
       spiffsValueLogFile=SPIFFS.open("/values", FILE_WRITE);
       for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) spiffsValueLogFile.write(0x0);
     }
-  }*/
+  }
 
   #ifdef DEBUG_ON_FS
   if (SPIFFS.begin())
@@ -298,7 +298,7 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
   fsUnlock();
 }
 
-//uint32_t timeMinutesOld;
+
 uint8_t u8_lGetMinutesOld;
 void logValues()
 {
@@ -307,18 +307,16 @@ void logValues()
   u8_lGetMinutesOld=u8_lGetMinutes;
   
   uint32_t timeMinutes = getDayMinutes();
-  BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);
-  //if(timeMinutesOld==timeMinutes) return;
-  //timeMinutesOld=timeMinutes;
+  //BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);
 
-
-  /*if(spiffsValueLogFile.size()>10000)
+  if(timeMinutes==0)
   {
     spiffsValueLogFile.close();
     SPIFFS.remove("/values1");
     SPIFFS.rename("/values","/values1");
     spiffsValueLogFile = SPIFFS.open("/values", FILE_WRITE);
-  } */
+    for(uint32_t i=0;i<(1440*VALUE_LOG_DATASET_SIZE);i++) spiffsValueLogFile.write(0x0);
+  }
 
 
   inverterDataSemaphoreTake();
@@ -341,37 +339,17 @@ void logValues()
   uint16_t bmsMinCellVoltage = bmsData->bmsMinCellVoltage;
   bmsDataSemaphoreGive();*/
 
-  // Test
-  inverterSoc = timeMinutes;
-
-
-  int16_t reserve=0;
-
   fsLock();
   spiffsValueLogFile.seek(timeMinutes*VALUE_LOG_DATASET_SIZE,SeekSet);
-  spiffsValueLogFile.write(inverterCurrent);
-  spiffsValueLogFile.write(inverterVoltage);
-  spiffsValueLogFile.write(inverterSoc);
-  spiffsValueLogFile.write(inverterChargeCurrent);
-  spiffsValueLogFile.write(inverterDischargeCurrent);
-
-  spiffsValueLogFile.write(calcChargeCurrentCellVoltage);
-  spiffsValueLogFile.write(calcChargeCurrentSoc);
-  spiffsValueLogFile.write(calcChargeCurrentCelldrift);
-  spiffsValueLogFile.write(calcChargeCurrentCutOff);
-  spiffsValueLogFile.write(reserve);
-  spiffsValueLogFile.write(reserve);
-  spiffsValueLogFile.write(reserve);
-  spiffsValueLogFile.write(reserve);
-  spiffsValueLogFile.write(0xAA);
-  spiffsValueLogFile.write(0x55);
-
+  spiffsValueLogFile.write((uint8_t*)&inverterCurrent,2);
+  spiffsValueLogFile.write((uint8_t*)&inverterVoltage,2);
+  spiffsValueLogFile.write((uint8_t*)&inverterSoc,2);
+  spiffsValueLogFile.write((uint8_t*)&inverterChargeCurrent,2);
+  spiffsValueLogFile.write((uint8_t*)&inverterDischargeCurrent,2);
+  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCellVoltage,2);
+  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentSoc,2);
+  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCelldrift,2);
+  spiffsValueLogFile.write((uint8_t*)&calcChargeCurrentCutOff,2);
   spiffsValueLogFile.flush();
   fsUnlock();
-
-
-
 }
-
-
-
