@@ -24,6 +24,9 @@ struct inverterData_s
   int16_t calcChargeCurrentSoc;
   int16_t calcChargeCurrentCelldrift;
   int16_t calcChargeCurrentCutOff;
+
+  //Entladeströme von der Regelung
+  int16_t calcDischargeCurrentCellVoltage;
 };
 
 

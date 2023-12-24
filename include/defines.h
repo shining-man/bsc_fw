@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.5.0"
+#define BSC_SW_VERSION      "V0.5.1"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -22,7 +22,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define DEBUG_SW_BAUDRATE         19200
 
 //#define BPN
-//#define INSIDER_V1
+#define INSIDER_V1
 
 #ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
@@ -86,7 +86,8 @@ static const char COMPILE_DATE_TIME[] = "";
 //Alarmrules
 #define CNT_ALARMS                   10
 #define CNT_BT_ALARMS_RULES          20
-//
+#define ANZAHL_RULES_TRIGGER_SOC      4
+
 //DI/DO
 #define H_CLK                        14
 #define H_MOSI                       13
@@ -341,6 +342,10 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 #define ID_PARAM_TRIGGER_AT_SOC_OFF 136
 
 #define ID_PARAM_I_AM_A_SUPPORTER   137
+
+#define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG         138
+#define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_ENDSPG           139
+#define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM    140
 
 
 //Auswahl Bluetooth Geräte

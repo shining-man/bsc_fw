@@ -38,7 +38,7 @@ uint8_t u8_mTachoChannel;
 //Hysterese
 uint32_t u32_hystereseTotalVoltageMin=0;
 uint32_t u32_hystereseTotalVoltageMax=0;
-bool bo_merkerHysterese_TriggerAtSoc=false;
+uint8_t u8_merkerHysterese_TriggerAtSoc=0;
 
 void rules_Bms();
 void rules_Temperatur();
@@ -65,7 +65,7 @@ void initAlarmRules()
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
   bo_mChangeAlarmSettings=false;
-  bo_merkerHysterese_TriggerAtSoc=false;
+  u8_merkerHysterese_TriggerAtSoc=false;
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -887,42 +887,46 @@ void rules_soc()
 
   if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
-    if(bo_merkerHysterese_TriggerAtSoc) bo_merkerHysterese_TriggerAtSoc=false;
+    if(u8_merkerHysterese_TriggerAtSoc) u8_merkerHysterese_TriggerAtSoc=0;
     return;
   }
 
-  uint8_t u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,0,DT_ID_PARAM_TRIGGER_AT_SOC);
-  if(u8_lTriggerAtSocTriggerNr>0)
+  for(uint8_t ruleNr=0;ruleNr<ANZAHL_RULES_TRIGGER_SOC;ruleNr++)
   {
-    uint8_t u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,0,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
-    uint8_t u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,0,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
+    uint8_t u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
+    if(u8_lTriggerAtSocTriggerNr>0)
+    {
+      uint8_t u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
+      uint8_t u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
 
-    if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
-    {
-      if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || bo_merkerHysterese_TriggerAtSoc) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
+      if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {
-        bo_merkerHysterese_TriggerAtSoc=true;
-        setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+        if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
+        {
+          bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
+          setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+        }
+        else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr))
+        {
+          bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
+          setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+        }
       }
-      else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && bo_merkerHysterese_TriggerAtSoc)
+      else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
       {
-        bo_merkerHysterese_TriggerAtSoc=false;
-        setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+        if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
+        {
+          bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
+          setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
+        }
+        else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr))
+        {
+          bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
+          setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
+        }
       }
+      // else -> Error
     }
-    else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
-    {
-      if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || bo_merkerHysterese_TriggerAtSoc) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
-      {
-        bo_merkerHysterese_TriggerAtSoc=true;
-        setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
-      }
-      else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && bo_merkerHysterese_TriggerAtSoc)
-      {
-        bo_merkerHysterese_TriggerAtSoc=false;
-        setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
-      }
-    }
-    // else -> Error
   }
+
 }
