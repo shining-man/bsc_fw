@@ -88,7 +88,7 @@ void initAlarmRules()
   }
 
   doMutex = xSemaphoreCreateMutex();
-  alarmSettingsChangeMutex = xSemaphoreCreateMutex();
+  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
 
   timer_doOffPulse = xTimerCreate("doPulse", pdMS_TO_TICKS(10), pdFALSE, (void *)1, &doOffPulse);
   assert(timer_doOffPulse);
@@ -286,7 +286,9 @@ void runAlarmRules()
  * dann müssen die Alarme erst einmal zurück gesetzt werden
  */
 void changeAlarmSettings()
-{  
+{
+  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex=xSemaphoreCreateMutex();
+
   xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
   bo_mChangeAlarmSettings=true;
   xSemaphoreGive(alarmSettingsChangeMutex);
@@ -888,26 +890,31 @@ void rules_soc()
 
   if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
-    if(u8_merkerHysterese_TriggerAtSoc) u8_merkerHysterese_TriggerAtSoc=0;
+    u8_merkerHysterese_TriggerAtSoc=0;
     return;
   }
 
+  uint8_t u8_lTriggerAtSocTriggerNr=0;
+  uint8_t u8_lTriggerAtSoc_SocOn=0;
+  uint8_t u8_lTriggerAtSoc_SocOff=0;
   for(uint8_t ruleNr=0;ruleNr<ANZAHL_RULES_TRIGGER_SOC;ruleNr++)
   {
-    uint8_t u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
+    u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
+    //BSC_LOGI(TAG,"ruleNr=%i, trigger=%i",ruleNr,u8_lTriggerAtSocTriggerNr);
     if(u8_lTriggerAtSocTriggerNr>0)
     {
-      uint8_t u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
-      uint8_t u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
+      u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
+      u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
+      //BSC_LOGI(TAG,"ruleNr=%i, socOn=%i, socOff=%i, hyst=%i",ruleNr, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
 
       if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {
-        if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
+        if((inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData->inverterSoc>u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr))
+        else if(inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen
@@ -915,12 +922,12 @@ void rules_soc()
       }
       else if(u8_lTriggerAtSoc_SocOff>u8_lTriggerAtSoc_SocOn)
       {
-        if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
+        if((inverterData->inverterSoc<=u8_lTriggerAtSoc_SocOn || isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1) && inverterData->inverterSoc<u8_lTriggerAtSoc_SocOff)
         {
           bitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,true,ALARM_CAUSE_SOC); //Trigger setzen
         }
-        else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr))
+        else if(inverterData->inverterSoc>=u8_lTriggerAtSoc_SocOff && isBitSet(u8_merkerHysterese_TriggerAtSoc,ruleNr)==1)
         {
           bitClear(u8_merkerHysterese_TriggerAtSoc,ruleNr);
           setAlarm(u8_lTriggerAtSocTriggerNr,false,ALARM_CAUSE_SOC); //Trigger zurücksetzen

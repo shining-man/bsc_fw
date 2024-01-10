@@ -8,9 +8,6 @@
 
 #include <Arduino.h>
 
-static String str_mMqttDeviceName;
-static String str_mMqttTopicName;
-
 void initMqtt();
 bool mqttLoop();
   

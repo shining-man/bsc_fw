@@ -25,7 +25,7 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
 "</head>"
 "<body>"
   "<div class='topnav'>"
-    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.5.1</span>"
+    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.5.3</span>"
   "</div>"
   "<div class='content'>"
     "<div class='cards'>"
@@ -610,7 +610,7 @@ const char htmlPageSupport[] PROGMEM = "<!DOCTYPE HTML>"
     "<p>Jeder der den BSC nutzt, egal ob mit der BSC-Hardware, oder auf einem NodeMCU, kann sich &uuml;berlegen, was ihm der BSC eigentlich wert ist, oder wo er das Projekt unterst&uuml;tzen kann.<p>"
     "<br><p><a href=\"javascript:window.open('https://www.paypal.me/shiningman22');\">Paypal: https://www.paypal.me/shiningman22</a></p><br>"
     "<p>Wenn du ein Unterst&uuml;tzer bist, kannst du in den Einstellungen unter System die Option \"Ich bin Unterst&uuml;tzer\" aktivieren:-)</p>"
-    "<p>Diese Option ist f&uuml;r Unterst&uuml;tzer gedacht. Jeder Andere sollte zumindest ein schlechtes Gewissen haben.</p>"
+    "<p>Diese Option ist f&uuml;r Unterst&uuml;tzer gedacht. Jeder andere sollte zumindest ein schlechtes Gewissen haben.</p>"
   "</div>"
 "</body>"
 "</html>";
@@ -618,7 +618,7 @@ const char htmlPageSupport[] PROGMEM = "<!DOCTYPE HTML>"
 
 
 
-const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
+/*const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
 "<html>"
 "<head>"
   "<title>BSC</title>"
@@ -675,22 +675,22 @@ const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
       "<tr><td>Alarm Delay - Cell Voltage</td><td><input type='number' step='1' min='0' max='255' value='0' id='4' name='4'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
       
-      "<tr><td>Low Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='5' name='5'></td><td>V</td></tr>"
-      "<tr><td>High Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='6' name='6'></td><td>V</td></tr>"
-      "<tr><td>Alarm Delay - Battery Voltage</td><td><input type='number' step='0' min='0' max='255' value='0' id='7' name='7'></td><td>s</td></tr>"
+      "<tr><td>Low Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='6' name='6'></td><td>V</td></tr>"
+      "<tr><td>High Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='7' name='7'></td><td>V</td></tr>"
+      "<tr><td>Alarm Delay - Battery Voltage</td><td><input type='number' step='0' min='0' max='255' value='0' id='8' name='8'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
       
-      "<tr><td>Max Charge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='8' name='8'></td><td>A</td></tr>"
-      "<tr><td>Alarm Delay - Charge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='9' name='9'></td><td>s</td></tr>"
+      "<tr><td>Max Charge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='10' name='10'></td><td>A</td></tr>"
+      "<tr><td>Alarm Delay - Charge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='11' name='11'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
 
-      "<tr><td>Max Discharge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='10' name='10'></td><td>A</td></tr>"
-      "<tr><td>Alarm Delay - Discharge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='11' name='11'></td><td>s</td></tr>"
+      "<tr><td>Max Discharge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='13' name='13'></td><td>A</td></tr>"
+      "<tr><td>Alarm Delay - Discharge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='14' name='14'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
 
       //Shunt
       "<tr><td><b>Shunt</b></td><td></td></tr>"
-      "<tr><td>Nominal Capacity</td><td><input type='number' step='1' min='1' max='1000' value='0' id='12' name='12'></td><td>Ah</td></tr>"
+      "<tr><td>Nominal Capacity</td><td><input type='number' step='1' min='1' max='1000' value='0' id='16' name='16'></td><td>Ah</td></tr>"
       "<tr><td><br></td><td></td></tr>"
 
     "</table>"
@@ -701,7 +701,7 @@ const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
     "getData();"
   "</script>"
 "</body>"
-"</html>";
+"</html>";*/
 
 
 const char htmlPageUpload[] PROGMEM = "<!DOCTYPE HTML>"
@@ -709,3 +709,14 @@ const char htmlPageUpload[] PROGMEM = "<!DOCTYPE HTML>"
 "<form method='POST' action='/uploadPbnFw' enctype='multipart/form-data'>"
 "<input type='file' name='[]' multiple><button>Upload</button></form>"
 "</html>";
+
+const char htmlFavicon[] PROGMEM = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+"<svg width=\"100mm\" height=\"100mm\" version=\"1.1\" viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">"
+"<rect x=\"4.7268\" y=\"37.342\" width=\"11.975\" height=\"23.161\" fill=\"#0cf\"/>"
+"<rect x=\"20.422\" y=\"14.18\" width=\"17.804\" height=\"70.902\" fill=\"#2ad4ff\"/>"
+"<rect x=\"41.947\" y=\"14.105\" width=\"17.804\" height=\"70.902\" fill=\"#80e5ff\"/>"
+"<rect x=\"63.472\" y=\"14.405\" width=\"17.804\" height=\"70.902\" fill=\"#aef\"/>"
+"<text x=\"35.714909\" y=\"56.70203\" fill=\"#ffffff\" font-family=\"sans-serif\" font-size=\"19.756px\" stroke-width=\".26458\" text-align=\"end\" text-anchor=\"end\" style=\"line-height:1.25\" xml:space=\"preserve\"><tspan x=\"35.714909\" y=\"56.70203\" fill=\"#ffffff\" font-family=\"Arial\" font-size=\"19.756px\" stroke-width=\".26458\">B</tspan></text>"
+"<text x=\"57.510044\" y=\"56.70203\" fill=\"#ffffff\" font-family=\"sans-serif\" font-size=\"19.756px\" stroke-width=\".26458\" text-align=\"end\" text-anchor=\"end\" style=\"line-height:1.25\" xml:space=\"preserve\"><tspan x=\"57.510044\" y=\"56.70203\" fill=\"#ffffff\" font-family=\"Arial\" font-size=\"19.756px\" stroke-width=\".26458\">S</tspan></text>"
+"<text x=\"79.406464\" y=\"56.70203\" fill=\"#fffefc\" font-family=\"sans-serif\" font-size=\"19.756px\" stroke-width=\".26458\" text-align=\"end\" text-anchor=\"end\" style=\"line-height:1.25\" xml:space=\"preserve\"><tspan x=\"79.406464\" y=\"56.70203\" fill=\"#fffefc\" font-family=\"Arial\" font-size=\"19.756px\" stroke-width=\".26458\">C</tspan></text>"
+"</svg>";

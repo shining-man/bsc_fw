@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.5.1"
+#define BSC_SW_VERSION      "V0.5.3"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -36,7 +36,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define BT_DEBUG        //Bluetooth
 //#define MQTT_DEBUG        
 //#define GOBEL_DEBUG
-#define GOBELPC200_DEBUG
+//#define GOBELPC200_DEBUG
 //#define WLAN_DEBUG        
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
@@ -71,6 +71,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //Tests
 //#define UTEST_BMS_FILTER
 //#define UTEST_FS
+//#define UTEST_RESTAPI
 
 
 //WebSettings Datatypes
@@ -172,8 +173,8 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
 //Send serial Data
-enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
-#define SERIAL_DATA_RW_LEN__BPN_READ_SETTINGS 20
+enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS, BPN_START_FWUPDATE};
+//#define SERIAL_DATA_RW_LEN__BPN_READ_SETTINGS 20
 
 
 
@@ -351,6 +352,13 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 #define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_ENDSPG           139
 #define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM    140
 
+#define ID_PARAM_SERIAL_NUMBER_OF_CELLS 141
+
+#define ID_PARAM_INVERTER_BMS_QUELLE_SOC 142
+
+#define ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE 143
+
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
@@ -388,6 +396,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 //Auswahl
 #define OPTION_MULTI_BMS_SOC_AVG                1
 #define OPTION_MULTI_BMS_SOC_MAX                2
+#define OPTION_MULTI_BMS_SOC_BMS                3
 
 
 
@@ -481,6 +490,16 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_START_FWUPDATE};
 #define MQTT_TOPIC2_BMS_DATA_VALID              42
 #define MQTT_TOPIC2_CELL_RESISTANCE             43
 #define MQTT_TOPIC2_CYCLE_CAPACITY              44
+#define MQTT_TOPIC2_POWER                       45
+#define MQTT_TOPIC2_TIME_TO_GO                  46
+#define MQTT_TOPIC2_TOTAL_VOLT_MIN              47
+#define MQTT_TOPIC2_TOTAL_VOLT_MAX              48
+#define MQTT_TOPIC2_TIME_SINCE_FULL             49
+#define MQTT_TOPIC2_SOC_SYNC_COUNT              50
+#define MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT        51
+#define MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT        52
+#define MQTT_TOPIC2_AMOUNT_DCH_ENERGY           53
+#define MQTT_TOPIC2_AMOUNT_CH_ENERGY            54
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -528,12 +547,22 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "valid",                     // 42
   "cellResistance",            // 43
   "CycleCapacity",             // 44
-  "",                          // 45
-  "",                          // 46
-  "",                          // 47
-  "",                          // 48
-  "",                          // 49
-  "",                          // 50
+  "power",                     // 45
+  "timeToGo",                  // 46
+  "totalVoltMin",              // 47
+  "totalVoltMax",              // 48
+  "timeSinceFull",             // 49
+  "SocSyncCount",              // 50
+  "totalVoltMinCount",         // 51
+  "totalVoltMaxCount",         // 52
+  "amountDchEnergy",           // 53
+  "amountChEnergy",            // 54
+  "",                          // 55
+  "",                          // 56
+  "",                          // 57
+  "",                          // 58
+  "",                          // 59
+  "",                          // 60
   };
 
 
@@ -541,23 +570,34 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 /*
  * BPN
  */
+// Allgemein
 #define BPN_SETTINGS_NR_OF_CELLS 1
 
-//Alarm
+// Alarm
 #define BPN_SETTINGS_LOW_CELL_VOLTAGE 2
 #define BPN_SETTINGS_HIGH_CELL_VOLTAGE 3
-#define BPN_SETTINGS_ALARM_DDELAY_CELL_VOLTAGE 4
-#define BPN_SETTINGS_LOW_BATTERY_VOLTAGE 5
-#define BPN_SETTINGS_HIGH_BATTERY_VOLTAGE 6
-#define BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE 7
-#define BPN_SETTINGS_MAX_CHARGE_CURRENT 8
-#define BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT 9
-#define BPN_SETTINGS_MAX_DISCHARGE_CURRENT 10
-#define BPN_SETTINGS_ALARM_DELAY_MAX_DISCHARGE_CURRENT 11
+#define BPN_SETTINGS_ALARM_DELAY_CELL_VOLTAGE 4
+#define BPN_SETTINGS_ALARM_RELAIS_CELL_VOLTAGE 5
 
-//Shunt
-#define BPN_SETTINGS_NOMINAL_BAT_CAPACITY 12
+#define BPN_SETTINGS_LOW_BATTERY_VOLTAGE 6
+#define BPN_SETTINGS_HIGH_BATTERY_VOLTAGE 7
+#define BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE 8
+#define BPN_SETTINGS_ALARM_RELAIS_BATTERY_VOLTAGE 9
 
+#define BPN_SETTINGS_MAX_CHARGE_CURRENT 10
+#define BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT 11
+#define BPN_SETTINGS_ALARM_RELAIS_CHARGE_CURRENT 12
+
+#define BPN_SETTINGS_MAX_DISCHARGE_CURRENT 13
+#define BPN_SETTINGS_ALARM_DELAY_MAX_DISCHARGE_CURRENT 14
+#define BPN_SETTINGS_ALARM_RELAIS_DISCHARGE_CURRENT 15
+
+// Shunt
+#define BPN_SETTINGS_NOMINAL_BAT_CAPACITY 16
+
+// Ausgänge
+#define BPN_SETTINGS_ALARM_RELAIS1_MODE 17
+#define BPN_SETTINGS_ALARM_RELAIS2_MODE 18
 
 
 
@@ -596,3 +636,4 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 
 
 #define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
+#define mc_POS_DIV(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))

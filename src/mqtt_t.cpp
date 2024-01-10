@@ -26,6 +26,9 @@ WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
 IPAddress    mqttIpAdr;
 
+static String str_mMqttDeviceName;
+static String str_mMqttTopicName;
+
 uint32_t u32_mMqttPublishLoopTimmer=0;
 
 bool     bo_mMqttEnable=false; 
@@ -59,6 +62,7 @@ void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
 //void mqttPublishTrigger();
+void mqttCallback(char* topic, byte* payload, unsigned int length) ;
 
 
 void initMqtt()
@@ -78,12 +82,17 @@ void initMqtt()
     mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
 
+    //mqttClient.setCallback(mqttCallback);
+    //String str_lMqttTopicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+    //mqttClient.subscribe(str_lMqttTopicName.c_str()); 
+
     mqttClient.setKeepAlive(30);
   }
 }
 
-
+#ifdef MQTT_DEBUG
 bool bo_mBTisScanRuningOld=false;
+#endif
 bool mqttLoop()
 {
   //Is MQTT Enabled?
@@ -514,3 +523,10 @@ void mqttPublishOwTemperatur(uint8_t i)
     mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, getAlarm(i));
   }
 }*/
+
+
+// Callback function
+void mqttCallback(char* topic, byte* payload, unsigned int length) 
+{
+  BSC_LOGI(TAG,"CB: topic=%s, payload=%s, len=%i",topic,payload,length);
+}

@@ -81,6 +81,17 @@ void BscSerial::initSerial()
   serialMqttSendeTimer=millis();
 }
 
+void BscSerial::stopCyclicRun(bool state)
+{
+  if(state==true) 
+  {
+    xSemaphoreTake(mSerialMutex, portMAX_DELAY);
+  }
+  else 
+  {
+    xSemaphoreGive(mSerialMutex);
+  }
+}
 
 void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
 {
@@ -154,7 +165,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 {
   serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
 
-  xSemaphoreTake(mSerialMutex, portMAX_DELAY);
+  //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   
   switch (funktionsTyp)
   {
@@ -230,7 +241,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       serialDeviceData[u8_devNr].readBms = 0;
   }
 
-  xSemaphoreGive(mSerialMutex);
+  //xSemaphoreGive(mSerialMutex);
 }
 
 
@@ -293,7 +304,7 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
 
 void BscSerial::cyclicRun()
 {
-  //BSC_LOGI(TAG, "cyclicRun()");
+  xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   bool bo_lMqttSendMsg=false;
   uint8_t u8_lNumberOfSeplosBms = 0;
   uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
@@ -304,7 +315,7 @@ void BscSerial::cyclicRun()
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   }
 
-  if((millis()-serialMqttSendeTimer)>10000) 
+  if((millis()-serialMqttSendeTimer)>60000) 
   {
     serialMqttSendeTimer=millis();
     bo_lMqttSendMsg=true;
@@ -337,7 +348,7 @@ void BscSerial::cyclicRun()
 
     uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+i);
 
-    xSemaphoreTake(mSerialMutex, portMAX_DELAY);
+    //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
     *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
     #ifndef UTEST_BMS_FILTER
     serialDevData_s devData;
@@ -374,7 +385,10 @@ void BscSerial::cyclicRun()
     }
 
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
-    bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
+    if(serialDeviceData[u8_serDeviceNr].readBms!=NULL)
+      bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
+    else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",u8_serDeviceNr);
+
     if(devData.bo_writeData) free(lRwData);
     #else
     bmsReadOk=readBmsTestData(BT_DEVICES_COUNT+u8_mSerialNr);
@@ -401,7 +415,7 @@ void BscSerial::cyclicRun()
       if(*u8_pBmsFilterErrorCounter>0) BSC_LOGI(TAG,"Filter: Reset RX Error");
       *u8_pBmsFilterErrorCounter = 0; //Fehler Counter zurücksetzen
     }
-    xSemaphoreGive(mSerialMutex);
+    //xSemaphoreGive(mSerialMutex);
     if(bo_lBmsReadOk)
     {
       setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
@@ -452,6 +466,7 @@ void BscSerial::cyclicRun()
     }
 
   }
+  xSemaphoreGive(mSerialMutex);
 }
 
 
