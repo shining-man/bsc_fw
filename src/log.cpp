@@ -9,7 +9,7 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LITTLEFS.h> 
+  #include <LittleFS.h> 
 #else
   #include <SPIFFS.h>
 #endif 
@@ -17,6 +17,7 @@
 #include "bscTime.h"
 #include "Canbus.h"
 #include "BmsData.h"
+#include "WebSettings.h"
 
 static const char *TAG = "LOG";
 
@@ -311,6 +312,8 @@ void logValues()
   uint8_t u8_lGetMinutes = getMinutes();
   if(u8_lGetMinutes==u8_lGetMinutesOld) return;
   u8_lGetMinutesOld=u8_lGetMinutes;
+  
+  if(WebSettings::getInt(ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE,0,DT_ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE)==0) return;
   
   uint32_t timeMinutes = getDayMinutes();
   //BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);

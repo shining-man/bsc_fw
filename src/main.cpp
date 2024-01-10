@@ -31,11 +31,10 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LITTLEFS.h> 
+  #include <LittleFS.h> 
 #else
   #include <SPIFFS.h>
 #endif 
-#include <LITTLEFS.h>
 
 #include "defines.h"
 #include "WebSettings.h"
@@ -60,7 +59,7 @@
 #endif
 
 #ifdef INSIDER_V1
-#include "webapp2.h"
+#include "webapp2.hpp"
 #endif
 
 extern "C"
@@ -829,13 +828,13 @@ void handlePage_htmlPageMenuLivedata(){server.send(200, "text/html", htmlPageMen
 void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
 void handlePage_htmlPageBscDataLive(){server.send(200, "text/html", htmlPageBscDataLive);}
 
-#ifdef BPN
+/*#ifdef BPN
 void handlePage_htmlPageBpnSettings()
 {
   server.send(200, "text/html", htmlPageBpnSettings);
-  bpnHandleHtmlFormRequest(&server);
+  bpnHandleHtmlFormRequest(&server,true);
 }
-#endif
+#endif*/
 
 /*
   Handle WebSettings
@@ -1239,7 +1238,6 @@ void setup()
   WiFi.setAutoReconnect(false);
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
-  //connectWiFi();
   
   if (MDNS.begin(hostname))
   {
@@ -1252,6 +1250,20 @@ void setup()
   {
     server.on("/old",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
+
+    server.on("/p_system", HTTP_GET, []() {server.send_P(200, "application/json", paramSystem);});
+    server.on("/p_bt", HTTP_GET, []() {server.send_P(200, "application/json", paramBluetooth);});
+    server.on("/p_serial", HTTP_GET, []() {server.send_P(200, "application/json", paramSerial);});
+    server.on("/p_alarmbms", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmBms);}); 
+    server.on("/p_alarmtemp", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmTemp);}); 
+    server.on("/p_do", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalOut);});
+    server.on("/p_di", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalIn);});
+    server.on("/p_ow", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewire2);});
+    server.on("/p_owadr", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewireAdr);});
+    server.on("/p_inverter", HTTP_GET, []() {server.send_P(200, "application/json", paramBmsToInverter);});
+    server.on("/p_neey", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
+    server.on("/p_jbd", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceJbdBms);});
+    server.on("/p_bpn", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceBpn);});
   }
   else
   {
@@ -1262,6 +1274,8 @@ void setup()
   server.on("/",handlePage_root);
   server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
   #endif
+  server.on("/favicon.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlFavicon);});
+
   server.on("/htmlPageStatus/",handlePage_status);
   server.on("/settings/",handlePage_settings);
   server.on("/settings/alarm/",handlePage_alarm);
@@ -1300,10 +1314,10 @@ void setup()
 
   //BPN
   #ifdef BPN
-  server.on("/bpn",handlePage_htmlPageBpnSettings);
-  server.on("/getBpnData",[]() {handle_getBpnData(&server);});
+  //server.on("/bpn",handlePage_htmlPageBpnSettings);
+  //server.on("/getBpnData",[]() {handle_getBpnData(&server);});
   server.on("/upload", HTTP_GET, []() {server.send(200, "text/html", htmlPageUpload);});
-  server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, "bpnFw.bin");});
+  server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, true, "bpnFw.bin");});
   #endif
 
   server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
@@ -1380,7 +1394,7 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
-  //logValues();
+  logValues();
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)

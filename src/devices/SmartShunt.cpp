@@ -36,10 +36,14 @@ int16_t i16_tCurr; // mA
 
 uint8_t rxValues=0;
 
+// Test
+static uint16_t errCntSmartShunt=0;
+
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 static serialDevData_s *mDevData;
 
 //https://www.victronenergy.com/live/vedirect_protocol:faq
+
 
 
 void newLabelRecv(char * mName, char * mValue)
@@ -52,37 +56,104 @@ void newLabelRecv(char * mName, char * mValue)
     sscanf(mValue, "%ld", &val);
     u8_tSoc=(uint8_t)(val/10);
     rxValues|=RX_VAL_SOC;
-    //BSC_LOGI(TAG,"SoC=%i",u8_tSoc);
+    //BSC_LOGI(TAG,"SoC=%i, rxValues=%i",u8_tSoc,rxValues);
   }
   else if(strcmp_P(mName, "V") == 0)
   {
     sscanf(mValue, "%ld", &val); // mV
     i16_tVolt=val/10;
     rxValues|=RX_VAL_U;
-    //BSC_LOGI(TAG,"U=%i",i16_tVolt);
+
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, i16_tVolt);
+    //BSC_LOGI(TAG,"U=%i, rxValues=%i",i16_tVolt,rxValues);
   }
   else if(strcmp_P(mName, "I") == 0)
   {
     sscanf(mValue, "%ld", &val); // mA
     i16_tCurr=val/10;
     rxValues|=RX_VAL_I;
-    //BSC_LOGI(TAG,"I=%i",i16_tCurr);
+    
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, i16_tCurr);
+    //(TAG,"I=%i, rxValues=%i",i16_tCurr,rxValues);
   }
-  /*else if(strcmp_P(mName, "H4") == 0) // Number of charge cycles
-  {
-    sscanf(mValue, "%ld", &val);
-  }*/
-  BSC_LOGI(TAG,"newLabelRecv rxValues=%i",rxValues);
-}
 
+  else if(strcmp_P(mName, "P") == 0) // Power
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); // W
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_POWER, -1, val);
+  }
+  else if(strcmp_P(mName, "TTG") == 0) // Time to Go/Restlaufzeit
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); // Minuten
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_TO_GO, -1, val);;
+  }
+  else if(strcmp_P(mName, "H4") == 0) // Anzahl der Ladezyklen
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); // Cycle
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, val);
+  }
+  else if(strcmp_P(mName, "H7") == 0) // Minimum Batteriespannung
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, val);
+  }
+  else if(strcmp_P(mName, "H8") == 0) // Maximum Batteriespannung
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, val);
+  }
+  else if(strcmp_P(mName, "H9") == 0) // Zeit seit Letztenmal Batterie Voll
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, val);
+  }
+  else if(strcmp_P(mName, "H10") == 0) // Anzahl der Automatischen Synchros
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, val);
+  }
+  else if(strcmp_P(mName, "H11") == 0) // Anzahl Batterie Unterspannungen Alarme
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, val);
+  }
+  else if(strcmp_P(mName, "H12") == 0) // Anzahl Batterie Überspannungen Alarme
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, val);
+  }
+  else if(strcmp_P(mName, "H17") == 0) //Menge Entladende Energie in kwh
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, val/100);
+  }
+  else if(strcmp_P(mName, "H18") == 0) // Menge Geladene Energie in kwH
+  {
+    //if(!mDevData->bo_sendMqttMsg) return;
+    sscanf(mValue, "%ld", &val); 
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, val/100);
+  }
+
+  //BSC_LOGI(TAG,"newLabelRecv rxValues=%i",rxValues);
+}
 
 void frameEnd()
 {
-  BSC_LOGI(TAG,"U=%i",i16_tVolt);
+  //BSC_LOGI(TAG,"save values");
 
-  setBmsChargePercentage(u8_mDevNr, u8_tSoc);
-  setBmsTotalVoltage_int(u8_mDevNr, i16_tVolt);
-  setBmsTotalCurrent_int(u8_mDevNr, i16_tCurr);
+  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, u8_tSoc);
+  setBmsTotalVoltage_int(BT_DEVICES_COUNT+u8_mDevNr, i16_tVolt);
+  setBmsTotalCurrent_int(BT_DEVICES_COUNT+u8_mDevNr, i16_tCurr);
 
   //ToDo: insert MQTT
   //CE, TTG, AR, H4, H7, H8, H11, H12, H17, H18
@@ -112,6 +183,8 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
 
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 
+  uint16_t byteReadCntGes=0;
+  uint16_t byteReadCnt=0;
   for(;;)
   {
     //Timeout
@@ -124,10 +197,12 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
     
     if(port->available())
     {
+      byteReadCntGes++;
 			inbyteOrg = inbyte = port->read();
 
       if((inbyte == ':') && (mState != CHECKSUM)) mState = RECORD_HEX;
-      if(mState != RECORD_HEX) mChecksum += inbyte;
+      if(mState != RECORD_HEX) mChecksum = ((mChecksum+inbyte)&255);
+      if(mState != RECORD_HEX) byteReadCnt++;
       inbyte = toupper(inbyte);
 
       switch(mState)
@@ -139,9 +214,9 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
             case '\n': //0xa
               mState = RECORD_BEGIN;
               break;
-            case '\r': //0xd
-              BSC_LOGI(TAG,"Frame start");
+            case '\r': //0xd //Frame start
               mChecksum = inbyteOrg;
+              byteReadCnt=1;
             default:
               break;
           }
@@ -199,18 +274,21 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
         {
           if(mChecksum==0) 
           {
-            frameEnd();
-            if(rxValues==RX_VAL_OK) bo_break=true;
+            if(rxValues==RX_VAL_OK) 
+            {
+              frameEnd();
+              bo_break=true;
+            }
           }
           else
           {
+            errCntSmartShunt++;
             BSC_LOGE(TAG,"Invalid frame (%i)",mChecksum);
             bo_ret=false;
             bo_break=true;
           }
           mChecksum = 0;
           mState = IDLE;
-          //bo_break=true;
           break;
         }
         case RECORD_HEX:
@@ -231,7 +309,20 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
     if(bo_break) break;
   }
 
+  //Buffer leeren
+  uint16_t byteDelCnt=0;
+  for (unsigned long clearRxBufTime = millis(); millis()-clearRxBufTime<100;)
+  {
+    if(port->available()) 
+    {
+      port->read();
+      byteDelCnt++;
+    }
+    else break;
+  }
+
+
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  BSC_LOGI(TAG,"SmartShunt_readBmsData bo_ret=%d, rxValues=%i",bo_ret, rxValues);
+  //BSC_LOGI(TAG,"ret=%d, rxVal=%i, delCnt=%i, readCntGes=%i, errCnt=%i",bo_ret, rxValues, byteDelCnt, byteReadCntGes, errCntSmartShunt);
   return bo_ret; 
 }

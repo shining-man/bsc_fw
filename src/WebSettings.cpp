@@ -11,7 +11,7 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LITTLEFS.h> 
+  #include <LittleFS.h> 
 #else
   #include <SPIFFS.h>
 #endif 
@@ -34,6 +34,20 @@ static sparse_hash_map<uint16_t, int32_t> settingValues_i32;
 static sparse_hash_map<uint16_t, float> settingValues_fl;
 static sparse_hash_map<uint16_t, bool> settingValues_bo;
 static sparse_hash_map<uint16_t, std::string> settingValues_str;
+
+
+const char *parameterFile;
+String   str_mConfName;
+String   str_mConfigfile;
+uint8_t  u8_mJsonArraySize;
+String   str_mAjaxGetDataTimerHandlerName;
+uint16_t u16_mAjaxGetDataTimerSec;
+
+uint8_t  u8_mButtons = 0;
+String   str_mButton1Text;
+String   str_mButton2Text;
+String   str_mButton3Text;
+
 
 static char _buf[2000];
 static String st_mSendBuf = "";
@@ -1715,7 +1729,7 @@ void addJsonElem(char *buf, int id, float val)
   if (bufLen == 0) sprintf(&buf[bufLen], "[");
   else sprintf(&buf[bufLen], ",");
   bufLen++;
-  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%.2f}",id,val);
+  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%.3f}",id,val);
 }
 void addJsonElem(char *buf, int id, String val)
 {
@@ -1845,10 +1859,10 @@ void WebSettings::handleSetValues(WebServer *server)
         setString(u16_argName, argValue, u8_datatype); 
       }
     }
-    else
+    /*else
     {
       BSC_LOGE(TAG,"handleSetValues: not number");
-    }
+    }*/
   }
   server->send(200, "application/json", "{\"state\":1}");
 }

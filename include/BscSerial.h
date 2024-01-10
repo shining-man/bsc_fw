@@ -15,6 +15,7 @@ public:
   BscSerial();
 
   void initSerial();
+  void stopCyclicRun(bool state);
   void setHwSerial(uint8_t u8_devNr, uint32_t baudrate);
   void setSoftSerial(uint8_t u8_devNr, uint32_t baudrate);
   void setSerialBaudrate(uint8_t u8_devNr);

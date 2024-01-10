@@ -103,7 +103,7 @@ void buildJsonRest(WebServer * server)
     String str_htmlOut="";
     uint8_t u8_val=0;
 
-    uint8_t u8_nrOfCells=16;
+    uint8_t u8_nrOfCells=WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
 
     server->setContentLength(CONTENT_LENGTH_UNKNOWN);
     server->send(200, "application/json", "");
@@ -296,7 +296,9 @@ void buildJsonRest(WebServer * server)
   }
 }
 
-
+#ifdef UTEST_RESTAPI
+uint8_t u8_activeBms=0;
+#endif
 bool handleRestArgs(WebServer * server)
 {
   WebSettings ws;
@@ -313,7 +315,12 @@ bool handleRestArgs(WebServer * server)
     if(argName==F("save")) ws.writeConfig();
     else if(argName==F("setInvMaxChgCur")) ws.setParameter(ID_PARAM_BMS_MAX_CHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_CHARGE_CURRENT);
     else if(argName==F("setInvMaxDisChgCur")) ws.setParameter(ID_PARAM_BMS_MAX_DISCHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_DISCHARGE_CURRENT);
-    //else if(argName==F("soc")) {setBmsChargePercentage(7+2,argValue.toInt()); setBmsLastDataMillis(7+2,millis());}
+
+
+    #ifdef UTEST_RESTAPI
+    else if(argName==F("setBms")) {u8_activeBms=(uint8_t)argValue.toInt();}
+    else if(argName==F("soc")) {setBmsChargePercentage(u8_activeBms,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
+    #endif
     else ret=false;
   }
 

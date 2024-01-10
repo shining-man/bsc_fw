@@ -13,35 +13,35 @@
 
 struct bmsData_s
 {
-  /*                                                                 // N | J | J | S | J | D | S | J | G | G |
-                                                                     // E | b | K | e | K | A | Y | K | O | O |
-                                                                     // E | d |   | p |   | L | L |   | B | B |
-                                                                     // Y |   |   | l | B | Y | C | V | E | E |
-                                                                     // 4 |   |   | o | T |   | I | 1 | L | L |
-                                                                     // A |   |   | s |   |   | N | 3 |   |   |
-                                                                     //   |   |   |   |   |   |   |   | R | P |
-                                                                     //   |   |   |   |   |   |   |   | N | C |
-                                                                     //   |   |   |   |   |   |   |   | 1 | 2 |
-                                                                     //   |   |   |   |   |   |   |   | 5 | 0 |
-                                                                     //   |   |   |   |   |   |   |   | 0 | 0 |
-                                                                     //---|---|---|---|---|---|---|---|---|---|*/
-  uint16_t   bmsCellVoltage[BMSDATA_NUMBER_ALLDEVICES][24];          // x | x | x | x |   | x | x | x | x | x |
-  //float    bmsCellResistance[BMSDATA_NUMBER_ALLDEVICES][24];       // x |   |   |   |   |   |   |   |   |   |
-  int16_t    bmsTotalVoltage[BMSDATA_NUMBER_ALLDEVICES];             // x | x | x | x |   | x | x | x | x | x |
-  uint16_t   bmsMaxCellDifferenceVoltage[BMSDATA_NUMBER_ALLDEVICES]; // x | x | x | x |   | x | x | x | x | x |
-  uint16_t   bmsAvgVoltage[BMSDATA_NUMBER_ALLDEVICES];               // x | x | x | x |   | x | x | x | x | x |
-  int16_t    bmsTotalCurrent[BMSDATA_NUMBER_ALLDEVICES];             // - | x | x | x |   | x | x | - | x | x |
-  uint16_t   bmsMaxCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   | x | x | c | x | x |
-  uint16_t   bmsMinCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   | x | x | c | x | x |
-  uint8_t    bmsMaxVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |   | x |   | c | x | x |
-  uint8_t    bmsMinVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |   | x |   | c | x | x |
-  uint8_t    bmsIsBalancingActive[BMSDATA_NUMBER_ALLDEVICES];        // x |   |   |   |   | x |   | x |   |   |
-  int16_t    bmsBalancingCurrent[BMSDATA_NUMBER_ALLDEVICES];         // x |   |   |   |   |   |   | x |   |   |
-  int16_t    bmsTempature[BMSDATA_NUMBER_ALLDEVICES][3];             // 2 | 3 | 3 | 3 |   | 3 | 3 | x | 3 | 3 |
-  uint8_t    bmsChargePercentage[BMSDATA_NUMBER_ALLDEVICES];         // - | x | x | x |   | x | x | - | x | x |
-  uint32_t   bmsErrors[BMSDATA_NUMBER_ALLDEVICES];                   // * | x | x |   |   |   | x | * | x | x |
-  uint8_t    bmsStateFETs[BMSDATA_NUMBER_ALLDEVICES];                // - | x | x | x | x | x | x | - | - | - | bit 0=FET charge, bit 1=FET discharge
-  unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x | x | x |   | x | x | x | x |
+                                                                     // N | J | J | S | J | D | S | J | G | G | S | B |
+                                                                     // E | b | K | e | K | A | Y | K | O | O | M | P |
+                                                                     // E | d |   | p |   | L | L |   | B | B | A | N |
+                                                                     // Y |   |   | l | B | Y | C | V | E | E | R |   |
+                                                                     // 4 |   |   | o | T |   | I | 1 | L | L | T |   |
+                                                                     // A |   |   | s |   |   | N | 3 |   |   | S |   |
+                                                                     //   |   |   |   |   |   |   |   | R | P | H |   |
+                                                                     //   |   |   |   |   |   |   |   | N | C | U |   |
+                                                                     //   |   |   |   |   |   |   |   | 1 | 2 | N |   |
+                                                                     //   |   |   |   |   |   |   |   | 5 | 0 | T |   |
+                                                                     //   |   |   |   |   |   |   |   | 0 | 0 |   |   |
+                                                                     //---|---|---|---|---|---|---|---|---|---|---|---|
+  uint16_t   bmsCellVoltage[BMSDATA_NUMBER_ALLDEVICES][24];          // x | x | x | x |   | x | x | x | x | x |   |   |
+  //float    bmsCellResistance[BMSDATA_NUMBER_ALLDEVICES][24];       // x |   |   |   |   |   |   |   |   |   |   |   |
+  int16_t    bmsTotalVoltage[BMSDATA_NUMBER_ALLDEVICES];             // x | x | x | x |   | x | x | x | x | x | x |   |
+  uint16_t   bmsMaxCellDifferenceVoltage[BMSDATA_NUMBER_ALLDEVICES]; // x | x | x | x |   | x | x | x | x | x |   |   |
+  uint16_t   bmsAvgVoltage[BMSDATA_NUMBER_ALLDEVICES];               // x | x | x | x |   | x | x | x | x | x |   |   |
+  int16_t    bmsTotalCurrent[BMSDATA_NUMBER_ALLDEVICES];             // - | x | x | x |   | x | x | - | x | x | x |   |
+  uint16_t   bmsMaxCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   | x | x | c | x | x |   |   |
+  uint16_t   bmsMinCellVoltage[BMSDATA_NUMBER_ALLDEVICES];           // x | x | x | x |   | x | x | c | x | x |   |   |
+  uint8_t    bmsMaxVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |   | x |   | c | x | x |   |   |
+  uint8_t    bmsMinVoltageCellNumber[BMSDATA_NUMBER_ALLDEVICES];     // x |   |   |   |   | x |   | c | x | x |   |   |
+  uint8_t    bmsIsBalancingActive[BMSDATA_NUMBER_ALLDEVICES];        // x |   |   |   |   | x |   | x |   |   |   |   |
+  int16_t    bmsBalancingCurrent[BMSDATA_NUMBER_ALLDEVICES];         // x |   |   |   |   |   |   | x |   |   |   |   |
+  int16_t    bmsTempature[BMSDATA_NUMBER_ALLDEVICES][3];             // 2 | 3 | 3 | 3 |   | 3 | 3 | x | 3 | 3 |   |   |
+  uint8_t    bmsChargePercentage[BMSDATA_NUMBER_ALLDEVICES];         // - | x | x | x |   | x | x | - | x | x | x |   |
+  uint32_t   bmsErrors[BMSDATA_NUMBER_ALLDEVICES];                   // * | x | x |   |   |   | x | * | x | x |   |   |
+  uint8_t    bmsStateFETs[BMSDATA_NUMBER_ALLDEVICES];                // - | x | x | x | x | x | x | - | - | - |   |   | bit 0=FET charge, bit 1=FET discharge
+  unsigned long bmsLastDataMillis[BMSDATA_NUMBER_ALLDEVICES];        // x | x | x | x | x |   | x | x | x | x |   |   |
   uint16_t   bmsCellVoltageCrc[BMSDATA_NUMBER_ALLDEVICES];           // Wird nach dem Holen Daten vom BMS berechnet
   uint8_t    bmsLastChangeCellVoltageCrc[BMSDATA_NUMBER_ALLDEVICES]; // Wird nach dem Holen Daten vom BMS berechnet
   //                                                                 // *=Teilweise; -=Nicht verfügbar; c=wird berechnet

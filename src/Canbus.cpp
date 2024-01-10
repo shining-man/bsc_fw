@@ -1194,7 +1194,7 @@ void sendCanMsg_355()
     
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
-    if(u8_mBmsDatasourceAdd>0)
+    if(u8_mBmsDatasourceAdd==0 || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_AVG || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_MAX)
     {
       for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
       {
@@ -1213,6 +1213,15 @@ void sendCanMsg_355()
             }
           }
         }
+      }
+    }
+    else if(u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
+    {
+      uint8_t u8_lSocBmsNr = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
+
+      if((millis()-getBmsLastDataMillis(u8_lSocBmsNr))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+      {
+        msgData.soc=getBmsChargePercentage(u8_lSocBmsNr);
       }
     }
 
