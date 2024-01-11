@@ -91,12 +91,15 @@ Interface | RX | TX
 **CAN**   | GPIO 5   | GPIO 4
 
 ## More information
-* [Discord Forum](https://discord.gg/VFUw9X44)
+* [Discord Forum](https://discord.gg/WRUhegRPQn)
+(The Discord is in German, but you can also write in English. 
+We are also happy to welcome members from other countries.)
 * [Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
 * [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
 * [Discussions](https://github.com/shining-man/bsc_fw/discussions)
 * [PCB](https://github.com/shining-man/bsc_hw)
 * [Stromlaufplan](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
+
 
 # Status display
 To show the status of the BSC and the connected BMSes there is a status display for the BSC.<br>
