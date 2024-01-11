@@ -92,6 +92,18 @@ public:
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
   
 private:
+  const char *parameterFile;
+  String   str_mConfName;
+  String   str_mConfigfile;
+  uint8_t  u8_mJsonArraySize;
+  String   str_mAjaxGetDataTimerHandlerName;
+  uint16_t u16_mAjaxGetDataTimerSec;
+
+  uint8_t  u8_mButtons = 0;
+  String   str_mButton1Text;
+  String   str_mButton2Text;
+  String   str_mButton3Text;
+
   //Parameterfile
   boolean readConfig();
 
