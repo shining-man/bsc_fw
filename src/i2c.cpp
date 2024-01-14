@@ -449,7 +449,7 @@ void displaySendData_bms()
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
 
   //Display Timeout
-  uint8_t dispTimeout = 1;
+  uint8_t dispTimeout = WebSettings::getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT); 
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
 }
 
