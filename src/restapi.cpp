@@ -117,7 +117,8 @@ void buildJsonRest(WebServer * server)
 
     genJsonEntryArray(entrySingle, F("fw_version"), BSC_SW_VERSION, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("fw_add"), BSC_SW_SPEZIAL, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("hw_version"), getHwVersion(), str_htmlOut, true);
+    genJsonEntryArray(entrySingle, F("hw_version"), getHwVersion(), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
