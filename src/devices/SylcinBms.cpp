@@ -41,6 +41,7 @@ static serialDevData_s *mDevData;
 bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool ret = true;
+  mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
