@@ -430,6 +430,7 @@ void getDIs()
 
 void tachoInit()
 {
+  #ifndef DEBUG_JTAG
   u8_mTachoChannel=0;
 
   pinMode(TACHO_ADDR2, OUTPUT);
@@ -441,6 +442,11 @@ void tachoInit()
   FreqCountESP.begin(TACHO_GPIO, TACHO_MEAS_TIME);
   tachoSetMux(u8_mTachoChannel);
   FreqCountESP.runMeasure(); //Erste Messung starten
+  #else
+  FreqCountESP.begin(TACHO_GPIO, TACHO_MEAS_TIME);
+  tachoSetMux(u8_mTachoChannel);
+  FreqCountESP.runMeasure(); //Erste Messung starten
+  #endif
 }
 
 bool tachoRead(uint16_t &tachoRpm)
@@ -460,6 +466,7 @@ bool tachoRead(uint16_t &tachoRpm)
 
 void tachoSetMux(uint8_t channel)
 {
+  #ifndef DEBUG_JTAG
   if(channel>5)return;
 
   switch(channel)
@@ -501,6 +508,7 @@ void tachoSetMux(uint8_t channel)
   xSemaphoreTake(doMutex, portMAX_DELAY);
   setDoData(u8_mDoByte);
   xSemaphoreGive(doMutex);
+  #endif
 }
 
 void rules_Tacho()

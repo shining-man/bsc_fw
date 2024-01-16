@@ -21,6 +21,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define LOG_TO_SERIAL
 #define DEBUG_SW_BAUDRATE         19200
 
+//#define DEBUG_JTAG
 //#define BPN
 #define INSIDER_V1
 

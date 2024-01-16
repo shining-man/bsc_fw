@@ -7,15 +7,11 @@
 #include "defines.h"
 
 
-/*
-HC595:
-STore Clock (IO_DO_PL): Der Wechsel von Low auf High kopiert den Inhalt des Shift-Registers 
-in das Ausgaberegister bzw. Ausgangsregister oder auch Speicherregister
-*/
-
-SPIClass * hspi = NULL;
 RTC_DATA_ATTR uint8_t doOutData;
 static uint8_t u8_mHwVersion;
+
+#ifndef DEBUG_JTAG
+SPIClass * hspi = NULL;
 
 void initDio(bool restore)
 {
@@ -79,3 +75,32 @@ uint8_t getHwVersion()
 {
   return u8_mHwVersion;
 }
+
+#else
+
+void initDio(bool restore)
+{
+  ;
+}
+
+void setDoData(uint8_t data)
+{
+    doOutData = data;
+}
+
+uint8_t getDoData()
+{
+  return doOutData;
+}
+
+//Eingänge lesen u. Ausgänge schreiben
+uint8_t dioRwInOut()
+{  
+  return 0;
+}
+
+uint8_t getHwVersion()
+{
+  return 0xff;
+}
+#endif
