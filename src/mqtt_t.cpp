@@ -65,6 +65,7 @@ enum_smMqttConnectState smMqttConnectState;
 enum_smMqttConnectState smMqttConnectStateOld;
 
 bool mqttPublishLoopFromTxBuffer();
+void mqttpublishHADiscovery();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
@@ -78,7 +79,8 @@ void initMqtt()
   smMqttConnectState=SM_MQTT_DISCONNECTED;
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
-  
+  PLbuf.reserve(512);
+    
   bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
   if(!bo_mMqttEnable) return;
 
@@ -308,15 +310,49 @@ bool mqttPublishLoopFromTxBuffer()
     
     if(txBuffer.size()>0)
     {
-      struct mqttEntry_s mqttEntry = txBuffer.at(0);
-
-            char buf[512];
-      String topic;
 
       if(WebSettings::getBool(ID_PARAM_MQTT_HA_DISCOVERY_ENABLE,0))
       {
+
+        // HA Discovery Nachrichten
+        mqttpublishHADiscovery();
+
+      }
+      else
+      {
+        // Standart MQTT Nachrichten
+
+        struct mqttEntry_s mqttEntry = txBuffer.at(0);
+        String topic;
+
+        topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
+        if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
+        if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
+        if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
+        mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
+      }
+
+      txBuffer.pop_front();
+    }
+
+    //if(txBuffer.size()==0) bo_mSendPrioMessages=false;
+
+    xSemaphoreGive(mMqttMutex);
+    u32_mMqttPublishLoopTimmer=millis();
+  }
+  return true;
+}
+
+void mqttpublishHADiscovery()
+{
+
         // MQTT Home Assistant Discovery
         // -----------------------------------
+
+        char buf[512];
+        struct mqttEntry_s mqttEntry = txBuffer.at(0);
+        String topic;
+        topic.reserve(512);
 
         String NameLang = "";
         String NameKurz = "";
@@ -475,26 +511,7 @@ bool mqttPublishLoopFromTxBuffer()
 
         }
 
-      }
-      else
-      {
-        // Standart MQTT Nachrichten
-        topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
-        if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
-        if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
-        if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
-        mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
-      }
 
-      txBuffer.pop_front();
-    }
-
-    //if(txBuffer.size()==0) bo_mSendPrioMessages=false;
-
-    xSemaphoreGive(mMqttMutex);
-    u32_mMqttPublishLoopTimmer=millis();
-  }
-  return true;
 }
 
 

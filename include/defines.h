@@ -479,7 +479,7 @@ static const char* mqttHAType[] PROGMEM = {
 
 // SensorType HA Discovery
 
-static int mqttHATypeMap [12] = {
+static uint8_t mqttHATypeMap [12] = {
   MQTT_HA_Type_None,             // 0
   MQTT_HA_Type_Sensor,           // 1
   MQTT_HA_Type_Sensor,           // 2
@@ -644,7 +644,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "",                          // 60
   };
 
-static int mqttTopicsUnits [61] = {
+static uint8_t mqttTopicsUnits [61] = {
   MQTT_HA_Unit_None,        // 0
   MQTT_HA_Unit_None,        // 1
   MQTT_HA_Unit_Temperature, // 2
