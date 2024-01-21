@@ -8,7 +8,7 @@
 
 #include <Arduino.h>
 #include "defines.h"
-#include "BmsDataTypes.h"
+#include "BmsDataTypes.hpp"
 
 struct bmsData_s
 {
