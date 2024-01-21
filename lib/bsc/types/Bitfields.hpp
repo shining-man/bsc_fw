@@ -4,8 +4,8 @@
 // https://opensource.org/licenses/MIT
 
 
-#ifndef TYPES_BITFIELD_H
-#define TYPES_BITFIELD_H
+#ifndef TYPES_BITFIELDS_H
+#define TYPES_BITFIELDS_H
 
 #include <jungles/bitfields.hpp>
 
@@ -38,7 +38,8 @@ constexpr auto bitIdxToValue(std::size_t bitIdx)
       return 0;
   }
 }
+
 } // namespace bf
 } // namespace types
 
-#endif // TYPES_BITFIELD_H
+#endif // TYPES_BITFIELDS_H
