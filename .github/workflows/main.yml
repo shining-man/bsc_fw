@@ -49,7 +49,7 @@ jobs:
         run: platformio test -e native_test
 
       - name: Build firmware
-        run: platformio run
+        run: platformio run -e bsc -e bsc_hw_log
 
       - name: Copy output
         run: |
