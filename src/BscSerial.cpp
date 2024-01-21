@@ -308,8 +308,7 @@ void BscSerial::cyclicRun()
   bool bo_lMqttSendMsg=false;
   uint8_t u8_lNumberOfSeplosBms = 0;
   uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-  if(u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_SYLCINBMS || 
-      u8_lBmsOnSerial2==ID_SERIAL_DEVICE_GOBELBMS || u8_lBmsOnSerial2==ID_SERIAL_DEVICE_GOBEL_PC200)
+  if(isMultiple485bms(u8_lBmsOnSerial2))
   {
     if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);

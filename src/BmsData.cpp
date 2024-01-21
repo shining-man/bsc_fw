@@ -604,6 +604,24 @@ uint8_t * getBmsSettingsReadback(uint8_t bmsNr)
 }
 
 
+bool isMultiple485bms(uint8_t bms)
+{
+  switch(bms)
+  {
+    case ID_SERIAL_DEVICE_SEPLOSBMS:
+    case ID_SERIAL_DEVICE_SYLCINBMS:
+    case ID_SERIAL_DEVICE_BPN:
+    case ID_SERIAL_DEVICE_GOBELBMS:
+    case ID_SERIAL_DEVICE_GOBEL_PC200:
+      return true;
+      break;
+
+    default:
+      return false;
+  }
+}
+
+
 #ifdef LOG_BMS_DATA
 void logBmsData(uint8_t bmsNr)
 {

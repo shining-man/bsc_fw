@@ -224,9 +224,8 @@ void buildJsonRest(WebServer * server)
       u8_device = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,bmsDevNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
       //BSC_LOGI(TAG,"Restapi: u8_device=%i, u8_deviceSerial2=%i, bmsDevNr=%i, u8_deviceSerial2NrOfBms=%i",u8_device, u8_deviceSerial2, bmsDevNr, u8_deviceSerial2NrOfBms);
       if(u8_device!=0) genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
-      else if((u8_deviceSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_deviceSerial2==ID_SERIAL_DEVICE_SYLCINBMS || u8_deviceSerial2==ID_SERIAL_DEVICE_BPN) && 
-        bmsDevNr>BT_DEVICES_COUNT+2 && bmsDevNr<BT_DEVICES_COUNT+2+u8_deviceSerial2NrOfBms)
-          genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
+      else if(isMultiple485bms(u8_deviceSerial2) && bmsDevNr>BT_DEVICES_COUNT+2 && bmsDevNr<BT_DEVICES_COUNT+2+u8_deviceSerial2NrOfBms)
+        genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
       else genJsonEntryArray(entrySingle, F("en"), 0, str_htmlOut, false);
 
       if((millis()-getBmsLastDataMillis(bmsDevNr)<5000)) u8_val=1;
