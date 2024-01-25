@@ -161,6 +161,9 @@ uint8_t getBmsDataBytes(uint8_t dataType);
 
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr);
 
+bool isMultiple485bms(uint8_t bms);
+
+
 #ifdef LOG_BMS_DATA
 void logBmsData(uint8_t bmsNr);
 #endif

@@ -922,7 +922,7 @@ void handle_paramOnewireAdr()
 void handle_paramSystem()
 {
   webSettingsSystem.handleHtmlFormRequest(&server);
-  if (server.hasArg("SAVE"))
+  /*if (server.hasArg("SAVE"))
   {
     initMqtt();
 
@@ -934,7 +934,7 @@ void handle_paramSystem()
     {
       mqttDisconnect();
     }
-  }
+  }*/
 }
 
 void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);}

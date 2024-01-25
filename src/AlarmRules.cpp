@@ -189,6 +189,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
 void runAlarmRules()
 {
   uint8_t i;
+  bool bo_lChangeAlarmSettings=false;
 
   //Toggle LED
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
@@ -218,19 +219,24 @@ void runAlarmRules()
   //Rules Soc
   rules_soc();
 
+  //ChangeAlarmSettings Flag lokal zwischenspeichern
+  if(xSemaphoreTake(alarmSettingsChangeMutex, 25/portTICK_PERIOD_MS) == pdTRUE)
+  {
+    bo_lChangeAlarmSettings=bo_mChangeAlarmSettings;
+    bo_mChangeAlarmSettings=false;
+    xSemaphoreGive(alarmSettingsChangeMutex);
+  }
+
   //Bearbeiten der Alarme
   for(i=0; i<CNT_ALARMS; i++)
   {
-    xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
-    if(bo_mChangeAlarmSettings)
+    if(bo_lChangeAlarmSettings)
     {
       BSC_LOGD(TAG,"Reset Trigger (Nr=%i) - %s",i+1,WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm[i]=false;
       bo_Alarm_old[i]=true;
       alarmCauseAktiv[i]=0;
-      //setAlarm(i+1, false); //Alarm zurücksetzen
     }
-    xSemaphoreGive(alarmSettingsChangeMutex);
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
@@ -274,9 +280,6 @@ void runAlarmRules()
       setAlarmToBtDevices(i, bo_Alarm[i]);
     }
   }
-  xSemaphoreTake(alarmSettingsChangeMutex, portMAX_DELAY);
-  bo_mChangeAlarmSettings=false;
-  xSemaphoreGive(alarmSettingsChangeMutex);
 
   setDOs();
 }
