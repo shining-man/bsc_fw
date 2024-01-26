@@ -27,7 +27,7 @@
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
-#include <WebOTA.h>
+#include <OTAupdater.h>
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
@@ -1332,7 +1332,7 @@ void setup()
   server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(&server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
   //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
-  webota.init(&server, "/settings/webota/"); //webota
+  otaUpdater.init(&server, "/settings/webota/", true);
 
   server.on("/restart/", []() {
     server.sendHeader("Connection", "close");
@@ -1360,7 +1360,7 @@ void setup()
   xTaskCreatePinnedToCore(task_fsTest3, "fstest3", 2500, nullptr, 5, &task_handle_i2c, 1);
   #endif
 
-  free_dump();  
+  free_dump();
 
   #ifdef LOG_BMS_DATA
   debugLogTimer=millis();
