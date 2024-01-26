@@ -1,41 +1,15 @@
-// Arduino build process info: https://github.com/arduino/Arduino/wiki/Build-Process
-
-#define WEBOTA_VERSION "0.1.5"
-
-#include "WebOTA.h"
+#include "OTAupdater.h"
 #include <Arduino.h>
 #include <Update.h>
-#include "./../../../include/log.h"
+#include "log.h"
 
-static const char *TAG = "WEBOTA";
+static const char *TAG = "OTA";
 
-WebOTA webota;
-WebServer *serverUpdate;
+OTAupdater otaUpdater;
 
+#define CHUNK_SIZE 51200
 
-int WebOTA::init(WebServer *server, const char *path)
-{
-	// Only run this once
-	if(this->init_has_run){return 0;}
-
-	serverUpdate=server;
-	add_http_routes(server, path);
-
-	// Store that init has already run
-	this->init_has_run = true;
-
-	return 1;
-}
-
-long WebOTA::max_sketch_size()
-{
-	long ret = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-
-	return ret;
-}
-
-// R Macro string literal https://en.cppreference.com/w/cpp/language/string_literal
-const char ota_upload_form[] PROGMEM = R"!^!(
+const char uploadFormV1[] PROGMEM = R"!^!(
 <!DOCTYPE HTML>
 <html lang='de'>
 <head>
@@ -67,6 +41,14 @@ const char ota_upload_form[] PROGMEM = R"!^!(
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">
+	<p><b>Aktuelles verfügbares Release (github)</b>
+	<div><u>FW-Version:</u> <span id='gitFwVersion'></span></div><br>
+	<div><u>Veröffentlicht am:</u> <span id='gitFwPublishedAt'></span></div><br>
+	<div><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
+	<div><a onclick="window.open('https://github.com/shining-man/bsc_fw/releases/latest/download/fw_bsc_ota.bin','_blank');" href="#">Download from GitHub</a></div>
+	</p>
+	<hr><br>
+
     <form method="POST" action="#" enctype="multipart/form-data" id="upload_form">
       <input type="file" name="update" id="file">
       <input type="submit" value="Update">
@@ -88,6 +70,8 @@ const char ota_upload_form[] PROGMEM = R"!^!(
 
   domReady(function()
   {
+	__readLastFwVersionGithub();
+
     var myform = document.getElementById('upload_form');
     var filez  = document.getElementById('file');
 
@@ -139,73 +123,114 @@ const char ota_upload_form[] PROGMEM = R"!^!(
     }
     progress.value = updateProgress;
   }
+
+  function __readLastFwVersionGithub()
+  {
+    var __fwVersion="";
+    var __fwVersionNew="";
+    var __description="";
+    var __published_at="";
+
+    fetch('https://api.github.com/repos/shining-man/bsc_fw/releases/latest')
+    .then(__response => __response.json())
+    .then((__data) => {
+  	  __fwVersion=__data.name.split("_")[0].toLowerCase();
+      __published_at=__data.published_at.replace("T"," ").replace("Z","");
+      __description=__data.body.replaceAll("\r\n", "<br>");
+
+	  document.getElementById('gitFwVersion').innerHTML =__fwVersion;
+	  document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
+	  document.getElementById('fitFwDesc').innerHTML = __description;
+    });
+
+    fetch('/restapi')
+    .then(__response => __response.json())
+    .then((__data) => {
+	  __fwVersionNew=__data.system.fw_version.toLowerCase();
+	  if(__fwVersion!=__fwVersionNew) console.log("New FW available");
+    });
+  }
 </script>
 </body>
 </html>)!^!";
 
 
+bool OTAupdater::init(WebServer *server, const char *path, bool enUpdatePage)
+{
+	if(this->isInit) return false;
+	setHttpRoutes(server, path, enUpdatePage);
+	this->isInit = true;
 
-int WebOTA::add_http_routes(WebServer *server, const char *path) {
+	return true;
+}
+
+void OTAupdater::delayWithHandleClient(WebServer *server, uint16_t delay_ms) {
+  uint32_t u32_startMillis = millis();
+
+  while((millis()-u32_startMillis)<delay_ms)
+  {
+	server->handleClient();
+	vTaskDelay(5/portTICK_PERIOD_MS);
+  }
+}
+
+void OTAupdater::setHttpRoutes(WebServer *server, const char *path, bool enUpdatePage) {
 	// Upload firmware page
-	server->on(path, HTTP_GET, [server,this]() {
-		String html = FPSTR(ota_upload_form);
-		server->send_P(200, "text/html", html.c_str());
-	});
+	if(enUpdatePage)
+	{
+		server->on(path, HTTP_GET, [server,this]()
+		{
+			String html = FPSTR(uploadFormV1);
+			server->send_P(200, "text/html", html.c_str());
+		});
+	}
 
 	// Handling uploading firmware file
-	server->on(path, HTTP_POST, [server,this]() {
-		server->send(200, "text/plain", (Update.hasError()) ? "Update: fail\n" : "Update: OK!\n");
-		delay(server, 500);
+	server->on(path, HTTP_POST, [server,this]()
+	{
+		server->send(200, "text/plain", (Update.hasError()) ? "Update: fail\n" : "Update: OK\n");
+		delayWithHandleClient(server, 1000);
 		ESP.restart();
-	}, [server,this]() {
+	},
+	[server,this]()
+	{
 		HTTPUpload& upload = server->upload();
 
-		if (upload.status == UPLOAD_FILE_START) {
+		if(upload.status == UPLOAD_FILE_START)
+		{
 			ESP_LOGI(TAG,"Firmware update initiated: %s",upload.filename.c_str());
+			uint32_t sketchSize = (ESP.getFreeSketchSpace()-0x1000) & 0xFFFFF000;
 
-			//uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-			uint32_t maxSketchSpace = this->max_sketch_size();
-
-			if (!Update.begin(maxSketchSpace)) { //start with max available size
+			if(!Update.begin(sketchSize))
+			{
 				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
-		} else if (upload.status == UPLOAD_FILE_WRITE) {
-			/* flashing firmware to ESP*/
-			if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+		}
+		else if(upload.status == UPLOAD_FILE_WRITE)
+		{
+			if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) // if error
+			{
 				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
-			
-			
 
-			// Store the next milestone to output
-			uint16_t chunk_size  = 51200;
-			static uint32_t next = 51200;
-
-			// Check if we need to output a milestone (100k 200k 300k)
-			if (upload.totalSize >= next) {
-				ESP_LOGI(TAG,"%d k ",next/1024);
-				next += chunk_size;
+			// Print info all 100k
+			static uint32_t nextInfoSize = CHUNK_SIZE;
+			if(upload.totalSize >= nextInfoSize)
+			{
+				ESP_LOGI(TAG,"%d k ",nextInfoSize/1024);
+				nextInfoSize += CHUNK_SIZE;
 			}
-		} else if (upload.status == UPLOAD_FILE_END) {
-			if (Update.end(true)) { //true to set the size to the current progress
+		}
+		else if(upload.status == UPLOAD_FILE_END)
+		{
+			if(Update.end(true))
+			{
 				ESP_LOGI(TAG,"Firmware update successful: %u bytes;\nRebooting...", upload.totalSize);
-			} else {
+			}
+			else
+			{
 				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 		}
 	});
-
-	return 1;
-}
-
-// If the MCU is in a delay() it cannot respond to HTTP OTA requests
-// We do a "fake" looping delay and listen for incoming HTTP requests while waiting
-void WebOTA::delay(WebServer *server, unsigned int ms) {
-	// Borrowed from mshoe007 @ https://github.com/scottchiefbaker/ESP-WebOTA/issues/8
-	decltype(millis()) last = millis();
-
-	while ((millis() - last) < ms) {
-		server->handleClient();
-		::delay(5);
-	}
 }

@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -9,10 +9,10 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LittleFS.h> 
+  #include <LittleFS.h>
 #else
   #include <SPIFFS.h>
-#endif 
+#endif
 #include <WebServer.h>
 
 static const char * TAG = "WEB";
@@ -94,7 +94,7 @@ bool handleFileRead(WebServer *server, bool fsIsSpiffs, String path)
 }
 
 
-void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName) 
+void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName)
 {
   static File fsUploadFile;
   HTTPUpload& upload = server->upload();
@@ -107,12 +107,12 @@ void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName)
     upload.filename=fileName;
     BSC_LOGI(TAG,"handleFileUpload Name: /%s", upload.filename.c_str());
     fsUploadFile = SPIFFS.open("/" + server->urlDecode(upload.filename), "w");
-  } 
+  }
   else if (upload.status == UPLOAD_FILE_WRITE)
   {
     //BSC_LOGI(TAG,"handleFileUpload Data: %u\n", upload.currentSize);
     if(fsUploadFile) fsUploadFile.write(upload.buf, upload.currentSize);
-  } 
+  }
   else if (upload.status == UPLOAD_FILE_END)
   {
     if (fsUploadFile) fsUploadFile.close();
