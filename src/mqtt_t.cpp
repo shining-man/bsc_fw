@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -15,7 +15,7 @@
 #include "Ow.h"
 #include "log.h"
 #include "BleHandler.h"
-//#include "AlarmRules.h"
+#include "AlarmRules.h"
 
 
 static const char* TAG = "MQTT";
@@ -31,8 +31,8 @@ static String str_mMqttTopicName;
 
 uint32_t u32_mMqttPublishLoopTimmer=0;
 
-bool     bo_mMqttEnable=false; 
-uint8_t  u8_mWaitConnectCounter; 
+bool     bo_mMqttEnable=false;
+uint8_t  u8_mWaitConnectCounter;
 
 uint32_t sendeTimerBmsMsg;
 uint32_t sendeDelayTimer10ms;
@@ -62,17 +62,17 @@ void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
 //void mqttPublishTrigger();
-void mqttCallback(char* topic, byte* payload, unsigned int length) ;
+void mqttCallback(char* topic, uint8_t* payload, unsigned int length);
 
 
 void initMqtt()
 {
   mMqttMutex = xSemaphoreCreateMutex();
-  
+
   smMqttConnectState=SM_MQTT_DISCONNECTED;
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
-  
+
   bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
   if(!bo_mMqttEnable) return;
 
@@ -81,11 +81,7 @@ void initMqtt()
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
     mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
-
-    //mqttClient.setCallback(mqttCallback);
-    //String str_lMqttTopicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
-    //mqttClient.subscribe(str_lMqttTopicName.c_str()); 
-
+    mqttClient.setCallback(mqttCallback);
     mqttClient.setKeepAlive(30);
   }
 }
@@ -116,7 +112,7 @@ bool mqttLoop()
   }
   #endif
   if(bo_lBTisScanRuning) return true;
-  
+
   //Mqtt connect SM
   switch(smMqttConnectState)
   {
@@ -152,7 +148,7 @@ bool mqttLoop()
       mqttClient.loop();
 
       //MQTT Messages zyklisch publishen
-      mqttPublishLoopFromTxBuffer(); 
+      mqttPublishLoopFromTxBuffer();
 
       //Sende Diverse MQTT Daten
       mqttDataToTxBuffer();
@@ -165,7 +161,7 @@ bool mqttLoop()
 
     case SM_MQTT_DISCONNECTED:
       smMqttConnectState=SM_MQTT_WAIT_CONNECTION;
-      
+
       #ifdef MQTT_DEBUG
       BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_DISCONNECTED -> SM_MQTT_WAIT_CONNECTION, ret=0");
       #endif
@@ -214,7 +210,7 @@ bool mqttConnect()
 
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals("")) bo_lBreak+=4;
   if(WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT)<=0) bo_lBreak+=8;
-  
+
   if(bo_lBreak!=0)
   {
     #ifdef MQTT_DEBUG
@@ -242,13 +238,13 @@ bool mqttConnect()
     }
 
     u8_mWaitConnectCounter++;
-    
+
     #ifdef MQTT_DEBUG
     BSC_LOGD(TAG,"Connecting to MQTT Broker...");
     #endif
     if(mqttUser.equals("") || mqttPwd.equals("")) //Wenn kein User oder Pwd eingetragen, dann ohne verbinden
     {
-      ret=mqttClient.connect(str_mMqttDeviceName.c_str()); 
+      ret=mqttClient.connect(str_mMqttDeviceName.c_str());
     }
     else
     {
@@ -260,6 +256,12 @@ bool mqttConnect()
     u8_mWaitConnectCounter=0;
     smMqttConnectState=SM_MQTT_CONNECTED;
     ret=true;
+
+    // Subscribe
+    String str_lSubTopic = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+    str_lSubTopic+="/input/#";
+    mqttClient.subscribe(str_lSubTopic.c_str());
+
     BSC_LOGI(TAG,"MQTT Broker connected");
   }
 
@@ -298,7 +300,7 @@ bool mqttPublishLoopFromTxBuffer()
   {
     if(smMqttConnectState==SM_MQTT_DISCONNECTED) return false;
     xSemaphoreTake(mMqttMutex, portMAX_DELAY);
-    
+
     if(txBuffer.size()>0)
     {
       struct mqttEntry_s mqttEntry = txBuffer.at(0);
@@ -327,7 +329,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
   if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) //Wenn nicht alle BT-Devices verbunden sind
   {
-     /*if(t1==MQTT_TOPIC_ALARM) 
+     /*if(t1==MQTT_TOPIC_ALARM)
      {
       //Trigger Meldungen mit Priorität abarbeiten
       xSemaphoreTake(mMqttMutex, portMAX_DELAY);
@@ -386,7 +388,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 
 //Nicht alle mqtt Nachrichten auf einmal senden um RAM zu sparen
 void mqttDataToTxBuffer()
-{ 
+{
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
   //Sende Daten via mqtt, wenn aktiv
@@ -431,7 +433,7 @@ void mqttDataToTxBuffer()
       {
         mqttPublishOwTemperatur(sendOwTemperatur_mqtt_sendeCounter);
         sendOwTemperatur_mqtt_sendeCounter++;
-        if(sendOwTemperatur_mqtt_sendeCounter==MAX_ANZAHL_OW_SENSOREN)owDataSendFinsh=true;    
+        if(sendOwTemperatur_mqtt_sendeCounter==MAX_ANZAHL_OW_SENSOREN)owDataSendFinsh=true;
       }
     }
   }
@@ -441,7 +443,7 @@ void mqttDataToTxBuffer()
 void mqttPublishBmsData(uint8_t i)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
-  
+
   //CellVoltage
   for(uint8_t n=0;n<24;n++)
   {
@@ -455,7 +457,7 @@ void mqttPublishBmsData(uint8_t i)
 
   //Min. Cell Voltage
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN, -1, getBmsMinCellVoltage(i));
-  
+
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
   if(i<=6) mqttPublish(MQTT_TOPIC_BMS_BT, i, (uint8_t)MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(i));
@@ -487,7 +489,7 @@ void mqttPublishBmsData(uint8_t i)
   //
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_FET_STATE_CHARGE, -1, getBmsStateFETsCharge(i));
   mqttPublish(MQTT_TOPIC_BMS_BT, i, MQTT_TOPIC2_FET_STATE_DISCHARGE, -1, getBmsStateFETsDischarge(i));
-  
+
   //valid
   mqttPublish(MQTT_TOPIC_BMS_BT, sendBmsData_mqtt_sendeCounter, MQTT_TOPIC2_BMS_DATA_VALID, -1, 1); //invalid
 }
@@ -505,12 +507,12 @@ void mqttPublishOwTemperatur(uint8_t i)
     if(f_lOwTemp!=TEMP_IF_SENSOR_READ_ERROR /*&& f_lOwTemp!=0*/)
     {
       mqttPublish(MQTT_TOPIC_TEMPERATUR, i, -1, -1, owGetTemp(i));
-    }   
+    }
   }
   else
   {
     //Evtl. eine "Senor nicht verbunden" Meldung senden
-  } 
+  }
 }
 
 
@@ -525,8 +527,43 @@ void mqttPublishOwTemperatur(uint8_t i)
 }*/
 
 
+
+
+
 // Callback function
-void mqttCallback(char* topic, byte* payload, unsigned int length) 
+void mqttCallback(char* topic, uint8_t* payload, unsigned int payLen)
 {
-  BSC_LOGI(TAG,"CB: topic=%s, payload=%s, len=%i",topic,payload,length);
+  if(payLen==0) return;
+
+  String str_topicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
+  String topicStr(topic);
+  uint8_t idxCnt = topicStr.indexOf('/');
+
+  if(idxCnt>2)
+  {
+    String str_lSubTopic=str_topicName+"/input/vtrigger/";
+    if(topicStr.startsWith(str_lSubTopic.c_str()))
+    {
+      topicStr.remove(0, str_lSubTopic.length());
+      uint8_t vTriggerNr = atoi(topicStr.c_str());
+      if(vTriggerNr>0 && vTriggerNr<=10 && payLen==1)
+      {
+        uint8_t vTriggerValue = payload[0];
+        if(vTriggerValue=='0')
+        {
+          //BSC_LOGI(TAG,"vTrigger nr=%i: LOW",vTriggerNr);
+          setVirtualTrigger(vTriggerNr, false);
+        }
+        else if(vTriggerValue=='1')
+        {
+          //BSC_LOGI(TAG,"vTrigger nr=%i: HIGH",vTriggerNr);
+          setVirtualTrigger(vTriggerNr, true);
+        }
+      }
+    }
+  }
+
+  //char lPayload[payLen];
+  //memcpy(lPayload,payload,payLen);
+  //BSC_LOGI(TAG,"CB: topic=%s, payload=%s, len=%i",topic,lPayload,payLen);
 }
