@@ -231,6 +231,11 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_DI_INVERTIERT                      34
 #define ID_PARAM_DI_ALARM_NR                        35
 
+#define ID_PARAM_WLAN_IP_ADRESSE                    36
+#define ID_PARAM_WLAN_GATEWAY                       37
+#define ID_PARAM_WLAN_SUBNET                        38
+#define ID_PARAM_WLAN_DNS                           39
+
 #define ID_PARAM_WLAN_SSID                          40
 #define ID_PARAM_WLAN_PWD                           41
 #define ID_PARAM_MQTT_SERVER_IP                     42

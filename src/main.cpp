@@ -363,17 +363,36 @@ boolean connectWiFi()
   doConnectWiFi=true;
 
   bo_mWifiConnected=false;
+  bo_lWlanNeverAp=false;
   str_lWlanSsid = webSettingsSystem.getString(ID_PARAM_WLAN_SSID,0);
   str_lWlanPwd  = webSettingsSystem.getString(ID_PARAM_WLAN_PWD,0);
   u16_lWlanConnTimeout  = webSettingsSystem.getInt(ID_PARAM_WLAN_CONNECT_TIMEOUT,0,DT_ID_PARAM_WLAN_CONNECT_TIMEOUT);
-  bo_lWlanNeverAp=false;
+
+  // Wenn eine statische IP festgelegt wurde
+  IPAddress lWlanIpAdresse;
+  if(lWlanIpAdresse.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_IP_ADRESSE,0)))
+  {
+    IPAddress lWlanGateway;
+    IPAddress lWlanSubnet;
+    IPAddress lWlanDns;
+    if(lWlanGateway.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_GATEWAY,0)))
+    {
+      if(lWlanSubnet.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_SUBNET,0)))
+      {
+        if(lWlanDns.fromString(webSettingsSystem.getStringFlash(ID_PARAM_WLAN_DNS,0)))
+          WiFi.config(lWlanIpAdresse,lWlanGateway,lWlanSubnet,lWlanDns);
+        else WiFi.config(lWlanIpAdresse,lWlanGateway,lWlanSubnet);
+        BSC_LOGI(TAG, "Static IP: %s, Gateway: %s, Subnet: %s",lWlanIpAdresse.toString().c_str(),lWlanGateway.toString().c_str(),lWlanSubnet.toString().c_str());
+      }
+    }
+  }
 
   if(u16_lWlanConnTimeout==0)
   {
     if(firstWlanModeSTA) bo_lWlanNeverAp=true;
     u16_lWlanConnTimeout=30;
   }
-  
+
   #ifdef WLAN_DEBUG
   BSC_LOGI(TAG, "[WiFi] status (a): %i", WiFi.status());
   #endif
