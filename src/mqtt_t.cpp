@@ -541,7 +541,7 @@ void mqttCallback(char* topic, uint8_t* payload, unsigned int payLen)
 
   if(idxCnt>2)
   {
-    String str_lSubTopic=str_topicName+"/input/vtrigger/";
+    String str_lSubTopic=str_topicName+F("/input/vtrigger/");
     if(topicStr.startsWith(str_lSubTopic.c_str()))
     {
       topicStr.remove(0, str_lSubTopic.length());
