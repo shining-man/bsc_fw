@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -35,6 +35,8 @@ bool bo_mChangeAlarmSettings;
 uint8_t u8_mDoByte;
 uint8_t u8_mTachoChannel;
 
+uint16_t vTrigger;
+
 //Hysterese
 uint32_t u32_hystereseTotalVoltageMin=0;
 uint32_t u32_hystereseTotalVoltageMax=0;
@@ -58,6 +60,7 @@ void tachoSetMux(uint8_t channel);
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
 void rules_soc();
+void rules_vTrigger();
 
 
 void initAlarmRules()
@@ -66,6 +69,7 @@ void initAlarmRules()
   bo_timerPulseOffIsRunning = false;
   bo_mChangeAlarmSettings=false;
   u8_merkerHysterese_TriggerAtSoc=false;
+  vTrigger=0;
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -77,8 +81,8 @@ void initAlarmRules()
     if(WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
     {
       mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
-      
-    }  
+
+    }
   }
 
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
@@ -185,6 +189,17 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
   }
 }
 
+bool setVirtualTrigger(uint8_t triggerNr, bool val)
+{
+  if(triggerNr==0 || triggerNr>10) return false;
+  triggerNr--;
+
+  if(val)bitSet(vTrigger,triggerNr);
+  else bitClear(vTrigger,triggerNr);
+  return true;
+}
+
+
 //Wird vom Task aus der main.c zyklisch aufgerufen
 void runAlarmRules()
 {
@@ -219,6 +234,9 @@ void runAlarmRules()
   //Rules Soc
   rules_soc();
 
+  //Virtual Trigger
+  rules_vTrigger();
+
   //ChangeAlarmSettings Flag lokal zwischenspeichern
   if(xSemaphoreTake(alarmSettingsChangeMutex, 25/portTICK_PERIOD_MS) == pdTRUE)
   {
@@ -249,7 +267,7 @@ void runAlarmRules()
         BSC_LOGD(TAG, "Trigger %i: %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
         mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, bo_Alarm[i]);
       }
-      
+
       //Bearbeiten der 6 Relaisausgaenge
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
@@ -257,7 +275,7 @@ void runAlarmRules()
         if(isTriggerSelected(ID_PARAM_DO_AUSLOESUNG_BEI,b,DT_ID_PARAM_DO_AUSLOESUNG_BEI,i))
         {
           if(bo_Alarm[i]==true)
-          {     
+          {
             if(u8_DoVerzoegerungTimer[b]==0xFF) //Verzoegerungstimer nur starten wenn er noch nicht läuft
             {
               BSC_LOGD(TAG, "Set DO VerzoegerungTimer (DoNr=%i)", b);
@@ -285,7 +303,7 @@ void runAlarmRules()
 }
 
 
-/* Wenn Einstellungen geändert werden, die auf einen Alarm auswirkung haben können, 
+/* Wenn Einstellungen geändert werden, die auf einen Alarm auswirkung haben können,
  * dann müssen die Alarme erst einmal zurück gesetzt werden
  */
 void changeAlarmSettings()
@@ -315,7 +333,7 @@ void setDOs()
       {
         uint16_t pulseDuration = (uint16_t)WebSettings::getInt(ID_PARAM_DO_IMPULSDAUER,b,DT_ID_PARAM_DO_IMPULSDAUER);
         BSC_LOGD(TAG, "DO Impuls DO=%i Dauer=%i", b, pulseDuration);
-              
+
         xSemaphoreTake(doMutex, portMAX_DELAY);
         u16_DoPulsOffCounter[b] = (pulseDuration/10);
         if(bo_timerPulseOffIsRunning==false)
@@ -383,7 +401,7 @@ void doOffPulse(TimerHandle_t xTimer)
   {
     bo_timerPulseOffIsRunning=false;
   }
-  
+
   xSemaphoreGive(doMutex);
 }
 
@@ -406,7 +424,7 @@ void getDIs()
     {
       if(!bo_lDiInvert)
       {
-        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI); 
+        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
         //BSC_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
       }
       else
@@ -517,7 +535,7 @@ void tachoSetMux(uint8_t channel)
 void rules_Tacho()
 {
   if(getHwVersion()==0) return;
-  
+
   uint16_t u16_lTachoRpm=0;
   if(tachoRead(u16_lTachoRpm))
   {
@@ -553,12 +571,12 @@ void rules_Bms()
     //Ist überhaupt ein Device parametriert?
     if((u8_lAlarmruleBmsNr<BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SS_BTDEV,u8_lAlarmruleBmsNr,DT_ID_PARAM_SS_BTDEV)>0 && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,u8_lAlarmruleBmsNr).equals("")) ||
       (u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0 ) ||
-      (u8_lAlarmruleBmsNr>(BT_DEVICES_COUNT+2) && u8_lAlarmruleBmsNr<(u8_numberOfBmsOnSerial2+BT_DEVICES_COUNT+2) && (u8_bmsSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_bmsSerial2==ID_SERIAL_DEVICE_SYLCINBMS || 
+      (u8_lAlarmruleBmsNr>(BT_DEVICES_COUNT+2) && u8_lAlarmruleBmsNr<(u8_numberOfBmsOnSerial2+BT_DEVICES_COUNT+2) && (u8_bmsSerial2==ID_SERIAL_DEVICE_SEPLOSBMS || u8_bmsSerial2==ID_SERIAL_DEVICE_SYLCINBMS ||
       u8_bmsSerial2==ID_SERIAL_DEVICE_GOBELBMS || u8_bmsSerial2==ID_SERIAL_DEVICE_GOBEL_PC200)) )
     {
       //Wenn Alram für das Device aktiv ist
-      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0) 
-      {      
+      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0)
+      {
         //Alarm wenn keine Daten mehr vom BT-Device kommen
         if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
         {
@@ -584,7 +602,7 @@ void rules_Bms()
         for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
         {
           //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
-          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN) 
+          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN)
             || getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
           {
             //Alarm
@@ -604,7 +622,7 @@ void rules_Bms()
 
       //Überwachung Gesamtspannung
       uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION);
-      if(u8_lAlarm>0) 
+      if(u8_lAlarm>0)
       {
         //Total voltage Min
         if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i))
@@ -667,7 +685,7 @@ void rules_Temperatur()
     bo_lAlarm = false;
     sensorVon = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);
     sensorBis = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS);
-    
+
     if(sensorVon>=0 && sensorBis>=0 && sensorBis>=sensorVon)
     {
       switch (WebSettings::getInt(ID_PARAM_TEMP_ALARM_UEBERWACH_FUNKTION,i,DT_ID_PARAM_TEMP_ALARM_UEBERWACH_FUNKTION))
@@ -818,7 +836,7 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
 
   float f_lMaxTempDiff = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
   float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
-  
+
   for(uint8_t n=WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);n<WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS)+1;n++)
   {
     if(getTemp_TempAlarmrule(i,n)>f_lTempMax) f_lTempMax=getTemp_TempAlarmrule(i,n);
@@ -877,7 +895,7 @@ void rules_PlausibilityCeck()
   if(u8_lTriggerPlausibilityCeckCellVoltage>0)
   {
     for(uint8_t i=BT_DEVICES_COUNT;i<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;i++)
-    {  
+    {
       uint8_t u8_lCrcErrorCounter = getBmsLastChangeCellVoltageCrc(i);
       if(u8_lCrcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) //Wenn sich der Wert x Zyklen nicht mehr geändert hat
       {
@@ -948,4 +966,20 @@ void rules_soc()
     }
   }
 
+}
+
+//
+void rules_vTrigger()
+{
+  for(uint8_t i=0;i<10;i++)
+  {
+    if(isBitSet(vTrigger,i)) // High
+    {
+      setAlarm(i+1,true,ALARM_VIRTUAL_TRIGGER); //Trigger setzen
+    }
+    else // Low
+    {
+      setAlarm(i+1,false,ALARM_VIRTUAL_TRIGGER); //Trigger zurücksetzen
+    }
+  }
 }

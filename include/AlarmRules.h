@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -22,6 +22,7 @@
 #define ALARM_CAUSE_CELL_VOLTAGE_PLAUSIBILITY 7
 #define ALARM_CAUSE_SOC 8
 #define ALARM_CAUSE_FAN 9
+#define ALARM_VIRTUAL_TRIGGER 10
 
 void initAlarmRules();
 void runAlarmRules();
@@ -30,5 +31,7 @@ void changeAlarmSettings();
 bool getAlarm(uint8_t alarmNr);
 uint16_t getAlarm();
 bool isTriggerActive(uint16_t paramId, uint8_t groupNr, uint8_t dataType);
+
+bool setVirtualTrigger(uint8_t triggerNr, bool val);
 
 #endif
