@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.5.9"
+#define BSC_SW_VERSION      "V0.5.10"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -365,6 +365,11 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE 143
 
 #define ID_PARAM_DISPLAY_TIMEOUT 144
+
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_START_VOLTAGE 145
+
+
+
 
 
 //Auswahl Bluetooth Geräte
