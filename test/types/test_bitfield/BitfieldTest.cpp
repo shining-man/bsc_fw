@@ -67,6 +67,20 @@ class BitfieldTest :
   template<typename DataType> char const* getTypeName() { return __PRETTY_FUNCTION__; }
 
   template<class T>
+  void verifyMethodIsBitIdxInRange(bool verifyInRange)
+  {
+    using DataType = T::Type;
+    const std::size_t valueToVerify = (verifyInRange) ? std::numeric_limits<DataType>::digits - 1 :
+                                                        std::numeric_limits<DataType>::digits;
+
+    ASSERT_EQ(true, types::bf::isBitIdxInRange<DataType>(0)); // Zero must be alway in range for idx
+    ASSERT_EQ(verifyInRange, types::bf::isBitIdxInRange<DataType>(valueToVerify)) << "Failed index of "
+                                                                                  << ((verifyInRange) ? "in range test: " : "out of range test: ")
+                                                                                  << valueToVerify
+                                                                                  << ", Type: " << getTypeName<DataType>();
+  };
+
+  template<class T>
   void verifyMethodBitIdxToValue()
   {
     using DataType = T::Type;
@@ -113,6 +127,29 @@ TEST_F(BitfieldTest, BitField_CheckBitFieldCopyFromConst)
     ASSERT_EQ(0xAA, field1.serialize());
     ASSERT_EQ(0x08, field2.serialize());
   }
+}
+
+TEST_F(BitfieldTest, isBitIdxInRange_VerifyInRangeValues)
+{
+  constexpr bool IN_RANGE_TEST {true};
+
+  verifyMethodIsBitIdxInRange<TypeHelper<uint8_t>>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint16_t>>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint32_t>>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint64_t>>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uintmax_t>>(IN_RANGE_TEST);
+}
+
+TEST_F(BitfieldTest, isBitIdxInRange_VerifyOutOfRangeValues)
+{
+  constexpr bool OUT_OF_RANGE_TEST {false};
+
+  verifyMethodIsBitIdxInRange<TypeHelper<uint8_t>>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint16_t>>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint32_t>>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uint64_t>>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<TypeHelper<uintmax_t>>(OUT_OF_RANGE_TEST);
+
 }
 
 TEST_F(BitfieldTest, bitIdxToValue_CheckConversion)
