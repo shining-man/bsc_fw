@@ -55,11 +55,11 @@ constexpr bool isBitIdxInRange(std::size_t bitIdx)
  * @note If supported by the compiler, we can check the range at compile time if the method is constexpr evaluated using std::is_constant_evaluated().
 */
 template<typename DATA_TYPE,  typename = std::enable_if_t<std::is_unsigned<DATA_TYPE>::value, DATA_TYPE>>
-constexpr auto bitIdxToValue(std::size_t bitIdx)
+constexpr DATA_TYPE bitIdxToValue(std::size_t bitIdx)
 {
   const bool isIdxInRange = isBitIdxInRange<DATA_TYPE>(bitIdx);
   assert(isIdxInRange && "bitIdx is NOT in range");
-  return isIdxInRange ? (static_cast<DATA_TYPE>(1) << bitIdx) : 0;
+  return isIdxInRange ? (static_cast<DATA_TYPE>(1) << bitIdx) : static_cast<DATA_TYPE>(0);
 }
 
 } // namespace bf
