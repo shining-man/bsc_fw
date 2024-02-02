@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Meik Jäckle
+// Copyright (c) 2024 Meik Jäckle
 //
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
