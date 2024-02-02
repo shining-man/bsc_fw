@@ -4,6 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 #include <gtest/gtest.h>
+#include <devices/test_jkbms/JkBmsTypesTest.hpp>
 #include <BmsDataTypes.hpp>
 
 class BmsDataTypesTest :
@@ -161,6 +162,106 @@ TEST_F(BmsDataTypesTest, VerifyBitFields_RESERVED_BIT_15)
   BmsErrorStatus bmsErrors(BMS_ERR_STATUS_RESERVED3);
 
   ASSERT_EQ(0b1, bmsErrors.at<BmsErrorBits::RESERVED_BIT_15>());
+}
+
+TEST_F(BmsDataTypesTest, VerifyMethod_bmsErrorFromMessage_JkBmsWarnMsg)
+{
+  { // LOW_CAP_ALARM is actually not set by bmsErrorFromMessage, let's verify it
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_LOW_CAP_ALARM);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(0, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_MOS_TUBE_OVERTEMP_ALARM);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_OTP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_CHG_OVERVOLTAGE_ALARM);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_BATTERY_OVP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_CELL_OVERVOLTAGE);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CELL_OVP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_CELL_UNDERVOLTAGE);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CELL_UVP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_CHG_OVERTEMP);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_OTP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_DCHG_OVERCURRENT_ALARM);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_DSG_OCP, bmsErrors.serialize());
+  }
+
+  { // Note: same bit set in BmsErrorStatus as on overcurrent alarm!
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_DCHG_OVERCURRENT);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_DSG_OCP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_BATTERY_BOX_OVERTEMP_ALARM);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_OTP, bmsErrors.serialize());
+  }
+
+  { // TODO: Same question as in BmsDataTypes.hpp:
+    //       Is it correct, that BATTERY_LOW_TEMPERATURE is mapped to CHG_OCP (was Bit 9:  Battery low temperature to BMS_ERR_STATUS_CHG_OCP)
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_BATTERY_LOW_TEMPERATURE);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_OCP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_CHG_UNDER_TEMPERATURE);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_UTP, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_UNKNOWN_BIT_11);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_SOFT_LOCK, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_PROTECTION_309A);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_SOFT_LOCK, bmsErrors.serialize());
+  }
+
+  {
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_PROTECTION_309B);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(BMS_ERR_STATUS_SOFT_LOCK, bmsErrors.serialize());
+  }
+
+  { // Reserved bit 14 is actually not set by bmsErrorFromMessage, let's verify it
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_RESERVED_BIT_14);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(0, bmsErrors.serialize());
+  }
+
+  { // Reserved bit 15 is actually not set by bmsErrorFromMessage, let's verify it
+    const jkbms::JkBmsWarnMsg jkBmsMsg(jkbms::test::JKBMS_WARN_MSG_RESERVED_BIT_15);
+    BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
+    ASSERT_EQ(0, bmsErrors.serialize());
+  }
 }
 
 // Note: This is just a workaround, to prevent duplicate code for test application startup.
