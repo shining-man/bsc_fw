@@ -57,33 +57,26 @@ class BitfieldTest :
                                           types::bf::Field<BitFields::BIT_1, 1>,
                                           types::bf::Field<BitFields::BIT_0, 1>>;
 
-  // Helper struct to hold the type
-  template <typename T>
-  struct TypeHelper
-  {
-    using Type = T;
-  };
+  template<typename T> char const* getTypeName() { return __PRETTY_FUNCTION__; }
 
-  template<typename DataType> char const* getTypeName() { return __PRETTY_FUNCTION__; }
-
-  template<class T>
+  template<typename T>
   void verifyMethodIsBitIdxInRange(bool verifyInRange)
   {
-    using DataType = T::Type;
+    using DataType = T;
     const std::size_t valueToVerify = (verifyInRange) ? std::numeric_limits<DataType>::digits - 1 :
                                                         std::numeric_limits<DataType>::digits;
 
-    ASSERT_EQ(true, types::bf::isBitIdxInRange<DataType>(0)); // Zero must be alway in range for idx
-    ASSERT_EQ(verifyInRange, types::bf::isBitIdxInRange<DataType>(valueToVerify)) << "Failed index of "
+    ASSERT_EQ(true, types::bf::isBitIdxInRange<T>(0)); // Zero must be alway in range for idx
+    ASSERT_EQ(verifyInRange, types::bf::isBitIdxInRange<T>(valueToVerify)) << "Failed index of "
                                                                                   << ((verifyInRange) ? "in range test: " : "out of range test: ")
                                                                                   << valueToVerify
                                                                                   << ", Type: " << getTypeName<DataType>();
   };
 
-  template<class T>
+  template<typename T>
   void verifyMethodBitIdxToValue()
   {
-    using DataType = T::Type;
+    using DataType = T;
     const std::size_t numberOfBits = std::numeric_limits<DataType>::digits;
 
     for (std::size_t i = 0; i < numberOfBits; ++i)
@@ -133,34 +126,35 @@ TEST_F(BitfieldTest, isBitIdxInRange_VerifyInRangeValues)
 {
   constexpr bool IN_RANGE_TEST {true};
 
-  verifyMethodIsBitIdxInRange<TypeHelper<uint8_t>>(IN_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint16_t>>(IN_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint32_t>>(IN_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint64_t>>(IN_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uintmax_t>>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint8_t>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint16_t>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint32_t>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint64_t>(IN_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uintmax_t>(IN_RANGE_TEST);
 }
 
 TEST_F(BitfieldTest, isBitIdxInRange_VerifyOutOfRangeValues)
 {
   constexpr bool OUT_OF_RANGE_TEST {false};
 
-  verifyMethodIsBitIdxInRange<TypeHelper<uint8_t>>(OUT_OF_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint16_t>>(OUT_OF_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint32_t>>(OUT_OF_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uint64_t>>(OUT_OF_RANGE_TEST);
-  verifyMethodIsBitIdxInRange<TypeHelper<uintmax_t>>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint8_t>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint16_t>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint32_t>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uint64_t>(OUT_OF_RANGE_TEST);
+  verifyMethodIsBitIdxInRange<uintmax_t>(OUT_OF_RANGE_TEST);
 
 }
 
 TEST_F(BitfieldTest, bitIdxToValue_CheckConversion)
 {
-  verifyMethodBitIdxToValue<TypeHelper<uint8_t>>();
-  verifyMethodBitIdxToValue<TypeHelper<uint16_t>>();
-  verifyMethodBitIdxToValue<TypeHelper<uint32_t>>();
-  verifyMethodBitIdxToValue<TypeHelper<uint64_t>>();
-  verifyMethodBitIdxToValue<TypeHelper<uintmax_t>>();
+  verifyMethodBitIdxToValue<uint8_t>();
+  verifyMethodBitIdxToValue<uint16_t>();
+  verifyMethodBitIdxToValue<uint32_t>();
+  verifyMethodBitIdxToValue<uint64_t>();
+  verifyMethodBitIdxToValue<uintmax_t>();
 }
 
+#if GTEST_HAS_DEATH_TEST // Only available on native target
 TEST_F(BitfieldTest, bitIdxToValue_AssertsOnIdxOutOfRange)
 {
   using DataType = uint8_t;
@@ -172,8 +166,8 @@ TEST_F(BitfieldTest, bitIdxToValue_AssertsOnIdxOutOfRange)
    // bitIdxToValue must return 0 in that case. Let´s just verify this again.
   if (0 == value)
     ASSERT_EQ(0, types::bf::bitIdxToValue<DataType>(std::numeric_limits<DataType>::digits));
-
 }
+#endif
 
 } //namespace test
 
