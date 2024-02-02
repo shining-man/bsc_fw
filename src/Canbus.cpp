@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -151,7 +151,7 @@ void loadCanSettings()
   u8_mBmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
   u8_mSelCanInverter = WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
   uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
-  
+
   uint32_t bmsConnectFilter=0;
   /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
   {
@@ -229,7 +229,7 @@ void readCanMessages()
       isJkCanBms=true;
       u8_jkCanBms=BMSDATA_FIRST_DEV_SERIAL+i;
       //BSC_LOGI(TAG,"JK: dev=%i",u8_jkCanBms);
-      
+
       setBmsLastDataMillis(u8_jkCanBms,millis()); //Nur zum Test
       break;
     }
@@ -286,15 +286,15 @@ void readCanMessages()
         setBmsMaxVoltageCellNumber(u8_jkCanBms,canMessage.data[2]);
         setBmsMinCellVoltage(u8_jkCanBms,((uint16_t)canMessage.data[4]<<8 | canMessage.data[3]));
         setBmsMinVoltageCellNumber(u8_jkCanBms,canMessage.data[5]);
-        setBmsLastDataMillis(u8_jkCanBms,millis()); 
+        setBmsLastDataMillis(u8_jkCanBms,millis());
       }
       else if(canMessage.identifier==0x05F4) //1524; Cell temperature
       {
-        setBmsLastDataMillis(u8_jkCanBms,millis()); 
+        setBmsLastDataMillis(u8_jkCanBms,millis());
       }
       else if(canMessage.identifier==0x07F4) //2036; Warning message
       {
-        setBmsLastDataMillis(u8_jkCanBms,millis()); 
+        setBmsLastDataMillis(u8_jkCanBms,millis());
       }
     }
 
@@ -318,16 +318,16 @@ void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
   }
 
   /*
-    twai_state_t state;             //< Current state of TWAI controller (Stopped/Running/Bus-Off/Recovery) 
-    uint32_t msgs_to_tx;            //< Number of messages queued for transmission or awaiting transmission completion 
-    uint32_t msgs_to_rx;            //< Number of messages in RX queue waiting to be read 
-    uint32_t tx_error_counter;      //< Current value of Transmit Error Counter 
-    uint32_t rx_error_counter;      //< Current value of Receive Error Counter 
-    uint32_t tx_failed_count;       //< Number of messages that failed transmissions 
-    uint32_t rx_missed_count;       //< Number of messages that were lost due to a full RX queue (or errata workaround if enabled) 
-    uint32_t rx_overrun_count;      //< Number of messages that were lost due to a RX FIFO overrun 
-    uint32_t arb_lost_count;        //< Number of instances arbitration was lost 
-    uint32_t bus_error_count;       //< Number of instances a bus error has occurred 
+    twai_state_t state;             //< Current state of TWAI controller (Stopped/Running/Bus-Off/Recovery)
+    uint32_t msgs_to_tx;            //< Number of messages queued for transmission or awaiting transmission completion
+    uint32_t msgs_to_rx;            //< Number of messages in RX queue waiting to be read
+    uint32_t tx_error_counter;      //< Current value of Transmit Error Counter
+    uint32_t rx_error_counter;      //< Current value of Receive Error Counter
+    uint32_t tx_failed_count;       //< Number of messages that failed transmissions
+    uint32_t rx_missed_count;       //< Number of messages that were lost due to a full RX queue (or errata workaround if enabled)
+    uint32_t rx_overrun_count;      //< Number of messages that were lost due to a RX FIFO overrun
+    uint32_t arb_lost_count;        //< Number of instances arbitration was lost
+    uint32_t bus_error_count;       //< Number of instances a bus error has occurred
   */
   BSC_LOGI(TAG,"Alert=%i", CAN.getAlert());
   #endif
@@ -401,7 +401,7 @@ uint8_t getNumberOfBatteryModulesCharge()
 {
   uint8_t u8_lModules=0;
   if(getBmsStateFETsCharge(u8_mBmsDatasource)) u8_lModules++;
-        
+
   if(u8_mBmsDatasourceAdd>0)
   {
     for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
@@ -422,7 +422,7 @@ uint8_t getNumberOfBatteryModulesDischarge()
 {
   uint8_t u8_lModules=0;
   if(getBmsStateFETsDischarge(u8_mBmsDatasource)) u8_lModules++;
-        
+
   if(u8_mBmsDatasourceAdd>0)
   {
     for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
@@ -456,7 +456,7 @@ uint16_t getMaxCellSpannungFromBms()
 
 
   uint16_t u16_lCellSpg = getBmsMaxCellVoltage(u8_mBmsDatasource);
-  u8_lBmsNr=u8_mBmsDatasource; 
+  u8_lBmsNr=u8_mBmsDatasource;
   u8_lCellNr=getBmsMaxVoltageCellNumber(u8_mBmsDatasource);
 
   if(u8_mBmsDatasourceAdd>0)
@@ -471,7 +471,7 @@ uint16_t getMaxCellSpannungFromBms()
           u16_lMaxCellSpg=getBmsMaxCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMaxCellSpg>u16_lCellSpg)
           {
-            u16_lCellSpg=u16_lMaxCellSpg; 
+            u16_lCellSpg=u16_lMaxCellSpg;
             u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
             u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i);
           }
@@ -504,10 +504,10 @@ uint16_t getMinCellSpannungFromBms()
   uint8_t u8_lCellNr=0;
   uint16_t u16_lCellSpg=0xFFFF;
 
-  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) 
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
   {
     u16_lCellSpg = getBmsMinCellVoltage(u8_mBmsDatasource);
-    u8_lBmsNr=u8_mBmsDatasource; 
+    u8_lBmsNr=u8_mBmsDatasource;
     u8_lCellNr=getBmsMinVoltageCellNumber(u8_mBmsDatasource);
   }
 
@@ -523,9 +523,9 @@ uint16_t getMinCellSpannungFromBms()
           u16_lMinCellSpg=getBmsMinCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMinCellSpg<u16_lCellSpg)
           {
-            u16_lCellSpg=u16_lMinCellSpg; 
+            u16_lCellSpg=u16_lMinCellSpg;
             u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
-            u8_lCellNr=getBmsMinVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); 
+            u8_lCellNr=getBmsMinVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i);
           }
         }
       }
@@ -569,7 +569,7 @@ uint16_t getMaxCellDifferenceFromBms()
           u16_lMaxCellDiff=getBmsMaxCellDifferenceVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
           if(u16_lMaxCellDiff>u16_lCellDiff)
           {
-            u16_lCellDiff=u16_lMaxCellDiff; 
+            u16_lCellDiff=u16_lMaxCellDiff;
             u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;  //nur zum Debug
             u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); //nur zum Debug
           }
@@ -598,10 +598,10 @@ void calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent)
 {
   //Evtl. Sprünge im Batteriestrom und hohe Lastströme berücksichtigen
 
-  /* Wird der neue Soll-Ladestrom kleiner, dann wird dieser sofort geändert 
+  /* Wird der neue Soll-Ladestrom kleiner, dann wird dieser sofort geändert
   * um bei hoher Zellspannung schnell ausregeln zu können.
   * Ist der neue Soll-Ladestrom größer, dann wird dieser nur alle 30 Sekunden geändert. */
-  if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent) 
+  if(i16_pNewChargeCurrent<i16_mMaxChargeCurrent)
   {
     #ifdef CAN_DEBUG
     BSC_LOGD(TAG,"Sprung unten > 5A (a): i16_pNewChargeCurrent=%i, i16_mMaxChargeCurrent=%",i16_pNewChargeCurrent,i16_mMaxChargeCurrent);
@@ -662,9 +662,9 @@ int16_t calcLadestromZellspanung(int16_t i16_pMaxChargeCurrent)
       if(u16_lStartSpg>u16_lEndSpg) return i16_pMaxChargeCurrent; //Startspannung > Endspannung => Fehler
       if(i16_pMaxChargeCurrent<=i16_lMindestChargeCurrent) return i16_pMaxChargeCurrent; //Maximaler Ladestrom < Mindest-Ladestrom => Fehler
 
-      if(u16_lAktuelleMaxZellspg>u16_lEndSpg) 
+      if(u16_lAktuelleMaxZellspg>u16_lEndSpg)
       {
-        //Wenn die aktuelle Zellspannung bereits größer als der Endzellspannung ist, 
+        //Wenn die aktuelle Zellspannung bereits größer als der Endzellspannung ist,
         //dann Ladestrom auf Mindest-Ladestrom einstellen
         return i16_lMindestChargeCurrent;
       }
@@ -743,8 +743,8 @@ int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc
 }
 
 
-/******************************************************************************************************* 
- * Berechnet der Maximalzulässigen Entladestrom anhand der eigestellten Zellspannungsparameter 
+/*******************************************************************************************************
+ * Berechnet der Maximalzulässigen Entladestrom anhand der eigestellten Zellspannungsparameter
  *******************************************************************************************************/
 int16_t calcEntladestromZellspanung(int16_t i16_pMaxDischargeCurrent)
 {
@@ -763,9 +763,9 @@ int16_t calcEntladestromZellspanung(int16_t i16_pMaxDischargeCurrent)
       if(u16_lStartSpg<=u16_lEndSpg) return i16_pMaxDischargeCurrent; //Startspannung <= Endspannung => Fehler
       if(i16_pMaxDischargeCurrent<=i16_lMindestChargeCurrent) return i16_pMaxDischargeCurrent; //Maximaler Entladestrom < Mindest-Entladestrom => Fehler
 
-      if(u16_lAktuelleMinZellspg<u16_lEndSpg) 
+      if(u16_lAktuelleMinZellspg<u16_lEndSpg)
       {
-        //Wenn die aktuelle Zellspannung bereits kleiner als die Endzellspannung ist, 
+        //Wenn die aktuelle Zellspannung bereits kleiner als die Endzellspannung ist,
         //dann Ladestrom auf Mindest-Entladestrom einstellen
         return i16_lMindestChargeCurrent;
       }
@@ -811,7 +811,7 @@ int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
             #ifdef CAN_DEBUG
             BSC_LOGD(TAG,"MaxCurrentPerPackToHigh: current=%i",i16_pMaxChargeCurrent); //nur zum Debug
             #endif
-            return i16_mAktualChargeCurrentSoll-10; 
+            return i16_mAktualChargeCurrentSoll-10;
           }
         }
       }
@@ -825,7 +825,7 @@ int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
 /********************************************************************************************
  * calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
  * Ladestrom auf 0 setzen, wenn längere Zeit mit einem geringen Ladestrom geladen wurde.
- * 
+ *
  ********************************************************************************************/
 int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
 {
@@ -837,7 +837,7 @@ int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
 
   float fl_lCutOffCurrent = WebSettings::getFloat(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0);
   uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
-  
+
   xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
   uint8_t u8_lSoc = (uint8_t)inverterData.inverterSoc;
   fl_lTotalCurrent = inverterData.inverterCurrent/10;
@@ -857,7 +857,7 @@ int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
   }
   else
   {
-    //Timer hochzählen, wenn Strom kleiner 
+    //Timer hochzählen, wenn Strom kleiner
     if(fl_lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc) u16_mChargeCurrentCutOfTimer++;
     else u16_mChargeCurrentCutOfTimer=0;
   }
@@ -906,9 +906,9 @@ uint16_t calcDynamicReduzeChargeVolltage(uint16_t u16_lChargeVoltage)
 
 
 /* *******************************************************************************************
- * getNewSocByMinCellVoltage() 
- * Wenn die eingestellte mindest-Zellspannung unterschritten wird, dann kann ein belibiger SoC 
- * an den Wechselrichter gesendet werden. Hiermit kann ein Nachladen erzwungen werden. 
+ * getNewSocByMinCellVoltage()
+ * Wenn die eingestellte mindest-Zellspannung unterschritten wird, dann kann ein belibiger SoC
+ * an den Wechselrichter gesendet werden. Hiermit kann ein Nachladen erzwungen werden.
  * *******************************************************************************************/
 uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc)
 {
@@ -928,7 +928,7 @@ uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc)
       uint16_t u16_lZellspgChargeEnd;
       u16_lZellspgChargeEnd = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END);
       //Wenn Parameter ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG_END 0 ist, dann Ladestartspannung nehmen
-      if(u16_lZellspgChargeEnd==0) 
+      if(u16_lZellspgChargeEnd==0)
       {
         u16_lZellspgChargeEnd=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG);
       }
@@ -981,11 +981,11 @@ void sendCanMsg_35e_370_371()
 
 /*
  * Data 0 + 1:
- * CVL: Battery Charge Voltage (data type : 16bit unsigned int, byte order : little endian, scale factor : 0.1, unit : V) 
+ * CVL: Battery Charge Voltage (data type : 16bit unsigned int, byte order : little endian, scale factor : 0.1, unit : V)
  * Data 2 + 3:
- * CCL: DC Charge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A) 
+ * CCL: DC Charge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
  * Data 4 + 5:
- * DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A) 
+ * DCL: DC Discharge Current Limitation (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
 */
 void sendCanMsg_351()
 {
@@ -997,7 +997,7 @@ void sendCanMsg_351()
   //@ToDo: Fehler feststellen
 
   if (errors!=0) //wenn Fehler
-  {    
+  {
     msgData.chargevoltagelimit  = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0);
     msgData.maxchargecurrent    = 0;
     msgData.maxdischargecurrent = 0;
@@ -1010,7 +1010,7 @@ void sendCanMsg_351()
     /*******************************
      * Ladespannung
      *******************************/
-    uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0); 
+    uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0);
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(u16_lChargeVoltage);
     msgData.chargevoltagelimit = u16_lChargeVoltage;
     if(u8_mMqttTxTimer==15)
@@ -1030,7 +1030,7 @@ void sendCanMsg_351()
       int16_t i16_lMaxChargeCurrentOld=i16_mMaxChargeCurrent;
       int16_t i16_lMaxChargeCurrent = (int16_t)(WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_CURRENT,0,DT_ID_PARAM_BMS_MAX_CHARGE_CURRENT));
       //u8_mModulesCntCharge=1;
-      
+
       //Maximalen Ladestrom aus den einzelnen Packs errechnen
       if(u8_mBmsDatasourceAdd>0)
       {
@@ -1127,8 +1127,8 @@ void sendCanMsg_351()
       #ifdef CAN_DEBUG
       BSC_LOGI(TAG,"dischargeCurrent Pack:%i",i16_lMaxDischargeCurrent);
       #endif
-      
-      
+
+
       i16_lMaxDischargeCurrentList[0] = calcEntladestromZellspanung(i16_lMaxDischargeCurrent);
 
       //Bestimmt kleinsten Entladestrom aller Optionen
@@ -1159,7 +1159,7 @@ void sendCanMsg_351()
   inverterData.calcChargeCurrentSoc = i16_lMaxChargeCurrentList[1];
   inverterData.calcChargeCurrentCelldrift = i16_lMaxChargeCurrentList[2];
   inverterData.calcChargeCurrentCutOff = i16_lMaxChargeCurrentList[3];
-  
+
   inverterData.calcDischargeCurrentCellVoltage = i16_lMaxDischargeCurrentList[0];
   xSemaphoreGive(mInverterDataMutex);
 
@@ -1171,9 +1171,9 @@ void sendCanMsg_351()
 
 /* SOC
  * Data 0 + 1:
- * SOC Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %) 
+ * SOC Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
  * Data 2 + 3:
- * SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %) 
+ * SOH Value (data type : 16bit unsigned int, byte order : little endian, scale factor : 1, unit : %)
  */
 void sendCanMsg_355()
 {
@@ -1188,24 +1188,30 @@ void sendCanMsg_355()
   }
   else
   {
+    uint8_t u8_numberOfSocs=0;
+    uint16_t u16_avgSoc=0;
     msgData.soc=0;
 
-    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
-    
+    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+    {
+      msgData.soc = u16_avgSoc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+      u8_numberOfSocs++;
+    }
+
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
-    if(u8_mBmsDatasourceAdd==0 || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_AVG || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_MAX)
+    if(u8_mBmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
     {
       for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
       {
-        if((u8_mBmsDatasourceAdd>>i)&0x01)
+        if(isBitSet(u8_mBmsDatasourceAdd,i))
         {
           if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
           {
             if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
             {
-              msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
-              msgData.soc/=2;
+              u16_avgSoc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+              u8_numberOfSocs++;
             }
             else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
             {
@@ -1214,8 +1220,10 @@ void sendCanMsg_355()
           }
         }
       }
+
+      if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG) msgData.soc = (u16_avgSoc/u8_numberOfSocs);
     }
-    else if(u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
+    else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
     {
       uint8_t u8_lSocBmsNr = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
@@ -1248,11 +1256,11 @@ void sendCanMsg_355()
 
 /* Battery voltage
  * Data 0 + 1:
- * Battery Voltage (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.01, unit : V) 
+ * Battery Voltage (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.01, unit : V)
  * Data 2 + 3:
- * Battery Current (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A) 
+ * Battery Current (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : A)
  * Data 4 + 5:
- * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC) 
+ * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
  */
 void sendCanMsg_356()
 {
@@ -1271,7 +1279,7 @@ void sendCanMsg_356()
     for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
     {
       //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-      if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT)) 
+      if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
       {
           msgData.voltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100);
           break;
@@ -1293,8 +1301,8 @@ void sendCanMsg_356()
     long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
     #endif
     //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-    if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT)) 
-    {   
+    if(((u8_mBmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
+    {
       isOneBatteryPackOnline=true;
       msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
       #ifdef CAN_DEBUG
@@ -1370,20 +1378,20 @@ void sendCanMsg_359()
 
   /*bmsErrors
   #define BMS_ERR_STATUS_OK                0
-  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection 
-  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection    
-  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection 
-  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection     
-  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection 
-  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection 
-  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection  
-  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection   
-  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection 
-  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection       
-  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection              
-  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error 
-  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS 
-  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection
+  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection
+  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection
+  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection
+  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection
+  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection
+  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection
+  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection
+  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection
+  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection
+  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection
+  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error
+  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS
+  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved
   #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
   #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
@@ -1399,10 +1407,10 @@ void sendCanMsg_359()
   4: Battery low temp
   5: -
   6: -
-  7: Discharge over current 
+  7: Discharge over current
 
   Data 1 (Alarm)
-  0: Charge over current 
+  0: Charge over current
   1: -
   2: -
   3: System error
@@ -1419,10 +1427,10 @@ void sendCanMsg_359()
   4: Battery low temp
   5: -
   6: -
-  7: Discharg high current 
+  7: Discharg high current
 
   Data 3 (Warning)
-  0: Charge high current 
+  0: Charge high current
   1: -
   2: -
   3: System error
@@ -1436,7 +1444,7 @@ void sendCanMsg_359()
   Data 6: 0x4E
   Data 6: -
   */
- 
+
   uint32_t u32_bmsErrors = getBmsErrors(u8_mBmsDatasource);
 
   if(u8_mBmsDatasourceAdd>0)
@@ -1461,10 +1469,10 @@ void sendCanMsg_359()
   if((u32_bmsErrors&BMS_ERR_STATUS_DSG_OTP)==BMS_ERR_STATUS_DSG_OTP) msgData.u8_b0 |= B00001000;      //3: Battery high temp
   if((u32_bmsErrors&BMS_ERR_STATUS_DSG_UTP)==BMS_ERR_STATUS_DSG_UTP) msgData.u8_b0 |= B00010000;      //4: Battery low temp
 
-  if((u32_bmsErrors&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) msgData.u8_b0 |= B10000000;      //7: Discharge over current 
+  if((u32_bmsErrors&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) msgData.u8_b0 |= B10000000;      //7: Discharge over current
 
   msgData.u8_b1=0;
-  if((u32_bmsErrors&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) msgData.u8_b1 |= B00000001;              //0: Charge high current 
+  if((u32_bmsErrors&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) msgData.u8_b1 |= B00000001;              //0: Charge high current
   if((u32_bmsErrors&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b1 |= B00001000;  //3: System error
   if((u32_bmsErrors&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) msgData.u8_b1 |= B00001000;          //3: System error
   if((u32_bmsErrors&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b1 |= B00001000;      //3: System error
@@ -1515,20 +1523,20 @@ void sendCanMsg_35a()
 
   /*bmsErrors
   #define BMS_ERR_STATUS_OK                0
-  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection 
-  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection    
-  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection 
-  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection     
-  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection 
-  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection 
-  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection  
-  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection   
-  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection 
-  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection       
-  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection              
-  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error 
-  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS 
-  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+  #define BMS_ERR_STATUS_CELL_OVP          1  x //bit0  single cell overvoltage protection
+  #define BMS_ERR_STATUS_CELL_UVP          2  x //bit1  single cell undervoltage protection
+  #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  whole pack overvoltage protection
+  #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  Whole pack undervoltage protection
+  #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature protection
+  #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature protection
+  #define BMS_ERR_STATUS_DSG_OTP          64  x //bit6  Discharge over temperature protection
+  #define BMS_ERR_STATUS_DSG_UTP         128  x //bit7  discharge low temperature protection
+  #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging overcurrent protection
+  #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge overcurrent protection
+  #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  x //bit10 short circuit protection
+  #define BMS_ERR_STATUS_AFE_ERROR      2048  x //bit11 Front-end detection IC error
+  #define BMS_ERR_STATUS_SOFT_LOCK      4096  x //bit12 software lock MOS
+  #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved
   #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
   #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
@@ -1569,7 +1577,7 @@ void sendCanMsg_35a()
 
   // 0 (bit 0+1) n.b.
   msgData.u8_b0 |= BB0_OK;
-    
+
   // 0 (bit 2+3) Battery high voltage alarm
   msgData.u8_b0 |= (((u32_bmsErrors&BMS_ERR_STATUS_BATTERY_OVP)==BMS_ERR_STATUS_BATTERY_OVP) ||
     ((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP))? BB1_ALARM : BB1_OK;
@@ -1592,7 +1600,7 @@ void sendCanMsg_35a()
 
   // 1 (bit 6+7) Battery high discharge current alarm
   msgData.u8_b1 |= ((u32_bmsErrors&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) ? BB3_ALARM : BB3_OK;
-  
+
   // 2 (bit 0+1) Battery high charge current alarm
   msgData.u8_b2 |= ((u32_bmsErrors&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) ? BB0_ALARM : BB0_OK;
 
@@ -1603,8 +1611,8 @@ void sendCanMsg_35a()
   msgData.u8_b2 |= BB2_OK;
 
   // 2 (bit 6+7) BMS internal alarm
-  msgData.u8_b2 |= (((u32_bmsErrors&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) || 
-    ((u32_bmsErrors&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) || 
+  msgData.u8_b2 |= (((u32_bmsErrors&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) ||
+    ((u32_bmsErrors&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) ||
     ((u32_bmsErrors&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SOFT_LOCK)) ? BB3_ALARM : BB3_OK;
 
   // 3 (bit 0+1) Cell imbalance alarm
@@ -1791,7 +1799,7 @@ void sendCanMsgBmsData()
   msgDataBms1.stateBalancingActive = getBmsIsBalancingActive(u8_mCanSendDataBmsNumber);
   sendCanMsg(u16_lCanId, (uint8_t *)&msgDataBms1, sizeof(dataBms1));
   u16_lCanId++;
-  
+
   msgDataBms2.value1 = (int16_t)(getBmsBalancingCurrent(u8_mCanSendDataBmsNumber)*100);
   sendCanMsg(u16_lCanId, (uint8_t *)&msgDataBms2, sizeof(dataBms2));
   u16_lCanId++;
@@ -1804,7 +1812,7 @@ void sendCanMsgBmsData()
 /*void onCanReceive(int packetSize)
 {
   u32_lastCanId = CAN.packetId();
-  
+
   if (CAN.packetRtr())
   {
     //requested length
