@@ -23,6 +23,7 @@ int16_t owTempsC_AvgCalc[MAX_ANZAHL_OW_SENSOREN];
 
 uint8_t cycleCounter;
 bool firstMeasurement;
+uint32_t owReadErrorTimer;
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(OW_PIN);
@@ -77,6 +78,7 @@ precision | time
 */
 void owSetup()
 {
+  owReadErrorTimer=0;
   cycleCounter=0;
   firstMeasurement=true;
   owMutex = xSemaphoreCreateMutex();
@@ -96,29 +98,24 @@ void takeOwSensorAddress()
   xSemaphoreGive(owMutex);
 }
 
-uint8_t owReadErrors[32];
-void addErrorCounter(uint8_t sensorNr)
+void addErrorCounter()
 {
-    uint8_t m = sensorNr % 2;
-    uint8_t u8_lOwErrors = ((owReadErrors[sensorNr/2] >> (m * 4)) & 0xF);
-    if (u8_lOwErrors < 0xF)
-    {
-        u8_lOwErrors++;
-        owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
-        owReadErrors[sensorNr/2] |= (u8_lOwErrors << (m * 4));
-    }
+  if(owReadErrorTimer==0)
+  {
+    owReadErrorTimer=millis();
+    if(owReadErrorTimer==0)owReadErrorTimer=1;
+  }
 }
 
-void resetErrorCounter(uint8_t sensorNr)
+void resetErrorCounter()
 {
-  uint8_t m = sensorNr % 2;
-  owReadErrors[sensorNr/2] &= ~(0xF << (m * 4));
+  owReadErrorTimer=0;
 }
 
-uint8_t getErrorCounter(uint8_t sensorNr)
+uint8_t getErrorCounter()
 {
-    uint8_t m = sensorNr % 2;
-    return ((owReadErrors[sensorNr / 2] >> (m * 4)) & 0xF);
+  if(owReadErrorTimer==0) return 0;
+  return (millis()-owReadErrorTimer)/1000;
 }
 
 
@@ -166,6 +163,7 @@ void filter(uint8_t sensNr, float fNew) //fCurrent
 void getTempC_allDevices(bool tempToOutBuffer)
 {
   float tempC;
+  bool bo_lsensorHasError=false;
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
     if(owAddr[i][0]>0)
@@ -178,14 +176,12 @@ void getTempC_allDevices(bool tempToOutBuffer)
           //BSC_LOGI(TAG, "Error read temp: seonsor=%i, r=%i",i,r);
           if(r==2)
           {
-            addErrorCounter(i);
+            bo_lsensorHasError=true;
             //BSC_LOGI(TAG, "Error sensor %i nicht lesbar",i); //ToDo Fehlerzähler addieren
           }
         }
         else
         {
-          resetErrorCounter(i);
-
           //Offset abziehen
           tempC += (int16_t)(WebSettings::getFloat(ID_PARAM_ONWIRE_TEMP_OFFSET,i)*100);
 
@@ -205,6 +201,9 @@ void getTempC_allDevices(bool tempToOutBuffer)
     }
   }
 
+  if(bo_lsensorHasError) addErrorCounter();
+  else resetErrorCounter();
+
   if(firstMeasurement){firstMeasurement=false;}
 }
 
@@ -215,27 +214,9 @@ float owGetTemp(uint8_t sensNr)
 }
 
 
-uint8_t owGetSensorError(uint8_t sensNr)
-{
-  return getErrorCounter(sensNr);
-}
-
-
 uint8_t owGetAllSensorError()
 {
- uint8_t u8_maxErrors=0;
- uint8_t u8_errors=0;
-
- for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
- {
-  if(getErrorCounter(i)>0)
-  {
-    u8_errors=(owTempsC[i]-TEMP_IF_SENSOR_READ_ERROR+1);
-    if(u8_errors>u8_maxErrors)u8_maxErrors=u8_errors;
-  }
- }
-
- return u8_maxErrors;
+  return getErrorCounter();
 }
 
 

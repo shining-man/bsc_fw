@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.5.7"
+#define BSC_SW_VERSION      "V0.5.9"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -35,10 +35,10 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
-//#define MQTT_DEBUG        
+//#define MQTT_DEBUG
 //#define GOBEL_DEBUG
 //#define GOBELPC200_DEBUG
-//#define WLAN_DEBUG        
+//#define WLAN_DEBUG
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define CAN_DEBUG_STATUS
@@ -57,10 +57,10 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
-//#define MQTT_DEBUG        
+//#define MQTT_DEBUG
 //#define GOBEL_DEBUG
 #define GOBELPC200_DEBUG
-#define WLAN_DEBUG        
+#define WLAN_DEBUG
 //#define WLAN_DEBUG2
 //#define CAN_DEBUG
 //#define CAN_DEBUG_STATUS
@@ -159,10 +159,10 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 //BMS Data
 #define SERIAL_BMS_EXT_COUNT        8
 
-#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1 
-#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1 
-#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1 
-#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1 
+#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
+#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1
+#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1
+#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1
 #define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
 
 
@@ -192,7 +192,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
  * Parameter IDs
  *********************************************/
 #define ID_PARAM_SERIAL_CONNECT_DEVICE               1
-#define ID_PARAM_SERIAL_ALARM_AKTION                 6          
+#define ID_PARAM_SERIAL_ALARM_AKTION                 6
 // ID_PARAM_SERIAL_ALARM_AKTION: 0=AUS; 1-5=Alarm 1-5
 #define ID_PARAM_SERIAL_ALARM_TIME_OUT               7
 
@@ -211,7 +211,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_ALARM_BT_CELL_SPG_MAX              16
 #define ID_PARAM_ALARM_BTDEV_ALARM_AKTION           17
 #define ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION     18
-#define ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION   19          
+#define ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION   19
 // ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION: 0=AUS; 1-5=Alarm 1-5
 
 #define ID_PARAM_TEMP_ALARM                         20
@@ -230,6 +230,11 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_DI_INVERTIERT                      34
 #define ID_PARAM_DI_ALARM_NR                        35
+
+#define ID_PARAM_WLAN_IP_ADRESSE                    36
+#define ID_PARAM_WLAN_GATEWAY                       37
+#define ID_PARAM_WLAN_SUBNET                        38
+#define ID_PARAM_WLAN_DNS                           39
 
 #define ID_PARAM_WLAN_SSID                          40
 #define ID_PARAM_WLAN_PWD                           41
@@ -275,7 +280,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_MQTT_USERNAME                                          86
 #define ID_PARAM_MQTT_PWD                                               87
 
-#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN                     88 
+#define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN                     88
 #define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG                    89
 #define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SOC                    90
 #define ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME                   91
@@ -416,7 +421,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_GET_SLAVE_DATA                0x0A  //
 
 //BMS_DATA 0x01
-#define BMS_CELL_VOLTAGE                  0x01  
+#define BMS_CELL_VOLTAGE                  0x01
 #define BMS_TOTAL_VOLTAGE                 0x02
 #define BMS_MAX_CELL_DIFFERENCE_VOLTAGE   0x03
 #define BMS_AVG_VOLTAGE                   0x04
@@ -433,14 +438,14 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BMS_LAST_DATA_MILLIS              0x0F
 
 //INVERTER_DATA 0x02
-#define INVERTER_VOLTAGE                  0x01 
-#define INVERTER_CURRENT                  0x02 
-#define INVERTER_SOC                      0x03 
-#define INVERTER_CHARGE_CURRENT           0x04 
-#define INVERTER_DISCHARG_CURRENT         0x05 
+#define INVERTER_VOLTAGE                  0x01
+#define INVERTER_CURRENT                  0x02
+#define INVERTER_SOC                      0x03
+#define INVERTER_CHARGE_CURRENT           0x04
+#define INVERTER_DISCHARG_CURRENT         0x05
 
 //BSC_DATA 0x03
-#define BSC_ALARMS                        0x01 
+#define BSC_ALARMS                        0x01
 #define BSC_IP_ADDR                       0x02
 #define BSC_RELAIS                        0x03
 #define BSC_DISPLAY_TIMEOUT               0x04
@@ -549,7 +554,7 @@ static const char* mqttHAUnit[] PROGMEM = {
 #define MQTT_TOPIC2_TOTAL_CURRENT               23
 #define MQTT_TOPIC2_FULL_CAPACITY               24
 #define MQTT_TOPIC2_BALANCE_STATUS              25
-#define MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL      26 
+#define MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL      26
 #define MQTT_TOPIC2_CHARGED_ENERGY              27
 #define MQTT_TOPIC2_DISCHARGED_ENERGY           28
 #define MQTT_TOPIC2_CHARGE_CURRENT_SOLL         29

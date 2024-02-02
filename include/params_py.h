@@ -1,5 +1,5 @@
 /* Copyright (c) 2022 tobias
- * 
+ *
  * This software is released under the MIT License.
  * https://opensource.org/licenses/MIT
  */
@@ -126,6 +126,45 @@ const String paramSystem PROGMEM = "{'page':["
     "'max':3600,"
     "'dt':"+String(PARAM_DT_U16)+","
     "'help':'Der Timeout gibt an, nach welcher Zeit ein Verbindungsversuch abgebrochen wird und ein Accesspoint erstellt wird.\n0 deaktiviert den Timeout.'"
+  "},"
+
+  "{"
+    "'label':'Static IP',"
+    "'type':"+String(HTML_SEPARATION)+""
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_WLAN_IP_ADRESSE)+","
+    "'label':'IP-Adresse',"
+    "'type':"+String(HTML_INPUTTEXT)+","
+    "'default':'',"
+    "'dt':"+String(PARAM_DT_ST)+","
+    "'flash':'1',"
+    "'help':'Wenn die IP-Adresse leer ist, dann ist DHCP aktiv'"
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_WLAN_GATEWAY)+","
+    "'label':'Gateway',"
+    "'type':"+String(HTML_INPUTTEXT)+","
+    "'default':'',"
+    "'dt':"+String(PARAM_DT_ST)+","
+    "'flash':'1'"
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_WLAN_SUBNET)+","
+    "'label':'Subnet',"
+    "'type':"+String(HTML_INPUTTEXT)+","
+    "'default':'255.255.255.0',"
+    "'dt':"+String(PARAM_DT_ST)+","
+    "'flash':'1'"
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_WLAN_DNS)+","
+    "'label':'DNS',"
+    "'type':"+String(HTML_INPUTTEXT)+","
+    "'default':'',"
+    "'dt':"+String(PARAM_DT_ST)+","
+    "'help':'Optional',"
+    "'flash':'1'"
   "},"
 
   "{"
@@ -304,8 +343,8 @@ const String paramBluetooth PROGMEM = "{'page':["
   "'btn':[{'name':'save-btn','label':'Save'}],"
   "'timer':[{'type':'text','interval':2000}]"
   "}";
-  
- 
+
+
 const String paramSerial PROGMEM = "{'page':["
   "{"
     "'label':'Serielle Schnitstellen',"
@@ -445,7 +484,7 @@ const String paramSerial PROGMEM = "{'page':["
         "'min':0,"
         "'max':5000,"
         "'dt':"+String(PARAM_DT_U16)+""
-      "}"      
+      "}"
     "]"
   "}"
   "],"
@@ -1254,7 +1293,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'max':100,"
     "'dt':"+String(PARAM_DT_U8)+","
     "'help':'Die Reduzierung bezieht sich auf den eingestellten Maximalstrom'"
-  "},"  
+  "},"
 
   // Entladestrom Zell-Spannungsabhängig drosseln'
   "{"
@@ -1294,7 +1333,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'dt':"+String(PARAM_DT_U8)+""
   "},"
 
-  //Bei unterschreiten von Zellspannung melde SoC x% 
+  //Bei unterschreiten von Zellspannung melde SoC x%
   "{"
     "'label':'SoC beim Unterschreiten der Zellspannung',"
     "'type':"+String(HTML_SEPARATION)+","
@@ -1337,7 +1376,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'min':1,"
     "'max':100,"
     "'dt':"+String(PARAM_DT_U8)+""
-  "},"  
+  "},"
   "{"
     "'name':"+String(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME)+","
     "'label':'Sperrzeit zwischen zwei Nachladungen',"
@@ -1347,9 +1386,9 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'min':0,"
     "'max':3600,"
     "'dt':"+String(PARAM_DT_U16)+""
-  "}," 
+  "},"
 
-  // Wenn eine Zelle z.B. >3.4V ist und das Delta zwischen größter und kleinster größer als z.B. 5mV ist, 
+  // Wenn eine Zelle z.B. >3.4V ist und das Delta zwischen größter und kleinster größer als z.B. 5mV ist,
   // dann Ladespannung reduzieren.
   "{"
     "'label':'Dynamische Ladespannungsbegrenzung (Beta!)',"
@@ -1400,7 +1439,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'min':0,"
     "'max':30000,"
     "'dt':"+String(PARAM_DT_U16)+""
-  "}," 
+  "},"
   "{"
     "'name':"+String(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT)+","
     "'label':'Cut-Off Strom',"
@@ -1410,7 +1449,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'min':0,"
     "'max':1000,"
     "'dt':"+String(PARAM_DT_FL)+""
-  "}," 
+  "},"
   "{"
     "'name':"+String(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC)+","
     "'label':'SoC Ladung freigeben',"
@@ -1420,7 +1459,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
     "'min':1,"
     "'max':100,"
     "'dt':"+String(PARAM_DT_U8)+""
-  "}," 
+  "},"
 
   //Trigger bei SoC
   "{"
@@ -1444,7 +1483,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
           "],"
         "'default':'0',"
         "'dt':"+String(PARAM_DT_U8)+""
-    "}," 
+    "},"
     "{"
       "'name':"+String(ID_PARAM_TRIGGER_AT_SOC_ON)+","
       "'label':'SoC - Trigger ein',"
@@ -1454,7 +1493,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
       "'min':1,"
       "'max':100,"
       "'dt':"+String(PARAM_DT_U8)+""
-    "}," 
+    "},"
     "{"
       "'name':"+String(ID_PARAM_TRIGGER_AT_SOC_OFF)+","
       "'label':'SoC - Trigger aus',"
@@ -1464,7 +1503,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
       "'min':1,"
       "'max':100,"
       "'dt':"+String(PARAM_DT_U8)+""
-    "}" 
+    "}"
   "]}"
   "],"
   "'btn':[{'name':'save-btn','label':'Save'}]"
@@ -1563,7 +1602,7 @@ const String paramDeviceNeeyBalancer PROGMEM = "{'page':["
       "'dt':"+String(PARAM_DT_U8)+""
     "},"
     //Buzzer mode (Shut)
-    
+
     "{"
       "'name':"+String(ID_PARAM_NEEY_BALANCER_ON)+","
       "'label':'Balancer On',"
@@ -1583,7 +1622,7 @@ const String paramDeviceNeeyBalancer PROGMEM = "{'page':["
   "'btn':[{'name':'save-btn','label':'Save'},{'label':'Read from NEEY','name':'read-btn'},{'label':'Write to NEEY','name':'write-btn'}],"
   "'timer':[{'type':'text','interval':2000}]"
   "}";
-  
+
 
 const String paramDeviceJbdBms PROGMEM = "{'page':["
   "{"
@@ -1611,9 +1650,9 @@ const String paramDeviceJbdBms PROGMEM = "{'page':["
   "],"
   "'btn':[{'name':'save-btn','label':'Save'}]"
   "}";
-  
 
-  
+
+
 
 const String paramDeviceBpn PROGMEM = "{'page':["
   // General
@@ -1844,4 +1883,4 @@ const String paramDeviceBpn PROGMEM = "{'page':["
   "'btn':[{'name':'save-btn','label':'Write to BPN'},{'name':'read-btn','label':'Read from BPN'}],"
   "'timer':[{'type':'json','interval':2000}]"
   "}";
-  
+
