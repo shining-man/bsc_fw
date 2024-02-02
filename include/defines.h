@@ -243,6 +243,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_MQTT_SERVER_ENABLE                 44
 #define ID_PARAM_MQTT_DEVICE_NAME                   45
 #define ID_PARAM_MQTT_TOPIC_NAME                    46
+#define ID_PARAM_MQTT_HA_DISCOVERY_ENABLE           47
 
 #define ID_PARAM_ONWIRE_ENABLE                      50
 #define ID_PARAM_ONEWIRE_ADR                        51
@@ -456,6 +457,81 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 /*********************************************
  * MQTT
  *********************************************/
+
+#define MQTT_HA_Unit_None         0
+#define MQTT_HA_Unit_Voltage      1
+#define MQTT_HA_Unit_mVoltage     2
+#define MQTT_HA_Unit_Current      3
+#define MQTT_HA_Unit_Battery      4
+#define MQTT_HA_Unit_Temperature  5
+#define MQTT_HA_Unit_Binary       6
+#define MQTT_HA_Unit_Sensor       7
+#define MQTT_HA_Unit_AmpereHour   8
+#define MQTT_HA_Unit_MAmpereHour  9
+#define MQTT_HA_Unit_Resistance  10
+#define MQTT_HA_Unit_Power       11
+
+// SensorType HA Discovery
+#define MQTT_HA_Type_None         0
+#define MQTT_HA_Type_Sensor       1
+#define MQTT_HA_Type_binarySensor 2
+
+static const char* mqttHAType[] PROGMEM = {
+  "",                 // 0
+  "sensor",           // 1
+  "binary_sensor"     // 2
+  };
+
+// SensorType HA Discovery
+
+static uint8_t mqttHATypeMap [12] = {
+  MQTT_HA_Type_None,             // 0
+  MQTT_HA_Type_Sensor,           // 1
+  MQTT_HA_Type_Sensor,           // 2
+  MQTT_HA_Type_Sensor,           // 3
+  MQTT_HA_Type_Sensor,           // 4
+  MQTT_HA_Type_Sensor,           // 5
+  MQTT_HA_Type_binarySensor,     // 6
+  MQTT_HA_Type_Sensor,           // 7
+  MQTT_HA_Type_Sensor,           // 8
+  MQTT_HA_Type_Sensor,           // 9
+  MQTT_HA_Type_Sensor,           // 10
+  MQTT_HA_Type_Sensor            // 11
+  };
+
+// DeviceClasses HA Discovery
+static const char* mqttHADeviceClass[] PROGMEM = {
+  "",               // 0
+  "voltage",        // 1
+  "voltage",        // 2
+  "current",        // 3
+  "battery",        // 4
+  "temperature",    // 5
+  "",               // 6
+  "",               // 7
+  "",               // 8
+  "",               // 9
+  "",               // 10
+  "power"           // 11
+  };
+
+// Units HA Discovery
+static const char* mqttHAUnit[] PROGMEM = {
+  "",               // 0
+  "V",              // 1
+  "mV",             // 2
+  "A",              // 3
+  "%",              // 4
+  "°C",             // 5
+  "",               // 6
+  "",               // 7  
+  "Ah",             // 8 
+  "mAh",            // 9 
+  "Ohm",            // 10
+  "W"               // 11
+  };
+
+
 #define MQTT_TOPIC_BMS_BT                        1
 #define MQTT_TOPIC_TEMPERATUR                    2
 #define MQTT_TOPIC_ALARM                         3
@@ -507,6 +583,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT        52
 #define MQTT_TOPIC2_AMOUNT_DCH_ENERGY           53
 #define MQTT_TOPIC2_AMOUNT_CH_ENERGY            54
+#define MQTT_TOPIC2_TRIGGER                     55
 
 
 static const char* mqttTopics[] PROGMEM = {"", // 0
@@ -564,7 +641,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalVoltMaxCount",         // 52
   "amountDchEnergy",           // 53
   "amountChEnergy",            // 54
-  "",                          // 55
+  "Trigger",                   // 55
   "",                          // 56
   "",                          // 57
   "",                          // 58
@@ -572,7 +649,69 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "",                          // 60
   };
 
-
+static uint8_t mqttTopicsUnits [61] = {
+  MQTT_HA_Unit_None,        // 0
+  MQTT_HA_Unit_None,        // 1
+  MQTT_HA_Unit_Temperature, // 2
+  MQTT_HA_Unit_None,        // 3
+  MQTT_HA_Unit_None,        // 4
+  MQTT_HA_Unit_None,        // 5
+  MQTT_HA_Unit_None,        // 6
+  MQTT_HA_Unit_None,        // 7
+  MQTT_HA_Unit_None,        // 8
+  MQTT_HA_Unit_None,        // 9
+  MQTT_HA_Unit_None,        // 10
+  MQTT_HA_Unit_mVoltage,    // 11
+  MQTT_HA_Unit_mVoltage,    // 12
+  MQTT_HA_Unit_mVoltage,    // 13
+  MQTT_HA_Unit_Voltage,     // 14
+  MQTT_HA_Unit_mVoltage,    // 15
+  MQTT_HA_Unit_Sensor,         // 16
+  MQTT_HA_Unit_Current,        // 17
+  MQTT_HA_Unit_Temperature,    // 18
+  MQTT_HA_Unit_Battery,        // 19
+  MQTT_HA_Unit_Sensor,         // 20
+  MQTT_HA_Unit_AmpereHour,     // 21
+  MQTT_HA_Unit_Sensor,         // 22
+  MQTT_HA_Unit_Current,        // 23
+  MQTT_HA_Unit_AmpereHour,     // 24
+  MQTT_HA_Unit_None,           // 25
+  MQTT_HA_Unit_Current,        // 26  frei
+  MQTT_HA_Unit_MAmpereHour,    // 27
+  MQTT_HA_Unit_MAmpereHour,    // 28
+  MQTT_HA_Unit_Current,        // 29
+  MQTT_HA_Unit_Temperature,    // 30
+  MQTT_HA_Unit_Sensor,         // 31
+  MQTT_HA_Unit_Sensor,         // 32
+  MQTT_HA_Unit_None,           // 33
+  MQTT_HA_Unit_None,           // 34
+  MQTT_HA_Unit_None,           // 35
+  MQTT_HA_Unit_None,           // 36
+  MQTT_HA_Unit_None,           // 37
+  MQTT_HA_Unit_None,           // 38
+  MQTT_HA_Unit_Sensor,         // 39
+  MQTT_HA_Unit_Sensor,         // 40
+  MQTT_HA_Unit_Voltage,        // 41
+  MQTT_HA_Unit_Binary,         // 42
+  MQTT_HA_Unit_Resistance,     // 43
+  MQTT_HA_Unit_AmpereHour,     // 44
+  MQTT_HA_Unit_Power,          // 45
+  MQTT_HA_Unit_None,           // 46
+  MQTT_HA_Unit_None,           // 47
+  MQTT_HA_Unit_None,           // 48
+  MQTT_HA_Unit_None,           // 49
+  MQTT_HA_Unit_None,           // 50
+  MQTT_HA_Unit_None,           // 51
+  MQTT_HA_Unit_None,           // 52
+  MQTT_HA_Unit_None,           // 53
+  MQTT_HA_Unit_None,           // 54
+  MQTT_HA_Unit_Binary,         // 55
+  MQTT_HA_Unit_None,           // 56
+  MQTT_HA_Unit_None,           // 57
+  MQTT_HA_Unit_None,           // 58
+  MQTT_HA_Unit_None,           // 59
+  MQTT_HA_Unit_None            // 60
+};
 
 /*
  * BPN

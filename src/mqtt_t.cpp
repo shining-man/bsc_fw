@@ -42,6 +42,13 @@ bool     bmsDataSendFinsh=false;
 uint8_t  sendOwTemperatur_mqtt_sendeCounter=0;
 bool     owDataSendFinsh=false;
 
+const char* HA_CONFIG_TEMPLATE = "{ \"name\": \"%s\"%s, \"state_topic\": \"homeassistant/%s/state\"%s, \"value_template\": \"{{ value_json.%s}}\", \"unique_id\": \"%s\", \"device\": { \"identifiers\": [ \"%s\" ], \"name\": \"%s\" }}";
+int8_t t1last=0;
+int8_t t2last=0;
+int8_t t3last=0;
+String lastNameKurz = "";
+String PLbuf = "";
+
 //bool     bo_mSendPrioMessages=false;
 
 struct mqttEntry_s {
@@ -58,6 +65,7 @@ enum_smMqttConnectState smMqttConnectState;
 enum_smMqttConnectState smMqttConnectStateOld;
 
 bool mqttPublishLoopFromTxBuffer();
+void mqttpublishHADiscovery();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
@@ -72,7 +80,8 @@ void initMqtt()
   smMqttConnectState=SM_MQTT_DISCONNECTED;
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
   u8_mWaitConnectCounter=0;
-
+  PLbuf.reserve(512);
+    
   bo_mMqttEnable = WebSettings::getBool(ID_PARAM_MQTT_SERVER_ENABLE,0);
   if(!bo_mMqttEnable) return;
 
@@ -80,6 +89,7 @@ void initMqtt()
   {
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
     mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
+    mqttClient.setBufferSize(512);
     BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     mqttClient.setCallback(mqttCallback);
     mqttClient.setKeepAlive(30);
@@ -303,14 +313,28 @@ bool mqttPublishLoopFromTxBuffer()
 
     if(txBuffer.size()>0)
     {
-      struct mqttEntry_s mqttEntry = txBuffer.at(0);
 
-      String topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
-      if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
-      if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
-      if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
+      if(WebSettings::getBool(ID_PARAM_MQTT_HA_DISCOVERY_ENABLE,0))
+      {
 
-      mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
+        // HA Discovery Nachrichten
+        mqttpublishHADiscovery();
+
+      }
+      else
+      {
+        // Standart MQTT Nachrichten
+
+        struct mqttEntry_s mqttEntry = txBuffer.at(0);
+        String topic;
+
+        topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
+        if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
+        if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
+        if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
+        mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
+      }
+
       txBuffer.pop_front();
     }
 
@@ -320,6 +344,177 @@ bool mqttPublishLoopFromTxBuffer()
     u32_mMqttPublishLoopTimmer=millis();
   }
   return true;
+}
+
+void mqttpublishHADiscovery()
+{
+
+        // MQTT Home Assistant Discovery
+        // -----------------------------------
+
+        char buf[512];
+        struct mqttEntry_s mqttEntry = txBuffer.at(0);
+        String topic;
+        topic.reserve(512);
+
+        String NameLang = "";
+        String NameKurz = "";
+
+        switch ( mqttEntry.t1 )
+        {
+          case MQTT_TOPIC_BMS_SERIAL:
+              NameLang = "BMS Serial";
+              NameKurz = "BMSSerial";
+              break;
+          case MQTT_TOPIC_BMS_BT:
+              NameLang = "BMS BT";
+              NameKurz = "BMSBT";
+              break;
+          case MQTT_TOPIC_INVERTER:
+              NameLang = "Inverter";
+              NameKurz = "Inverter";
+              break;
+          case MQTT_TOPIC_TEMPERATUR:
+              NameLang = "Onewire";
+              NameKurz = "Onewire";
+              mqttEntry.t3 = MQTT_TOPIC2_TEMPERATURE;
+              mqttEntry.t4 = mqttEntry.t2;
+              mqttEntry.t2 = -1;
+              break;
+          case MQTT_TOPIC_ALARM:
+              NameLang = "Alarm";
+              NameKurz = "Alarm";
+              mqttEntry.t3 = MQTT_TOPIC2_TRIGGER;
+              mqttEntry.t4 = mqttEntry.t2;
+              mqttEntry.t2 = -1;
+              break;
+          case MQTT_TOPIC_SYS:
+              NameLang = "System";
+              NameKurz = "System";
+              // Bis jetzt keine Daten
+              break;
+        }
+
+        /* 
+        ########################################
+        Erstellen des Config eines Sensors
+        ########################################
+        */
+
+          // Topic
+          topic = "homeassistant/";
+          topic += mqttHAType[mqttHATypeMap[mqttTopicsUnits[mqttEntry.t3]]];
+          topic += "/" + str_mMqttTopicName + "_" + NameKurz ;
+          if(mqttEntry.t2!=-1){topic+="_" + String(mqttEntry.t2);}
+          if(mqttEntry.t3!=-1){topic+="_"; topic+=mqttTopics[mqttEntry.t3];}
+          if(mqttEntry.t4!=-1){topic+=String(mqttEntry.t4);}
+          topic+="/config";
+
+          // Payload
+          String PLName = str_mMqttTopicName + " " + NameLang ;
+          if(mqttEntry.t2!=-1){PLName+=" " + String(mqttEntry.t2);}
+          if(mqttEntry.t3!=-1){PLName+=" "; PLName+=mqttTopics[mqttEntry.t3];}
+          if(mqttEntry.t4!=-1){PLName+=String(mqttEntry.t4);}
+
+          String PLStateTopic = mqttHAType[mqttHATypeMap[mqttTopicsUnits[mqttEntry.t3]]];
+          PLStateTopic += "/" + str_mMqttTopicName + "_" + NameKurz;
+          if(mqttEntry.t2!=-1){PLStateTopic+="_"+String(mqttEntry.t2);}
+
+          String PLDeviceClass = ""; 
+          if(mqttHADeviceClass[mqttTopicsUnits[mqttEntry.t3]]!="")
+          {
+          PLDeviceClass = ", \"device_class\": \"";
+          PLDeviceClass += mqttHADeviceClass[mqttTopicsUnits[mqttEntry.t3]];
+          PLDeviceClass += "\" ";
+          }
+
+          String PLUnit = "";  
+          if(mqttHAUnit[mqttTopicsUnits[mqttEntry.t3]]!="")
+          {
+          PLUnit = ", \"unit_of_measurement\": \"";
+          PLUnit += mqttHAUnit[mqttTopicsUnits[mqttEntry.t3]];
+          PLUnit += "\" ";
+          }
+
+
+          String PLValueTemplate = mqttTopics[mqttEntry.t3];
+          if(mqttEntry.t4!=-1){PLValueTemplate+=String(mqttEntry.t4);}
+
+          String PLUniqueID = str_mMqttTopicName + NameKurz;
+          if(mqttEntry.t2!=-1){PLUniqueID+=String(mqttEntry.t2);}
+          if(mqttEntry.t3!=-1){PLUniqueID+=mqttTopics[mqttEntry.t3];}
+          if(mqttEntry.t4!=-1){PLUniqueID+=String(mqttEntry.t4);}
+
+          String PLDevIndentifier = str_mMqttTopicName + NameKurz;
+          if(mqttEntry.t2!=-1){PLDevIndentifier+=String(mqttEntry.t2);}
+          String PLDevName = str_mMqttTopicName + " " + NameLang;
+          if(mqttEntry.t2!=-1){PLDevName+= " " + String(mqttEntry.t2);}
+
+          sprintf(buf,HA_CONFIG_TEMPLATE,F(PLName.c_str()),F(PLDeviceClass.c_str()),F(PLStateTopic.c_str()),F(PLUnit.c_str()),F(PLValueTemplate.c_str()),F(PLUniqueID.c_str()),F(PLDevIndentifier.c_str()),F(PLDevName.c_str())  );
+
+          mqttClient.publish(topic.c_str(),buf);
+
+          /*
+          *************************************
+          Erstellen der Zyklischen Daten
+          *************************************        
+          */ 
+
+          // Wenn Sensortyp Binary Sensor, dann ändere die Values in ON und OFF
+        if(mqttHATypeMap[mqttTopicsUnits[mqttEntry.t3]]==MQTT_HA_Type_binarySensor)
+        {
+          if(mqttEntry.value=="0"){mqttEntry.value="\"OFF\"";}
+          if(mqttEntry.value=="1"){mqttEntry.value="\"ON\"";}
+        }
+
+        // Daten zusammenstellen (wenn String zu Lang, sende Daten immer)
+        if((t1last==mqttEntry.t1&&t2last==mqttEntry.t2&&mqttHATypeMap[mqttTopicsUnits[t3last]]==mqttHATypeMap[mqttTopicsUnits[mqttEntry.t3]])&&PLbuf.length()<450)
+        {
+          // Wenn die Nachricht vom gleichen Gerät, dann füge zusamen
+          PLbuf += ", \"";
+          PLbuf += mqttTopics[mqttEntry.t3];
+          if(mqttEntry.t4!=-1){PLbuf+=String(mqttEntry.t4);}  
+          PLbuf += "\": " + mqttEntry.value + " ";       
+        }
+        else
+        {
+          // Nachricht von einem anderen Gerät
+          if(!PLbuf.isEmpty())
+          {
+            // Erst mal alte Nachricht senden
+
+            // Topic
+            topic = "homeassistant/";
+            topic += mqttHAType[mqttHATypeMap[mqttTopicsUnits[t3last]]];
+            topic += "/" + str_mMqttTopicName + "_" + lastNameKurz ;
+            if(t2last!=-1){topic+="_" + String(t2last);}
+            topic+="/state";
+
+            // Payload abschliessen
+            PLbuf += " }";
+
+            // Nachricht senden
+            mqttClient.publish(topic.c_str(),PLbuf.c_str()); 
+
+            // Puffer leeren
+            PLbuf.clear();
+          }
+
+          // Puffer leer -> Neue Nachricht generieren
+          PLbuf = "{ \"";
+          PLbuf += mqttTopics[mqttEntry.t3];
+          if(mqttEntry.t4!=-1){PLbuf+=String(mqttEntry.t4);}  
+          PLbuf += "\": " + mqttEntry.value + " "; 
+
+          // Speichern von wem die Nachricht kam
+          t1last = mqttEntry.t1; 
+          t2last = mqttEntry.t2;
+          t3last = mqttEntry.t3;
+          lastNameKurz = NameKurz;
+
+        }
+
+
 }
 
 
