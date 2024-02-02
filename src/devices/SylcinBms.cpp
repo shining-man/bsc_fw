@@ -59,18 +59,8 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   #endif
 
   // Kleine Pause zwischen den Packs
-  if(u8_lSylcinAdr>1)
-  {
-    uint32_t u32_lStartTime=millis();
-
-      for(;;)
-      {
-        if(millis()-u32_lStartTime>50) break;
-        vTaskDelay(pdMS_TO_TICKS(10));
-      }
-
-  }
-
+  if(u8_lSylcinAdr>1)vTaskDelay(pdMS_TO_TICKS(50));
+ 
   getDataFromBms(u8_lSylcinAdr, 0x42);
   if(recvAnswer(response))
   {
