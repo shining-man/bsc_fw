@@ -11,26 +11,38 @@
 #include <types/Bitfields.hpp>
 #include <devices/jkbms/JkBmsTypes.hpp>
 
+/**
+ * @file
+ * This header provides some type definitions for the BmsData module.
+ * Actually this is mainly the bitfield definition of the BmsErrorStatus bits
+ * and the conversion from the device status to the BmsErrorStatus
+ *
+*/
+
+/** Bit definition for the BmsErrorStatus bitfields
+ *  This enum class defines the bits used in the BmsErrorStatus bitfield
+*/
 enum class BmsErrorBits
 {
-  CELL_OVP,        // single cell overvoltage protection status flag
-  CELL_UVP,        // single cell undervoltage protection status flag
-  BATTERY_OVP,     // whole pack overvoltage protection status flag
-  BATTERY_UVP,     // whole pack undervoltage protection status flag
-  CHG_OTP,         // charging over temperature protection status flag
-  CHG_UTP,         // charging low temperature protection status flag
-  DCHG_OTP,        // Discharge over temperature protection status flag
-  DCHG_UTP,        // discharge low temperature protection status flag
-  CHG_OCP,         // charging overcurrent protection status flag
-  DCHG_OCP,        // Discharge overcurrent protection status flag
-  SHORT_CIRCUIT,   // short circuit protection status flag
-  AFE_ERROR,       // Front-end detection IC error status flag
-  SOFT_LOCK,       // software lock MOS status flag
-  RESERVED_BIT_13, // Reserved status flag
-  RESERVED_BIT_14, // Reserved status flag
-  RESERVED_BIT_15, // Reserved status flag
+  CELL_OVP,        //!< single cell overvoltage protection status flag
+  CELL_UVP,        //!< single cell undervoltage protection status flag
+  BATTERY_OVP,     //!< whole pack overvoltage protection status flag
+  BATTERY_UVP,     //!< whole pack undervoltage protection status flag
+  CHG_OTP,         //!< charging over temperature protection status flag
+  CHG_UTP,         //!< charging low temperature protection status flag
+  DCHG_OTP,        //!< Discharge over temperature protection status flag
+  DCHG_UTP,        //!< discharge low temperature protection status flag
+  CHG_OCP,         //!< charging overcurrent protection status flag
+  DCHG_OCP,        //!< Discharge overcurrent protection status flag
+  SHORT_CIRCUIT,   //!< short circuit protection status flag
+  AFE_ERROR,       //!< Front-end detection IC error status flag
+  SOFT_LOCK,       //!< software lock MOS status flag
+  RESERVED_BIT_13, //!< Reserved status flag
+  RESERVED_BIT_14, //!< Reserved status flag
+  RESERVED_BIT_15, //!< Reserved status flag
 };
 
+/** Type safe definition for the BmsErrorStatus bitfield */
 using BmsErrorStatus  = types::bf::Bitfields<uint16_t,                                           // The underlying type
                                              types::bf::Field<BmsErrorBits::RESERVED_BIT_15, 1>, // Field ID and its size (1bit)
                                              types::bf::Field<BmsErrorBits::RESERVED_BIT_14, 1>,
@@ -49,6 +61,11 @@ using BmsErrorStatus  = types::bf::Bitfields<uint16_t,                          
                                              types::bf::Field<BmsErrorBits::CELL_UVP,        1>,
                                              types::bf::Field<BmsErrorBits::CELL_OVP,        1>>;
 
+// Note:
+// Following constexpr variables are defined for legacy code.
+// Shall be removed after conversion of the whole source code to the type safe bitfield above.
+
+// Status bit index definitions
 constexpr std::size_t BMS_ERR_STATUS_CELL_OVP_BIT_IDX      { 0}; // Bit index of single cell overvoltage protection status flag
 constexpr std::size_t BMS_ERR_STATUS_CELL_UVP_BIT_IDX      { 1}; // Bit index of single cell undervoltage protection status flag
 constexpr std::size_t BMS_ERR_STATUS_BATTERY_OVP_BIT_IDX   { 2}; // Bit index of whole pack overvoltage protection status flag
@@ -66,6 +83,7 @@ constexpr std::size_t BMS_ERR_STATUS_RESERVED1_BIT_IDX     {13}; // Bit index of
 constexpr std::size_t BMS_ERR_STATUS_RESERVED2_BIT_IDX     {14}; // Bit index of Reserved status flag
 constexpr std::size_t BMS_ERR_STATUS_RESERVED3_BIT_IDX     {15}; // Bit index of Reserved status flag
 
+// Status bit value definitions
 constexpr uint16_t BMS_ERR_STATUS_OK            {0};
 constexpr uint16_t BMS_ERR_STATUS_CELL_OVP      {types::bf::bitIdxToValue<uint16_t>(BMS_ERR_STATUS_CELL_OVP_BIT_IDX)};      //      1 - bit0 single cell overvoltage protection
 constexpr uint16_t BMS_ERR_STATUS_CELL_UVP      {types::bf::bitIdxToValue<uint16_t>(BMS_ERR_STATUS_CELL_UVP_BIT_IDX)};      //      2 - bit1 single cell undervoltage protection
@@ -84,15 +102,21 @@ constexpr uint16_t BMS_ERR_STATUS_RESERVED1     {types::bf::bitIdxToValue<uint16
 constexpr uint16_t BMS_ERR_STATUS_RESERVED2     {types::bf::bitIdxToValue<uint16_t>(BMS_ERR_STATUS_RESERVED2_BIT_IDX)};     //  16384 - bit14 Reserved
 constexpr uint16_t BMS_ERR_STATUS_RESERVED3     {types::bf::bitIdxToValue<uint16_t>(BMS_ERR_STATUS_RESERVED3_BIT_IDX)};     //  32768 - bit15 Reserved
 
-template <typename TYPE>
-inline BmsErrorStatus bmsErrorFromMessage(const TYPE& bmsMsg);
+/**
+ * @brief Template method to convert a device specific error/warning message to the BmsErrorStatus.
+ * */
+template <typename DEVICE>
+inline BmsErrorStatus bmsErrorFromMessage(const DEVICE& bmsMsg);
 
-// Specialization for JkBmsWarnMsg
+//
+/**
+ * @brief Specialization to convert the JkBmsWarnMsg into the BmsErrorStatus.
+ * */
 template <>
 inline BmsErrorStatus bmsErrorFromMessage(const jkbms::JkBmsWarnMsg& bmsMsg)
 {
   BmsErrorStatus bmsErrors {BMS_ERR_STATUS_OK};
-                                                                                                        // Bit  0: Low capacity alarm
+                                                                                                               // Bit  0: Low capacity alarm
   bmsErrors.at<BmsErrorBits::CHG_OTP>()     |= bmsMsg.at<jkbms::BatWarnMsgBits::MOS_TUBE_OVERTEMP_ALARM>();    // Bit  1: MOS tube over temperature alarm                 -> ?
   bmsErrors.at<BmsErrorBits::BATTERY_OVP>() |= bmsMsg.at<jkbms::BatWarnMsgBits::CHG_OVERVOLTAGE_ALARM>();      // Bit  2: Charge over voltage alarm                       -> ?
   bmsErrors.at<BmsErrorBits::CELL_OVP>()    |= bmsMsg.at<jkbms::BatWarnMsgBits::CELL_OVERVOLTAGE>();           // Bit  3: cell over voltage                               -> x
@@ -108,8 +132,7 @@ inline BmsErrorStatus bmsErrorFromMessage(const jkbms::JkBmsWarnMsg& bmsMsg)
   bmsErrors.at<BmsErrorBits::SOFT_LOCK>()   |= bmsMsg.at<jkbms::BatWarnMsgBits::PROTECTION_309A>();            // Bit 12: 309_A protection                                -> ?
   bmsErrors.at<BmsErrorBits::SOFT_LOCK>()   |= bmsMsg.at<jkbms::BatWarnMsgBits::PROTECTION_309B>();            // Bit 13: 309_B protection                                -> ?
 
-	return bmsErrors;
+  return bmsErrors;
 }
-
 
 #endif // BMSDATATYPES_H
