@@ -98,7 +98,7 @@ jobs:
         with:
           tag_name: ${{ env.BSC_SW_VERSION }}_${{ env.dt }}
           release_name: ${{ env.BSC_SW_VERSION }}_${{ env.dt }}
-          body: echo ${{ steps.read_file_changes.outputs.contents }}
+          body: ${{ steps.read_file_changes.outputs.contents }}
           draft: false
           prerelease: false
 
