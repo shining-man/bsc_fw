@@ -591,6 +591,37 @@ uint16_t getMaxCellDifferenceFromBms()
 }
 
 
+// Ermitteln des niedrigsten Ladestroms der BMSen
+float getMinCurrentFromBms()
+{
+  float u16_lMinCurrent=0xFFFF;
+
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+  {
+    u16_lMinCurrent = getBmsTotalCurrent(u8_mBmsDatasource);
+  }
+
+  if(u8_mBmsDatasourceAdd>0)
+  {
+    float u16_lMinCurrentTmp=0;
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u8_mBmsDatasourceAdd>>i)&0x01)
+      {
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        {
+          u16_lMinCurrentTmp=getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
+          if(u16_lMinCurrentTmp<u16_lMinCurrent) u16_lMinCurrent=u16_lMinCurrentTmp;
+        }
+      }
+    }
+  }
+
+  return u16_lMinCurrent;
+}
+
+
+
 /*
  * Regelfunktionen
  */
@@ -914,6 +945,21 @@ uint16_t calcDynamicReduzeChargeVolltage(uint16_t u16_lChargeVoltage)
   return u16_lChargeVoltage;
 }
 
+/*
+ * Berechnen des dynamischen Offsets
+ */
+void calcDynamicChargeVoltageOffset(uint16_t &u16_lChargeVoltage)
+{
+  uint16_t u16_lCurrent = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT);
+  if(u16_lCurrent>0)
+  {
+    uint16_t u16_lOffset = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET);
+    int16_t u16_lMinBmsCurrent = (int16_t)getMinCurrentFromBms();
+
+    if(u16_lMinBmsCurrent>=u16_lCurrent) u16_lChargeVoltage+=u16_lOffset;
+    else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffset/u16_lCurrent*u16_lMinBmsCurrent);
+  }
+}
 
 /* *******************************************************************************************
  * getNewSocByMinCellVoltage()
@@ -1021,6 +1067,7 @@ void sendCanMsg_351()
      * Ladespannung
      *******************************/
     uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0);
+    calcDynamicChargeVoltageOffset(u16_lChargeVoltage); // Hier den dynamischen Offset addieren
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(u16_lChargeVoltage);
     msgData.chargevoltagelimit = u16_lChargeVoltage;
     if(u8_mMqttTxTimer==15)
