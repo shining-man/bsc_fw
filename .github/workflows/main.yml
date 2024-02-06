@@ -83,6 +83,12 @@ jobs:
           path: ./output_fw
           if-no-files-found: error
 
+      - name: Read file changes
+        id: read_file_changes
+        uses: andstor/file-reader-action@v1
+        with:
+          path: "changes.txt"
+
       - name: Create Release Files (only on MAIN branch)
         id: create_release
         uses: actions/create-release@v1
@@ -92,8 +98,7 @@ jobs:
         with:
           tag_name: ${{ env.BSC_SW_VERSION }}_${{ env.dt }}
           release_name: ${{ env.BSC_SW_VERSION }}_${{ env.dt }}
-          body: |
-            Automatically generated release
+          body: ${{ steps.read_file_changes.outputs.contents }}
           draft: false
           prerelease: false
 
@@ -109,7 +114,7 @@ jobs:
           asset_name: bsc_firmware_${{ env.BSC_SW_VERSION }}_${{ env.dt }}.zip
           asset_content_type: application/zip
 
-      - name: upload linux artifact
+      - name: upload artifact
         id: upload-release-bin-file
         uses: actions/upload-release-asset@v1
         if: github.ref == 'refs/heads/main'

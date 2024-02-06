@@ -1245,24 +1245,30 @@ void sendCanMsg_355()
   }
   else
   {
+    uint8_t u8_numberOfSocs=0;
+    uint16_t u16_avgSoc=0;
     msgData.soc=0;
 
-    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) msgData.soc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+    if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+    {
+      msgData.soc = u16_avgSoc = getBmsChargePercentage(u8_mBmsDatasource); // SOC, uint16 1 %
+      u8_numberOfSocs++;
+    }
 
     uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
-    if(u8_mBmsDatasourceAdd==0 || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_AVG || u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_MAX)
+    if(u8_mBmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
     {
       for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
       {
-        if((u8_mBmsDatasourceAdd>>i)&0x01)
+        if(isBitSet(u8_mBmsDatasourceAdd,i))
         {
           if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
           {
             if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
             {
-              msgData.soc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
-              msgData.soc/=2;
+              u16_avgSoc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+              u8_numberOfSocs++;
             }
             else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
             {
@@ -1271,8 +1277,10 @@ void sendCanMsg_355()
           }
         }
       }
+
+      if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG) msgData.soc = (u16_avgSoc/u8_numberOfSocs);
     }
-    else if(u8_mBmsDatasourceAdd==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
+    else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
     {
       uint8_t u8_lSocBmsNr = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
