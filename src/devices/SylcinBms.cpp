@@ -58,6 +58,9 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   BSC_LOGI(TAG,"SylcinBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i, Packs=%i",u8_mDevNr,u8_lSylcinAdr,u8_lSylcinAdrBmsData,u8_mCountOfPacks,devData->u8_addData);
   #endif
 
+  // Kleine Pause zwischen den Packs
+  if(u8_lSylcinAdr>1)vTaskDelay(pdMS_TO_TICKS(50));
+ 
   getDataFromBms(u8_lSylcinAdr, 0x42);
   if(recvAnswer(response))
   {
