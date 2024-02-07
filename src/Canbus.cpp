@@ -953,11 +953,12 @@ void calcDynamicChargeVoltageOffset(uint16_t &u16_lChargeVoltage)
   uint16_t u16_lCurrent = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT);
   if(u16_lCurrent>0)
   {
-    uint16_t u16_lOffset = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET);
+    uint16_t u16_lOffsetMin = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN);
+    uint16_t u16_lOffsetMax = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX);
     int16_t u16_lMinBmsCurrent = (int16_t)getMinCurrentFromBms();
 
-    if(u16_lMinBmsCurrent>=u16_lCurrent) u16_lChargeVoltage+=u16_lOffset;
-    else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffset/u16_lCurrent*u16_lMinBmsCurrent);
+    if(u16_lMinBmsCurrent>=u16_lCurrent) u16_lChargeVoltage+=u16_lOffsetMax;
+    else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffsetMin+((u16_lOffsetMax-u16_lOffsetMin)/u16_lCurrent*u16_lMinBmsCurrent));
   }
 }
 
