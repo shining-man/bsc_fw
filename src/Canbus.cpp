@@ -104,8 +104,6 @@ struct data373
 
 void canSetup()
 {
-  using namespace esp32::can;
-
   mInverterDataMutex = xSemaphoreCreateMutex();
 
   u8_mBmsDatasource=0;
@@ -121,8 +119,8 @@ void canSetup()
   constexpr bool CAN_ENABLE_ALERTS {true};
   constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
   constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
-  const Baudrate baudrate = (u8_mSelCanInverter==ID_CAN_DEVICE_VICTRON_250K) ? Baudrate::BAUD_250KBPS :
-                                                                               Baudrate::BAUD_500KBPS;
+  const can::Baudrate baudrate = (u8_mSelCanInverter==ID_CAN_DEVICE_VICTRON_250K) ? can::Baudrate::BAUD_250KBPS :
+                                                                                    can::Baudrate::BAUD_500KBPS;
   const esp_err_t err = CAN.begin(GPIO_NUM_5, // Rx pin
                                   GPIO_NUM_4, // Tx pin
                                   baudrate,
@@ -306,7 +304,7 @@ void readCanMessages()
 
 void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length)
 {
-  esp_err_t err = CAN.write(esp32::can::FrameType::STD_FRAME,identifier,length,buffer);
+  esp_err_t err = CAN.write(can::FrameType::STD_FRAME,identifier,length,buffer);
   if(err!=ESP_OK) BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 
   #ifdef CAN_DEBUG_STATUS
