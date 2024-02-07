@@ -10,7 +10,7 @@
 #include "BmsData.h"
 #include "Ow.h"
 #include "mqtt_t.h"
-#include <ESP32TWAI.h>
+#include <ESP32TWAISingleton.hpp>
 #include "log.h"
 #include "AlarmRules.h"
 
@@ -116,17 +116,17 @@ void canSetup()
 
   loadCanSettings();
 
-  CAN.setAlert(true);
-  CAN.setRxQueueLen(10);
-  esp_err_t err;
-  if(u8_mSelCanInverter==ID_CAN_DEVICE_VICTRON_250K)
-  {
-    err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_250KBPS);
-  }
-  else
-  {
-    err = CAN.begin(GPIO_NUM_5,GPIO_NUM_4,TWAI_SPEED_500KBPS);
-  }
+  constexpr bool CAN_ENABLE_ALERTS {true};
+  constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
+  constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
+  const TWAI_speed_s baudrate = (u8_mSelCanInverter==ID_CAN_DEVICE_VICTRON_250K) ? TWAI_SPEED_250KBPS :
+                                                                                       TWAI_SPEED_500KBPS;
+  const esp_err_t err = CAN.begin(GPIO_NUM_5, // Rx pin
+                                  GPIO_NUM_4, // Tx pin
+                                  baudrate,
+                                  CAN_ENABLE_ALERTS,
+                                  CAN_RX_QUEUE_LENGTH,
+                                  CAN_TX_QUEUE_LENGTH);
   BSC_LOGI(TAG, "%s", CAN.getErrorText(err).c_str());
 }
 
