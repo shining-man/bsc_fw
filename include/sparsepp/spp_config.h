@@ -17,7 +17,7 @@
     #if (defined(SPP_USE_SPP_ALLOC) && SPP_USE_SPP_ALLOC) && defined(_MSC_VER)
         // -----------------------------------------------------------------------------
         // When building with the Microsoft compiler, we use a custom allocator because
-        // the default one fragments memory when reallocating. This is desirable only 
+        // the default one fragments memory when reallocating. This is desirable only
         // when creating large sparsepp hash maps. If you create lots of small hash_maps,
         // define the following before including spp.h:
         //     #define SPP_DEFAULT_ALLOCATOR spp::libc_allocator
@@ -41,7 +41,7 @@
 
 #ifndef SPP_STORE_NUM_ITEMS
     // 1 uses a little bit more memory, but faster!!
-    #define SPP_STORE_NUM_ITEMS 1 
+    #define SPP_STORE_NUM_ITEMS 1
 #endif
 
 
@@ -765,7 +765,7 @@
 #endif
 
 /*
-  Try to persuade compilers to inline. 
+  Try to persuade compilers to inline.
 */
 #ifndef SPP_FORCEINLINE
     #if defined(__GNUC__)

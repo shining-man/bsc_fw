@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -23,8 +23,8 @@ uint8_t u8_mAdvDeviceNumber;
 
 WebSettings webSettings;
 
-static boolean bo_mBleHandlerRunning = false; 
-static boolean bo_mBtScanIsRunning = false; 
+static boolean bo_mBleHandlerRunning = false;
+static boolean bo_mBtScanIsRunning = false;
 static boolean bo_mBtNotAllDeviceConnectedOrScanRunning = false;
 uint8_t u8_mScanAndNotConnectTimer;
 uint8_t u8_mSendDataToNeey;
@@ -32,8 +32,8 @@ uint8_t u8_mSendDataToNeey;
 //NEEY
 NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
 NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
-//byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff}; 
-byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff}; 
+//byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff};
+byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff};
 //aa	55	11	1	1	0	14	0	0	0	0	0	0	0	0	0	0	0	26	ff
 //aa	55	11	1	4	0	14	0	0	0	0	0	0	0	0	0	0	0	29	ff
 //aa	55	11	1	2	0	14	0	0	0	0	0	0	0	0	0	0	0	27	ff
@@ -65,10 +65,10 @@ class ClientCallbacks : public NimBLEClientCallbacks
             jkBmsBtDevInit(i);
             break;
         }
-  
+
         bleDevices[i].balancerOn=e_BalancerWaitForCmd;
         bleDevices[i].isConnect = true;
-        bleDevices[i].doConnect = btDoConnectionWaitStart; 
+        bleDevices[i].doConnect = btDoConnectionWaitStart;
         setBmsLastDataMillis(i,millis());
       }
     }
@@ -89,7 +89,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
       {
         BSC_LOGI(TAG, "onDisconnect() dev=%i, mac=%s", i, devMacAdr.c_str());
         bleDevices[i].isConnect = false;
-        bleDevices[i].doConnect = btDoConnectionIdle; 
+        bleDevices[i].doConnect = btDoConnectionIdle;
         bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
         bleDevices[i].macAdr = "";
       }
@@ -106,11 +106,11 @@ class ClientCallbacks : public NimBLEClientCallbacks
     return false; //Änderungen immer ablehnen
 
     #if 0
-    if(params->itvl_min < 24) { 
+    if(params->itvl_min < 24) {
       return false;
-    } else if(params->itvl_max > 40) { 
+    } else if(params->itvl_max > 40) {
       return false;
-    } else if(params->latency > 2) { 
+    } else if(params->latency > 2) {
       return false;
     } else if(params->supervision_timeout > 150) {
       return false;
@@ -125,7 +125,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
 };
 
 
-class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks 
+class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 {
   std::string devMacAdr;
 
@@ -137,9 +137,9 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
     #ifdef BT_DEBUG
     BSC_LOGI(TAG, "onResult() dev found: %s",devMacAdr.c_str());
     #endif
-    
+
     for(uint8_t i=0; i<BT_DEVICES_COUNT; i++)
-    {  
+    {
       #ifdef BT_DEBUG
       BSC_LOGD(TAG, "onResult() dev=%i, mac=%s", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
       #endif
@@ -151,13 +151,13 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
           BSC_LOGD(TAG, "Dev found: i=%i, mac=%s -> scan stop", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
 
           NimBLEDevice::getScan()->stop();
-        
-          advDevice = advertisedDevice;   
+
+          advDevice = advertisedDevice;
           u8_mAdvDeviceNumber = i;
           bleDevices[i].deviceTyp = (uint8_t)webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
           bleDevices[i].macAdr = webSettings.getString(ID_PARAM_SS_BTDEVMAC,i);
           bleDevices[i].doConnect = btDoConnect;
-     
+
           bo_mBtScanIsRunning = false; //Scan beendet
         }
       }
@@ -181,7 +181,7 @@ void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* p
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
       //Daten kopieren
-      NeeyBalancer::neeyBalancerCopyData(i, pData, length);     
+      NeeyBalancer::neeyBalancerCopyData(i, pData, length);
     }
   }
 }
@@ -213,7 +213,7 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
           break;
       }
 
-      jkBmsBtCopyData(i, u8_frameVersion, pData, length); 
+      jkBmsBtCopyData(i, u8_frameVersion, pData, length);
 
       bleDevices[i].sendDataStep=0;
     }
@@ -224,8 +224,8 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
 // Callback invoked when scanning has completed.
 void scanCompleteCB(NimBLEScanResults scanResults)
 {
-	
-} 
+
+}
 
 // Create a single global instance of the callback class to be used by all clients
 static ClientCallbacks clientCB;
@@ -258,7 +258,7 @@ bool btDeviceConnect()
       return false;
   }
 
-  // Check if we have a client we should reuse first 
+  // Check if we have a client we should reuse first
   if(NimBLEDevice::getClientListSize())
   {
     /* Special case when we already know this device, we send false as the
@@ -304,7 +304,7 @@ bool btDeviceConnect()
 
     // Interval *1.25ms; timeout *10ms
     pClient->setConnectionParams(12,12,0,51);
-    
+
     // Set how long we are willing to wait for the connection to complete (seconds)
     pClient->setConnectTimeout(5);
 
@@ -329,18 +329,18 @@ bool btDeviceConnect()
   BSC_LOGI(TAG, "Connected to: %s, RSSI: %i",pClient->getPeerAddress().toString().c_str(),pClient->getRssi());
   #endif
 
-  // Now we can read/write/subscribe the charateristics of the services we are interested in 
+  // Now we can read/write/subscribe the charateristics of the services we are interested in
   NimBLERemoteService* pSvc = nullptr;
   bleDevices[devNr].pChr = nullptr;
   NimBLERemoteDescriptor* pDsc = nullptr;
 
   pSvc = pClient->getService(serviceUUID);
   if(pSvc)
-  {     
+  {
     bleDevices[devNr].pChr = pSvc->getCharacteristic(charUUID);
 
     if(bleDevices[devNr].pChr)
-    {     
+    {
       if(bleDevices[devNr].pChr->canRead())
       {
         #ifdef BT_DEBUG
@@ -374,7 +374,7 @@ bool btDeviceConnect()
         {
           // Disconnect if subscribe failed
           pClient->disconnect();
-          BSC_LOGW(TAG, "Device not connected; Can not subscribe; dev=%i",devNr);   
+          BSC_LOGW(TAG, "Device not connected; Can not subscribe; dev=%i",devNr);
           return false;
         }
         else
@@ -499,7 +499,7 @@ void BleHandler::init()
     {
       setBmsCellVoltage(i,n,0);
     }
-    
+
   }
 
   NimBLEDevice::init("");
@@ -592,7 +592,7 @@ void BleHandler::run()
   {
     BSC_LOGD(TAG, "Send Data to NEEY -> Stoppe Scan!");
     bo_lDoStartBtScan=false;
-    pBLEScan->stop(); 
+    pBLEScan->stop();
     bo_mBtNotAllDeviceConnectedOrScanRunning=false;
     bo_mBtScanIsRunning=false;
   }
@@ -636,11 +636,11 @@ void BleHandler::run()
   {
     u8_mScanAndNotConnectTimer=0;
     BSC_LOGD(TAG, "Connect Timeout -> Stoppe Scan!");
-    pBLEScan->stop(); 
+    pBLEScan->stop();
     bo_mBtNotAllDeviceConnectedOrScanRunning=false;
     bo_mBtScanIsRunning=false;
   }
-} 
+}
 
 
 void BleHandler::setBalancerState(uint8_t u8_devNr, boolean bo_state)
@@ -662,13 +662,13 @@ void BleHandler::setBalancerState(uint8_t u8_devNr, boolean bo_state)
 **/
 bool BleHandler::handleConnectionToDevices()
 {
-  boolean bo_lDoStartBtScan=false; 
+  boolean bo_lDoStartBtScan=false;
   uint8_t u8_lBtConnStatus=0;
 
   //Nur wenn nicht nach BT Devices gesucht wird
-  if(!bo_mBtScanIsRunning) 
+  if(!bo_mBtScanIsRunning)
   {
-    //BT Devices verbinden 
+    //BT Devices verbinden
     for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
     {
       uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
@@ -698,7 +698,7 @@ bool BleHandler::handleConnectionToDevices()
         }
         else //Wenn Verbingungsversuch fehgeschlagen
         {
-          bleDevices[i].doConnect = btDoConnectionIdle; 
+          bleDevices[i].doConnect = btDoConnectionIdle;
         }
       }
       else //Wenn keine Verbindungsaufforderung besteht
@@ -724,7 +724,7 @@ bool BleHandler::handleConnectionToDevices()
             case ID_BT_DEVICE_NEEY4A:
               BSC_LOGD(TAG,"BT write dev=%i",i);
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
-              bleDevices[i].doConnect = btDoConnectionIdle; 
+              bleDevices[i].doConnect = btDoConnectionIdle;
               bleDevices[i].sendDataStep = 0;
               break;
 
@@ -734,11 +734,11 @@ bool BleHandler::handleConnectionToDevices()
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_DEVICE_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
-               
-              bleDevices[i].doConnect = btDoConnectionIdle; 
+
+              bleDevices[i].doConnect = btDoConnectionIdle;
               break;
           }
-          bo_lAllDevWrite=true; 
+          bo_lAllDevWrite=true;
         }
         else if(bleDevices[i].doConnect==btDoConnectionIdle)
         {
@@ -749,7 +749,7 @@ bool BleHandler::handleConnectionToDevices()
               {
                 case 0:
                   bleDevices[i].sendDataStep++;
-                  NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr); 
+                  NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr);
                   break;
                 case 1:
                   if(u8_mSendDataToNeey>0)
@@ -792,12 +792,12 @@ bool BleHandler::handleConnectionToDevices()
                     if(bleDevices[i].balancerOn==e_BalancerChangeToOff)
                     {
                       bleDevices[i].balancerOn=e_BalancerIsOff;
-                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, false); 
+                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, false);
                     }
                     else if(bleDevices[i].balancerOn==e_BalancerChangeToOn)
                     {
                       bleDevices[i].balancerOn=e_BalancerIsOn;
-                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, true); 
+                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, true);
                     }
                   }
                   break;
@@ -813,7 +813,7 @@ bool BleHandler::handleConnectionToDevices()
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_CELL_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
-              
+
               bleDevices[i].sendDataStep=0;
               }
               break;
@@ -824,7 +824,7 @@ bool BleHandler::handleConnectionToDevices()
       {
         if(NeeyBalancer::neeyWriteData_GotoNextStep()) u8_mSendDataToNeey=0;
       }
-      if(bo_lAllDevWrite)bo_mBtNotAllDeviceConnectedOrScanRunning=false; 
+      if(bo_lAllDevWrite)bo_mBtNotAllDeviceConnectedOrScanRunning=false;
     }
   }
 
@@ -870,7 +870,7 @@ std::string BleHandler::getBtScanResult()
   for (int i = 0; i < results.getCount(); i++)
   {
     NimBLEAdvertisedDevice device = results.getDevice(i);
-    
+
     btDevScanResult += "<tr>";
 
     btDevScanResult += "<td>";
@@ -884,12 +884,12 @@ std::string BleHandler::getBtScanResult()
     btDevScanResult += "<td>";
     btDevScanResult += device.getServiceUUID();
     btDevScanResult += "</td>";
-    
+
     btDevScanResult += "<td>";
     btDevScanResult += device.getServiceDataUUID();
     btDevScanResult += "</td>";
 
-    btDevScanResult += "<td>";    
+    btDevScanResult += "<td>";
     btDevScanResult+="<button onclick='copyStringToClipboard(\"";
     btDevScanResult+=device.getAddress().toString();
     btDevScanResult+="\")'>Copy</button>";
@@ -897,7 +897,7 @@ std::string BleHandler::getBtScanResult()
 
     btDevScanResult += "</tr>";
   }
-  
+
   btDevScanResult += "<table>";
 
   return btDevScanResult;
