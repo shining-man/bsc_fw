@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -31,7 +31,7 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 
 void isI2CdeviceConn();
-void displaySendData_bms();  
+void displaySendData_bms();
 void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
@@ -51,7 +51,7 @@ void onReceive(int len)
 {
   uint8_t u8_lRxCnt=0;
   if(len<=4)
-  {    
+  {
     while(Wire.available())
     {
       u8_mI2cRxBuf[u8_lRxCnt] = Wire.read();
@@ -86,7 +86,7 @@ void i2cInit()
 
   p_lBmsData = getBmsData();
   p_lInverterData = getInverterData();
-  
+
   //u8_mMasterSlaveId = WebSettings::getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0,DT_ID_PARAM_MASTER_SLAVE_TYP);
 
   //if(u8_mMasterSlaveId==ID_I2C_MASTER) //Master
@@ -125,7 +125,7 @@ void isI2CdeviceConn()
   {
     bo_mDisplayEnabled = false;
     BSC_LOGI(TAG,"Display not found (%i)",u8_lErr);
-  }   
+  }
 
   //Slaves
   for(uint8_t i=0;i<I2C_CNT_SLAVES;i++)
@@ -146,7 +146,7 @@ void isI2CdeviceConn()
     {
       bo_mSlaveEnabled[i] = false;
       BSC_LOGI(TAG,"Slave %i (Adr=%i) not found (%i)",i,u8_slaveAdr,u8_lErr);
-    }  
+    }
   }
 
   //Serial Extension
@@ -163,8 +163,8 @@ void isI2CdeviceConn()
   {
     bo_mSerialExtEnabled = false;
     BSC_LOGI(TAG,"Serial Ext. not found (%i)",u8_lErr);
-  }   
-  
+  }
+
 }
 
 
@@ -176,14 +176,14 @@ bool isSerialExtEnabled()
 
 void i2cCyclicRun()
 {
-  if(u8_mMasterSlaveId==ID_I2C_MASTER) 
+  if(u8_mMasterSlaveId==ID_I2C_MASTER)
   {
     //Display
     if(bo_mDisplayEnabled)
     {
       displaySendData_bms();
-    } 
-    
+    }
+
     //Slaves
     for(uint8_t i=0; i<I2C_CNT_SLAVES; i++)
     {
@@ -233,7 +233,7 @@ void getBscSlaveData(uint8_t u8_slaveNr)
   else if(u8_slaveNr==1)u8_slaveAdr=I2C_DEV_ADDR_SLAVE2;
 
   uint8_t u8_lBytesReceived=0;
-  
+
   for(uint8_t u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL;u8_lBmsNr<BMSDATA_LAST_DEV_SERIAL+1;u8_lBmsNr++)
   {
     for(uint8_t u8_BmsDataTyp=(uint8_t)BMS_CELL_VOLTAGE; u8_BmsDataTyp<(uint8_t)BMS_LAST_DATA_MILLIS+1; u8_BmsDataTyp++)
@@ -248,7 +248,7 @@ void getBscSlaveData(uint8_t u8_slaveNr)
       Wire.endTransmission();
 
       u8_lBytesReceived = Wire.requestFrom(u8_slaveAdr, (uint8_t)50); //len: getBmsDataBytes(u8_BmsDataTyp)+2
-      if(u8_lBytesReceived>0) 
+      if(u8_lBytesReceived>0)
       {
         uint8_t u8_lBmsNrNew, u8_BmsDataTypRet;
         //if(u8_slaveNr==0)u8_lBmsNrNew=BMSDATA_FIRST_DEV_SLAVE1+u8_lBmsNr-BMSDATA_FIRST_DEV_SERIAL;
@@ -256,12 +256,12 @@ void getBscSlaveData(uint8_t u8_slaveNr)
 
         uint8_t rxBuf[u8_lBytesReceived];
         Wire.readBytes(rxBuf, u8_lBytesReceived);
-        
+
         u8_BmsDataTypRet=rxBuf[0];
         //u8_lBmsNrNew=rxBuf[1];
         if(u8_slaveNr==0)u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
         else if(u8_slaveNr==1)u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT+3+rxBuf[1]-BMSDATA_FIRST_DEV_SERIAL;
-        
+
         u8_lBmsNrNew=BMSDATA_FIRST_DEV_EXT; //zum Test
 
         switch(u8_BmsDataTypRet)
@@ -414,7 +414,7 @@ void displaySendData_bms()
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[i], 1);
     i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[i], 4);
   }
-  
+
   uint i=5;
   for(uint8_t n=BT_DEVICES_COUNT;n<(BT_DEVICES_COUNT+3);n++)
   {
@@ -449,7 +449,7 @@ void displaySendData_bms()
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
 
   //Display Timeout
-  uint8_t dispTimeout = WebSettings::getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT); 
+  uint8_t dispTimeout = WebSettings::getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT);
   i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
 }
 
@@ -508,7 +508,7 @@ void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn)
       else valueB|=(TXRX_DIS<<((i-4)*2));
     }
   }
-  
+
   i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA);
   i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB);
 }

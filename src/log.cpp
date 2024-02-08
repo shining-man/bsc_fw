@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -9,10 +9,10 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LittleFS.h> 
+  #include <LittleFS.h>
 #else
   #include <SPIFFS.h>
-#endif 
+#endif
 #include <FS.h>
 #include "bscTime.h"
 #include "Canbus.h"
@@ -53,9 +53,9 @@ bool isFsLock()
 {
   if(xSemaphoreTake(fsMutex, (TickType_t)5) == pdTRUE) return true;
   else return false;
-} 
-    
-    
+}
+
+
 void debugInit()
 {
   logMutex = xSemaphoreCreateMutex();
@@ -71,7 +71,7 @@ void debugInit()
   Serial.setPins(SERIAL3_PIN_RX,SERIAL3_PIN_TX);
   #endif
 
-  
+
   if(!SPIFFS.begin())
   {
     BSC_LOGE(TAG,"LITTLEFS Mount Failed");
@@ -111,66 +111,66 @@ void debugInit()
 
   //esp_log_level_set("*", ESP_LOG_VERBOSE); //Log ALL
   esp_log_level_set("*", ESP_LOG_INFO); //Log INFO
-  
-  //esp_log_level_set("MAIN", ESP_LOG_INFO); 
-  //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO); 
-  //esp_log_level_set("MQTT", ESP_LOG_INFO); 
-  //esp_log_level_set("ALARM", ESP_LOG_INFO); 
-  //esp_log_level_set("OW", ESP_LOG_INFO); //onewire  
-  //esp_log_level_set("CAN", ESP_LOG_INFO);  
-  //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE); 
 
-  //esp_log_level_set("ALARM", ESP_LOG_DEBUG); 
-  //esp_log_level_set("I2C", ESP_LOG_DEBUG); 
-  //esp_log_level_set("MAIN", ESP_LOG_DEBUG); 
-  
+  //esp_log_level_set("MAIN", ESP_LOG_INFO);
+  //esp_log_level_set("BLE_HANDLER", ESP_LOG_INFO);
+  //esp_log_level_set("MQTT", ESP_LOG_INFO);
+  //esp_log_level_set("ALARM", ESP_LOG_INFO);
+  //esp_log_level_set("OW", ESP_LOG_INFO); //onewire
+  //esp_log_level_set("CAN", ESP_LOG_INFO);
+  //esp_log_level_set("JBD_BMS", ESP_LOG_VERBOSE);
+
+  //esp_log_level_set("ALARM", ESP_LOG_DEBUG);
+  //esp_log_level_set("I2C", ESP_LOG_DEBUG);
+  //esp_log_level_set("MAIN", ESP_LOG_DEBUG);
+
 
   #ifdef NEEY_DEBUG
-  esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
+  esp_log_level_set("NEEY", ESP_LOG_DEBUG);
   #endif
   #ifdef NEEY_WRITE_DATA_DEBUG
-  esp_log_level_set("NEEY", ESP_LOG_DEBUG); 
-  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
+  esp_log_level_set("NEEY", ESP_LOG_DEBUG);
+  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG);
   #endif
   #ifdef JK_DEBUG
-  esp_log_level_set("JK_BMS", ESP_LOG_DEBUG); 
+  esp_log_level_set("JK_BMS", ESP_LOG_DEBUG);
   #endif
   #ifdef JK_BT_DEBUG
-  esp_log_level_set("JKBT", ESP_LOG_DEBUG); 
+  esp_log_level_set("JKBT", ESP_LOG_DEBUG);
   #endif
   #ifdef SEPLOS_DEBUG
-  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG); 
+  esp_log_level_set("SEPLOS_BMS", ESP_LOG_DEBUG);
   #endif
   #ifdef DALY_DEBUG
-  esp_log_level_set("DALY_BMS", ESP_LOG_DEBUG); 
+  esp_log_level_set("DALY_BMS", ESP_LOG_DEBUG);
   #endif
   #ifdef BT_DEBUG        //Bluetooth
-  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG); 
+  esp_log_level_set("BLE_HANDLER", ESP_LOG_DEBUG);
   #endif
-  #ifdef MQTT_DEBUG 
-  esp_log_level_set("MQTT", ESP_LOG_DEBUG); 
-  #endif       
+  #ifdef MQTT_DEBUG
+  esp_log_level_set("MQTT", ESP_LOG_DEBUG);
+  #endif
   #ifdef CAN_DEBUG
-  esp_log_level_set("CAN", ESP_LOG_DEBUG);  
+  esp_log_level_set("CAN", ESP_LOG_DEBUG);
   #endif
   #ifdef WEBSET_DEBUG
-  esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG); 
+  esp_log_level_set("WEB_SETTINGS", ESP_LOG_DEBUG);
   #endif
 
   #ifdef GOBEL_DEBUG
-  esp_log_level_set("GOBEL_BMS", ESP_LOG_DEBUG); 
+  esp_log_level_set("GOBEL_BMS", ESP_LOG_DEBUG);
   #endif
   #ifdef GOBELPC200_DEBUG
-  esp_log_level_set("GOBEL_BMS_PC200", ESP_LOG_DEBUG); 
+  esp_log_level_set("GOBEL_BMS_PC200", ESP_LOG_DEBUG);
   #endif
-  #ifdef WLAN_DEBUG  
-  #endif      
+  #ifdef WLAN_DEBUG
+  #endif
   #ifdef WLAN_DEBUG2
   #endif
-  
+
 
   #ifdef DEBUG_ON_FS
-  if(!SPIFFS.exists("/log.txt")) 
+  if(!SPIFFS.exists("/log.txt"))
   {
     BSC_LOGE(TAG, "Error with the SPIFFS!");
   }
@@ -189,7 +189,7 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
 {
   int ret=0;
   if(!logEn) return 0;
-	
+
 
     //write evaluated format string into buffer
     ret = vsnprintf (log_print_buffer, sizeof(log_print_buffer), szFormat, args);
@@ -205,11 +205,11 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
       #endif
 
       xSemaphoreTake(logMutex, portMAX_DELAY);
-  
+
       if(u8_mAktivPrintBuffer==0)str_mPrintBuffer0+=log_print_buffer;
       else str_mPrintBuffer1+=log_print_buffer;
       bo_mNewDataInBuffer=true;
-    
+
       xSemaphoreGive(logMutex);
   }
 	return ret;
@@ -233,7 +233,7 @@ void writeLogToFS()
     SPIFFS.rename("/log.txt","/log1.txt");
     spiffsLogFile = SPIFFS.open("/log.txt", FILE_WRITE);
     xSemaphoreGive(deleteLogMutex);
-  } 
+  }
 
   xSemaphoreTake(logMutex, portMAX_DELAY);
   if(bo_mNewDataInBuffer)
@@ -262,7 +262,7 @@ void writeLogToFS()
     str_mPrintBuffer0="";
   }
 
-  spiffsLogFile.flush();   
+  spiffsLogFile.flush();
   xSemaphoreGive(deleteLogMutex);
   fsUnlock();
 }
@@ -297,7 +297,7 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
     SPIFFS.remove("/trigger1.txt");
     SPIFFS.rename("/trigger.txt","/trigger1.txt");
     spiffsTriggerLogFile = SPIFFS.open("/trigger.txt", FILE_WRITE);
-  } 
+  }
 
   //spiffsTriggerLogFile.printf("%s%02x%02x%02x\r\n",getBscDateTimeCc2(),triggerNr,cause,trigger);
   spiffsTriggerLogFile.printf("%08x%02x%02x%02x%02x",getEpoch(),triggerNr,cause,trigger,0xAA);
@@ -312,9 +312,9 @@ void logValues()
   uint8_t u8_lGetMinutes = getMinutes();
   if(u8_lGetMinutes==u8_lGetMinutesOld) return;
   u8_lGetMinutesOld=u8_lGetMinutes;
-  
+
   if(WebSettings::getInt(ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE,0,DT_ID_PARAM_SYSTEM_RECORD_VALUES_PERIODE)==0) return;
-  
+
   uint32_t timeMinutes = getDayMinutes();
   //BSC_LOGI(TAG,"logValues: New Entry, time=%i, u8_lGetMinutes=%i, getMinutesOld=%i",timeMinutes, u8_lGetMinutes, u8_lGetMinutesOld);
 

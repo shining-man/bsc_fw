@@ -1,12 +1,12 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
 #include "Json.h"
 
 Json::Json()
-{  
+{
 };
 
 
@@ -36,23 +36,23 @@ bool Json::jsonIndexPos_Array(const char *json, int idx, long &startPos, long& e
     for (uint32_t i = startPos; i < arrSize(json); i++)
     {
         char c = json[i];
-        if (c == '{') 
+        if (c == '{')
         {
             if (elementOpenCnt == elementCloseCnt)
             {
                 posArrayFirstOpen = i;
             }
-            posElementOpen = i; 
+            posElementOpen = i;
             elementOpenCnt++;
         }
-        else if (c == '}') 
-        { 
-            posElementClose = i; 
-            elementCloseCnt++; 
+        else if (c == '}')
+        {
+            posElementClose = i;
+            elementCloseCnt++;
 
             //
             if (elementCloseCnt > 0 && elementOpenCnt == elementCloseCnt)
-            { 
+            {
                 if (arrayNr == idx) //Index gefunden
                 {
                     startPos = posArrayFirstOpen;
@@ -83,27 +83,27 @@ uint16_t Json::getArraySize(const char *json, long startPos)
     for (uint32_t i = startPos; i < arrSize(json); i++)
     {
         char c = json[i];
-        if (c == '[') 
-        { 
-            arrayOpenCnt++; 
+        if (c == '[')
+        {
+            arrayOpenCnt++;
         }
         else if (c == ']')
         {
             arrayCloseCnt++;
         }
-        else if (c == '{') 
+        else if (c == '{')
         {
             arrayCntMerker=1;
             elementOpenCnt++;
         }
-        else if (c == '}') 
-        { 
-            elementCloseCnt++; 
+        else if (c == '}')
+        {
+            elementCloseCnt++;
         }
 
         //
         if (elementCloseCnt > 0 && elementOpenCnt == elementCloseCnt && arrayCntMerker==1)
-        { 
+        {
             arrayCnt++;
             arrayCntMerker=0;
         }
@@ -138,7 +138,7 @@ bool Json::getValue(const char * json, int idx, String name, uint32_t searchStar
     {
         if (searchState == 0)
         {
-      
+
             if (json[p] == cName[cNameFoundToPos]) //Ersten Zeichen gefunden
             {
                 cNameFoundToPos++;
