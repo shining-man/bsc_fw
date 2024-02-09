@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -35,7 +35,7 @@
 #define HTML_SEPARATION                   13
 //Max Type = 15
 
-#define BACKGROUND_COLOR "#ffffff" 
+#define BACKGROUND_COLOR "#ffffff"
 
 #define BUTTON_SAVE  0
 #define BUTTON_1     1
@@ -51,7 +51,7 @@ public:
   //Parameterfile
   boolean deleteConfig();
   boolean writeConfig();
-  
+
   static String   getString(uint16_t name, boolean fromFlash, uint8_t u8_dataType);
   static String   getString(uint16_t name, uint8_t groupNr);
   static int32_t  getInt(uint16_t name, uint8_t u8_dataType);
@@ -80,7 +80,7 @@ public:
   void registerOnButton1(void (*callback)());
   void registerOnButton2(void (*callback)());
   void registerOnButton3(void (*callback)());
-  
+
   void setTimerHandlerName(String handlerName, uint16_t timerSec=1000);
   void handleHtmlFormRequest(WebServer * server);
   void handleGetValues(WebServer *server);
@@ -90,7 +90,7 @@ public:
 
   static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
-  
+
 private:
   const char *parameterFile;
   String   str_mConfName;

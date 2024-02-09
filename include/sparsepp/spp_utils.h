@@ -349,8 +349,8 @@ static inline uint32_t s_spp_popcount_default(uint64_t x) SPP_NOEXCEPT
     const uint64_t h01 = uint64_t(0x0101010101010101); // the sum of 256 to the power of 0,1,2,3...
 
     x -= (x >> 1) & m1;             // put count of each 2 bits into those 2 bits
-    x = (x & m2) + ((x >> 2) & m2); // put count of each 4 bits into those 4 bits 
-    x = (x + (x >> 4)) & m4;        // put count of each 8 bits into those 8 bits 
+    x = (x & m2) + ((x >> 2) & m2); // put count of each 4 bits into those 4 bits
+    x = (x + (x >> 4)) & m4;        // put count of each 8 bits into those 8 bits
     return (x * h01)>>56;           // returns left 8 bits of x + (x<<8) + (x<<16) + (x<<24)+...
 }
 
@@ -358,13 +358,13 @@ static inline uint32_t s_spp_popcount_default(uint64_t x) SPP_NOEXCEPT
     static inline uint32_t count_trailing_zeroes(size_t v) SPP_NOEXCEPT
     {
         size_t x = (v & -v) - 1;
-        // sadly sizeof() required to build on macos 
+        // sadly sizeof() required to build on macos
         return sizeof(size_t) == 8 ? s_spp_popcount_default((uint64_t)x) : s_spp_popcount_default((uint32_t)x);
     }
 
     static inline uint32_t s_popcount(size_t v) SPP_NOEXCEPT
     {
-        // sadly sizeof() required to build on macos 
+        // sadly sizeof() required to build on macos
         return sizeof(size_t) == 8 ? s_spp_popcount_default((uint64_t)v) : s_spp_popcount_default((uint32_t)v);
     }
 #else
@@ -402,12 +402,12 @@ public:
     template<class U>
     libc_allocator& operator=(const libc_allocator<U> &) { return *this; }
 
-#ifndef SPP_NO_CXX11_RVALUE_REFERENCES    
+#ifndef SPP_NO_CXX11_RVALUE_REFERENCES
     libc_allocator(libc_allocator &&) {}
     libc_allocator& operator=(libc_allocator &&) { return *this; }
 #endif
 
-    pointer allocate(size_t n, const_pointer  /* unused */= 0) 
+    pointer allocate(size_t n, const_pointer  /* unused */= 0)
     {
         pointer res = static_cast<pointer>(malloc(n * sizeof(T)));
         if (!res)
@@ -415,12 +415,12 @@ public:
         return res;
     }
 
-    void deallocate(pointer p, size_t /* unused */) 
+    void deallocate(pointer p, size_t /* unused */)
     {
         free(p);
     }
 
-    pointer reallocate(pointer p, size_t new_size) 
+    pointer reallocate(pointer p, size_t new_size)
     {
         pointer res = static_cast<pointer>(realloc(p, new_size * sizeof(T)));
         if (!res)
@@ -429,7 +429,7 @@ public:
     }
 
     // extra API to match spp_allocator interface
-    pointer reallocate(pointer p, size_t /* old_size */, size_t new_size) 
+    pointer reallocate(pointer p, size_t /* old_size */, size_t new_size)
     {
         return static_cast<pointer>(realloc(p, new_size * sizeof(T)));
     }

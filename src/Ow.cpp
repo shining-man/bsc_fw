@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -52,7 +52,7 @@ uint8_t getSensorAdrFromParams()
     }
     else
     {
-      // invalid Adr 
+      // invalid Adr
       for(uint8_t n=0;n<8;n++)
       {
         owAddr[i][n]=0;
@@ -127,7 +127,7 @@ void owCyclicRun()
   {
     xSemaphoreTake(owMutex, portMAX_DELAY);
     if(cycleCounter==0)
-    { 
+    {
       sensors.requestTemperatures();
     }
     else if(cycleCounter>0 && cycleCounter<OW_TEMP_AVG_CYCELS)
@@ -187,7 +187,7 @@ void getTempC_allDevices(bool tempToOutBuffer)
 
           if(firstMeasurement) owTempsC_AvgCalc[i] = tempC;
           else owTempsC_AvgCalc[i] = (owTempsC_AvgCalc[i]+tempC)/2;
-                    
+
           if(tempToOutBuffer==true)
           {
             if( (owTempsC_AvgCalc[i]>=owTempsC[i]+8) || (owTempsC_AvgCalc[i]<=owTempsC[i]-8) ) //0.08
