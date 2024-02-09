@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -67,7 +67,7 @@ uint8_t dioRwInOut()
   digitalWrite(IO_DO_PL, LOW);
   delayMicroseconds(5);
   digitalWrite(IO_DO_PL, HIGH);
-  
+
   return receivedVal;
 }
 
@@ -95,7 +95,7 @@ uint8_t getDoData()
 
 //Eingänge lesen u. Ausgänge schreiben
 uint8_t dioRwInOut()
-{  
+{
   return 0;
 }
 

@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -34,22 +34,22 @@
 
 //Protection State
 #define JBDBMS_STATUS_OK                0
-#define JBDBMS_STATUS_CELL_OVP          1   //bit0 single cell overvoltage protection 
-#define JBDBMS_STATUS_CELL_UVP          2   //bit1 single cell undervoltage protection    
-#define JBDBMS_STATUS_PACK_OVP          4   //bit2 whole pack overvoltage protection 
-#define JBDBMS_STATUS_PACK_UVP          8   //bit3 Whole pack undervoltage protection     
-#define JBDBMS_STATUS_CHG_OTP          16   //bit4 charging over-temperature protection 
-#define JBDBMS_STATUS_CHG_UTP          32   //bit5 charging low temperature protection 
-#define JBDBMS_STATUS_DSG_OTP          64   //bit6 Discharge over temperature protection  
-#define JBDBMS_STATUS_DSG_UTP         128   //bit7 discharge low temperature protection   
-#define JBDBMS_STATUS_CHG_OCP         256   //bit8 charging overcurrent protection 
-#define JBDBMS_STATUS_DSG_OCP         512   //bit9 Discharge overcurrent protection       
-#define JBDBMS_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection              
-#define JBDBMS_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error 
-#define JBDBMS_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS 
-#define JBDBMS_STATUS_RESERVED1      8192   //bit13 Reserved 
-#define JBDBMS_STATUS_RESERVED2     16384   //bit14 Reserved                                             
-#define JBDBMS_STATUS_RESERVED3     32768   //bit15 Reserved 
+#define JBDBMS_STATUS_CELL_OVP          1   //bit0 single cell overvoltage protection
+#define JBDBMS_STATUS_CELL_UVP          2   //bit1 single cell undervoltage protection
+#define JBDBMS_STATUS_PACK_OVP          4   //bit2 whole pack overvoltage protection
+#define JBDBMS_STATUS_PACK_UVP          8   //bit3 Whole pack undervoltage protection
+#define JBDBMS_STATUS_CHG_OTP          16   //bit4 charging over-temperature protection
+#define JBDBMS_STATUS_CHG_UTP          32   //bit5 charging low temperature protection
+#define JBDBMS_STATUS_DSG_OTP          64   //bit6 Discharge over temperature protection
+#define JBDBMS_STATUS_DSG_UTP         128   //bit7 discharge low temperature protection
+#define JBDBMS_STATUS_CHG_OCP         256   //bit8 charging overcurrent protection
+#define JBDBMS_STATUS_DSG_OCP         512   //bit9 Discharge overcurrent protection
+#define JBDBMS_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection
+#define JBDBMS_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error
+#define JBDBMS_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS
+#define JBDBMS_STATUS_RESERVED1      8192   //bit13 Reserved
+#define JBDBMS_STATUS_RESERVED2     16384   //bit14 Reserved
+#define JBDBMS_STATUS_RESERVED3     32768   //bit15 Reserved
 
 
 
@@ -60,4 +60,4 @@
 
 bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
 
-#endif 
+#endif

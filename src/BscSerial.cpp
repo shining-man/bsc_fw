@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -83,11 +83,11 @@ void BscSerial::initSerial()
 
 void BscSerial::stopCyclicRun(bool state)
 {
-  if(state==true) 
+  if(state==true)
   {
     xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   }
-  else 
+  else
   {
     xSemaphoreGive(mSerialMutex);
   }
@@ -166,7 +166,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
   serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
 
   //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
-  
+
   switch (funktionsTyp)
   {
     case ID_SERIAL_DEVICE_NB:
@@ -186,7 +186,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       setSerialBaudrate(u8_devNr, 115200);
       serialDeviceData[u8_devNr].readBms = &JkBms_readBmsData;
       break;
-      
+
     case ID_SERIAL_DEVICE_SEPLOSBMS:
       BSC_LOGI(TAG,"Set serial device %i: SEPLOS",u8_devNr);
       setSerialBaudrate(u8_devNr, 19200);
@@ -209,13 +209,13 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       BSC_LOGI(TAG,"Set serial device %i: JKBMS V1.3",u8_devNr);
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &JkBmsV13_readBmsData;
-      break;      
+      break;
 
     case ID_SERIAL_DEVICE_GOBELBMS:
       BSC_LOGI(TAG,"setReadBmsFunktion Gobel RN150");
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &GobelBms_readBmsData;
-      break; 
+      break;
 
     #ifdef BPN
     case ID_SERIAL_DEVICE_BPN:
@@ -255,19 +255,19 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
   {
     if(e_rw==serialRxTx_TxEn)
     {
-      digitalWrite(SERIAL1_PIN_TX_EN, HIGH); 
+      digitalWrite(SERIAL1_PIN_TX_EN, HIGH);
       usleep(20);
     }
-    else if(e_rw==serialRxTx_RxEn) digitalWrite(SERIAL1_PIN_TX_EN, LOW); 
+    else if(e_rw==serialRxTx_RxEn) digitalWrite(SERIAL1_PIN_TX_EN, LOW);
   }
-  else if(u8_devNr==1) 
+  else if(u8_devNr==1)
   {
     if(e_rw==serialRxTx_TxEn)
     {
-      digitalWrite(SERIAL2_PIN_TX_EN, HIGH); 
+      digitalWrite(SERIAL2_PIN_TX_EN, HIGH);
       usleep(20);
     }
-    else if(e_rw==serialRxTx_RxEn) digitalWrite(SERIAL2_PIN_TX_EN, LOW); 
+    else if(e_rw==serialRxTx_RxEn) digitalWrite(SERIAL2_PIN_TX_EN, LOW);
   }
   else if(u8_devNr==2)
   {
@@ -291,7 +291,7 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
     }
     else if(e_rw==serialRxTx_RxEn) //RX
     {
-      digitalWrite(SERIAL3_PIN_RX_EN, LOW); 
+      digitalWrite(SERIAL3_PIN_RX_EN, LOW);
       if(getHwVersion()>=2) digitalWrite(SERIAL3_PIN_TX_EN, LOW); //LOW
     }
   }
@@ -314,18 +314,18 @@ void BscSerial::cyclicRun()
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   }
 
-  if((millis()-serialMqttSendeTimer)>60000) 
+  if((millis()-serialMqttSendeTimer)>60000)
   {
     serialMqttSendeTimer=millis();
     bo_lMqttSendMsg=true;
   }
 
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-  {  
+  {
     if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
     {
       if(u8_lNumberOfSeplosBms==0 || i<2 || i>(u8_lNumberOfSeplosBms+1))
-      {  
+      {
         continue;
       }
     }
@@ -385,7 +385,7 @@ void BscSerial::cyclicRun()
 
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
     if(serialDeviceData[u8_serDeviceNr].readBms!=NULL)
-      bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS 
+      bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
     else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",u8_serDeviceNr);
 
     if(devData.bo_writeData) free(lRwData);
@@ -428,9 +428,9 @@ void BscSerial::cyclicRun()
       BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
     }
 
-    
+
     /* Überprüfen ob das BMS noch aktuelle Zellspannungen liefert, oder ob es "hängt" und nur noch die gleichen Werte liefert.
-     * Es wird über alle Cellspannungen eine CRC16 gebildet. Die CRC muss sich in gewissen Abständen ändern, 
+     * Es wird über alle Cellspannungen eine CRC16 gebildet. Die CRC muss sich in gewissen Abständen ändern,
      * da nie alle Zellspannungen konstant sind. Es wird immer eine der Zellen um +/- ein mV schwanken.
     */
     uint8_t u8_lTriggerPlausibilityCeckCellVoltage = WebSettings::getInt(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE,0,DT_ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE);
