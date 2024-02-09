@@ -1279,7 +1279,11 @@ void sendCanMsg_355()
         }
       }
 
-      if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG) msgData.soc = (u16_avgSoc/u8_numberOfSocs);
+      if ((u8_numberOfSocs > 0) && // Prevents from divide-by-zero
+          (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG))
+      {
+        msgData.soc = (u16_avgSoc / u8_numberOfSocs);
+      }
     }
     else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
     {

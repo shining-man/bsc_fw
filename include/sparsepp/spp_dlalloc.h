@@ -99,12 +99,12 @@ namespace spp
         MSpace *getSpace() const { return _space.get(); }
 
         spp_allocator() : _space(new MSpace) {}
-        
+
         template<class U>
         spp_allocator(const spp_allocator<U> &o) : _space(o.getSpace()) {}
 
         template<class U>
-        spp_allocator& operator=(const spp_allocator<U> &o) 
+        spp_allocator& operator=(const spp_allocator<U> &o)
         {
             if (&o != this)
                 _space = o.getSpace();
@@ -141,7 +141,7 @@ namespace spp
         {
             return reallocate(p, new_size);
         }
-        
+
         size_type max_size() const
         {
             return static_cast<size_type>(-1) / sizeof(value_type);
@@ -157,15 +157,15 @@ namespace spp
         template<class U>
         struct rebind
         {
-            // rebind to libc_allocator because we want to use malloc_inspect_all in destructive_iterator 
-            // to reduce peak memory usage (we don't want <group_items> mixed with value_type when 
+            // rebind to libc_allocator because we want to use malloc_inspect_all in destructive_iterator
+            // to reduce peak memory usage (we don't want <group_items> mixed with value_type when
             // we traverse the allocated memory).
             typedef spp::spp_allocator<U> other;
         };
 
         mspace space() const { return _space->_sp; }
 
-        // check if we can clear the whole allocator memory at once => works only if the allocator 
+        // check if we can clear the whole allocator memory at once => works only if the allocator
         // is not be shared. If can_clear() returns true, we expect that the next allocator call
         // will be clear() - not allocate() or deallocate()
         bool can_clear()
@@ -186,7 +186,7 @@ namespace spp
             _space_to_clear.reset();
             _space = new MSpace;
         }
-        
+
     private:
         spp_sptr<MSpace> _space;
         spp_sptr<MSpace> _space_to_clear;
@@ -455,7 +455,7 @@ namespace spp
             unsigned char _BitScanForward(unsigned long *index, unsigned long mask);
             unsigned char _BitScanReverse(unsigned long *index, unsigned long mask);
         }
-        
+
         #define BitScanForward _BitScanForward
         #define BitScanReverse _BitScanReverse
         #pragma intrinsic(_BitScanForward)
@@ -531,7 +531,7 @@ static char *cmfail = (char*)mfail;
     #if !defined(MAP_ANONYMOUS) && defined(MAP_ANON)
         #define MAP_ANONYMOUS        MAP_ANON
     #endif
-    
+
     #ifdef MAP_ANONYMOUS
         #define SPP_MMAP_FLAGS           (MAP_PRIVATE | MAP_ANONYMOUS)
         #define SPP_MMAP_DEFAULT(s)       mmap(0, (s), SPP_MMAP_PROT, SPP_MMAP_FLAGS, -1, 0)
@@ -549,18 +549,18 @@ static char *cmfail = (char*)mfail;
             mmap(0, s, SPP_MMAP_PROT, SPP_MMAP_FLAGS, dev_zero_fd, 0);
         }
     #endif /* MAP_ANONYMOUS */
-    
+
     #define SPP_DIRECT_MMAP_DEFAULT(s) SPP_MMAP_DEFAULT(s)
-    
+
 #else /* WIN32 */
-    
+
     /* Win32 MMAP via VirtualAlloc */
     static SPP_FORCEINLINE void* win32mmap(size_t size)
     {
         void* ptr = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
         return (ptr != 0) ? ptr : mfail;
     }
-    
+
     /* For direct MMAP, use MEM_TOP_DOWN to minimize interference */
     static SPP_FORCEINLINE void* win32direct_mmap(size_t size)
     {
@@ -568,7 +568,7 @@ static char *cmfail = (char*)mfail;
                                  PAGE_READWRITE);
         return (ptr != 0) ? ptr : mfail;
     }
-    
+
     /* This function supports releasing coalesed segments */
     static SPP_FORCEINLINE int win32munmap(void* ptr, size_t size)
     {
@@ -588,7 +588,7 @@ static char *cmfail = (char*)mfail;
         }
         return 0;
     }
-    
+
     #define SPP_MMAP_DEFAULT(s)             win32mmap(s)
     #define SPP_MUNMAP_DEFAULT(a, s)        win32munmap((a), (s))
     #define SPP_DIRECT_MMAP_DEFAULT(s)      win32direct_mmap(s)
@@ -1013,7 +1013,7 @@ struct malloc_params
         if (!_magic)
             _init();
     }
-    
+
     SPP_IMPL int change(int param_number, int value);
 
     size_t page_align(size_t sz)
@@ -1577,8 +1577,8 @@ static bool segment_holds(msegmentptr S, mchunkptr A)
 */
 static SPP_FORCEINLINE size_t top_foot_size()
 {
-    return align_offset(chunk2mem((void *)0)) + 
-        pad_request(sizeof(struct malloc_segment)) + 
+    return align_offset(chunk2mem((void *)0)) +
+        pad_request(sizeof(struct malloc_segment)) +
         MIN_CHUNK_SIZE;
 }
 

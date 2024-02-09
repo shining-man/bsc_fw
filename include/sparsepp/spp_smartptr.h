@@ -35,20 +35,20 @@ public:
     spp_sptr() : _p(0) {}
     spp_sptr(T *p) : _p(p)                  { if (_p) _p->increment(); }
     spp_sptr(const spp_sptr &o) : _p(o._p)  { if (_p) _p->increment(); }
-#ifndef SPP_NO_CXX11_RVALUE_REFERENCES 
+#ifndef SPP_NO_CXX11_RVALUE_REFERENCES
     spp_sptr(spp_sptr &&o) : _p(o._p)       { o._p = (T *)0; }
     spp_sptr& operator=(spp_sptr &&o)       { this->swap(o); return *this; }
-#endif    
+#endif
     ~spp_sptr()                             { if (_p) _p->decrement(); }
     spp_sptr& operator=(const spp_sptr &o)  { reset(o._p); return *this; }
     T* get() const                          { return _p; }
     void swap(spp_sptr &o)                  { T *tmp = _p; _p = o._p; o._p = tmp; }
-    void reset(const T *p = 0)             
-    { 
-        if (p == _p) 
-            return; 
-        if (_p) _p->decrement(); 
-        _p = (T *)p; 
+    void reset(const T *p = 0)
+    {
+        if (p == _p)
+            return;
+        if (_p) _p->decrement();
+        _p = (T *)p;
         if (_p) _p->increment();
     }
     T*   operator->() const { return const_cast<T *>(_p); }
@@ -56,7 +56,7 @@ public:
 
 private:
     T *_p;
-};    
+};
 
 // ------------------------------------------------------------------------
 namespace std

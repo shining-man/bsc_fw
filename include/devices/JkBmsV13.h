@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -16,4 +16,4 @@
 bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
 
 
-#endif 
+#endif

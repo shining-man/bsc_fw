@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -31,10 +31,10 @@
 #include <FS.h>
 #ifdef USE_LittleFS
   #define SPIFFS LittleFS
-  #include <LittleFS.h> 
+  #include <LittleFS.h>
 #else
   #include <SPIFFS.h>
-#endif 
+#endif
 
 #include "defines.h"
 #include "WebSettings.h"
@@ -333,7 +333,7 @@ void onWiFiEvent(WiFiEvent_t event)
     default:
       BSC_LOGI(TAG, "WIFI event: %d", event);
   }
-  
+
   switch(event)
   {
     case ARDUINO_EVENT_WIFI_STA_CONNECTED:
@@ -343,7 +343,7 @@ void onWiFiEvent(WiFiEvent_t event)
       wlanEventStaDisonnect=false;
       wlanEventStaConnect=true;
       break;
-        
+
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
     case ARDUINO_EVENT_WIFI_STA_LOST_IP:
       wlanEventStaConnect=false;
@@ -435,7 +435,7 @@ boolean connectWiFi()
         xSemaphoreGive(mutexTaskRunTime_wifiConn);
       }
     }
-    
+
     if (WiFi.status() == WL_CONNECTED)
     {
       BSC_LOGI(TAG, "IP-Adresse = %s",WiFi.localIP().toString().c_str());
@@ -444,7 +444,7 @@ boolean connectWiFi()
       changeWlanDataForI2C=true;
     }
   }
-  
+
   if (!bo_mWifiConnected && (!firstWlanModeSTA || !bo_lWlanNeverAp))
   {
     BSC_LOGI(TAG, "Open Wifi AP");
@@ -452,10 +452,10 @@ boolean connectWiFi()
     WiFi.mode(WIFI_AP);
     String str_lHostname = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
     str_lHostname += "_" + String((uint32_t)ESP.getEfuseMac());
-    WiFi.softAP(str_lHostname.c_str(),"",1);  
+    WiFi.softAP(str_lHostname.c_str(),"",1);
     changeWlanDataForI2C=true;
   }
-  
+
   #ifdef WLAN_DEBUG
   BSC_LOGI(TAG, "[WiFi] status (b): %i", WiFi.status());
   #endif
@@ -469,7 +469,7 @@ boolean connectWiFi()
 */
 void task_ConnectWiFi(void *param)
 {
-  enum connectStateEnums {ConnState_wifiDisconnected, ConnState_noWifiConnection, ConnState_connectWifi, ConnState_wifiConnected, 
+  enum connectStateEnums {ConnState_wifiDisconnected, ConnState_noWifiConnection, ConnState_connectWifi, ConnState_wifiConnected,
     ConnState_wlanApMode, ConnState_connectMQTTstart, ConnState_connectMQTT, ConnState_connectBT, ConnState_connectBT2, ConnState_idle};
 
   connectStateEnums mConnectStateEnums=ConnState_noWifiConnection;
@@ -530,7 +530,7 @@ void task_ConnectWiFi(void *param)
         }
         timeRunCyclic(true); //Hole 1x die Zeit
         BSC_LOGI(TAG,"Time: %s",getBscDateTime().c_str());
-        
+
         // Zeitstempel der ersten Zeit nach dem Booten ermitteln
         if(!bo_BootTimeStamp)
         {
@@ -622,7 +622,7 @@ void task_ConnectWiFi(void *param)
             mConnectStateEnums=ConnState_connectMQTTstart; //ConnState_connectMQTT;
             break;
           }
-          
+
           if(millis()-u32_getTimeTimer>3600000)
           {
             u32_getTimeTimer=millis();
@@ -641,8 +641,8 @@ void task_ConnectWiFi(void *param)
       BSC_LOGD(TAG, "mConnectState=%i", mConnectStateEnums);
       mConnectStateEnumsOld=mConnectStateEnums;
     }
-    
-    
+
+
     if((millis()-tConnWifiHelpTimer)>1000)
     {
       tConnWifiHelpTimer=millis();
@@ -688,9 +688,9 @@ void task_ble(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    
+
     if(bleHandler!=nullptr) if(WlanStaApOk!=WIFI_OFF) bleHandler->run();
-    
+
     xSemaphoreTake(mutexTaskRunTime_ble, portMAX_DELAY);
     lastTaskRun_ble=millis();
     xSemaphoreGive(mutexTaskRunTime_ble);
@@ -785,7 +785,7 @@ void task_i2c(void *param)
       else ipAddr = WiFi.localIP().toString();
       i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
     }
-      
+
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
     lastTaskRun_i2c=millis();
     xSemaphoreGive(mutexTaskRunTime_i2c);
@@ -963,7 +963,7 @@ void handle_getNeeySettingsReadback()
   NeeyBalancer::getNeeyReadbackDataAsString(value);
   server.send(200, "text/html", value);
   value="";
-}        
+}
 
 void handle_paramDeviceJbdBms(){webSettingsDeviceJbdBms.handleHtmlFormRequest(&server);}
 
@@ -995,7 +995,7 @@ void handle_getDashboardData()
   //4. Task status
   tmp += "|";
   tmp += String(u8_mTaskRunSate);
-  
+
   //5. + 6. BT-Devices
   tmp += "|";
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
@@ -1006,7 +1006,7 @@ void handle_getDashboardData()
       if(u8_lBtDevConnState==0) tmp += "&ndash;";
       else if(u8_lBtDevConnState==1) tmp += "n";
       else if(u8_lBtDevConnState==2) tmp += "c";
-    } 
+    }
     if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
     if(i==4) tmp += "|";
   }
@@ -1141,25 +1141,25 @@ uint8_t checkTaskRun()
     if(millis()-lastTaskRun_alarmrules>3000) ret+=2;
     xSemaphoreGive(mutexTaskRunTime_alarmrules);
   }
-  
+
   if(xSemaphoreTake( mutexTaskRunTime_ow,(TickType_t)10)==pdTRUE)
   {
     if(millis()-lastTaskRun_onewire>2000) ret+=4;
     xSemaphoreGive(mutexTaskRunTime_ow);
   }
-  
+
   if(xSemaphoreTake( mutexTaskRunTime_can,(TickType_t)10)==pdTRUE)
   {
     if(millis()-lastTaskRuncanbusTx>2000) ret+=8;
     xSemaphoreGive(mutexTaskRunTime_can);
   }
-  
+
   if(xSemaphoreTake( mutexTaskRunTime_serial,(TickType_t)10)==pdTRUE)
   {
     if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
     xSemaphoreGive(mutexTaskRunTime_serial);
   }
-  
+
   if(xSemaphoreTake( mutexTaskRunTime_i2c,(TickType_t)10)==pdTRUE)
   {
     if(millis()-lastTaskRun_i2c>4000) ret+=32;
@@ -1191,7 +1191,7 @@ void sendResponceUpdateBpnFw()
 void setup()
 {
   //Register setzen
-  *((volatile uint32_t *) (RTC_CNTL_SDIO_CONF_REG)) |= RTC_CNTL_SDIO_TIEH; 
+  *((volatile uint32_t *) (RTC_CNTL_SDIO_CONF_REG)) |= RTC_CNTL_SDIO_TIEH;
 
   //esp_core_dump_init();
 
@@ -1213,7 +1213,7 @@ void setup()
   BSC_LOGI(TAG, "bootCounter=%i", bootCounter);
   //bscCoreDumpExport();
 
-  //init DIO 
+  //init DIO
   if(bootCounter==1) initDio(false);
   else initDio(true);
   BSC_LOGI(TAG, "HW: %i", getHwVersion());
@@ -1221,7 +1221,7 @@ void setup()
   bmsDataInit();
 
   //init WebSettings
-  free_dump();  
+  free_dump();
   webSettingsSystem.initWebSettings(paramSystem, "System", "/WebSettings.conf");
   webSettingsBluetooth.initWebSettings(paramBluetooth, "Bluetooth", "/WebSettings.conf");
   webSettingsBluetooth.setTimerHandlerName("getBtDevices");
@@ -1249,7 +1249,7 @@ void setup()
 
   webSettingsDeviceJbdBms.setButtons(BUTTON_1,"Write data to JBD");
   webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
-  free_dump();  
+  free_dump();
 
   BSC_LOGI(TAG,"Hostname: %s", WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()); //Der Hostname kann erst nach dem lesen der Parameter genutzt werden
 
@@ -1262,8 +1262,8 @@ void setup()
   WiFi.setAutoReconnect(false);
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
-  
-  
+
+
   if (MDNS.begin(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
   {
     BSC_LOGI(TAG, "MDNS responder gestartet");
@@ -1271,7 +1271,7 @@ void setup()
 
   //ini WebPages
   #ifdef INSIDER_V1
-  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true) 
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
   {
     server.on("/old",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
@@ -1279,8 +1279,8 @@ void setup()
     server.on("/p_system", HTTP_GET, []() {server.send_P(200, "application/json", paramSystem);});
     server.on("/p_bt", HTTP_GET, []() {server.send_P(200, "application/json", paramBluetooth);});
     server.on("/p_serial", HTTP_GET, []() {server.send_P(200, "application/json", paramSerial);});
-    server.on("/p_alarmbms", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmBms);}); 
-    server.on("/p_alarmtemp", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmTemp);}); 
+    server.on("/p_alarmbms", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmBms);});
+    server.on("/p_alarmtemp", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmTemp);});
     server.on("/p_do", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalOut);});
     server.on("/p_di", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalIn);});
     server.on("/p_ow", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewire2);});
@@ -1309,7 +1309,7 @@ void setup()
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
   server.on("/restapi", HTTP_GET, []() {buildJsonRest(&server);});
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
- 
+
   server.on("/settings/system/",handle_paramSystem);
   server.on("/settings/bms_can/",handle_paramBmsToInverter);
   server.on("/settings/alarm/alarmTemp/",handle_paramAlarmTemp);
@@ -1320,7 +1320,7 @@ void setup()
   server.on("/settings/schnittstellen/serial/",handle_paramSerial);
   server.on("/settings/schnittstellen/ow/",handle_paramOnewireAdr);
   server.on("/settings/schnittstellen/ow2/",handle_paramOnewire2);
-    
+
   server.on("/settings/devices/neeyBalancer/",handle_paramDevicesNeeyBalancer);
   server.on("/settings/devices/neeyBalancer/getNeeySettingsReadback",handle_getNeeySettingsReadback);
 
@@ -1425,7 +1425,7 @@ void loop()
   if(millis()-debugLogTimer>=10000)
   {
     debugLogTimer = millis();
-    logBmsData(10); //0-6 BT; 7-9 serial 0-2; 10-17 serial ext. 
+    logBmsData(10); //0-6 BT; 7-9 serial 0-2; 10-17 serial ext.
   }
   #endif
 }
