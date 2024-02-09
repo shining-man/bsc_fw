@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -36,7 +36,7 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
   callbackSetTxRxEn=callback;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
-  #ifdef JK_DEBUG 
+  #ifdef JK_DEBUG
   BSC_LOGD(TAG,"Serial %i send",u8_mDevNr);
   #endif
   sendMessage(getDataMsg);
@@ -49,9 +49,9 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
   }
   else bo_lRet=false;
-  
+
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  return bo_lRet;  
+  return bo_lRet;
 }
 
 
@@ -60,7 +60,7 @@ static void sendMessage(uint8_t *sendMsg)
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(sendMsg, 21);
-  mPort->flush();  
+  mPort->flush();
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
@@ -79,7 +79,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if((millis()-u32_lStartTime)>200) 
+    if((millis()-u32_lStartTime)>200)
     {
       BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i",u8_mDevNr, u16_lRecvDataLen, u16_mLastRecvBytesCnt);
       /*for(uint16_t x=0;x<u16_mLastRecvBytesCnt;x++)
@@ -122,7 +122,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
           p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
           u16_mLastRecvBytesCnt++;
           break;
-      
+
         default:
           break;
         }
@@ -140,8 +140,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     if(u16_mLastRecvBytesCnt>=JKBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
-  
-  #ifdef JK_DEBUG 
+
+  #ifdef JK_DEBUG
   if(u16_mLastRecvBytesCnt>5)
   {
     BSC_LOGD(TAG,"RecvBytes=%i, %i, %i, %i, %i, %i", u16_mLastRecvBytesCnt, p_lRecvBytes[u16_mLastRecvBytesCnt-5], p_lRecvBytes[u16_mLastRecvBytesCnt-4],
@@ -155,10 +155,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 	uint8_t crcB3 = (crc >> 8) & 0xFF;  // Byte 3
   uint8_t crcB4 = crc & 0xFF;         // Byte 4
 
-  #ifdef JK_DEBUG 
+  #ifdef JK_DEBUG
   BSC_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
   #endif
-  if(p_lRecvBytes[u16_mLastRecvBytesCnt-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCnt-1]!=crcB4) return false; 
+  if(p_lRecvBytes[u16_mLastRecvBytesCnt-2]!=crcB3 && p_lRecvBytes[u16_mLastRecvBytesCnt-1]!=crcB4) return false;
 
   return true;
 }
@@ -181,7 +181,7 @@ void parseData(uint8_t * t_message)
   uint8_t  u8_lZellNumberMaxVoltage = 0;
   uint16_t u16_lCellSum = 0;
   uint16_t u16_lZellVoltage = 0;
-  uint16_t u16_lCellLow = 0xFFFF; 
+  uint16_t u16_lCellLow = 0xFFFF;
   uint16_t u16_lCellHigh = 0x0;
 
   for(uint16_t i=9; i<u16_mLastRecvBytesCnt-5;)
@@ -190,7 +190,7 @@ void parseData(uint8_t * t_message)
       case 0x79: //Cell voltage
 
         u8_lNumOfCells = t_message[i+1]/3;
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"NumOfCells=%i", u8_lNumOfCells);
         #endif
         i+=2;
@@ -198,7 +198,7 @@ void parseData(uint8_t * t_message)
         {
           if(t_message[i]>u8_lNumOfCells)
           {
-            #ifdef JK_DEBUG 
+            #ifdef JK_DEBUG
             BSC_LOGD(TAG,"n>NOC: %i, %i, %i, %i", i, n, u8_lNumOfCells, t_message[i]);
             #endif
             break;
@@ -222,13 +222,13 @@ void parseData(uint8_t * t_message)
 
           u16_lZellMinVoltage = u16_lCellLow;
           u16_lZellMaxVoltage = u16_lCellHigh;
-          u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow; 
+          u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow;
 
-          #ifdef JK_DEBUG 
+          #ifdef JK_DEBUG
           BSC_LOGD(TAG,"V%i=%i",n, u16_lZellVoltage);
           #endif
         }
-        
+
         setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
         setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
         setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
@@ -238,37 +238,37 @@ void parseData(uint8_t * t_message)
 
         break;
 
-      case 0x80: // Read tube temp. 
+      case 0x80: // Read tube temp.
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
-        break; 
+        break;
 
       case 0x81: // Battery inside temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
-        break; 
+        break;
 
       case 0x82: // Battery temp
         setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
         i+=3;
-        break;   
+        break;
 
       case 0x83: // Total Batery Voltage
         setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #endif
         i+=3;
-        break; 
+        break;
 
       case 0x84: // Current
       	i16_lTmpValue = (uint16_t)(t_message[i+1]<<8)|t_message[i+2];
@@ -276,13 +276,13 @@ void parseData(uint8_t * t_message)
         else {i16_lTmpValue *= -1;} // Wenn negativ
 
         setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)i16_lTmpValue*0.01);
-        #ifdef JK_DEBUG 
+        #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
         #endif
         i+=3;
-        break; 
+        break;
 
-      case 0x85: // Remaining Battery Capazity 
+      case 0x85: // Remaining Battery Capazity
         setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, t_message[i+1]); //in %
         i+=2;
         break;
@@ -290,30 +290,30 @@ void parseData(uint8_t * t_message)
       case 0x87: // Cycle
         u16_lCycle = ((uint16_t)t_message[i+1] << 8 | t_message[i+2]);
         i+=3;
-        break;   
+        break;
 
       case 0x89: // Total Battery cycle Capacity
-        u32_lCycleCapacity = (((uint16_t)t_message[i+1] << 24 | t_message[i+2] << 16 | t_message[i+3] << 8 | t_message[i+4])); 
+        u32_lCycleCapacity = (((uint16_t)t_message[i+1] << 24 | t_message[i+2] << 16 | t_message[i+3] << 8 | t_message[i+4]));
         i+=5;
-        break; 
+        break;
 
       case 0x8b: // Battery_Warning_Massage
         /*bmsErrors
         #define BMS_ERR_STATUS_OK                0
-        #define BMS_ERR_STATUS_CELL_OVP          1  - //bit0  single cell over voltage 
-        #define BMS_ERR_STATUS_CELL_UVP          2  - //bit1  single cell under voltage    
-        #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  pack over voltage 
-        #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  pack under voltage     
-        #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature 
-        #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature 
-        #define BMS_ERR_STATUS_DSG_OTP          64  - //bit6  Discharge over temperature  
-        #define BMS_ERR_STATUS_DSG_UTP         128  - //bit7  discharge low temperature   
-        #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging over current 
-        #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge over current       
-        #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  - //bit10 short circuit              
-        #define BMS_ERR_STATUS_AFE_ERROR      2048  - //bit11 Front-end detection IC error 
-        #define BMS_ERR_STATUS_SOFT_LOCK      4096  - //bit12 software lock MOS 
-        #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved 
+        #define BMS_ERR_STATUS_CELL_OVP          1  - //bit0  single cell over voltage
+        #define BMS_ERR_STATUS_CELL_UVP          2  - //bit1  single cell under voltage
+        #define BMS_ERR_STATUS_BATTERY_OVP       4  x //bit2  pack over voltage
+        #define BMS_ERR_STATUS_BATTERY_UVP       8  x //bit3  pack under voltage
+        #define BMS_ERR_STATUS_CHG_OTP          16  x //bit4  charging over temperature
+        #define BMS_ERR_STATUS_CHG_UTP          32  x //bit5  charging low temperature
+        #define BMS_ERR_STATUS_DSG_OTP          64  - //bit6  Discharge over temperature
+        #define BMS_ERR_STATUS_DSG_UTP         128  - //bit7  discharge low temperature
+        #define BMS_ERR_STATUS_CHG_OCP         256  x //bit8  charging over current
+        #define BMS_ERR_STATUS_DSG_OCP         512  x //bit9  Discharge over current
+        #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024  - //bit10 short circuit
+        #define BMS_ERR_STATUS_AFE_ERROR      2048  - //bit11 Front-end detection IC error
+        #define BMS_ERR_STATUS_SOFT_LOCK      4096  - //bit12 software lock MOS
+        #define BMS_ERR_STATUS_RESERVED1      8192  - //bit13 Reserved
         #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
         #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
@@ -338,7 +338,7 @@ void parseData(uint8_t * t_message)
         //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
         setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_lTmpValue);
         i+=3;
-        break;  
+        break;
 
       case 0x8C:  // Battery status information
         u16_lTmpValue = ((uint16_t)t_message[i+1] << 8 | t_message[i+2]);

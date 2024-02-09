@@ -4,5 +4,6 @@
         "string": "cpp",
         "*.tcc": "cpp",
         "streambuf": "cpp"
-    }
+    },
+    "files.trimTrailingWhitespace": true
 }

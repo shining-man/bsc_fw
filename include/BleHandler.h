@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -32,7 +32,7 @@ struct bleDevice {
 class BleHandler {
 public:
   BleHandler();
-  
+
   void init();
   void start();
   void stop();
@@ -50,7 +50,7 @@ public:
 private:
   uint8_t timer_startScan;
   bool bo_mStartManualScan;
-  
+
   bool handleConnectionToDevices();
   void handleDisconnectionToDevices();
 };

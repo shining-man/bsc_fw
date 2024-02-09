@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -66,7 +66,7 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   //else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS);  
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS);
   if(recvAnswer(response,1)) parseMessage(response);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
@@ -76,17 +76,17 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE); 
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE);
   if(recvAnswer(response,u8_mNumberOfCells/3+u8_mNumberOfCells%3)) parseMessage(response);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE); 
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE);
   if(recvAnswer(response,1)) parseMessage(response);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER); 
+  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER);
   if(recvAnswer(response,1)) parseMessage(response);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
@@ -95,9 +95,9 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   if(recvAnswer(response,1)) parseMessage(response);
   else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
-  
+
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  return bo_ret;  
+  return bo_ret;
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
@@ -128,7 +128,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   #endif
 
   //Empfangsbuffer leeren wenn da noch etwas drin sein sollte
-  for(uint8_t i=0;i<200;i++) 
+  for(uint8_t i=0;i<200;i++)
   {
     if (mPort->available() == 0) break;
   }
@@ -137,7 +137,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(u8_lData, DALY_FRAME_SIZE);
-  mPort->flush();  
+  mPort->flush();
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
@@ -155,7 +155,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
   for(;;)
   {
     //Timeout
-    if((millis()-u32_lStartTime)>200) 
+    if((millis()-u32_lStartTime)>200)
     {
       BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
       #ifdef DALY_DEBUG
@@ -198,13 +198,13 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
           {
             //BSC_LOGI(TAG,"Last byte; cnt=%i, cntPacket=%i, recvByte=%i, chkSum=%i",u8_lRecvBytesCnt, u8_lRecvBytesCntPacket, u8_lRecvByte, u8_checlSum);
             SMrecvState=SEARCH_START;
-            
+
             //Überprüfe Cheksum
-            if(u8_checlSum!=p_lRecvBytes[u8_lRecvBytesCnt-1]) return false; 
-          } 
+            if(u8_checlSum!=p_lRecvBytes[u8_lRecvBytesCnt-1]) return false;
+          }
           else u8_checlSum+=u8_lRecvByte;
           break;
-      
+
         default:
           break;
         }
@@ -217,8 +217,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
       u8_CyclesWithoutData++;
     vTaskDelay(pdMS_TO_TICKS(1));
     }
-    
-    if(u8_lRecvBytesCnt==(DALY_FRAME_SIZE*packets)) break; //Recv Pakage complete   
+
+    if(u8_lRecvBytesCnt==(DALY_FRAME_SIZE*packets)) break; //Recv Pakage complete
     if(u8_lRecvBytesCnt>=(DALY_FRAME_SIZE*16)) return false; //Answer too long!
   }
 
@@ -251,7 +251,7 @@ static void parseMessage(uint8_t * t_message)
   uint16_t u16_lValue1, u16_lValue2;
   uint32_t u32_lValue;
 
-  switch (t_message[2]) 
+  switch (t_message[2])
   {
     case DALY_REQUEST_BATTERY_SOC:
       setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, ((float)((t_message[4]<<8) | t_message[5]) / 10.0f));
@@ -286,7 +286,7 @@ static void parseMessage(uint8_t * t_message)
 
       //Remain capacity (mAH)
       //ToDo: only MQTT
-      // ((uint32_t)t_message[8]<<0x18) | ((uint32_t)t_message[9]<<0x10) | ((uint32_t)t_message[10]<<0x08) | (uint32_t)t_message[11]; 
+      // ((uint32_t)t_message[8]<<0x18) | ((uint32_t)t_message[9]<<0x10) | ((uint32_t)t_message[10]<<0x08) | (uint32_t)t_message[11];
       break;
 
     case DALY_REQUEST_STATUS:
@@ -343,22 +343,22 @@ static void parseMessage(uint8_t * t_message)
       setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr, bo_value);
       break;
 
-    
+
     case DALY_REQUEST_FAILURE:
       /*bmsErrors
       #define BMS_ERR_STATUS_OK                0
-      #define BMS_ERR_STATUS_CELL_OVP          1   //bit0  single cell overvoltage protection 
-      #define BMS_ERR_STATUS_CELL_UVP          2   //bit1  single cell undervoltage protection    
-      #define BMS_ERR_STATUS_BATTERY_OVP       4   //bit2  whole pack overvoltage protection 
-      #define BMS_ERR_STATUS_BATTERY_UVP       8   //bit3  Whole pack undervoltage protection     
-      #define BMS_ERR_STATUS_CHG_OTP          16   //bit4  charging over temperature protection 
-      #define BMS_ERR_STATUS_CHG_UTP          32   //bit5  charging low temperature protection 
-      #define BMS_ERR_STATUS_DSG_OTP          64   //bit6  Discharge over temperature protection  
-      #define BMS_ERR_STATUS_DSG_UTP         128   //bit7  discharge low temperature protection   
-      #define BMS_ERR_STATUS_CHG_OCP         256   //bit8  charging overcurrent protection 
-      #define BMS_ERR_STATUS_DSG_OCP         512   //bit9  Discharge overcurrent protection       
-      #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection              
-      #define BMS_ERR_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error 
+      #define BMS_ERR_STATUS_CELL_OVP          1   //bit0  single cell overvoltage protection
+      #define BMS_ERR_STATUS_CELL_UVP          2   //bit1  single cell undervoltage protection
+      #define BMS_ERR_STATUS_BATTERY_OVP       4   //bit2  whole pack overvoltage protection
+      #define BMS_ERR_STATUS_BATTERY_UVP       8   //bit3  Whole pack undervoltage protection
+      #define BMS_ERR_STATUS_CHG_OTP          16   //bit4  charging over temperature protection
+      #define BMS_ERR_STATUS_CHG_UTP          32   //bit5  charging low temperature protection
+      #define BMS_ERR_STATUS_DSG_OTP          64   //bit6  Discharge over temperature protection
+      #define BMS_ERR_STATUS_DSG_UTP         128   //bit7  discharge low temperature protection
+      #define BMS_ERR_STATUS_CHG_OCP         256   //bit8  charging overcurrent protection
+      #define BMS_ERR_STATUS_DSG_OCP         512   //bit9  Discharge overcurrent protection
+      #define BMS_ERR_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection
+      #define BMS_ERR_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error
       #define BMS_ERR_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS */
 
       u16_lValue1 = t_message[4];

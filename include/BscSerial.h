@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -20,12 +20,12 @@ public:
   void setSoftSerial(uint8_t u8_devNr, uint32_t baudrate);
   void setSerialBaudrate(uint8_t u8_devNr);
   void setSerialRxBufferSize(uint8_t u8_devNr, uint16_t rxBufSize);
-  
+
   void cyclicRun();
 
   void setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp);
-  
-  
+
+
 private:
   SemaphoreHandle_t mSerialMutex = NULL;
 
