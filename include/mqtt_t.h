@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -10,7 +10,7 @@
 
 void initMqtt();
 bool mqttLoop();
-  
+
 bool mqttConnect();
 void mqttDisconnect();
 bool mqttConnected();

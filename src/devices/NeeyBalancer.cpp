@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -31,13 +31,13 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     #ifdef NEEY_DEBUG
     BSC_LOGD(TAG,"RX devNr=%i, len=%i",devNr,length);
     //log_print_buf(pData, length);
-    
+
     String log="";
     uint8_t logLenCnt=0;
     for(uint8_t i=0;i<length;i++)
     {
       logLenCnt++;
-      log+=String(pData[i], HEX); 
+      log+=String(pData[i], HEX);
       log+=" ";
       if(logLenCnt==20)
       {
@@ -46,7 +46,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
         log="";
       }
     }
-    BSC_LOGD(TAG,"RX: %s",log.c_str()); 
+    BSC_LOGD(TAG,"RX: %s",log.c_str());
     log="";
     #endif
 
@@ -60,7 +60,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     for(uint8_t i=0;i<length;i++)
     {
       logLenCnt++;
-      log+=String(pData[i], HEX); 
+      log+=String(pData[i], HEX);
       log+=" ";
       if(logLenCnt==20)
       {
@@ -69,7 +69,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
         log="";
       }
     }
-    BSC_LOGI(TAG,"RX: %s",log.c_str()); 
+    BSC_LOGI(TAG,"RX: %s",log.c_str());
     log="";*/
 
     bmsDataSemaphoreTake();
@@ -104,30 +104,30 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     //Delta Cell Voltage
     memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_DELTACELLVOLTAGE, 4);
     setBmsMaxCellDifferenceVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
-   
+
     /*
     Errors:
     STATUS_OK                0
-    STATUS_CELL_OVP          1   //bit0 single cell overvoltage protection 
-    STATUS_CELL_UVP          2   //bit1 single cell undervoltage protection    
-    STATUS_PACK_OVP          4   //bit2 whole pack overvoltage protection 
-    STATUS_PACK_UVP          8   //bit3 Whole pack undervoltage protection     
-    STATUS_CHG_OTP          16   //bit4 charging over-temperature protection 
-    STATUS_CHG_UTP          32   //bit5 charging low temperature protection 
-    STATUS_DSG_OTP          64   //bit6 Discharge over temperature protection  
-    STATUS_DSG_UTP         128   //bit7 discharge low temperature protection   
-    STATUS_CHG_OCP         256   //bit8 charging overcurrent protection 
-    STATUS_DSG_OCP         512   //bit9 Discharge overcurrent protection       
-    STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection              
-    STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error 
-    STATUS_SOFT_LOCK      4096   //bit12 software lock MOS 
+    STATUS_CELL_OVP          1   //bit0 single cell overvoltage protection
+    STATUS_CELL_UVP          2   //bit1 single cell undervoltage protection
+    STATUS_PACK_OVP          4   //bit2 whole pack overvoltage protection
+    STATUS_PACK_UVP          8   //bit3 Whole pack undervoltage protection
+    STATUS_CHG_OTP          16   //bit4 charging over-temperature protection
+    STATUS_CHG_UTP          32   //bit5 charging low temperature protection
+    STATUS_DSG_OTP          64   //bit6 Discharge over temperature protection
+    STATUS_DSG_UTP         128   //bit7 discharge low temperature protection
+    STATUS_CHG_OCP         256   //bit8 charging overcurrent protection
+    STATUS_DSG_OCP         512   //bit9 Discharge overcurrent protection
+    STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection
+    STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error
+    STATUS_SOFT_LOCK      4096   //bit12 software lock MOS
     */
     memcpy(&u32_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_ERRCELLOV, 4);
     setBmsErrors(devNr, u32_lTmpValue);
- 
+
     struct bmsData_s *p_lBmsData = getBmsData();
     bmsDataSemaphoreTake();
-    //memcpy(&p_lBmsData->bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24); 
+    //memcpy(&p_lBmsData->bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24);
     memcpy(&p_lBmsData->bmsMaxVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MAXVOLTCELLNR, 1);
     memcpy(&p_lBmsData->bmsMinVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MINVOLTCELLNR, 1);
     memcpy(&p_lBmsData->bmsIsBalancingActive[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCING, 1);
@@ -141,7 +141,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     setBmsTempature(devNr,0,f_lTmpValue);
     memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR+4, 4);
     setBmsTempature(devNr,1,f_lTmpValue);
-    
+
 
     uint16_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
     uint16_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));
@@ -188,9 +188,9 @@ void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cm
     frame[1] = 0x55;     // start sequence
     frame[2] = 0x11;     // start sequence
     frame[3] = byte3;    // start sequence
-    frame[4] = cmd;      // 
-    frame[5] = func;     // 
-    frame[6] = 0x14;     // length 
+    frame[4] = cmd;      //
+    frame[5] = func;     //
+    frame[6] = 0x14;     // length
     frame[7] = 0x00;
     frame[8] = value >> 0;
     frame[9] = value >> 8;
@@ -271,7 +271,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
   #ifdef NEEY_WRITE_DATA_DEBUG
   BSC_LOGI(TAG,"neeyWriteData: dev=%i",btDevNr);
   #endif
-  
+
   switch(u8_neeySendStep)
   {
     case 1:
@@ -419,7 +419,7 @@ float NeeyBalancer::neeyGetReadbackDataFloat(uint8_t devNr, uint8_t dataType)
       memcpy(&retValue, &getBmsSettingsReadback(devNr)[20], 4);
       break;
   }
-  
+
   bmsDataSemaphoreGive();
   return retValue;
 }
@@ -447,7 +447,7 @@ uint32_t NeeyBalancer::neeyGetReadbackDataInt(uint8_t devNr, uint8_t dataType)
       memcpy(&retValue, &getBmsSettingsReadback(devNr)[13], 1);
       break;
   }
-  
+
   bmsDataSemaphoreGive();
   return retValue;
 }
@@ -460,7 +460,7 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
 
   //ID_PARAM_NEEY_BUZZER //not use
   //ID_PARAM_NEEY_BALANCER_ON
-  
+
   if(u8_neeySendStep>0) //Write Data, please wait
   {
     value += F("display;flex|");  //spinner visible on
@@ -485,16 +485,16 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
 
       value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT),3) + " A|";
-      
+
       value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_SLEEP_VOLTAGE, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE),3) + " V|";
-      
+
       value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, i)) + ";";
       value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE),3) + " V|";
-      
+
       value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_CELLS, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_CELLS)) + "|";    
-      
+      value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_CELLS)) + "|";
+
       value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BAT_TYPE, i)) + ";";
       u8_lValue = NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_TYPE);
       str_lText="";
