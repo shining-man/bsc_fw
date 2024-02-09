@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -25,7 +25,7 @@ void initTime()
 {
   String str_lNtpServerName = WebSettings::getStringFlash(ID_PARAM_SYSTEM_NTP_SERVER_NAME,0);
   //uint16_t u16_lNtpServerPort = WebSettings::getIntFlash(ID_PARAM_SYSTEM_NTP_SERVER_PORT,0,0,0,DT_ID_PARAM_SYSTEM_NTP_SERVER_PORT);
-  
+
   if(str_lNtpServerName.length()==0)return;
   bo_lNtpEnable=true;
 

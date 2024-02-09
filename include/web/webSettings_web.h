@@ -1,11 +1,11 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
 #include "defines.h"
 
-/* Minifier 
+/* Minifier
  * CSS:  https://www.toptal.com/developers/cssminifier
  * JS:   https://www.giftofspeed.com/javascript-compressor/
  * GZIP: https://facia.dev/tools/compress-decompress/gzip-compress/
@@ -26,7 +26,7 @@ body {margin: 0; background-color: #ffffff;}
 .Ctd {width:150; padding:10px 5px 0 5px; text-align: left; vertical-align: top;}
 .Ctd2 {text-align: left; vertical-align: top; padding:15px 0 0 0;}
 .td0 {padding: 0 5px 0 5px;}
-.help {border-left:2px solid black; 
+.help {border-left:2px solid black;
   border-bottom: 1px solid #fff0;
   border-image: linear-gradient(90deg, #000, #000 1% ,#FFF 1.5%, #fff 100%);
   border-image-slice: 1;
@@ -135,7 +135,7 @@ function btnClick(btn) {
   var xhttp = new XMLHttpRequest();
   xhttp.open('POST','?'+btn+'=',true);
   xhttp.timeout=5000;
-  xhttp.send();  
+  xhttp.send();
 }
 
 function urlencode(str) {
@@ -168,7 +168,7 @@ for (let i = 0; i < collection.length; i++){
     var name=t1.getAttribute('name');
     var val=0;
     if(t1.nodeName=='SELECT'){
-      val=t1.options[t1.selectedIndex].value; 
+      val=t1.options[t1.selectedIndex].value;
     }else if(t1.nodeName=='INPUT'){
       if(t1.type=='checkbox'){
         if(t1.checked){val=1;}
@@ -233,10 +233,10 @@ function getData() {
         for (let i=0; i<(values.length); i++){
           let value = values[i].split(';');
           if(value[0]=='display'){
-            document.getElementById('lc').style.display = value[1]; 
+            document.getElementById('lc').style.display = value[1];
           }else if(value[0]=='btn1'){
             if(value[1]=='0'){document.getElementById("btn1").disabled = true;}
-            else{document.getElementById("btn1").disabled = false;}    
+            else{document.getElementById("btn1").disabled = false;}
           }else{
             document.getElementById(value[0]).innerHTML = value[1] + '';
           }

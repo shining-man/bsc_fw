@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -11,7 +11,7 @@
 static const char *TAG = "SEPLOS_BMS";
 
 static Stream *mPort;
-static uint8_t u8_mTxEnRS485pin, u8_mCountOfPacks, u8_mDevNr; 
+static uint8_t u8_mTxEnRS485pin, u8_mCountOfPacks, u8_mDevNr;
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -71,7 +71,7 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   }
   else
   {
-    ret=false; 
+    ret=false;
   }
 
   if(ret==true)
@@ -86,16 +86,16 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
       ret=false;
     }
   }
-  
+
   if(u8_mDevNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   vTaskDelay(pdMS_TO_TICKS(25));
-  return ret;  
+  return ret;
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
 {
   /* Beispieldaten
-   * ->: 7E 32 30 30 30 34 36 34 32 45 30 30 32 30 30 46 44 33 37 0D 
+   * ->: 7E 32 30 30 30 34 36 34 32 45 30 30 32 30 30 46 44 33 37 0D
    * <-: 7E 32 30 30 30 34 36 30 30 31 30 39 36 30 30 30 31 31 30 30 43 43 30 30 43 43 33 30 43 43 32 30 43 42 46 30 43 43 33 30 43 43 30 30 43 43 30 30 43 43 31 30 43 43 31 30 43 43 30 30 43 43 32 30 43 43 33 30 43 43 37 30 43 43 35 30 43 43 35 30 43 43 36 30 36 30 42 36 46 30 42 37 32 30 42 37 32 30 42 37 31 30 42 39 36 30 42 37 43 46 44 37 46 31 34 36 41 32 38 33 45 30 41 34 45 32 30 30 32 30 33 34 45 32 30 30 30 31 35 30 33 45 38 31 34 36 43 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 44 44 30 31 0D
    */
 
@@ -121,7 +121,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   #endif
   u8_lData[7]=(crc >> 8);  // CHKSUM (0xFD)
   u8_lData[8]=(crc >> 0);  // CHKSUM (0x37)
-  convertByteToAsciiHex(&u8_lSendData[15], &u8_lData[7], 2); 
+  convertByteToAsciiHex(&u8_lSendData[15], &u8_lData[7], 2);
 
   u8_lSendData[0]=0x7E;   // SOF (0x7E)
   u8_lSendData[19]=0x0D;  // EOF (0x0D)
@@ -143,8 +143,8 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(u8_lSendData, 20);
-  mPort->flush();  
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn); 
+  mPort->flush();
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
@@ -161,7 +161,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   for(;;)
   {
     //Timeout
-    if((millis()-u32_lStartTime)>200) 
+    if((millis()-u32_lStartTime)>200)
     {
       BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       #ifdef SEPLOS_DEBUG
@@ -201,7 +201,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
           u8_lRecvBytesCnt++;
           break;
-      
+
         default:
           break;
       }
@@ -215,7 +215,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       vTaskDelay(pdMS_TO_TICKS(1));
     }
 
-    if(bo_lDataComplete) break; //Recv Pakage complete   
+    if(bo_lDataComplete) break; //Recv Pakage complete
     if(u8_lRecvBytesCnt>=SEPLOSBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
   u16_mRecvBytesLastMsg=u8_lRecvBytesCnt; //for debug
@@ -277,7 +277,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 {
   //lambda get16bitFromMsg(i)
 	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
-		return (uint16_t(convertAsciiHexToByte(t_message[i * 2], t_message[(i * 2) + 1])) << 8) | 
+		return (uint16_t(convertAsciiHexToByte(t_message[i * 2], t_message[(i * 2) + 1])) << 8) |
            (uint16_t(convertAsciiHexToByte(t_message[(i * 2)+2], t_message[(i * 2) + 3])) << 0);
 	};
 
@@ -295,7 +295,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
   uint16_t u16_lCellSum = 0;
 
-  uint16_t u16_lCellLow = 0xFFFF; 
+  uint16_t u16_lCellLow = 0xFFFF;
   uint16_t u16_lCellHigh = 0x0;
 
   uint8_t u8_lMsgoffset=0;
@@ -313,18 +313,18 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     //   5    0x96             Data length           LENID      150 / 2 = 75
     //   6    0x00             Data flag
     //   7    0x00             Command group (Nr. Batterygroup)
-    //   8    0x10             Number of cells                  16  
+    //   8    0x10             Number of cells                  16
     //   9      0x0C 0xD7      Cell voltage 1                   3287 * 0.001f = 3.287         V
     //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
     //   ...    ...            ...
-    //   39     0x0C 0xD8      Cell voltage 16         
+    //   39     0x0C 0xD8      Cell voltage 16
 
     u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
     #ifdef SEPLOS_DEBUG
     BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
     #endif
 
-    for (uint8_t i=0; i<u8_lNumOfCells; i++) 
+    for (uint8_t i=0; i<u8_lNumOfCells; i++)
     {
       u16_lZellVoltage = get16bitFromMsg(9+(i*2));
       setBmsCellVoltage(BT_DEVICES_COUNT+address,i, (float)(u16_lZellVoltage));
@@ -344,16 +344,16 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
       u16_lZellMinVoltage=u16_lCellLow;
       u16_lZellMaxVoltage=u16_lCellHigh;
-      u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow; 
+      u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow;
     }
-    
+
     setBmsMaxCellVoltage(BT_DEVICES_COUNT+address, u16_lCellHigh);
     setBmsMinCellVoltage(BT_DEVICES_COUNT+address, u16_lCellLow);
     setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMaxVoltage);
     setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMinVoltage);
     setBmsAvgVoltage(BT_DEVICES_COUNT+address, (float)(u16_lCellSum/u8_lNumOfCells));
     setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+address,(float)(u16_lZellDifferenceVoltage));
-    
+
 
     u8_lMsgoffset = 9+(u8_lNumOfCells*2);
 
@@ -468,7 +468,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //   7    0x01             Command group
 
   // Byte   Description
-  // The following are 24 byte alarms 
+  // The following are 24 byte alarms
   //   8    Number of cells M=16
   //   9    Cell 1 alarm
   //  10    Cell 2 alarm
@@ -487,15 +487,15 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  23    Cell 15 alarm
   //  24    Cell 16 alarm
   //  25    Number of temperatures N=6
-  //  26    Cell temperature alarm 1 
+  //  26    Cell temperature alarm 1
   //  27    Cell temperature alarm 2
   //  28    Cell temperature alarm 3
   //  29    Cell temperature alarm 4
-  //  30    Environment temperature alarm 
-  //  31    Power temperature alarm 1 
+  //  30    Environment temperature alarm
+  //  31    Power temperature alarm 1
   //  32    Charge/discharge current alarm
   //  33    Total battery voltage alarm
-  // The following are 20 bit alarms (Vmtl. sind nicht bit sondern byte gemeint) 
+  // The following are 20 bit alarms (Vmtl. sind nicht bit sondern byte gemeint)
   //  34    Number of custom alarms P=20
   //  35    Alarm event 1
   //  36    Alarm event 2
@@ -503,29 +503,29 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  38    Alarm event 4
   //  39    Alarm event 5
   //  40    Alarm event 6
-  //  41    On-off state 
-  //  42    Equilibrium state 1 
+  //  41    On-off state
+  //  42    Equilibrium state 1
   //  43    Equilibrium state 2
   //  44    System state
   //  45    Disconnection state 1
   //  46    Disconnection state 2
   //  47    Alarm event 7
   //  48    Alarm event 8
-  //  49    Reservation extension 
-  //  50    Reservation extension 
-  //  51    Reservation extension 
-  //  52    Reservation extension 
-  //  53    Reservation extension 
-  //  54    Reservation extension  
- 
+  //  49    Reservation extension
+  //  50    Reservation extension
+  //  51    Reservation extension
+  //  52    Reservation extension
+  //  53    Reservation extension
+  //  54    Reservation extension
 
-  //  Comments on byte alarms 
+
+  //  Comments on byte alarms
   //  S/N  Value  Meaning
   //  1    0x00   Normal, no alarm
   //  2    0x01   Alarm that analog quantity reaches the lower limit
   //  3    0x02   Alarm that analog quantity reaches the upper limit
-  //  4    0xF0   Other alarms 
-  //  
+  //  4    0xF0   Other alarms
+  //
   //  Alarm event 1 - Flag bit information (1: trigger, 0: normal)
   //  0 Voltage sensor fault
   //  1 Temperature sensor fault
@@ -535,7 +535,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Charge switch fault
   //  6 Discharge switch fault
   //  7 Current limit switch fault
-  //  
+  //
   //  Alarm event 2 - Flag bit information (1: trigger, 0: normal)
   //  0 Monomer high voltage alarm
   //  1 Monomer overvoltage protection
@@ -545,7 +545,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Overvoltage protection for total voltage
   //  6 Low voltage alarm for total voltage
   //  7 Under voltage protection for total voltage
-  //  
+  //
   //  Alarm event 3 - Flag bit information (1: trigger, 0: normal)
   //  0 Charge high temperature alarm (Cell temperature)
   //  1 Charge over temperature protection (Cell temperature)
@@ -555,7 +555,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Discharge over temperature protection (Cell temperature)
   //  6 Discharge low temperature alarm (Cell temperature)
   //  7 Discharge under temperature protection (Cell temperature)
-  //  
+  //
   //  Alarm event 4 - Flag bit information (1: trigger, 0: normal)
   //  0 Environment high temperature alarm Environment
   //  1 Environment over temperature protection temperature
@@ -565,7 +565,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Power high temperature alarm temperature
   //  6 Cell low temperature heating Cell temperature
   //  7 Reservation bit
-  //  
+  //
   //  Alarm event 5 - Flag bit information (1: trigger, 0: normal)
   //  0 Charge over current alarm
   //  1 Charge over current protection
@@ -575,7 +575,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Output short circuit protection
   //  6 Transient over current lockout
   //  7 Output short circuit lockout
-  //  
+  //
   //  Alarm event 6 - Flag bit information (1: trigger, 0: normal)
   //  0 Charge high voltage protection
   //  1 Intermittent recharge waiting
@@ -585,14 +585,14 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Output reverse polarity protection
   //  6 Output connection fault
   //  7 Inside bit
-  //  
+  //
   //  On-off state - Flag bit information (1: on, 0: off)
   //  0 Discharge switch state
   //  1 Charge switch state
   //  2 Current limit switch state
   //  3 Heating switch state
   //  4-7 Reservation bit
-  //  
+  //
   //  Equilibrium state 1 - Flag bit information (1: on, 0: off)
   //  0 Cell 01 equilibrium
   //  1 Cell 02 equilibrium
@@ -602,7 +602,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Cell 06 equilibrium
   //  6 Cell 07 equilibrium
   //  7 Cell 08 equilibrium
-  //  
+  //
   //  Equilibrium state 2 - Flag bit information (1: on, 0: off)
   //  0 Cell 09 equilibrium
   //  1 Cell 10 equilibrium
@@ -612,7 +612,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Cell 14 equilibrium
   //  6 Cell 15 equilibrium
   //  7 Cell 16 equilibrium
-  //  
+  //
   //  System state Flag bit information (1: access, 0: exit)
   //  0 Discharge
   //  1 Charge
@@ -622,7 +622,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Shutdown
   //  6 Reservation bit
   //  7 Reservation bit
-  //  
+  //
   //  Disconnection state 1 - Flag bit information (1: trigger, 0: normal)
   //  0 Cell 01 disconnection
   //  1 Cell 02 disconnection
@@ -632,7 +632,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Cell 06 disconnection
   //  6 Cell 07 disconnection
   //  7 Cell 08 disconnection
-  //  
+  //
   //  Disconnection state 2 - Flag bit information (1: trigger, 0: normal)
   //  0 Cell 09 disconnection
   //  1 Cell 10 disconnection
@@ -642,7 +642,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Cell 14 disconnection
   //  6 Cell 15 disconnection
   //  7 Cell 16 disconnection
-  //  
+  //
   //  Alarm event 7 - Flag bit information (1: trigger, 0: normal)
   //  0 Inside bit
   //  1 Inside bit
@@ -652,7 +652,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  5 Manual charging waiting
   //  6 Inside bit
   //  7 Inside bit
-  //  
+  //
   //  Alarm event 8 - Flag bit information (1: trigger, 0: normal)
   //  0 EEP storage fault
   //  1 RTC error
@@ -750,7 +750,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         break;
 
       //  41    On-off state - Flag bit information (1: on, 0: off)
-      case 82: 
+      case 82:
         // 0 Discharge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
@@ -810,7 +810,7 @@ uint16_t lCrc(const uint16_t len)
 static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt)
 {
   uint16_t u16_lCrc = calcCrc(recvMsg, u8_lRecvBytesCnt-4);
- 	uint16_t u16_lRemoteCrc = (uint16_t)convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1]) |	
+ 	uint16_t u16_lRemoteCrc = (uint16_t)convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1]) |
     (uint16_t)(convertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-4], recvMsg[u8_lRecvBytesCnt-3]))<<8;
 
   if (u16_lCrc != u16_lRemoteCrc)

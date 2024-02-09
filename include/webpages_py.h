@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -14,7 +14,7 @@
 
 /*//PY_VAR_ANF
 PYVAR_HTML_WEBPAGES_STYLE
-"<style>" 
+"<style>"
   "html {font-family:Helvetica;display:inline-block;margin:0px auto;text-align:center;}"
   "body {margin:0;}"
   ".content {padding:20px;}"
@@ -52,13 +52,13 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
   "<div class='content'>"
     "<div class='cards'>"
       "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p>WiFi<br><meter id='meter_wifiRssi' min='0' max='70' value='0'></meter></p></div>" //WiFi RSSI
-      "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p>System<br><span id='card_system'></span></p></div>" 
-      "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p>MQTT<br><span id='card_mqtt'></span></p></div>"   
-      "<div class='cardDash' id='card_freeheap'></div>"  
-      "<div class='cardDash' id='card_boottime'></div>"  
+      "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p>System<br><span id='card_system'></span></p></div>"
+      "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p>MQTT<br><span id='card_mqtt'></span></p></div>"
+      "<div class='cardDash' id='card_freeheap'></div>"
+      "<div class='cardDash' id='card_boottime'></div>"
       "<div class='cardDashBtn' onclick=\"location.href='./settings/schnittstellen/bt/'\"><p>BT-Devices<center><table style='margin-top: -1em'>"
         "<tr><td>1..5</td><td><span id='card_bt1'></span></td></tr>"
-        "<tr><td>6..7&nbsp;&nbsp;</td><td><span id='card_bt2'></span></td></tr></table></center></p></div>"   
+        "<tr><td>6..7&nbsp;&nbsp;</td><td><span id='card_bt2'></span></td></tr></table></center></p></div>"
       "<div class='cardDash'><p>Trigger<center><table style='margin-top: -1em'>"
         "<tr><td>1..5</td><td><span id='card_alarm1'></span></td></tr>"
         "<tr><td>6..10&nbsp;&nbsp;</td><td><span id='card_alarm2'></span></td></tr></table></center></p></div>"
@@ -345,7 +345,7 @@ const char htmlPageStatus[] PROGMEM = "<!DOCTYPE HTML>"
 "</head>"
 "<body>"
   "<div class='topnav'>"
-    "<span class='hl'>Battery Safety Controller - Status</span>" 
+    "<span class='hl'>Battery Safety Controller - Status</span>"
   "</div>"
   "<div class='content'>"
     "<pre id='status'></pre>"
@@ -486,12 +486,12 @@ const char htmlPageBscDataLive[] PROGMEM = "<!doctype html>"
     "newCard.getElementById('bms0_totalCurr').id=devIdName+devNr+'_totalCurr';"
     "document.getElementById('cards').appendChild(newCard);"
   "}"
-     
+
   "function addAllBmsCards(){"
     "for(a=0;a<11;a++) addBmsCard('BMS','bms',a);"
     "for(b=0;b<7;b++) addBmsCard('BT BMS','btbms',b);"
   "}"
-  
+
   "function getData() {"
   "var xhttp = new XMLHttpRequest();"
   "xhttp.onreadystatechange = function(){"
@@ -689,19 +689,19 @@ const char htmlPageSupport[] PROGMEM = "<!DOCTYPE HTML>"
       "<tr><td><b>General</b></td><td></td></tr>"
       "<tr><td>Anzahl Zellen</td><td><input type='number' step='1' min='0' max='18' value='0' id='__BPN_SETTINGS_NR_OF_CELLS__' name='__BPN_SETTINGS_NR_OF_CELLS__'></td></tr>" //Anzahl Zellen pro Pack
       "<tr><td><br></td><td></td></tr>"
-      
+
       //Alarm
       "<tr><td><b>Alarm</b></td><td></td></tr>"
       "<tr><td>Low Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='__BPN_SETTINGS_LOW_CELL_VOLTAGE__' name='__BPN_SETTINGS_LOW_CELL_VOLTAGE__'></td><td>mV</td></tr>"
       "<tr><td>High Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='__BPN_SETTINGS_HIGH_CELL_VOLTAGE__' name='__BPN_SETTINGS_HIGH_CELL_VOLTAGE__'></td><td>mV</td></tr>"
       "<tr><td>Alarm Delay - Cell Voltage</td><td><input type='number' step='1' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_CELL_VOLTAGE__' name='__BPN_SETTINGS_ALARM_DELAY_CELL_VOLTAGE__'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
-      
+
       "<tr><td>Low Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='__BPN_SETTINGS_LOW_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_LOW_BATTERY_VOLTAGE__'></td><td>V</td></tr>"
       "<tr><td>High Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='__BPN_SETTINGS_HIGH_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_HIGH_BATTERY_VOLTAGE__'></td><td>V</td></tr>"
       "<tr><td>Alarm Delay - Battery Voltage</td><td><input type='number' step='0' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE__' name='__BPN_SETTINGS_ALARM_DELAY_BATTERY_VOLTAGE__'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"
-      
+
       "<tr><td>Max Charge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='__BPN_SETTINGS_MAX_CHARGE_CURRENT__' name='__BPN_SETTINGS_MAX_CHARGE_CURRENT__'></td><td>A</td></tr>"
       "<tr><td>Alarm Delay - Charge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='__BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT__' name='__BPN_SETTINGS_ALARM_DELAY_MAX_CHARGE_CURRENT__'></td><td>s</td></tr>"
       "<tr><td><br></td><td></td></tr>"

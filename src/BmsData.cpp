@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Tobias Himmler
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -26,13 +26,13 @@ uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
 uint32_t          u32_wDataSerialBmsEnable=0; //Hier bitseise die BMS-Adressen eintragen, an den die Daten gesendet werden sollen
 serialDataRwTyp_e e_wDataSerialBmsTyp=BPN_NO_DATA;
 uint8_t           *u8_wDataSerialBmsData=0;
-uint8_t           e_wDataSerialBmsDataLen=0; 
+uint8_t           e_wDataSerialBmsDataLen=0;
 
 // Read serial data
-uint8_t           u8_rDataSerialBmsEnable=0; 
+uint8_t           u8_rDataSerialBmsEnable=0;
 serialDataRwTyp_e e_rDataSerialBmsTyp=BPN_NO_DATA;
 uint8_t           *u8_rDataSerialBmsData=0;
-uint8_t           e_rDataSerialBmsDataLen=0; 
+uint8_t           e_rDataSerialBmsDataLen=0;
 
 void bmsDataInit()
 {
@@ -49,7 +49,7 @@ void bmsDataInit()
     setBmsLastDataMillis(i,0);
     u8_mBmsFilterErrorCounter[i]=0;
   }
-  
+
   u32_wDataSerialBmsEnable=0;
   e_wDataSerialBmsTyp=BPN_NO_DATA;
   e_wDataSerialBmsDataLen=0;
@@ -57,7 +57,7 @@ void bmsDataInit()
   u8_rDataSerialBmsEnable=0;
   e_rDataSerialBmsTyp=BPN_NO_DATA;
   e_rDataSerialBmsDataLen=0;
-  
+
 
   bmsFilterData.u8_mFilterBmsCellVoltagePercent=0;
   //bmsFilterData.u8_mFilterBmsCellVoltageMaxCount=0;
@@ -328,23 +328,25 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
   if(devNr>=BT_DEVICES_COUNT)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
-    
+
     uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
     uint16_t u16_CellvoltSoc0 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
-    
+
 
     if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
     }
-    else if(u16_CellvoltSoc100>0 && u16_CellvoltSoc0>0){
+    else if((u16_CellvoltSoc0 > 0) &&
+            (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
+    {
       //Berechne SOC Linear
       const int32_t hi = bmsData.bmsMaxCellVoltage[devNr];
       const int32_t lo = bmsData.bmsMinCellVoltage[devNr];
       const int32_t sdiff = (int32_t)u16_CellvoltSoc100-(int32_t)u16_CellvoltSoc0;
       const int32_t input = (((hi-(int32_t)u16_CellvoltSoc0)*hi)+(((int32_t)u16_CellvoltSoc100-hi)*lo))/(sdiff);
-      int32_t result = ((input - u16_CellvoltSoc0)*100)/sdiff;
+      const int32_t result = ((input - u16_CellvoltSoc0)*100)/sdiff;
 
       if(result < 0 || lo <= u16_CellvoltSoc0)
         value = 0;
@@ -496,7 +498,7 @@ void clearSerialBmsWriteData(uint8_t devNr)
   u32_wDataSerialBmsEnable &= ~(1<<devNr);
   if(e_wDataSerialBmsDataLen>0 && u32_wDataSerialBmsEnable==0)
   {
-    free(u8_wDataSerialBmsData);  
+    free(u8_wDataSerialBmsData);
   }
 }
 
@@ -533,7 +535,7 @@ void clearSerialBmsReadData(uint8_t devNr)
   if(e_rDataSerialBmsDataLen>0)
   {
     e_rDataSerialBmsDataLen=0;
-    free(u8_rDataSerialBmsData);  
+    free(u8_rDataSerialBmsData);
   }
   xSemaphoreGive(mBmsDataReadMutex);
 }
@@ -637,14 +639,14 @@ void logBmsData(uint8_t bmsNr)
   BSC_LOGI(TAG,"Min. voltage Cellnr: %i",getBmsMinVoltageCellNumber(bmsNr));
   BSC_LOGI(TAG,"AvgVoltage: %i",getBmsAvgVoltage(bmsNr));
   BSC_LOGI(TAG,"MaxCellDif. voltage: %i",getBmsMaxCellDifferenceVoltage(bmsNr));
-  
+
   BSC_LOGI(TAG,"Charge percentage: %i",getBmsChargePercentage(bmsNr));
   BSC_LOGI(TAG,"Is balancing active: %i",getBmsIsBalancingActive(bmsNr));
   BSC_LOGI(TAG,"Balancing current: %f",getBmsBalancingCurrent(bmsNr));
   BSC_LOGI(TAG,"State FETs: %i",getBmsStateFETs(bmsNr));
   BSC_LOGI(TAG,"Errors: %i",getBmsErrors(bmsNr));
-  
-  for(i=0;i<3;i++) BSC_LOGI(TAG,"Temp. #%i: %f",i,getBmsTempature(bmsNr,i)); 
+
+  for(i=0;i<3;i++) BSC_LOGI(TAG,"Temp. #%i: %f",i,getBmsTempature(bmsNr,i));
   BSC_LOGI(TAG,"LastDataMillis: %i",getBmsLastDataMillis(bmsNr));
 }
 #endif
