@@ -38,7 +38,7 @@ void genJsonEntryArray(genJsonTypes type, String key, String value, String &str_
       str_retStr += String(key);
       str_retStr += "\":[{";
       break;
-      
+
     case arrStart2: //Start2
       str_retStr += "\"";
       str_retStr += String(key);
@@ -92,7 +92,7 @@ const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":
 
 
 void buildJsonRest(WebServer * server)
-{  
+{
   if(server->args()>0)
   {
     handleRestArgs(server);
@@ -160,7 +160,7 @@ void buildJsonRest(WebServer * server)
     server->sendContent(str_htmlOut);
     str_htmlOut="";
 
-    // BMS Bluetooth 
+    // BMS Bluetooth
     genJsonEntryArray(arrStart, F("bms_bt"), "", str_htmlOut, false);
     for(uint8_t bmsDevNr=0;bmsDevNr<BT_DEVICES_COUNT;bmsDevNr++)
     {
@@ -200,8 +200,8 @@ void buildJsonRest(WebServer * server)
       genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,1), str_htmlOut, false);
       genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,2), str_htmlOut, true);
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, true);
-      
-      if(bmsDevNr<BT_DEVICES_COUNT-1) 
+
+      if(bmsDevNr<BT_DEVICES_COUNT-1)
       {
         genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
         genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
@@ -217,7 +217,7 @@ void buildJsonRest(WebServer * server)
     uint8_t u8_device, u8_deviceSerial2, u8_deviceSerial2NrOfBms;
     u8_deviceSerial2=WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
     u8_deviceSerial2NrOfBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
-    
+
     genJsonEntryArray(arrStart, F("bms_serial"), "", str_htmlOut, false);
     for(uint8_t bmsDevNr=BT_DEVICES_COUNT;bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;bmsDevNr++)
     {
@@ -265,8 +265,8 @@ void buildJsonRest(WebServer * server)
       genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,1), str_htmlOut, false);
       genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,2), str_htmlOut, true);
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, true);
-      
-      if(bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT-1) 
+
+      if(bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT-1)
       {
         genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
         genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
@@ -298,6 +298,7 @@ void buildJsonRest(WebServer * server)
 
 #ifdef UTEST_RESTAPI
 uint8_t u8_activeBms=0;
+uint8_t u8_activeCellNr=0;
 #endif
 bool handleRestArgs(WebServer * server)
 {
@@ -310,7 +311,9 @@ bool handleRestArgs(WebServer * server)
     argName = server->argName(i);
     argValue = server->arg(i);
 
+    #ifndef UTEST_RESTAPI
     BSC_LOGI(TAG,"%s=%s",argName.c_str(), argValue.c_str());
+    #endif
 
     if(argName==F("save")) ws.writeConfig();
     else if(argName==F("setInvMaxChgCur")) ws.setParameter(ID_PARAM_BMS_MAX_CHARGE_CURRENT, 0, argValue, DT_ID_PARAM_BMS_MAX_CHARGE_CURRENT);
@@ -319,7 +322,9 @@ bool handleRestArgs(WebServer * server)
 
     #ifdef UTEST_RESTAPI
     else if(argName==F("setBms")) {u8_activeBms=(uint8_t)argValue.toInt();}
+    else if(argName==F("cellNr")) {u8_activeCellNr=(uint8_t)argValue.toInt();}
     else if(argName==F("soc")) {setBmsChargePercentage(u8_activeBms,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
+    else if(argName==F("cellV")) {setBmsCellVoltage(u8_activeBms,u8_activeCellNr,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
     #endif
     else ret=false;
   }
@@ -335,7 +340,7 @@ void handle_setParameter(WebServer * server)
     server->send(200, "application/json", F("{\"state\":0}"));
     return;
   }
-  
+
   Json json;
   const char *jsonData = server->arg("plain").c_str();
 
