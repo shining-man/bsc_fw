@@ -338,7 +338,9 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
     }
-    else if(u16_CellvoltSoc100>0 && u16_CellvoltSoc0>0){
+    else if((u16_CellvoltSoc0 > 0) &&
+            (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
+    {
       //Berechne SOC Linear
       const int32_t hi = bmsData.bmsMaxCellVoltage[devNr];
       const int32_t lo = bmsData.bmsMinCellVoltage[devNr];
