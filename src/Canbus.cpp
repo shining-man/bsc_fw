@@ -58,6 +58,9 @@ uint16_t u16_mSocZellspannungSperrzeitTimer;
 //uint8_t u8_mModulesCntCharge;
 //uint8_t u8_mModulesCntDischarge;
 
+// Autobalance
+enum e_stateAutobalance {STATE_AUTOBAL_WAIT, STATE_AUTOBAL_WAIT_START_VOLTAGE, STATE_AUTOBAL_RUNING};
+uint8_t u8_mStateAutobalance=STATE_AUTOBAL_WAIT;
 
 struct data351
 {
@@ -690,6 +693,12 @@ int16_t calcLadestromZellspanung(int16_t i16_pMaxChargeCurrent)
       uint16_t u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG);
       int16_t i16_lMindestChargeCurrent = (WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM));
 
+      // Wenn Autobalancing aktiv ist,
+      if(u8_mStateAutobalance==STATE_AUTOBAL_RUNING)
+      {
+        u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
+      }
+
       if(u16_lStartSpg>u16_lEndSpg) return i16_pMaxChargeCurrent; //Startspannung > Endspannung => Fehler
       if(i16_pMaxChargeCurrent<=i16_lMindestChargeCurrent) return i16_pMaxChargeCurrent; //Maximaler Ladestrom < Mindest-Ladestrom => Fehler
 
@@ -860,6 +869,8 @@ int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent)
  ********************************************************************************************/
 int16_t calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
 {
+  if(u8_mStateAutobalance==STATE_AUTOBAL_RUNING) return u16_lChargeCurrent; //Wenn der Autobalancer gerade aktiv ist
+
   static uint16_t u16_mChargeCurrentCutOfTimer=0;
   float fl_lTotalCurrent=0;
 
@@ -961,6 +972,67 @@ void calcDynamicChargeVoltageOffset(uint16_t &u16_lChargeVoltage)
     else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffsetMin+((u16_lOffsetMax-u16_lOffsetMin)/u16_lCurrent*u16_lMinBmsCurrent));
   }
 }
+
+/*
+ * Autobalancing
+ */
+void setAutobalanceVoltage(uint16_t &u16_lChargeVoltage)
+{
+
+  static uint32_t u32_lastAutobalanceRun=millis();
+  static uint32_t u32_autobalanceStartTime=0;
+
+  // Warte auf den Start (Intervall)
+  if(u8_mStateAutobalance==STATE_AUTOBAL_WAIT)
+  {
+    const uint8_t u16_lStartInterval = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL);
+    if(millis()-u32_lastAutobalanceRun>((uint32_t)u16_lStartInterval*1440000)) //24*60*1000
+    {
+      u8_mStateAutobalance=STATE_AUTOBAL_WAIT_START_VOLTAGE;
+    }
+  }
+
+  // Wenn Intervall erreicht, dann auf Start-Cellvoltage warten
+  else if(u8_mStateAutobalance==STATE_AUTOBAL_WAIT_START_VOLTAGE)
+  {
+    const uint16_t u16_lStartCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE);
+    if(getMaxCellSpannungFromBms()>=u16_lStartCellVoltage)
+    {
+      u8_mStateAutobalance=STATE_AUTOBAL_RUNING;
+      u32_autobalanceStartTime=millis();
+    }
+  }
+
+  // Autobalancing läuft
+  else if(u8_mStateAutobalance==STATE_AUTOBAL_RUNING)
+  {
+    // Timeout
+    const uint16_t u16_lTimeout = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
+    if(millis()-u32_autobalanceStartTime>(u16_lTimeout*60*1000)) // if timeout
+    {
+      // ToDo: MQTT Message, Trigger?
+      u32_lastAutobalanceRun=millis();
+      u8_mStateAutobalance=STATE_AUTOBAL_WAIT;
+      return;
+    }
+
+    // Finish
+    const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
+    if(getMaxCellDifferenceFromBms()<=u8_lCelldifFinish)
+    {
+      u32_lastAutobalanceRun=millis();
+      u8_mStateAutobalance=STATE_AUTOBAL_WAIT;
+      return;
+    }
+
+    // Ladespannung einstellen
+    const uint16_t u16_lChargeCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
+    const uint8_t u8_lNumberOfCells = WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
+    if(u8_lNumberOfCells==0) return;
+    u16_lChargeVoltage=u16_lChargeCellVoltage*u8_lNumberOfCells;
+  }
+}
+
 
 /* *******************************************************************************************
  * getNewSocByMinCellVoltage()
@@ -1069,6 +1141,7 @@ void sendCanMsg_351()
      *******************************/
     uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0);
     calcDynamicChargeVoltageOffset(u16_lChargeVoltage); // Hier den dynamischen Offset addieren
+    setAutobalanceVoltage(u16_lChargeVoltage); //Ggf. die Ladespannung anheben auf die Autobalancespannung
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(u16_lChargeVoltage);
     msgData.chargevoltagelimit = u16_lChargeVoltage;
     if(u8_mMqttTxTimer==15)
