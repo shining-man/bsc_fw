@@ -673,7 +673,7 @@ void task_ble(void *param)
 
   //init Bluetooth
   BSC_LOGI(TAG, "Init BLE...");
-  bleHandler = new BleHandler();
+  // BleHandler must be created in main task, otherwise webapp2 can get initialized with null ptr!
   bleHandler->init();
   BSC_LOGI(TAG, "Init BLE...ok");
 
@@ -1260,6 +1260,10 @@ void setup()
   BSC_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
   WiFi.setAutoReconnect(false);
+  
+  // create BleHandler outside of task, otherwise if the ble task is delayed webapp2 will get a NULL ptr in initWebApp2 call!
+  bleHandler = new BleHandler();
+
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
   
