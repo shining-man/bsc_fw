@@ -96,6 +96,9 @@ const char HTML_ENTRY_AREA[] PROGMEM =
 const char HTML_ENTRY_FLOAT[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><input type='number' step='%s' min='%i' max='%i' value='%s' name='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
+const char HTML_ENTRY_FLOAT_X[] PROGMEM =
+"<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
+"<td class='Ctd'><input type='number' step='%s' min='%i' max='%i' value='%s' name='%s' class='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
 const char HTML_ENTRY_NUMBER[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><input type='number' min='%i' max='%i' value='%s' name='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
@@ -564,6 +567,18 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       case HTML_INPUTFLOAT:
         createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
+      case HTML_INPUTFLOAT_1:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),1);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),1);
+        break;
+      case HTML_INPUTFLOAT_2:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),2);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),2);
+        break;
+      case HTML_INPUTFLOAT_3:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),3);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),3);
+        break;
       case HTML_INPUTNUMBER:
         createHtmlNumber(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
@@ -769,6 +784,42 @@ void WebSettings::createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt,
     getJson_Key(parameter, "step", idx, startPos, "0.01").c_str(),
     getJsonOptionsMin(parameter, idx, startPos),
     getJsonOptionsMax(parameter, idx, startPos), value.c_str(),String(*nameExt).c_str(),
+    getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+}
+
+//HTML_INPUTFLOAT_1, HTML_INPUTFLOAT_2, HTML_INPUTFLOAT_3
+void WebSettings::createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, int32_t value, uint8_t precision)
+{
+  //if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
+  BSC_LOGI(TAG,"createHtmlFloat_int: precision=%i", precision);
+  String str_className;
+  String str_precision;
+  float fl_lVal=0;
+
+  if(precision==1)
+  {
+    str_className="fl1";
+    str_precision="0.1";
+    fl_lVal=(float)value/10;
+  }
+  else if(precision==2)
+  {
+    str_className="fl2";
+    str_precision="0.01";
+    fl_lVal=(float)value/100;
+  }
+  else if(precision==3)
+  {
+    str_className="fl3";
+    str_precision="0.001";
+    fl_lVal=(float)value/1000;
+  }
+  String valueStr = String(fl_lVal);
+  BSC_LOGI(TAG,"createHtmlFloat_int: valStr=%s, val=%f", valueStr.c_str(), fl_lVal);
+  sprintf(buf,HTML_ENTRY_FLOAT_X,label->c_str(),
+    str_precision.c_str(),
+    getJsonOptionsMin(parameter, idx, startPos),
+    getJsonOptionsMax(parameter, idx, startPos), valueStr.c_str(),String(*nameExt).c_str(),str_className.c_str(),
     getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 

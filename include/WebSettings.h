@@ -29,11 +29,14 @@
 #define HTML_INPUTSELECT                  9
 #define HTML_INPUTCHECKBOX                10
 #define HTML_INPUTMULTICHECK              11
-#define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
 #define HTML_OPTIONGROUP                  12
-#define HTML_OPTIONGROUP_COLLAPSIBLE      15
 #define HTML_SEPARATION                   13
-//Max Type = 15
+#define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
+#define HTML_OPTIONGROUP_COLLAPSIBLE      15
+#define HTML_INPUTFLOAT_1                 16
+#define HTML_INPUTFLOAT_2                 17
+#define HTML_INPUTFLOAT_3                 18
+//Max Type = 18
 
 #define BACKGROUND_COLOR "#ffffff"
 
@@ -145,6 +148,7 @@ private:
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
   void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
   void createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType);
+  void createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, int32_t value, uint8_t precision);
 
   void (*fn_mOnButtonSave)() = NULL;
   void (*fn_mOnButton1)() = NULL;
