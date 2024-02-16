@@ -70,7 +70,7 @@ extern "C"
 static const char *TAG = "MAIN";
 
 WebServer server;
-BleHandler* bleHandler;
+BleHandler bleHandler;
 BscSerial bscSerial;   // Serial
 
 //Websettings
@@ -492,7 +492,7 @@ void task_ConnectWiFi(void *param)
         WlanStaApOk=WIFI_OFF;
         mqttDisconnect();
         server.stop(); //Webserver beenden
-        bleHandler->stop();
+        bleHandler.stop();
         mConnectStateEnums=ConnState_noWifiConnection;
         break;
 
@@ -590,7 +590,7 @@ void task_ConnectWiFi(void *param)
           break;
         }
 
-        bleHandler->start();
+        bleHandler.start();
         mConnectStateEnums=ConnState_connectBT2;
         break;
 
@@ -604,7 +604,7 @@ void task_ConnectWiFi(void *param)
           break;
         }
 
-        if(bleHandler->isNotAllDeviceConnectedOrScanRunning()==false)mConnectStateEnums=ConnState_idle;
+        if(bleHandler.isNotAllDeviceConnectedOrScanRunning()==false)mConnectStateEnums=ConnState_idle;
         break;
 
       case ConnState_idle: //Idle; Wenn alle Verbindungen stehen
@@ -673,8 +673,7 @@ void task_ble(void *param)
 
   //init Bluetooth
   BSC_LOGI(TAG, "Init BLE...");
-  bleHandler = new BleHandler();
-  bleHandler->init();
+  bleHandler.init();
   BSC_LOGI(TAG, "Init BLE...ok");
 
   for(;;)
@@ -689,7 +688,7 @@ void task_ble(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    if(bleHandler!=nullptr) if(WlanStaApOk!=WIFI_OFF) bleHandler->run();
+    if(WlanStaApOk!=WIFI_OFF) bleHandler.run();
 
     xSemaphoreTake(mutexTaskRunTime_ble, portMAX_DELAY);
     lastTaskRun_ble=millis();
@@ -1000,13 +999,11 @@ void handle_getDashboardData()
   tmp += "|";
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    if(bleHandler!=nullptr)
-    {
-      uint8_t u8_lBtDevConnState=bleHandler->bmsIsConnect(i);
-      if(u8_lBtDevConnState==0) tmp += "&ndash;";
-      else if(u8_lBtDevConnState==1) tmp += "n";
-      else if(u8_lBtDevConnState==2) tmp += "c";
-    }
+    uint8_t u8_lBtDevConnState=bleHandler.bmsIsConnect(i);
+    if(u8_lBtDevConnState==0) tmp += "&ndash;";
+    else if(u8_lBtDevConnState==1) tmp += "n";
+    else if(u8_lBtDevConnState==2) tmp += "c";
+
     if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
     if(i==4) tmp += "|";
   }
@@ -1078,11 +1075,8 @@ void handle_getBscLiveData()
 
 void handle_getBtDevices()
 {
-  if(bleHandler!=nullptr)
-  {
-  bleHandler->startScan(); //BT Scan starten
-  server.send(200, "text/html", bleHandler->getBtScanResult().c_str());
-  }
+  bleHandler.startScan(); //BT Scan starten
+  server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
 }
 
 
@@ -1108,13 +1102,13 @@ void btnSystemDeleteLog()
 
 void btnWriteNeeyData()
 {
-  bleHandler->sendDataToNeey();
+  bleHandler.sendDataToNeey();
 }
 
 void btnReadNeeyData()
 {
   BSC_LOGI(TAG,"StartReadDataFromNeey");
-  bleHandler->readDataFromNeey();
+  bleHandler.readDataFromNeey();
 }
 
 
@@ -1363,7 +1357,7 @@ void setup()
   #ifdef INSIDER_V1
   if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
   {
-    initWebApp2(&server, &webSettingsSystem, bleHandler, &bscSerial);
+    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
   }
   #endif
 
