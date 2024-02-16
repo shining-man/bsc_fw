@@ -696,7 +696,15 @@ int16_t calcLadestromZellspanung(int16_t i16_pMaxChargeCurrent)
       // Wenn Autobalancing aktiv ist,
       if(u8_mStateAutobalance==STATE_AUTOBAL_RUNING)
       {
-        u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
+        uint8_t u8_lNumberOfCells = WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
+        if(u8_lNumberOfCells>0)
+        {
+          uint16_t u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
+
+          u16_lChargeVoltage*=100;
+          u16_lEndSpg=u16_lChargeVoltage/u8_lNumberOfCells;
+	        if(u16_lChargeVoltage % u8_lNumberOfCells != 0) u16_lEndSpg++; // Aufrunden
+        }
       }
 
       if(u16_lStartSpg>u16_lEndSpg) return i16_pMaxChargeCurrent; //Startspannung > Endspannung => Fehler
@@ -1026,10 +1034,7 @@ void setAutobalanceVoltage(uint16_t &u16_lChargeVoltage)
     }
 
     // Ladespannung einstellen
-    const uint16_t u16_lChargeCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
-    const uint8_t u8_lNumberOfCells = WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
-    if(u8_lNumberOfCells==0) return;
-    u16_lChargeVoltage=u16_lChargeCellVoltage*u8_lNumberOfCells;
+    u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
   }
 }
 
