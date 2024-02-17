@@ -213,7 +213,13 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
     readConfig();
   }
   getDefaultValuesFromNewKeys(parameterFile, 8);
-  if(bo_hasNewKeys) writeConfig();
+
+  if(bo_hasNewKeys) 
+  {
+    writeConfig();
+    bo_hasNewKeys = false;
+  }
+
   #ifdef WEBSET_DEBUG
   BSC_LOGI(TAG, "initWebSettings() end");
   #endif
@@ -696,7 +702,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
         retStr_default="";
         json.getValue(parameter, a, "default", jsonStartPos, retStr_default, u32_tmp);
 
-        if(isKeyExist(jsonName, u8_dataType)==false)
+        if((jsonNameBase!= 0) && (isKeyExist(jsonName, u8_dataType)==false))
         {
           bo_hasNewKeys=true;
           uint16_t id=0;
@@ -708,7 +714,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
       }
       else
       {
-        if(prefs.isKey(String(jsonName).c_str())==false)
+        if((jsonNameBase != 0) && (prefs.isKey(String(jsonName).c_str())==false))
         {
           bo_hasNewKeys=true;
           retStr_default="";
