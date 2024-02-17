@@ -1,12 +1,12 @@
-name: BSC_artifacts
+name: BSC_release
 
 on:
   push:
-    paths-ignore:
-      - "**.md"
+    tags:
+      - '*'
 
 jobs:
-  job_bsc:
+  job_bsc_release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -75,10 +75,47 @@ jobs:
       - name: Rename ZIP
         run: mv ./output_fw/bsc_release.zip ./output_fw/bsc_release_${{ env.BSC_SW_VERSION }}_${{ env.dt }}.zip
 
-      - name: Publish Artifacts BSC firmware
-        uses: actions/upload-artifact@v4
+      - name: Read file changes
+        id: read_file_changes
+        uses: andstor/file-reader-action@v1
         with:
-          name: bsc_firmware
-          #path: .pio/build/*/firmware.bin
-          path: ./output_fw
-          if-no-files-found: error
+          path: "changes.txt"
+
+      - name: Create Release Files (only on MAIN branch)
+        id: create_release
+        uses: actions/create-release@v1
+#        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        with:
+          tag_name: ${{ github.ref }}
+#          release_name: ${{ env.BSC_SW_VERSION }}_${{ env.dt }}
+          release_name: ${{ github.ref }}
+          body: echo ${{ steps.read_file_changes.outputs.contents }}
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset
+        uses: actions/upload-release-asset@v1
+#        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/bsc_release_${{ env.BSC_SW_VERSION }}_${{ env.dt }}.zip
+#          asset_name: bsc_firmware_${{ env.BSC_SW_VERSION }}_${{ env.dt }}.zip
+          asset_name: bsc_firmware.zip
+          asset_content_type: application/zip
+
+      - name: upload artifact
+        id: upload-release-bin-file
+        uses: actions/upload-release-asset@v1
+#        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/bsc/firmware.bin
+          asset_name: fw_bsc_ota.bin
+          asset_content_type: application/octet-stream
