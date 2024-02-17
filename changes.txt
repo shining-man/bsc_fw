@@ -1,5 +1,6 @@
 v0.5.11:
 - Fixed: SoC from BMS
+- Fixed: Copy from BT-MAC (#85)
 
 v0.5.10:
 - Problem with the calculation of the SoC average fixed
