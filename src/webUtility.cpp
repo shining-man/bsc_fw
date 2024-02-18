@@ -13,15 +13,19 @@
 #else
   #include <SPIFFS.h>
 #endif
+#include <fs/FileGuard.hpp>
 #include <WebServer.h>
 
-static const char * TAG = "WEB";
+namespace // anonymous - methods, variables, and types in this namespace are have file scope only
+{
+
+const char * TAG = "WEB";
 
 //void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
 
-String getContentType(WebServer *server, String filename)
+auto getContentType(WebServer &server, const String &filename)
 {
-  if (server->hasArg("download")) {
+  if (server.hasArg("download")) {
     return "application/octet-stream";
   } else if (filename.endsWith(".htm")) {
     return "text/html";
@@ -50,63 +54,44 @@ String getContentType(WebServer *server, String filename)
   }
   return "text/plain";
 }
+} // namespace anonymous
 
-bool exists(bool fsIsSpiffs, String path)
+bool handleFileRead(fs::FS &fs, WebServer &server, [[maybe_unused]] bool fsIsSpiffs, const String &path)
 {
-  bool yes = false;
-  File file;
-  file = SPIFFS.open(path, "r");
-  if(!file.isDirectory())
-  {
-    yes = true;
-  }
-  file.close();
-  return yes;
-}
+  const String basePath = (path.endsWith("/")) ? (path + "index.htm") : path;
+  [[maybe_unused]] const String pathWithGz = path + ".gz";
 
-bool handleFileRead(WebServer *server, bool fsIsSpiffs, String path)
-{
-  if(!SPIFFS.begin())
+  fs::FileGuard fileGuard(fs, basePath, "r"); // RAII: Dtor of the guard closes the file on scope exit (method return)
+  if (fileGuard.isFile())
   {
-    BSC_LOGE(TAG,"LITTLEFS Mount Failed");
-  }
-
-  if (path.endsWith("/"))
-  {
-    path += "index.htm";
-  }
-  String contentType = getContentType(server, path);
-  String pathWithGz = path + ".gz";
-  if (exists(fsIsSpiffs, pathWithGz) || exists(fsIsSpiffs, path))
-  {
+    // TODO MEJ: How shall we handle pathWithGz?
     /*if (exists(fsIsSpiffs, pathWithGz))
     {
       path += ".gz";
     }*/
-    File file;
-    file = SPIFFS.open(path, "r");
-    //if(file==NULL) BSC_LOGI(TAG,"%s => null",path.c_str());
-    server->streamFile(file, contentType);
-    file.close();
+
+    const String contentType {getContentType(server, fileGuard.getFile().name())};
+    server.streamFile(fileGuard.getFile(), contentType);
+
     return true;
   }
+
   return false;
 }
 
-
-void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName)
+void handleFileUpload(WebServer &server, [[maybe_unused]] bool fsIsSpiffs, const String &fileName)
 {
   static File fsUploadFile;
-  HTTPUpload& upload = server->upload();
+  HTTPUpload& upload = server.upload();
   if (upload.status == UPLOAD_FILE_START)
   {
     //if (upload.filename.length() > 30)
     //{
     //  upload.filename = upload.filename.substring(upload.filename.length() - 30, upload.filename.length());  // Dateinamen auf 30 Zeichen kürzen
     //}
-    upload.filename=fileName;
+    upload.filename = fileName;
     BSC_LOGI(TAG,"handleFileUpload Name: /%s", upload.filename.c_str());
-    fsUploadFile = SPIFFS.open("/" + server->urlDecode(upload.filename), "w");
+    fsUploadFile = SPIFFS.open("/" + server.urlDecode(upload.filename), "w");
   }
   else if (upload.status == UPLOAD_FILE_WRITE)
   {
@@ -120,8 +105,6 @@ void handleFileUpload(WebServer *server, bool fsIsSpiffs, String fileName)
     BSC_LOGI(TAG,"handleFileUpload finish");
   }
 }
-
-
 
 /*void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     BSC_LOGI(TAG, "Listing directory: %s", dirname);
