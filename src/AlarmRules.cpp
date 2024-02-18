@@ -162,7 +162,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
     bo_Alarm[alarmNr]=true;
     if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==0)
     {
-      BSC_LOGI(TAG,"setAlarm: alarmNr=%i, cause=%i, TRUE",alarmNr,cause);
+      BSC_LOGI(TAG,"Trigger %i high, cause %i",alarmNr,cause);
       logTrigger(alarmNr, cause, bo_lAlarm);
     }
     bitSet(alarmCauseAktiv[alarmNr],cause);
@@ -182,7 +182,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
   {
     if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==1)
     {
-      BSC_LOGI(TAG,"setAlarm: alarmNr=%i, cause=%i, FALSE",alarmNr,cause);
+      BSC_LOGI(TAG,"Trigger %i low, cause %i",alarmNr,cause);
       logTrigger(alarmNr, cause, bo_lAlarm);
     }
     bitClear(alarmCauseAktiv[alarmNr],cause);
@@ -258,7 +258,7 @@ void runAlarmRules()
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      BSC_LOGI(TAG, "Trigger %i, value=%i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
+      BSC_LOGI(TAG, "Trigger %i, value %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
