@@ -16,7 +16,7 @@
 #include <fs/FileGuard.hpp>
 #include <WebServer.h>
 
-namespace // anonymous - methods, variables, and types in this namespace are have file scope only
+namespace // anonymous namespace - methods, variables, and types in this namespace have file scope only
 {
 
 const char * TAG = "WEB";
@@ -79,7 +79,7 @@ bool handleFileRead(fs::FS &fs, WebServer &server, [[maybe_unused]] bool fsIsSpi
   return false;
 }
 
-void handleFileUpload(WebServer &server, [[maybe_unused]] bool fsIsSpiffs, const String &fileName)
+void handleFileUpload(fs::FS &fs, WebServer &server, [[maybe_unused]] bool fsIsSpiffs, const String &fileName)
 {
   static File fsUploadFile;
   HTTPUpload& upload = server.upload();
@@ -91,7 +91,7 @@ void handleFileUpload(WebServer &server, [[maybe_unused]] bool fsIsSpiffs, const
     //}
     upload.filename = fileName;
     BSC_LOGI(TAG,"handleFileUpload Name: /%s", upload.filename.c_str());
-    fsUploadFile = SPIFFS.open("/" + server.urlDecode(upload.filename), "w");
+    fsUploadFile = fs.open("/" + server.urlDecode(upload.filename), "w");
   }
   else if (upload.status == UPLOAD_FILE_WRITE)
   {
