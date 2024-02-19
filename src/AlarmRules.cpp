@@ -162,7 +162,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
     bo_Alarm[alarmNr]=true;
     if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==0)
     {
-      BSC_LOGI(TAG,"Trigger %i high, cause %i",alarmNr,cause);
+      BSC_LOGI(TAG,"Trigger %i high, cause %i",alarmNr+1,cause);
       logTrigger(alarmNr, cause, bo_lAlarm);
     }
     bitSet(alarmCauseAktiv[alarmNr],cause);
@@ -182,7 +182,7 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
   {
     if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==1)
     {
-      BSC_LOGI(TAG,"Trigger %i low, cause %i",alarmNr,cause);
+      BSC_LOGI(TAG,"Trigger %i low, cause %i",alarmNr+1,cause);
       logTrigger(alarmNr, cause, bo_lAlarm);
     }
     bitClear(alarmCauseAktiv[alarmNr],cause);
