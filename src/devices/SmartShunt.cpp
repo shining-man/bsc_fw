@@ -4,7 +4,6 @@
 // https://opensource.org/licenses/MIT
 
 #include "devices/SmartShunt.h"
-#include "devices/VeDirectFrameHandler.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "log.h"
@@ -12,12 +11,14 @@
 
 static const char *TAG = "SMARTSHUNT";
 
-VeDirectFrameHandler VeDFrameHandler;
 static Stream *mPort;
 static uint8_t u8_mDevNr;
-static void      getDataFromBms(uint8_t address, uint8_t function);
+static void      getDataFromBms(uint16_t ID_Get);
 static bool      recvAnswer(uint8_t * t_outMessage);
 static void      parseMessage(uint8_t * t_message, uint8_t address);
+uint8_t          SmartShuntconvertAsciiHexToByte(char a, char b);
+static char      SmartShuntconvertByteToAsciiHex(uint8_t v);
+void             SmartShuntconvertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length);
 
 enum States {
   IDLE,
@@ -52,7 +53,14 @@ static serialDevData_s *mDevData;
 
 bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
-  bool bo_ret=true;
+
+BSC_LOGI(TAG,"SmartShunt_readBmsData");
+
+getDataFromBms(smartshunt_id_main_voltage);
+
+BSC_LOGI(TAG,"getDataFromBms Ende");
+
+/*   bool bo_ret=true;
   bool bo_break=false;
   mDevData=devData;
   mPort = port;
@@ -92,7 +100,7 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
       switch(mState)
       {
         case IDLE:
-          /* wait for \n of the start of an record */
+          // wait for \n of the start of an record
           switch(inbyte)
           {
             case '\n': //0xa
@@ -124,7 +132,7 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
                   break;
                 }
               }
-              mTextPointer = mValue; /* Reset value pointer */
+              mTextPointer = mValue; // Reset value pointer
               mState = RECORD_VALUE;
               break;
             default:
@@ -146,7 +154,7 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
               }
               mState = RECORD_BEGIN;
               break;
-            case '\r': /* Skip */
+            case '\r': // Skip
               break;
             default:
               // add byte to value, but do no overflow
@@ -209,28 +217,64 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   //BSC_LOGI(TAG,"ret=%d, rxVal=%i, delCnt=%i, readCntGes=%i, errCnt=%i",bo_ret, rxValues, byteDelCnt, byteReadCntGes, errCntSmartShunt);
   return bo_ret;
+
+*/
+
+return false;
+
 }
 
 
 static void getDataFromBms(uint16_t ID_Get)
 {
-  uint8_t u8_lData[6];
+  uint8_t u8_lData[9];
+  uint8_t chksum;
 
-  u8_lData[1]=0x07;              // Command 0x7 = Get (1 Nibble!!!)
-  u8_lData[2]=(ID_Get >> 8);    // ID der abzufragenden Daten - High Byte
-  u8_lData[3]=(ID_Get >> 0);    // ID der abzufragenden Daten - Low Byte
-  u8_lData[4]=0x00;              // Flag 0x00
-  u8_lData[5]=0x55-u8_lData[1]-u8_lData[2]-u8_lData[3]-u8_lData[4]; // Checksum (0x55 - Bytes bis hier)
-  u8_lData[6]=0x0A;             // Ende Befehl /n (LF)
-
-  *u8_lData = *u8_lData << 4;     // Alle Daten um 1 Nibbel nach Links, da Command nur 1 Nibble lang
+  BSC_LOGI(TAG,"getDataFromBms Start");
 
   u8_lData[0]=0x3A;             // Start der Nachricht mit ":"
+  u8_lData[1]=0x07;              // Command 7 = Get
+  u8_lData[2]=(ID_Get >> 4)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble links
+  u8_lData[3]=(ID_Get >> 0)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble rechts
+  u8_lData[4]=(ID_Get >> 12)&0x0F;   // ID der abzufragenden Daten - High Byte Nibble links
+  u8_lData[5]=(ID_Get >> 8)&0x0F;    // ID der abzufragenden Daten - High Byte Nibble rechts
+  u8_lData[6]=0x00;              // Flag 0x00
+  u8_lData[7]=0x00;              // Flag 0x00
+  chksum = 0x55-u8_lData[1]-u8_lData[2]-u8_lData[3]-u8_lData[4]; // Checksum (0x55 - Bytes bis hier)
+  u8_lData[8]=(chksum >> 4)&0x0F;
+  u8_lData[9]=(chksum >> 0)&0x0F;
+  u8_lData[10]=0x0A;             // Ende Befehl /n (LF)
+
+  BSC_LOGI(TAG,"getDataFromBms Daten");
+
+  // Nachrichtenteil von HEX in
+  for(uint8_t i = 1; i < 10 ; i++ )
+  {
+    //u8_lData[i] = SmartShuntconvertByteToAsciiHex(u8_lData[i]);
+    BSC_LOGI(TAG,"SendBytes Converted=%i - %i",i, u8_lData[i]);
+  }
+
+  BSC_LOGI(TAG,"getDataFromBms Convert ende");
+
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
+  for(uint8_t z=0;z<11;++z)
+  {
+    u8_logByteCount++;
+    recvBytes+="0x";
+    BSC_LOGI(TAG,"SendBytes x =%i",z);
+    recvBytes+=String(u8_lData[z],16);
+    recvBytes+=" ";
+    BSC_LOGI(TAG,"SendBytes=%i: %s",z, recvBytes.c_str());
+        if(z> 20) break;
+  }
+  BSC_LOGI(TAG,"ENDE SendBytes=%i: %s",10, recvBytes.c_str());
+
 
   //TX
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
-  mPort->write(u8_lData, 7);
+  mPort->write(u8_lData, 10);
   mPort->flush();
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 
@@ -239,7 +283,7 @@ static void getDataFromBms(uint16_t ID_Get)
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
 
-  ;
+return true;
 }
 
 static void parseMessage(uint8_t * t_message, uint8_t address)
@@ -362,9 +406,27 @@ void frameEnd()
 }
 
 
-static uint8_t bin2hex(uint8_t bin) {
-  bin &= 0x0F;
-  if (bin < 10)
-    return bin + '0';
-  return bin + 'A' - 10;
+uint8_t SmartShuntconvertAsciiHexToByte(char a, char b)
+{
+  a = (a<='9') ? a-'0' : (a&0x7)+9;
+  b = (b<='9') ? b-'0' : (b&0x7)+9;
+  return (a<<4)+b;
+}
+
+
+static char SmartShuntconvertByteToAsciiHex(uint8_t v)
+{
+  return v>=10 ? 'A'+(v-10) : '0'+v;
+}
+
+
+void SmartShuntconvertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length)
+{
+  if(length==0) return;
+
+  for(size_t i=0; i<length; i++)
+  {
+    dest[2*i] = SmartShuntconvertByteToAsciiHex((data[i] & 0xF0) >> 4);
+    dest[2*i+1] = SmartShuntconvertByteToAsciiHex(data[i] & 0x0F);
+  }
 }

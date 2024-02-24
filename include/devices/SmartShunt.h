@@ -15,8 +15,7 @@
 #define RX_VAL_I     4
 #define RX_VAL_OK    7   // Summe aller RX_VAL_*
 
-
-
+#define smartshunt_id_main_voltage   0xED8D
 
 
 bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
