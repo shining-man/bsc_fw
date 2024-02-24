@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <typeinfo>
-#include <types/Bitfields.hpp>
+#include <utils/TypeConversions.hpp>
 
 namespace types
 {
@@ -35,28 +35,6 @@ class BitfieldTest :
 
   // Objects declared here can be used by all tests in the test case for Foo.
 
-    enum class BitFields
-  {
-    BIT_0,
-    BIT_1,
-    BIT_2,
-    BIT_3,
-    BIT_4,
-    BIT_5,
-    BIT_6,
-    BIT_7
-  };
-
-  using BitFieldType = types::bf::Bitfields<uint8_t,
-                                          types::bf::Field<BitFields::BIT_7, 1>,
-                                          types::bf::Field<BitFields::BIT_6, 1>,
-                                          types::bf::Field<BitFields::BIT_5, 1>,
-                                          types::bf::Field<BitFields::BIT_4, 1>,
-                                          types::bf::Field<BitFields::BIT_3, 1>,
-                                          types::bf::Field<BitFields::BIT_2, 1>,
-                                          types::bf::Field<BitFields::BIT_1, 1>,
-                                          types::bf::Field<BitFields::BIT_0, 1>>;
-
   template<typename T> char const* getTypeName() { return __PRETTY_FUNCTION__; }
 
   template<typename T>
@@ -66,8 +44,8 @@ class BitfieldTest :
     const std::size_t valueToVerify = (verifyInRange) ? std::numeric_limits<DataType>::digits - 1 :
                                                         std::numeric_limits<DataType>::digits;
 
-    ASSERT_EQ(true, types::bf::isBitIdxInRange<T>(0)); // Zero must be alway in range for idx
-    ASSERT_EQ(verifyInRange, types::bf::isBitIdxInRange<T>(valueToVerify)) << "Failed index of "
+    ASSERT_EQ(true, utils::isBitIdxInRange<T>(0)); // Zero must be alway in range for idx
+    ASSERT_EQ(verifyInRange, utils::isBitIdxInRange<T>(valueToVerify)) << "Failed index of "
                                                                                   << ((verifyInRange) ? "in range test: " : "out of range test: ")
                                                                                   << valueToVerify
                                                                                   << ", Type: " << getTypeName<DataType>();
@@ -82,45 +60,10 @@ class BitfieldTest :
     for (std::size_t i = 0; i < numberOfBits; ++i)
     {
       const DataType compareValue = (static_cast<DataType>(1) << i);
-      ASSERT_EQ(compareValue, types::bf::bitIdxToValue<DataType>(i)) << "Failed index: " << i << ", Type: " << getTypeName<DataType>();
+      ASSERT_EQ(compareValue, utils::bitIdxToValue<DataType>(i)) << "Failed index: " << i << ", Type: " << getTypeName<DataType>();
     }
   };
 };
-
-// Just a simple test to verify initialization by ctor
-TEST_F(BitfieldTest, BitField_CheckInitializedValues)
-{
-  {
-    const BitFieldType field1(0xAA);
-    ASSERT_EQ(0xAA, field1.serialize());
-    ASSERT_EQ(0b0, field1.at<BitFields::BIT_0>());
-    ASSERT_EQ(0b1, field1.at<BitFields::BIT_1>());
-    ASSERT_EQ(0b0, field1.at<BitFields::BIT_2>());
-    ASSERT_EQ(0b1, field1.at<BitFields::BIT_3>());
-    ASSERT_EQ(0b0, field1.at<BitFields::BIT_4>());
-    ASSERT_EQ(0b1, field1.at<BitFields::BIT_5>());
-    ASSERT_EQ(0b0, field1.at<BitFields::BIT_6>());
-    ASSERT_EQ(0b1, field1.at<BitFields::BIT_7>());
-  }
-}
-
-// Verify, that the copy of one bitfield to another does work.
-// There is actually a bug in the main repository, which does not allow this copy.
-// Run this test to verify it is fixed in the version we use.
-TEST_F(BitfieldTest, BitField_CheckBitFieldCopyFromConst)
-{
-  {
-    const BitFieldType field1(0xAA);
-    BitFieldType field2;
-    ASSERT_EQ(0xAA, field1.serialize());
-    ASSERT_EQ(0x0,  field2.serialize());
-
-    field2.at<BitFields::BIT_3>() = field1.at<BitFields::BIT_3>();
-
-    ASSERT_EQ(0xAA, field1.serialize());
-    ASSERT_EQ(0x08, field2.serialize());
-  }
-}
 
 TEST_F(BitfieldTest, isBitIdxInRange_VerifyInRangeValues)
 {
@@ -160,12 +103,12 @@ TEST_F(BitfieldTest, bitIdxToValue_AssertsOnIdxOutOfRange)
   using DataType = uint8_t;
   DataType value {5}; // Just a value != 0
 
-  ASSERT_DEBUG_DEATH(value = types::bf::bitIdxToValue<DataType>(std::numeric_limits<DataType>::digits), "bitIdx is NOT in range");
+  ASSERT_DEBUG_DEATH(value = utils::bitIdxToValue<DataType>(std::numeric_limits<DataType>::digits), "bitIdx is NOT in range");
 
    // If this is not a DEBUG build we can expect, that the ASSERT_DEBUG_DEATH above executed the statement without assert.
    // bitIdxToValue must return 0 in that case. Let´s just verify this again.
   if (0 == value)
-    ASSERT_EQ(0, types::bf::bitIdxToValue<DataType>(std::numeric_limits<DataType>::digits));
+    ASSERT_EQ(0, utils::bitIdxToValue<DataType>(std::numeric_limits<DataType>::digits));
 }
 #endif
 
