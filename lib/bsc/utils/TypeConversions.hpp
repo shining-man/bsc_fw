@@ -4,31 +4,20 @@
 // https://opensource.org/licenses/MIT
 
 
-#ifndef TYPES_BITFIELDS_H
-#define TYPES_BITFIELDS_H
+#ifndef TYPES_CONVERSIONS_H
+#define TYPES_CONVERSIONS_H
 
 #include <type_traits>
-#include <jungles/bitfields.hpp>
 
-/** This module provides a namespace alias for the jungles::Bitfield template class
- *  See https://github.com/KKoovalsky/PortableBitfields.
- *
- *  In addition this module provides some helper functions to calculate the decimal representation of a single bit (2^n)
- *  with range check depending on the used data type
+/**
+ * @brief This module provides some helper functions to calculate the decimal representation of a single bit (2^n)
+ * with range check depending on the used data type
  *
  *  NOTE: The template methods require C++17 and above!
 */
 
-namespace types
+namespace utils
 {
-
-namespace bf
-{
-
-// Our alias for the jungles namespace becomes "types::bf"
-// The jungles::bitfied template class can be used as follows:
-// types::bf::bitfield
-using namespace jungles;
 
 /**
  * @brief This method returns true, if \a bitIdx is a valid bit in index for the type given by the template parameter.
@@ -62,7 +51,6 @@ constexpr DATA_TYPE bitIdxToValue(std::size_t bitIdx)
   return isIdxInRange ? (static_cast<DATA_TYPE>(1) << bitIdx) : static_cast<DATA_TYPE>(0);
 }
 
-} // namespace bf
-} // namespace types
+} // namespace utils
 
-#endif // TYPES_BITFIELDS_H
+#endif // TYPES_CONVERSIONS_H
