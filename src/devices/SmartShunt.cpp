@@ -227,7 +227,7 @@ return false;
 
 static void getDataFromBms(uint16_t ID_Get)
 {
-  uint8_t u8_lData[9];
+  uint8_t u8_lData[11];
   uint8_t chksum;
 
   BSC_LOGI(TAG,"getDataFromBms Start");
@@ -250,7 +250,7 @@ static void getDataFromBms(uint16_t ID_Get)
   // Nachrichtenteil von HEX in
   for(uint8_t i = 1; i < 10 ; i++ )
   {
-    //u8_lData[i] = SmartShuntconvertByteToAsciiHex(u8_lData[i]);
+    u8_lData[i] = SmartShuntconvertByteToAsciiHex(u8_lData[i]);
     BSC_LOGI(TAG,"SendBytes Converted=%i - %i",i, u8_lData[i]);
   }
 
@@ -258,7 +258,7 @@ static void getDataFromBms(uint16_t ID_Get)
 
   String recvBytes="";
   uint8_t u8_logByteCount=0;
-  for(uint8_t z=0;z<11;++z)
+  for(uint8_t z=0;z<11;z++)
   {
     u8_logByteCount++;
     recvBytes+="0x";
@@ -273,10 +273,14 @@ static void getDataFromBms(uint16_t ID_Get)
 
   //TX
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
+  BSC_LOGI(TAG,"CB");
   usleep(20);
   mPort->write(u8_lData, 10);
+  BSC_LOGI(TAG,"CB write");
   mPort->flush();
+  BSC_LOGI(TAG,"CB flush");
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
+  BSC_LOGI(TAG,"CB off");
 
 }
 
