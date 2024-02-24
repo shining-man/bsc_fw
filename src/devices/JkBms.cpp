@@ -300,9 +300,10 @@ void parseData(uint8_t * t_message)
 
       case 0x8b: // Battery_Warning_Massage
       {
-        const BmsErrorStatus bmsErrors = bmsErrorFromMessage<jkbms::JkBmsWarnMsg>((((static_cast<uint16_t>(t_message[i+1]) << 8) | t_message[i+2])));
-        //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",u16_lTmpValue,u32_lTmpValue);
-        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, static_cast<uint32_t>(bmsErrors.serialize()));
+        const jkbms::JkBmsWarnMsg bmsWarnMsg = jkbms::JkBmsWarnMsg::from_int<uint16_t>(((static_cast<uint16_t>(t_message[i+1]) << 8) | t_message[i+2]));
+        const BmsErrorStatus bmsErrorStat = bmsErrorFromMessage(bmsWarnMsg);
+        //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",bmsWarnMsg.to_int<uint16_t>(), bmsErrorStat.to_int<uint32_t>());
+        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, bmsErrorStat);
         i+=3;
       } break;
 

@@ -107,6 +107,7 @@ void setBmsMinCellVoltage(uint8_t devNr, uint16_t value);
 
 uint32_t getBmsErrors(uint8_t devNr);
 void setBmsErrors(uint8_t devNr, uint32_t value);
+void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status);
 
 uint8_t getBmsStateFETs(uint8_t devNr);
 void    setBmsStateFETs(uint8_t devNr, uint8_t value);
