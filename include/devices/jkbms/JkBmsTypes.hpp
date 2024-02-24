@@ -6,7 +6,7 @@
 #ifndef JKBMSTYPES_H
 #define JKBMSTYPES_H
 
-#include <types/Bitfields.hpp>
+#include <type_safe/flag_set.hpp>
 
 /**
  * @file
@@ -37,26 +37,11 @@ enum class BatWarnMsgBits
   PROTECTION_309A,            //!< Bit 12: 309_A protection                                -> ?
   PROTECTION_309B,            //!< Bit 13: 309_B protection                                -> ?
   RESERVED_BIT_14,            //!< Bit 14:                                                 -> ?
-  RESERVED_BIT_15             //!< Bit 15:                                                 -> ?
+  RESERVED_BIT_15,            //!< Bit 15:                                                 -> ?
+  _flag_set_size,             //!< //!< Number of bits - Required by type_safe::flag_set
 };
 
-using JkBmsWarnMsg  = types::bf::Bitfields<uint16_t,                                                        // The underlying type
-                                           types::bf::Field<BatWarnMsgBits::RESERVED_BIT_15,            1>, // Field ID (or name) and its size
-                                           types::bf::Field<BatWarnMsgBits::RESERVED_BIT_14,            1>,
-                                           types::bf::Field<BatWarnMsgBits::PROTECTION_309B,            1>,
-                                           types::bf::Field<BatWarnMsgBits::PROTECTION_309A,            1>,
-                                           types::bf::Field<BatWarnMsgBits::UNKNOWN_BIT_11,             1>,
-                                           types::bf::Field<BatWarnMsgBits::CHG_UNDER_TEMPERATURE,      1>,
-                                           types::bf::Field<BatWarnMsgBits::BATTERY_LOW_TEMPERATURE,    1>,
-                                           types::bf::Field<BatWarnMsgBits::BATTERY_BOX_OVERTEMP_ALARM, 1>,
-                                           types::bf::Field<BatWarnMsgBits::DCHG_OVERCURRENT,           1>,
-                                           types::bf::Field<BatWarnMsgBits::DCHG_OVERCURRENT_ALARM,     1>,
-                                           types::bf::Field<BatWarnMsgBits::CHG_OVERTEMP,               1>,
-                                           types::bf::Field<BatWarnMsgBits::CELL_UNDERVOLTAGE,          1>,
-                                           types::bf::Field<BatWarnMsgBits::CELL_OVERVOLTAGE,           1>,
-                                           types::bf::Field<BatWarnMsgBits::CHG_OVERVOLTAGE_ALARM,      1>,
-                                           types::bf::Field<BatWarnMsgBits::MOS_TUBE_OVERTEMP_ALARM,    1>,
-                                           types::bf::Field<BatWarnMsgBits::LOW_CAP_ALARM,              1>>;
+using JkBmsWarnMsg = type_safe::flag_set<BatWarnMsgBits>;
 
 } // namespace jkbms
 
