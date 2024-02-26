@@ -9,6 +9,12 @@
 #include "log.h"
 #include "WebSettings.h"
 
+#define smartshunt_id_main_voltage    0xED8D
+#define smartshunt_id_current         0xED8F
+#define smartshunt_id_power           0xED8E
+#define smartshunt_id_Consumed_Ah     0xEEFF
+#define smartshunt_id_SOC             0x0FFF
+
 static const char *TAG = "SMARTSHUNT";
 
 static Stream *mPort;
@@ -19,6 +25,7 @@ static void      parseMessage(uint8_t * t_message, uint8_t address);
 uint8_t          SmartShuntconvertAsciiHexToByte(char a, char b);
 static char      SmartShuntconvertByteToAsciiHex(uint8_t v);
 void             SmartShuntconvertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length);
+static bool      hexIsValid(const uint8_t* buffer, int size);
 
 enum States {
   IDLE,
@@ -29,10 +36,13 @@ enum States {
   RECORD_HEX
 };
 
+enum SM_readData {SEARCH_START, SEARCH_END};
+
 int mState;                                 // current state
 char * mTextPointer;                        // pointer to the private buffer we're writing to, name or value
 char mName[9];                              // buffer for the field name
 char mValue[33];                            // buffer for the field value
+
 
 static constexpr char checksumTagName[] = "CHECKSUM";
 
@@ -58,12 +68,62 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
+    uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
 
-BSC_LOGI(TAG,"SmartShunt_readBmsData");
 
 getDataFromBms(smartshunt_id_main_voltage);
 
-BSC_LOGI(TAG,"getDataFromBms Ende");
+if(recvAnswer(response))
+{
+  ;
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+}
+
+getDataFromBms(smartshunt_id_current);
+if(recvAnswer(response))
+{
+  ;
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+}
+
+getDataFromBms(smartshunt_id_power);
+if(recvAnswer(response))
+{
+  ;
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+}
+
+getDataFromBms(smartshunt_id_Consumed_Ah);
+if(recvAnswer(response))
+{
+  ;
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+}
+
+getDataFromBms(smartshunt_id_SOC);
+if(recvAnswer(response))
+{
+  ;
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+}
+
+
+
 
 /*   bool bo_ret=true;
   bool bo_break=false;
@@ -236,63 +296,139 @@ static void getDataFromBms(uint16_t ID_Get)
   uint8_t u8_lSendData[20];
   uint8_t chksum;
 
-  BSC_LOGI(TAG,"getDataFromBms Start");
-
-  u8_lData[1]=0x07;              // Command 7 = Get
-  u8_lData[2]=(ID_Get >> 4)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble links
-  u8_lData[3]=(ID_Get >> 0)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble rechts
-  u8_lData[4]=(ID_Get >> 12)&0x0F;   // ID der abzufragenden Daten - High Byte Nibble links
-  u8_lData[5]=(ID_Get >> 8)&0x0F;    // ID der abzufragenden Daten - High Byte Nibble rechts
-  u8_lData[6]=0x00;              // Flag 0x00
-  u8_lData[7]=0x00;              // Flag 0x00
-  chksum = 0x55-u8_lData[1]-u8_lData[2]-u8_lData[3]-u8_lData[4]-u8_lData[5]-u8_lData[6]-u8_lData[7]; // Checksum (0x55 - Bytes bis hier)
-
-
+  // Sendedaten vorbereiten
   u8_lSendData[0]=0x3A;             // Start der Nachricht mit ":"
-  u8_lData[1]=0x37;             // Command 7 = Get (in ASCII)
-  u8_lData[2]=(ID_Get >> 8)&0xFF; // ID der abzufragenden Daten - Low Byte
-  u8_lData[3]=(ID_Get >> 0)&0xFF; // ID der abzufragenden Daten - High Byte
+  u8_lSendData[1]=0x37;             // Command 7 = Get (in ASCII)
+
+  u8_lData[2]=(ID_Get >> 0)&0xFF; // ID der abzufragenden Daten - Low Byte
+  u8_lData[3]=(ID_Get >> 8)&0xFF; // ID der abzufragenden Daten - High Byte
   u8_lData[4]=0x00;              // Flag 0x00
-  u8_lData[5]=chksum;            // Checksum
 
-  BSC_LOGI(TAG,"getDataFromBms Daten");
-
-  SmartShuntconvertByteToAsciiHex(&u8_lData[1], &u8_lSendData[2], 6);
-  u8_lSendData[7]=0x0A;             // Ende Befehl /n (LF)
-
-  BSC_LOGI(TAG,"getDataFromBms Convert ende");
-
-  String recvBytes="";
-  uint8_t u8_logByteCount=0;
-  for(uint8_t z=0;z<11;z++)
+  chksum = 0x55-0x07; // Checksum (0x55 - 0x07(Get) - Bytes bis hier)
+  for(uint8_t i=2;i<5;i++)
   {
-    u8_logByteCount++;
-    recvBytes+="0x";
-    BSC_LOGI(TAG,"SendBytes x =%i",z);
-    recvBytes+=String(u8_lData[z],16);
-    recvBytes+=" ";
-    BSC_LOGI(TAG,"SendBytes=%i: %s",z, recvBytes.c_str());
-  }
-  BSC_LOGI(TAG,"ENDE SendBytes=%i: %s",10, recvBytes.c_str());
+    chksum -= u8_lData[i];
 
+  }
+
+  SmartShuntconvertByteToAsciiHex(&u8_lSendData[2],&u8_lData[2], 3);
+
+
+  u8_lData[5]=chksum;            // Checksum
+  SmartShuntconvertByteToAsciiHex(&u8_lSendData[8],&u8_lData[5], 1);
+
+  u8_lSendData[10]=0x0A;             // Ende Befehl /n (LF)
+
+  #ifdef SMARTSHUNT_DEBUG
+    String sendBytes="";
+    uint8_t u8_logByteCount=0;
+    for(uint8_t z=0;z<11;z++)
+    {
+      u8_logByteCount++;
+      sendBytes+="0x";
+      sendBytes+= String(u8_lSendData[z],16);
+      sendBytes+=" ";
+    }
+    BSC_LOGI(TAG,"ENDE SendBytes=%i: %s",u8_logByteCount, sendBytes.c_str());
+  #endif
 
   //TX
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  BSC_LOGI(TAG,"CB");
   usleep(20);
-  mPort->write(u8_lData, 10);
-  BSC_LOGI(TAG,"CB write");
+  mPort->write(u8_lSendData, 11);
   mPort->flush();
-  BSC_LOGI(TAG,"CB flush");
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
-  BSC_LOGI(TAG,"CB off");
 
 }
 
+/// @brief
+/// @param p_lRecvBytes
+/// @return
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
+  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen, u8_CyclesWithoutData;
+  uint32_t u32_lStartTime=millis();
+  SMrecvState=SEARCH_START;
+  u8_lRecvBytesCnt=0;
+  u8_lRecvDataLen=0xFF;
+  u8_CyclesWithoutData=0;
+  bool bo_lDataComplete=false;
 
-return true;
+  for(;;)
+  {
+    //Timeout
+    // wenn innerhalb von 500ms das Telegram noch nicht begonnen hat, dann Timeout
+    if( ((millis()-u32_lStartTime)>500) )
+    {
+        BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      return false;
+    }
+
+    //Überprüfen ob Zeichen verfügbar
+    if (mPort->available() > 0)
+    {
+      u8_lRecvByte = mPort->read();
+
+      switch (SMrecvState)  {
+        case SEARCH_START:
+          if (u8_lRecvByte == 0x3A)  //":"
+          {
+            SMrecvState=SEARCH_END;
+          }
+          break;
+
+        case SEARCH_END:
+          p_lRecvBytes[u8_lRecvBytesCnt]=u8_lRecvByte;
+          if(u8_lRecvByte == 0x0A)  // "Linefeed"
+          {
+            bo_lDataComplete=true;
+            break;
+          }
+
+          u8_lRecvBytesCnt++;
+          break;
+
+        default:
+          break;
+        }
+      u8_CyclesWithoutData=0;
+    }
+    else if (u8_lRecvBytesCnt==0) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
+    else if (u8_lRecvBytesCnt>0 && u8_CyclesWithoutData>10) vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
+    else // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
+    {
+      u8_CyclesWithoutData++;
+      vTaskDelay(pdMS_TO_TICKS(1));
+    }
+
+    if(bo_lDataComplete) break; //Recv Pakage complete
+    if(u8_lRecvBytesCnt>=SMARTSHUNT_MAX_ANSWER_LEN) return false; //Answer too long!
+  }
+
+  #ifdef SMARTSHUNT_DEBUG
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
+  for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
+  {
+    u8_logByteCount++;
+    recvBytes+="0x";
+    recvBytes+=String(p_lRecvBytes[x],16);
+    recvBytes+=" ";
+    if(u8_logByteCount==20)
+    {
+      BSC_LOGI(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+      recvBytes="";
+      u8_logByteCount=0;
+    }
+  }
+  BSC_LOGI(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+  #endif
+
+
+  //Überprüfe Cheksum
+  if(!hexIsValid(p_lRecvBytes,u8_lRecvBytesCnt)) return false;
+
+  return true;
 }
 
 static void parseMessage(uint8_t * t_message, uint8_t address)
@@ -438,4 +574,17 @@ void SmartShuntconvertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length
     dest[2*i] = SmartShuntconvertByteToAsciiHex((data[i] & 0xF0) >> 4);
     dest[2*i+1] = SmartShuntconvertByteToAsciiHex(data[i] & 0x0F);
   }
+}
+
+/*
+ *	hexIsValid
+ *  This function compute checksum and validate hex frame
+ */
+#define ascii2hex(v) (v-48-(v>='A'?7:0))
+#define hex2byte(b) (ascii2hex(*(b)))*16+((ascii2hex(*(b+1))))
+
+static bool hexIsValid(const uint8_t* buffer, int size) {
+  uint8_t checksum=0x55-ascii2hex(buffer[1]);
+  for (int i=2; i<size; i+=2) checksum -= hex2byte(buffer+i);
+  return (checksum==0);
 }
