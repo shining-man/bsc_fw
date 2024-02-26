@@ -53,6 +53,11 @@ static serialDevData_s *mDevData;
 
 bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
+  bool ret = true;
+  mDevData = devData;
+  mPort = port;
+  u8_mDevNr = devNr;
+  callbackSetTxRxEn=callback;
 
 BSC_LOGI(TAG,"SmartShunt_readBmsData");
 
@@ -227,12 +232,12 @@ return false;
 
 static void getDataFromBms(uint16_t ID_Get)
 {
-  uint8_t u8_lData[9];
+  uint8_t u8_lData[11];
+  uint8_t u8_lSendData[20];
   uint8_t chksum;
 
   BSC_LOGI(TAG,"getDataFromBms Start");
 
-  u8_lData[0]=0x3A;             // Start der Nachricht mit ":"
   u8_lData[1]=0x07;              // Command 7 = Get
   u8_lData[2]=(ID_Get >> 4)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble links
   u8_lData[3]=(ID_Get >> 0)&0x0F;    // ID der abzufragenden Daten - Low Byte Nibble rechts
@@ -240,25 +245,26 @@ static void getDataFromBms(uint16_t ID_Get)
   u8_lData[5]=(ID_Get >> 8)&0x0F;    // ID der abzufragenden Daten - High Byte Nibble rechts
   u8_lData[6]=0x00;              // Flag 0x00
   u8_lData[7]=0x00;              // Flag 0x00
-  chksum = 0x55-u8_lData[1]-u8_lData[2]-u8_lData[3]-u8_lData[4]; // Checksum (0x55 - Bytes bis hier)
-  u8_lData[8]=(chksum >> 4)&0x0F;
-  u8_lData[9]=(chksum >> 0)&0x0F;
-  u8_lData[10]=0x0A;             // Ende Befehl /n (LF)
+  chksum = 0x55-u8_lData[1]-u8_lData[2]-u8_lData[3]-u8_lData[4]-u8_lData[5]-u8_lData[6]-u8_lData[7]; // Checksum (0x55 - Bytes bis hier)
+
+
+  u8_lSendData[0]=0x3A;             // Start der Nachricht mit ":"
+  u8_lData[1]=0x37;             // Command 7 = Get (in ASCII)
+  u8_lData[2]=(ID_Get >> 8)&0xFF; // ID der abzufragenden Daten - Low Byte
+  u8_lData[3]=(ID_Get >> 0)&0xFF; // ID der abzufragenden Daten - High Byte
+  u8_lData[4]=0x00;              // Flag 0x00
+  u8_lData[5]=chksum;            // Checksum
 
   BSC_LOGI(TAG,"getDataFromBms Daten");
 
-  // Nachrichtenteil von HEX in
-  for(uint8_t i = 1; i < 10 ; i++ )
-  {
-    //u8_lData[i] = SmartShuntconvertByteToAsciiHex(u8_lData[i]);
-    BSC_LOGI(TAG,"SendBytes Converted=%i - %i",i, u8_lData[i]);
-  }
+  SmartShuntconvertByteToAsciiHex(&u8_lData[1], &u8_lSendData[2], 6);
+  u8_lSendData[7]=0x0A;             // Ende Befehl /n (LF)
 
   BSC_LOGI(TAG,"getDataFromBms Convert ende");
 
   String recvBytes="";
   uint8_t u8_logByteCount=0;
-  for(uint8_t z=0;z<11;++z)
+  for(uint8_t z=0;z<11;z++)
   {
     u8_logByteCount++;
     recvBytes+="0x";
@@ -266,7 +272,6 @@ static void getDataFromBms(uint16_t ID_Get)
     recvBytes+=String(u8_lData[z],16);
     recvBytes+=" ";
     BSC_LOGI(TAG,"SendBytes=%i: %s",z, recvBytes.c_str());
-        if(z> 20) break;
   }
   BSC_LOGI(TAG,"ENDE SendBytes=%i: %s",10, recvBytes.c_str());
 
