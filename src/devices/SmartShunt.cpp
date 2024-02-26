@@ -89,7 +89,7 @@ if(recvAnswer(response))
 }
 else
 {
-  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+  BSC_LOGE(TAG,"Checksum nicht OK - current");
 }
 
 getDataFromBms(smartshunt_id_power);
@@ -99,7 +99,7 @@ if(recvAnswer(response))
 }
 else
 {
-  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+  BSC_LOGE(TAG,"Checksum nicht OK - power");
 }
 
 getDataFromBms(smartshunt_id_Consumed_Ah);
@@ -109,7 +109,7 @@ if(recvAnswer(response))
 }
 else
 {
-  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+  BSC_LOGE(TAG,"Checksum nicht OK - Consumed_Ah");
 }
 
 getDataFromBms(smartshunt_id_SOC);
@@ -119,7 +119,7 @@ if(recvAnswer(response))
 }
 else
 {
-  BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+  BSC_LOGE(TAG,"Checksum nicht OK - SOC");
 }
 
 
