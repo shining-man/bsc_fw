@@ -80,6 +80,95 @@ else
   BSC_LOGE(TAG,"Checksum nicht OK - power");
 }
 
+getDataFromBms(smartshunt_id_TIME_TO_GO);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Time to Go");
+}
+
+getDataFromBms(smartshunt_id_CYCLE);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Cycle");
+}
+
+getDataFromBms(smartshunt_id_TOTAL_VOLT_MIN);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Total Voltage Minimum");
+}
+
+getDataFromBms(smartshunt_id_TOTAL_VOLT_MAX);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Total Voltage Maximum");
+}
+
+getDataFromBms(smartshunt_id_TIME_SINCE_FULL);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Time Since Full");
+}
+
+getDataFromBms(smartshunt_id_VOLT_MIN_COUNT);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Alarm Voltage min Count");
+}
+
+getDataFromBms(smartshunt_id_TOTAL_VOLT_MAX_COUNT);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Alarm Voltage max Count");
+}
+
+getDataFromBms(smartshunt_id_AMOUNT_DCH_ENERGY);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Summe Energie entladen");
+}
+
+getDataFromBms(smartshunt_id_AMOUNT_CH_ENERGY);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - Summe Energie geladen");
+}
 
 /*
 
@@ -96,6 +185,7 @@ else
   }
 */
 
+
   if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
 
 return ret;
@@ -105,6 +195,9 @@ return ret;
 
 static void getDataFromBms(uint16_t ID_Get)
 {
+  // Kleine Pause zwischen den einzelnen Abfragen
+  vTaskDelay(pdMS_TO_TICKS(3));
+
   uint8_t u8_lData[11];
   uint8_t u8_lSendData[20];
   uint8_t chksum;
@@ -256,22 +349,25 @@ static void parseMessage(uint8_t * t_message)
   float floatValue;
 
   // Ist die Nachricht die Antwort auf ein GET (7)?
-  if(t_message[0] == 0x3A && t_message[1] == 7)
+  if(t_message[0] == 0x37)
   {
-    Smartshunt_ID = ((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[4], t_message[5]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[2], t_message[3]) ;
-    Smartshunt_Flag = SmartShuntconvertAsciiHexToByte(t_message[6], t_message[7]);
+    Smartshunt_ID = ((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[3], t_message[4]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[1], t_message[2]) ;
+    Smartshunt_Flag = SmartShuntconvertAsciiHexToByte(t_message[5], t_message[6]);
+    #ifdef SMARTSHUNT_DEBUG
+      BSC_LOGI(TAG,"Flag =%u",Smartshunt_Flag);
+    #endif
 
     switch(Smartshunt_ID) {
       case smartshunt_id_main_voltage:
-        floatValue = (float)((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])) / 100; // 0,01V
+        floatValue = (float)((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])) / 100; // 0,01V
         setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, floatValue);
         if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, floatValue);
-          #ifdef SMARTSHUNT_DEBUG
-            BSC_LOGI(TAG,"Voltage =%i",floatValue);
-          #endif
+        #ifdef SMARTSHUNT_DEBUG
+          BSC_LOGI(TAG,"Voltage =%f",floatValue);
+        #endif
         break;
       case smartshunt_id_current:
-        floatValue = (float)((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])) / 10; // 0,1A
+        floatValue = (float)((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])) / 10; // 0,1A
         setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, floatValue);
         if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, floatValue);
           #ifdef SMARTSHUNT_DEBUG
@@ -279,21 +375,22 @@ static void parseMessage(uint8_t * t_message)
           #endif
         break;
       case smartshunt_id_power:
-        i16_tValue = ((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])); // W
+        i16_tValue = ((int16_t)((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])); // W
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_POWER, -1, i16_tValue);
         #ifdef SMARTSHUNT_DEBUG
           BSC_LOGI(TAG,"Power =%i",i16_tValue);
         #endif
         break;
       case smartshunt_id_SOC:
-        u8_tValue = (uint8_t)((((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9]) / 100)&0xFF); // 0,01%
+        floatValue = (float)(((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])) / 100; // 0,01%
+        u8_tValue = (uint8_t)floatValue;
         setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, u8_tValue);
         #ifdef SMARTSHUNT_DEBUG
           BSC_LOGI(TAG,"SOC =%u",u8_tValue);
         #endif
         break;
       case smartshunt_id_TIME_TO_GO:
-        u16_tValue = ((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9]); // 1 Minute
+        u16_tValue = ((uint16_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8) | SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8]); // 1 Minute
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_TO_GO, -1, u16_tValue);
         #ifdef SMARTSHUNT_DEBUG
           BSC_LOGI(TAG,"TTG =%u",u16_tValue);
@@ -302,10 +399,10 @@ static void parseMessage(uint8_t * t_message)
       case smartshunt_id_CYCLE:
         u32_tValue = (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       ); // 1 Cycle
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u32_tValue);
         #ifdef SMARTSHUNT_DEBUG
@@ -317,10 +414,10 @@ static void parseMessage(uint8_t * t_message)
                       (float)(
                       (int32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       )
                       ) /100 ); // 0,01V
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, floatValue);
@@ -333,10 +430,10 @@ static void parseMessage(uint8_t * t_message)
                       (float)(
                       (int32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       )
                       ) /100 ); // 0,01V
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, floatValue);
@@ -347,10 +444,10 @@ static void parseMessage(uint8_t * t_message)
       case smartshunt_id_TIME_SINCE_FULL:
         u32_tValue = (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       ); // 1 Seconds
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, u32_tValue);
         #ifdef SMARTSHUNT_DEBUG
@@ -360,10 +457,10 @@ static void parseMessage(uint8_t * t_message)
       case smartshunt_id_SOC_SYNC_COUNT:
         u32_tValue = (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       ); // 1 Seconds
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, u32_tValue);
         #ifdef SMARTSHUNT_DEBUG
@@ -373,10 +470,10 @@ static void parseMessage(uint8_t * t_message)
       case smartshunt_id_VOLT_MIN_COUNT:
         u32_tValue = (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       ); // 1 Seconds
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, u32_tValue);
         #ifdef SMARTSHUNT_DEBUG
@@ -386,10 +483,10 @@ static void parseMessage(uint8_t * t_message)
       case smartshunt_id_TOTAL_VOLT_MAX_COUNT:
         u32_tValue = (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       ); // 1 Seconds
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, u32_tValue);
         #ifdef SMARTSHUNT_DEBUG
@@ -401,10 +498,10 @@ static void parseMessage(uint8_t * t_message)
                       (float)(
                       (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       )
                       ) /100 ); // 0,01kWh
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, floatValue);
@@ -417,10 +514,10 @@ static void parseMessage(uint8_t * t_message)
                       (float)(
                       (uint32_t)
                       (
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[14], t_message[15]) << 24|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[12], t_message[13]) << 16|
-                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[10], t_message[11]) << 8 |
-                        SmartShuntconvertAsciiHexToByte(t_message[8], t_message[9])
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[13], t_message[14]) << 24|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[11], t_message[12]) << 16|
+                        (uint32_t)SmartShuntconvertAsciiHexToByte(t_message[9], t_message[10]) << 8 |
+                        SmartShuntconvertAsciiHexToByte(t_message[7], t_message[8])
                       )
                       ) /100 ); // 0,01kWh
         mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, floatValue);
@@ -465,13 +562,13 @@ void SmartShuntconvertByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length
 #define hex2byte(b) (ascii2hex(*(b)))*16+((ascii2hex(*(b+1))))
 
 static bool hexIsValid(const uint8_t* buffer, int size) {
-  uint8_t checksum=0x55-buffer[1];
-  for (int i=2; i<size; i+=2)
+  uint8_t checksum=0x55-ascii2hex(buffer[0]);
+  for (int i=1; i<size; i+=2)
   {
   checksum -= hex2byte(buffer+i);
   }
   #ifdef SMARTSHUNT_DEBUG
-    BSC_LOGI(TAG,"Checksum =%i",checksum);
+    BSC_LOGI(TAG,"Checksum =%u",checksum);
   #endif
   return (checksum==0);
 }
