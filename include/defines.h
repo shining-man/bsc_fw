@@ -31,6 +31,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
 //#define SYLCIN_DEBUG
+//#define SMARTSHUNT_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
@@ -53,6 +54,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define JK_BT_DEBUG
 //#define SEPLOS_DEBUG
 //#define SYLCIN_DEBUG
+#define SMARTSHUNT_DEBUG
 //#define NEEY_DEBUG
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
