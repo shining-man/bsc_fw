@@ -35,8 +35,18 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn=callback;
-    uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
+  uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
 
+getDataFromBms(smartshunt_id_SOC);
+if(recvAnswer(response))
+{
+  parseMessage(response);
+}
+else
+{
+  BSC_LOGE(TAG,"Checksum nicht OK - SOC");
+  ret = false;
+}
 
 getDataFromBms(smartshunt_id_main_voltage);
 if(recvAnswer(response))
@@ -46,6 +56,7 @@ if(recvAnswer(response))
 else
 {
   BSC_LOGE(TAG,"Checksum nicht OK - Main Voltage");
+  ret = false;
 }
 
 getDataFromBms(smartshunt_id_current);
@@ -56,6 +67,7 @@ if(recvAnswer(response))
 else
 {
   BSC_LOGE(TAG,"Checksum nicht OK - current");
+  ret = false;
 }
 
 getDataFromBms(smartshunt_id_power);
@@ -68,159 +80,8 @@ else
   BSC_LOGE(TAG,"Checksum nicht OK - power");
 }
 
-getDataFromBms(smartshunt_id_SOC);
-if(recvAnswer(response))
-{
-  parseMessage(response);
-}
-else
-{
-  BSC_LOGE(TAG,"Checksum nicht OK - SOC");
-}
 
-
-
-
-/*   bool bo_ret=true;
-  bool bo_break=false;
-  mDevData=devData;
-  mPort = port;
-  u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
-
-  uint8_t inbyte=0;
-  uint8_t inbyteOrg=0;
-  uint16_t	mChecksum;
-  uint32_t u32_lStartTime=millis();
-  rxValues=0;
-
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
-
-  uint16_t byteReadCntGes=0;
-  uint16_t byteReadCnt=0;
-  for(;;)
-  {
-    //Timeout
-    if((millis()-u32_lStartTime)>300)
-    {
-      BSC_LOGI(TAG,"Timeout: Serial=%i", u8_mDevNr);
-      bo_ret = false;
-      bo_break = true;
-    }
-
-    if(port->available())
-    {
-      byteReadCntGes++;
-			inbyteOrg = inbyte = port->read();
-
-      if((inbyte == ':') && (mState != CHECKSUM)) mState = RECORD_HEX;
-      if(mState != RECORD_HEX) mChecksum = ((mChecksum+inbyte)&255);
-      if(mState != RECORD_HEX) byteReadCnt++;
-      inbyte = toupper(inbyte);
-
-      switch(mState)
-      {
-        case IDLE:
-          // wait for \n of the start of an record
-          switch(inbyte)
-          {
-            case '\n': //0xa
-              mState = RECORD_BEGIN;
-              break;
-            case '\r': //0xd //Frame start
-              mChecksum = inbyteOrg;
-              byteReadCnt=1;
-            default:
-              break;
-          }
-          break;
-        case RECORD_BEGIN:
-          mTextPointer = mName;
-          *mTextPointer++ = inbyte;
-          mState = RECORD_NAME;
-          break;
-        case RECORD_NAME:
-          // The record name is being received, terminated by a \t
-          switch(inbyte)
-          {
-            case '\t': //0x9
-              // the Checksum record indicates a EOR
-              if(mTextPointer < (mName + sizeof(mName)))
-              {
-                *mTextPointer = 0;
-                if (strcmp(mName, checksumTagName) == 0) {
-                  mState = CHECKSUM;
-                  break;
-                }
-              }
-              mTextPointer = mValue; // Reset value pointer
-              mState = RECORD_VALUE;
-              break;
-            default:
-              // add byte to name, but do no overflow
-              if(mTextPointer < (mName + sizeof(mName))) *mTextPointer++ = inbyte;
-              break;
-          }
-          break;
-        case RECORD_VALUE:
-          // The record value is being received.  The \r indicates a new record.
-          switch(inbyte)
-          {
-            case '\n':
-              // forward record, only if it could be stored completely
-              if(mTextPointer < (mValue + sizeof(mValue)))
-              {
-                *mTextPointer = 0; // make zero ended
-                //newLabelRecv(mName, mValue);
-              }
-              mState = RECORD_BEGIN;
-              break;
-            case '\r': // Skip
-              break;
-            default:
-              // add byte to value, but do no overflow
-              if(mTextPointer < (mValue + sizeof(mValue))) *mTextPointer++ = inbyte;
-              break;
-          }
-          break;
-        case CHECKSUM:
-        {
-          if(mChecksum==0)
-          {
-            if(rxValues==RX_VAL_OK)
-            {
-              frameEnd();
-              bo_break=true;
-            }
-          }
-          else
-          {
-            errCntSmartShunt++;
-            BSC_LOGE(TAG,"Invalid frame (%i)",mChecksum);
-            bo_ret=false;
-            bo_break=true;
-          }
-          mChecksum = 0;
-          mState = IDLE;
-          break;
-        }
-        case RECORD_HEX:
-          if(hexRx(inbyte))
-          {
-            mChecksum = 0;
-            mState = IDLE;
-          }
-          break;
-      }
-    }
-    else
-    {
-      //When not a new char available
-      vTaskDelay(pdMS_TO_TICKS(1));
-    }
-
-    if(bo_break) break;
-  }
+/*
 
   //Buffer leeren
   uint16_t byteDelCnt=0;
@@ -233,15 +94,11 @@ else
     }
     else break;
   }
-
-
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  //BSC_LOGI(TAG,"ret=%d, rxVal=%i, delCnt=%i, readCntGes=%i, errCnt=%i",bo_ret, rxValues, byteDelCnt, byteReadCntGes, errCntSmartShunt);
-  return bo_ret;
-
 */
 
-return false;
+  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+
+return ret;
 
 }
 
