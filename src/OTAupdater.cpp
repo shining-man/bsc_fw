@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <Update.h>
 #include "log.h"
+#include "defines.h"
 
 static const char *TAG = "OTA";
 
@@ -198,26 +199,26 @@ void OTAupdater::setHttpRoutes(WebServer *server, const char *path, bool enUpdat
 
 		if(upload.status == UPLOAD_FILE_START)
 		{
-			ESP_LOGI(TAG,"Firmware update initiated: %s",upload.filename.c_str());
+			BSC_LOGI(TAG,"Firmware update initiated: %s",upload.filename.c_str());
 			uint32_t sketchSize = (ESP.getFreeSketchSpace()-0x1000) & 0xFFFFF000;
 
 			if(!Update.begin(sketchSize))
 			{
-				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
+				BSC_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 		}
 		else if(upload.status == UPLOAD_FILE_WRITE)
 		{
 			if(Update.write(upload.buf, upload.currentSize) != upload.currentSize) // if error
 			{
-				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
+				BSC_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 
 			// Print info all 100k
 			static uint32_t nextInfoSize = CHUNK_SIZE;
 			if(upload.totalSize >= nextInfoSize)
 			{
-				ESP_LOGI(TAG,"%d k ",nextInfoSize/1024);
+				BSC_LOGI(TAG,"%d k ",nextInfoSize/1024);
 				nextInfoSize += CHUNK_SIZE;
 			}
 		}
@@ -225,11 +226,11 @@ void OTAupdater::setHttpRoutes(WebServer *server, const char *path, bool enUpdat
 		{
 			if(Update.end(true))
 			{
-				ESP_LOGI(TAG,"Firmware update successful: %u bytes;\nRebooting...", upload.totalSize);
+				BSC_LOGI(TAG,"Firmware update successful: %u bytes;\nRebooting...", upload.totalSize);
 			}
 			else
 			{
-				ESP_LOGI(TAG,"Firmware update:", Update.errorString());
+				BSC_LOGI(TAG,"Firmware update:", Update.errorString());
 			}
 		}
 	});

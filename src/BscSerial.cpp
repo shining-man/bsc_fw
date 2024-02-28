@@ -330,6 +330,13 @@ void BscSerial::cyclicRun()
       }
     }
 
+    //Abbruch, wenn auf Serial 3 oder höher etwas parametriert ist, aber keine serial extension angeschlossen ist
+    if(i>2 && !isSerialExtEnabled() && serialDeviceData[i].readBms!=0)
+    {
+      BSC_LOGE(TAG,"No serial extension but device ist set! serial=%i",i);
+      continue;
+    }
+
     bool    bo_lBmsReadOk=false;
     uint8_t u8_lReason=1;
     uint8_t u8_serDeviceNr=i;

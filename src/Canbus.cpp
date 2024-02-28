@@ -174,6 +174,9 @@ void loadCanSettings()
 
   u8_mBmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
 
+  // In den zusätzlichen Datenquellen die Masterquelle entfernen
+  if(u8_mBmsDatasource>=BT_DEVICES_COUNT) bitClear(u8_mBmsDatasourceAdd,u8_mBmsDatasource-BT_DEVICES_COUNT);
+
   BSC_LOGI(TAG,"loadCanSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_mBmsDatasource,bmsConnectFilter, u8_mBmsDatasourceAdd);
 }
 
