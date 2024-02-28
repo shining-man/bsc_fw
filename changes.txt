@@ -1,3 +1,8 @@
+v0.5.12
+- Display of groups in WebUI changed
+- Alarm/trigger name changed in the log
+- Charging voltage range changed
+
 v0.5.11:
 - New Feature: Autobalance
 - New Feature: Dynamic charge voltage offset
