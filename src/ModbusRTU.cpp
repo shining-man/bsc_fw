@@ -1,0 +1,194 @@
+// Copyright (c) 2024 Tobias Himmler
+//
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+#include "ModbusRTU.hpp"
+#include <Arduino.h>
+#include "defines.h"
+#include "crc.h"
+
+namespace modbusrtu
+{
+
+static const char *TAG = "MODBUS";
+
+ModbusRTU::ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t devNr)
+{
+  mStartRegAdr=0;
+  retDataLen=0;
+
+  mPort = port;
+  mCallback = callback;
+  mDevNr = devNr;
+}
+
+ModbusRTU::~ModbusRTU()
+{
+  ;
+}
+
+
+/*
+ * Anfrage:
+ * ---------------------------
+ * Address               ADDR  (1 Byte)
+ * Command               CMD   (1 Byte)
+ * Beginning register address  (2 Byte)
+ * Register number n           (2 Byte)
+ * CRC                         (2 Byte)
+*/
+bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData)
+{
+  mStartRegAdr=startRegister;
+  mRetData=retData;
+
+  // send msg
+  buildSendMsg(addr, cmd, startRegister, len);
+
+  // wait
+  vTaskDelay(25/portTICK_PERIOD_MS);
+
+  // read data
+  return readSerialData();
+}
+
+
+void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
+{
+  uint8_t lSendData[20];
+
+  lSendData[0]=addr;                        // ADDR
+  lSendData[1]=(uint8_t)cmd;                // CMD
+  lSendData[2]=((startRegister>>8)&0xff);   //
+  lSendData[3]=(startRegister&0xff);        //
+  lSendData[4]=((len >> 8)&0xff);           //
+  lSendData[5]=(len&0xff);                  //
+
+  // calc CRC
+  uint16_t u16_lCrc = crc16(lSendData, 6);
+  lSendData[6]=(u16_lCrc&0xff);        // CRC
+  lSendData[7]=((u16_lCrc>>8)&0xff);   // CRC
+
+  // RX-Buffer leeren
+  for(unsigned long clearRxBufTime = millis(); millis()-clearRxBufTime<100;)
+  {
+    if(mPort->available()) mPort->read();
+    else break;
+  }
+
+  // send msg
+  mCallback(mDevNr,serialRxTx_TxEn);
+  usleep(20);
+  mPort->write(lSendData, 8);
+  mPort->flush();
+  mCallback(mDevNr,serialRxTx_RxEn);
+}
+
+
+bool ModbusRTU::readSerialData()
+{
+  modbusRxState rxState = modbusRxState::WAIT_START;
+  uint8_t address,functionCode;
+  uint16_t lCrc;
+  uint32_t u32_lStartTime = millis();
+
+  retDataLen=0;
+
+  for(;;)
+  {
+    //Timeout
+    if((millis()-u32_lStartTime)>200)
+    {
+      BSC_LOGE(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mDevNr, retDataLen, mPort->available());
+      return false;
+    }
+
+    if(rxState==modbusRxState::WAIT_START)
+    {
+      // Mindestens 4 Bytes müssen verfügbar sein (Adresse, Funktionscode, Längenbytes, ..., CRC)
+      if (mPort->available() >= 4)
+      {
+        // Lesen der Daten vom Modbus-Gerät
+        address = mPort->read();
+        lCrc = crc16(&address, 1);
+
+        // Function code
+        functionCode = mPort->read();
+        lCrc = crc16(lCrc, &functionCode, 1);
+
+        // Länge des Datenfelds
+        retDataLen = mPort->read();
+        lCrc = crc16(lCrc, &retDataLen, 1);
+
+        //BSC_LOGI(TAG,"adr=%i, fCode=%i, len=%i",address,functionCode,retDataLen);
+        rxState=modbusRxState::RECV_DATA;
+      }
+      else vTaskDelay(pdMS_TO_TICKS(25));
+    }
+    else if(rxState==modbusRxState::RECV_DATA)
+    {
+      // Überprüfe, ob alle Daten empfangen wurden
+      if(mPort->available() >= retDataLen+2)
+      {
+
+        for(int i=0; i < retDataLen; i++) mRetData[i]=mPort->read();
+
+        // CRC (2 Bytes)
+        uint16_t u16_crcSoll = mPort->read() | (mPort->read()<<8) ;
+        lCrc = crc16(lCrc, mRetData, retDataLen);
+
+        if(u16_crcSoll==lCrc) return true;
+        else
+        {
+          BSC_LOGE(TAG,"CRC wrong: soll=%i, ist=%i",u16_crcSoll,lCrc);
+          return false;
+        }
+      }
+      else vTaskDelay(pdMS_TO_TICKS(25));
+    }
+  }
+
+  return false;
+}
+
+
+uint8_t ModbusRTU::getU8Value(uint16_t address)
+{
+  if(mStartRegAdr>address) return 0;
+
+  uint16_t sb = mStartRegAdr-address;
+  if(sb>retDataLen) return 0;
+
+  return mRetData[sb];
+}
+
+bool ModbusRTU::getBitValue(uint16_t address, uint8_t b)
+{
+  if(mStartRegAdr>address) return 0;
+
+  return isBitSet(getU8Value(address),b);
+}
+
+uint16_t ModbusRTU::getU16Value(uint16_t address)
+{
+  if(mStartRegAdr>address) return 0;
+
+  uint16_t sb = (mStartRegAdr-address)*2;
+  if(sb>retDataLen) return 0;
+
+  return (mRetData[sb]<<8) | mRetData[sb+1];
+}
+
+int16_t ModbusRTU::getI16Value(uint16_t address)
+{
+  if(mStartRegAdr>address) return 0;
+
+  uint16_t sb = (mStartRegAdr-address)*2;
+  if(sb>retDataLen) return 0;
+
+  return (int16_t)((mRetData[sb]<<8) | mRetData[sb+1]);
+}
+
+
+} // namespace modbusrtu
