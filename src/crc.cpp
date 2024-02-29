@@ -62,10 +62,10 @@ static const uint32_t crc32Table[0x100] = {
 };
 
 
-uint16_t crc16 (uint8_t *nData, uint16_t wLength) {
-
+uint16_t crc16(uint16_t wCRCWord, uint8_t *nData, uint16_t wLength)
+{
 	uint8_t nTemp;
-	uint16_t wCRCWord = 0xFFFF;
+	//uint16_t wCRCWord = 0xFFFF;
 
 	while (wLength--)
 	{
@@ -75,6 +75,12 @@ uint16_t crc16 (uint8_t *nData, uint16_t wLength) {
 	}
 
 	return wCRCWord;
+}
+
+
+uint16_t crc16(uint8_t *nData, uint16_t wLength)
+{
+	return crc16(0xFFFF, nData, wLength);
 }
 
 

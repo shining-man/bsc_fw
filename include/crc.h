@@ -9,6 +9,8 @@
 #include <stdint.h>
 
 uint16_t crc16 (uint8_t *nData, uint16_t wLength);
+uint16_t crc16 (uint16_t crcIn, uint8_t *nData, uint16_t wLength);
+
 uint32_t calcCrc32(uint8_t* pData, uint32_t DataLength);
 uint32_t calcCrc32(uint32_t crcIn, uint8_t* pData, uint32_t DataLength);
 
