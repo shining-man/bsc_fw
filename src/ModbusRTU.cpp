@@ -13,14 +13,14 @@ namespace modbusrtu
 
 static const char *TAG = "MODBUS";
 
-ModbusRTU::ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t devNr)
+ModbusRTU::ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t serialPortNr)
 {
   mStartRegAdr=0;
   retDataLen=0;
 
   mPort = port;
   mCallback = callback;
-  mDevNr = devNr;
+  mSerialPortNr = serialPortNr;
 }
 
 ModbusRTU::~ModbusRTU()
@@ -78,11 +78,11 @@ void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, ui
   }
 
   // send msg
-  mCallback(mDevNr,serialRxTx_TxEn);
+  mCallback(mSerialPortNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(lSendData, 8);
   mPort->flush();
-  mCallback(mDevNr,serialRxTx_RxEn);
+  mCallback(mSerialPortNr,serialRxTx_RxEn);
 }
 
 
@@ -100,7 +100,7 @@ bool ModbusRTU::readSerialData()
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mDevNr, retDataLen, mPort->available());
+      BSC_LOGE(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mSerialPortNr, retDataLen, mPort->available());
       return false;
     }
 
@@ -157,7 +157,7 @@ uint8_t ModbusRTU::getU8Value(uint16_t address)
 {
   if(mStartRegAdr>address) return 0;
 
-  uint16_t sb = mStartRegAdr-address;
+  uint16_t sb = address-mStartRegAdr;
   if(sb>retDataLen) return 0;
 
   return mRetData[sb];
@@ -174,7 +174,7 @@ uint16_t ModbusRTU::getU16Value(uint16_t address)
 {
   if(mStartRegAdr>address) return 0;
 
-  uint16_t sb = (mStartRegAdr-address)*2;
+  uint16_t sb = (address-mStartRegAdr)*2;
   if(sb>retDataLen) return 0;
 
   return (mRetData[sb]<<8) | mRetData[sb+1];
@@ -184,7 +184,7 @@ int16_t ModbusRTU::getI16Value(uint16_t address)
 {
   if(mStartRegAdr>address) return 0;
 
-  uint16_t sb = (mStartRegAdr-address)*2;
+  uint16_t sb = (address-mStartRegAdr)*2;
   if(sb>retDataLen) return 0;
 
   return (int16_t)((mRetData[sb]<<8) | mRetData[sb+1]);

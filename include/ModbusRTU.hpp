@@ -37,7 +37,7 @@ namespace modbusrtu
     private:
         Stream *mPort;
         void (*mCallback)(uint8_t, uint8_t);
-        uint8_t mDevNr;
+        uint8_t mSerialPortNr;
 
         uint16_t mStartRegAdr;
         uint8_t *mRetData;
