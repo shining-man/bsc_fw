@@ -1057,7 +1057,7 @@ void sendCanMsg_351()
       #endif
 
       i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(i16_lMaxChargeCurrent);
-      i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, getBmsChargePercentage(u8_mBmsDatasource));
+      i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, (uint8_t)inverterData.inverterSoc);
       i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(i16_lMaxChargeCurrent);
       //i16_lMaxChargeCurrentList[3] = calcChargecurrent_MaxCurrentPerPackToHigh(i16_lMaxChargeCurrent); //ToDO: Ein/Aus
       i16_lMaxChargeCurrentList[3] = calcChargeCurrentCutOff(i16_lMaxChargeCurrent);
