@@ -24,6 +24,8 @@
 #include "devices/GobelBms.h"
 #include "devices/SmartShunt.h"
 #include "devices/GobelBms_PC200.h"
+#include "devices/SeplosBmsV3.h"
+#include "devices/NeeySerial.h"
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
@@ -100,12 +102,14 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
   if(u8_devNr==0) // Hw Serial 1
   {
     Serial.end();
+    //Serial.setRxBufferSize(300);
     Serial.begin(baudrate,SERIAL_8N1,SERIAL1_PIN_RX,SERIAL1_PIN_TX);
         serialDeviceData[u8_devNr].stream_mPort=&Serial;
   }
   else if(u8_devNr==1) // Hw Serial 2
   {
     Serial1.end();
+    //Serial1.setRxBufferSize(300);
     Serial1.begin(baudrate,SERIAL_8N1,SERIAL2_PIN_RX,SERIAL2_PIN_TX);
         serialDeviceData[u8_devNr].stream_mPort=&Serial1;
   }
@@ -118,6 +122,7 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
   else if(u8_devNr>2 && isSerialExtEnabled()) // Hw Serial 0
   {
     Serial2.end();
+    //Serial2.setRxBufferSize(300);
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
         serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
@@ -163,7 +168,7 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr)
 
 void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 {
-  serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
+  serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = (uint8_t)WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
 
   //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
 
@@ -235,6 +240,18 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       BSC_LOGI(TAG,"setReadBmsFunktion Gobel PC200");
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &GobelBmsPC200_readBmsData;
+      break;
+
+    case ID_SERIAL_DEVICE_SEPLOSBMS_V3:
+      BSC_LOGI(TAG,"setReadBmsFunktion Seplos V3");
+      setSerialBaudrate(u8_devNr, 19200);
+      serialDeviceData[u8_devNr].readBms = &SeplosBmsV3_readBmsData;
+      break;
+
+    case ID_SERIAL_DEVICE_NEEY_4A:
+      BSC_LOGI(TAG,"setReadBmsFunktion NEEY 4A Serial");
+      setSerialBaudrate(u8_devNr, 115200);
+      serialDeviceData[u8_devNr].readBms = &NeeySerial_readBmsData;
       break;
 
     default:
@@ -428,11 +445,15 @@ void BscSerial::cyclicRun()
     }
     else
     {
+      #ifndef UTEST_RESTAPI
       auto GetReasonStr = [u8_lReason]()
       {
         return (1==u8_lReason) ? "Checksum wrong" : "Filter";
       };
       BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
+      #else
+      setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      #endif
     }
 
 
