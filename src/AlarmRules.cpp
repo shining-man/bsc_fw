@@ -883,7 +883,7 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm)
 {
   for(uint8_t d=0;d<BT_DEVICES_COUNT;d++)
   {
-    uint8_t u8_lTriggerNr = WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,DT_ID_PARAM_NEEY_BALANCER_ON);
+    uint8_t u8_lTriggerNr = (uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,0,DT_ID_PARAM_NEEY_BALANCER_ON);
     if(u8_AlarmNr==u8_lTriggerNr) BleHandler::setBalancerState(d,bo_Alarm);
   }
 }
