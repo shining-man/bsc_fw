@@ -214,7 +214,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   }
   getDefaultValuesFromNewKeys(parameterFile, 8);
 
-  if(bo_hasNewKeys) 
+  if(bo_hasNewKeys)
   {
     writeConfig();
     bo_hasNewKeys = false;
@@ -574,15 +574,15 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
       case HTML_INPUTFLOAT_1:
-        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),1);
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),1);
         else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),1);
         break;
       case HTML_INPUTFLOAT_2:
-        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),2);
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),2);
         else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),2);
         break;
       case HTML_INPUTFLOAT_3:
-        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getIntFlash(u64_jsonName, u8_dataType),3);
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),3);
         else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),3);
         break;
       case HTML_INPUTNUMBER:
@@ -1346,7 +1346,7 @@ bool WebSettings::getBool(uint16_t name, uint8_t groupNr)
 
 
 //Load Data from Flash
-int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
+uint32_t WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
 {
   int ret=0;
   uint16_t u32_name = getParmId(name, groupNr);
@@ -1373,7 +1373,7 @@ int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType
   }
   return ret;
 }
-int WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
+uint32_t WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
 {
   int ret=0;
   switch(u8_dataType)
@@ -1812,7 +1812,7 @@ void WebSettings::handleGetValues(WebServer *server)
         if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBoolFlash((uint16_t)(argName&0xFFFF)));
         else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloatFlash((uint16_t)(argName&0xFFFF)));
         else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getStringFlash((uint16_t)(argName&0xFFFF)));
-        else addJsonElem(data, argName, getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
+        else addJsonElem(data, argName, (int)getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
       }
     }
     else
