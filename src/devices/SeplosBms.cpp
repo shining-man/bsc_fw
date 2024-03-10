@@ -163,7 +163,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
+
+      #ifndef UTEST_RESTAPI
       BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      #endif
       #ifdef SEPLOS_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)

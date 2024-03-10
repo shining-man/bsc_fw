@@ -23,6 +23,7 @@
 #define CONFIG_BTDM_CTRL_MODEM_SLEEP_MODE_ORIG 0    //1->0  shiningman
 */
 
+//#include <esp_task_wdt.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -924,7 +925,7 @@ void handle_paramSerial()
     changeAlarmSettings();
 
     bmsFilterData_s* bmsFilterData = getBmsFilterData();
-    bmsFilterData->u8_mFilterBmsCellVoltagePercent = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
+    bmsFilterData->u8_mFilterBmsCellVoltagePercent = (uint8_t)WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
   }
 }
 
@@ -1036,6 +1037,11 @@ void handle_getDashboardData()
   //12. Hostname
   tmp += "|";
   tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+
+  //13. BSC SN
+  tmp += "|SN";
+  tmp += getSN();
+  tmp += "|X";
 
   server.send(200, "text/html", tmp.c_str());
 }
@@ -1212,6 +1218,9 @@ void setup()
   else initDio(true);
   BSC_LOGI(TAG, "HW: %i", getHwVersion());
 
+  //esp_task_wdt_init(60,false);
+  //esp_task_wdt_add(NULL);
+
   bmsDataInit();
 
   //init WebSettings
@@ -1263,9 +1272,17 @@ void setup()
     BSC_LOGI(TAG, "MDNS responder gestartet");
   }
 
+  //
+  bool bo_isSupporter = false;
+  #ifdef INSIDER_V1
+  bo_isSupporter=initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
+  #endif
+  String bscSn = getSN();
+  ESP_LOGI(TAG,"BSC SN: %s, %i",bscSn.c_str());
+
   //ini WebPages
   #ifdef INSIDER_V1
-  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
+  if(bo_isSupporter)
   {
     server.on("/old",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
@@ -1354,12 +1371,6 @@ void setup()
     ESP.restart();
   });
 
-  #ifdef INSIDER_V1
-  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
-  {
-    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
-  }
-  #endif
 
   //Erstelle Tasks
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
