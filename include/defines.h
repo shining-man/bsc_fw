@@ -7,8 +7,9 @@
 #define DEFINES_H
 
 #include "params_dt.h"
+#include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.5.12"
+#define BSC_SW_VERSION      "V0.5.12_T1"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -387,6 +388,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_BT_DEVICE_NEEY4A         1
 #define ID_BT_DEVICE_JKBMS_JK02     2
 #define ID_BT_DEVICE_JKBMS_JK02_32S 3
+#define ID_BT_DEVICE_NEEY8A         4
 
 //Auswahl Serial Geräte
 #define ID_SERIAL_DEVICE_NB         0
@@ -402,6 +404,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
 #define ID_SERIAL_DEVICE_GOBEL_PC200  11
 #define ID_SERIAL_DEVICE_SEPLOSBMS_V3 12
+#define ID_SERIAL_DEVICE_NEEY_4A      13
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
@@ -635,7 +638,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 #define BSC_LOGV ESP_LOGV
 */
 
-#include "bscTime.h"
+
 #define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGW( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_WARN,    tag, format, ##__VA_ARGS__)
 #define BSC_LOGI( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_INFO,    tag, format, ##__VA_ARGS__)

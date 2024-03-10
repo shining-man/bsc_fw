@@ -66,6 +66,7 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
         "<tr><td>0&nbsp;</td><td><span id='cardBms0V'></span>V</td><td><span id='cardBms0A'></span>A</td><td><span id='cardBms0P'></span>%</td></tr>"
         "<tr><td>1&nbsp;</td><td><span id='cardBms1V'></span>V</td><td><span id='cardBms1A'></span>A</td><td><span id='cardBms1P'></span>%</td></tr>"
         "<tr><td>2&nbsp;</td><td><span id='cardBms2V'></span>V</td><td><span id='cardBms2A'></span>A</td><td><span id='cardBms2P'></span>%</td></tr></table></center></p></div>"
+      "<div class='cardDash'><p>BSC SN<br><span id='card_bscsn'></span></p></div>"
       "<div class='cardBtn' onclick=\"location.href='./livedata/'\"><p>Livedaten</p></div>"
       "<div class='cardBtn' onclick=\"location.href='./settings/'\"><p>Einstellungen</p></div>"
       "<div class='cardBtn' onclick=\"location.href='./log'\"><p>Log</p></div>"
@@ -101,6 +102,10 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
       "document.getElementById('card_bt2').innerHTML = values[6];"
       "document.getElementById('meter_wifiRssi').value = values[7];" // WiFi RSSI
       "document.getElementById('card_boottime').innerHTML = '<p>Boot Time<br>' + values[8] + '</p>';"
+      "var bscsn = document.getElementById('card_bscsn').innerHTML;"
+      "if(bscsn != values[13]){"
+      "document.getElementById('card_bscsn').innerHTML = values[13];" // BCS serialnumber
+      "}"
 
       "document.getElementById('cardBms0V').innerHTML = values[9].split(';')[0];"
       "document.getElementById('cardBms0A').innerHTML = values[9].split(';')[1];"
