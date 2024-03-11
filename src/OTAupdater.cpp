@@ -138,6 +138,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
   	  __fwVersion=__data.name.split("_")[0].toLowerCase();
       __published_at=__data.published_at.replace("T"," ").replace("Z","");
       __description=__data.body.replaceAll("\r\n", "<br>");
+      __description=__description.replaceAll("\n", "<br>");
 
 	  document.getElementById('gitFwVersion').innerHTML =__fwVersion;
 	  document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
