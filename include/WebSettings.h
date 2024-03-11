@@ -131,11 +131,11 @@ private:
   String   getJsonHelp(const char *parameter, uint8_t idx, uint32_t startPos);
   uint8_t  getJsonType(const char *parameter, uint8_t idx, uint32_t startPos);
   String   getJsonDefault(const char *parameter, uint8_t idx, uint32_t startPos);
-  uint8_t  getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint8_t  getJsonArrayCnt(const char *parameter, String key, uint8_t idx, uint32_t startPos);
   uint32_t getJsonOptionsMin(const char *parameter, uint8_t idx, uint32_t startPos);
   uint32_t getJsonOptionsMax(const char *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonArrayValues(const char *parameter, String key, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonArrayLabels(const char *parameter, String key, uint8_t idx, uint32_t startPos);
   String   getJsonArrValue(const char *parameter, String str_key1, String str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos);
 
   void createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
