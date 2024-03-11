@@ -48,6 +48,10 @@ static Json json;
 
 static Preferences prefs;
 
+const char* CONST_options PROGMEM = "options";
+const char* CONST_depVal PROGMEM = "depVal";
+
+
 //HTML templates
 const char HTML_START[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
@@ -437,7 +441,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
     uint32_t jsonName, jsonNameBase;
 
     type = getJsonType(parameter, a, jsonStartPos);
-    optionCnt = getJsonOptionsCnt(parameter, a, jsonStartPos);
+    optionCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
     jsonSize = getJsonSize(parameter, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
 
@@ -514,13 +518,20 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
     {
       case HTML_OPTIONGROUP:
       case HTML_OPTIONGROUP_COLLAPSIBLE:
+      {
         //bo_lIsGroup=true;
         st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
         u8_jsonLabelOffset = getJson_Key(parameter, "label_offset", a, jsonStartPos, "0").toInt();
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
         u16_lDepId = (uint16_t)getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
-        u8_lDepVal = (uint8_t)getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
         u8_lDepDt = (uint8_t)getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
+
+        //u8_lDepVal = (uint8_t)getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
+
+        uint8_t nrOfDepts = getJsonArrayCnt(parameter, CONST_depVal, a, jsonStartPos);
+        BSC_LOGI(TAG,"nrOfDepts=%i", nrOfDepts);
+        std::vector<String> deptsValues = getJsonArrayValues(parameter, CONST_depVal, a, jsonStartPos);
+
         if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
           if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE) sprintf(_buf,HTML_GROUP_START_DETAILS,jsonLabel.c_str());
@@ -531,7 +542,15 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         {
           u8_mAktOptionGroupNr=g;
           //BSC_LOGI(TAG,"u16_lDepId=%i, u8_lDepVal=%i, u8_lDepDt=%i, g=%i, val=%i",u16_lDepId,u8_lDepVal,u8_lDepDt,g,getInt(u16_lDepId,g,u8_lDepDt));
-          if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
+          //if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
+          bool depOk = false;
+          for(uint8_t nd = 0 ; nd<nrOfDepts; nd++)  //depence
+          {
+            uint8_t depVal = deptsValues.at(nd).toInt();
+            if(getInt(u16_lDepId,g,u8_lDepDt)==depVal) depOk=true;
+            BSC_LOGI(TAG,"dpt nr=%i, u8_lDepVal=%i, depOk=%d", nd, u8_lDepVal, depOk);
+          }
+          if(depOk==false) continue;
           //BSC_LOGI(TAG,"DEP OK");
 
           sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
@@ -552,6 +571,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         }
         u8_mAktOptionGroupNr = 0;
         break;
+      }
       case HTML_INPUTTEXT:
         createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"text",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
@@ -596,14 +616,14 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         break;
       case HTML_INPUTSELECT:
         createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
-        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-        mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
-        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        optionsCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
+        mOptions = getJsonArrayValues(parameter, CONST_options, a, jsonStartPos);
+        mOptionLabels = getJsonArrayLabels(parameter, CONST_options, a, jsonStartPos);
         for (uint8_t j = 0 ; j<optionsCnt; j++)
         {
           sendContentHtml(server,_buf,false);
           String str_lNewLabel = mOptionLabels[j];
-          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, CONST_options, "d", j, a, jsonStartPos));
           if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
           createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u32_jsonName,bo_loadFromFlash,u8_dataType));
         }
@@ -615,13 +635,13 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       case HTML_INPUTMULTICHECK:
       case HTML_INPUTMULTICHECK_COLLAPSIBLE:
         createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
-        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        optionsCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
+        mOptionLabels = getJsonArrayLabels(parameter, CONST_options, a, jsonStartPos);
         for (uint8_t j = 0 ; j<optionsCnt; j++)
         {
           sendContentHtml(server,_buf,false);
           String str_lNewLabel = mOptionLabels[j];
-          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, CONST_options, "d", j, a, jsonStartPos));
           if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
           createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,(uint32_t)getInt(u32_jsonName,u8_dataType),u8_dataType);
         }
@@ -672,7 +692,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
     uint16_t jsonName, jsonNameBase;
 
     type = getJsonType(parameter, a, jsonStartPos);
-    optionCnt = getJsonOptionsCnt(parameter, a, jsonStartPos);
+    optionCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
     jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
 
@@ -1010,13 +1030,13 @@ String WebSettings::getJsonDefault(const char *parameter, uint8_t idx, uint32_t 
   return "0";
 }
 
-std::vector<String> WebSettings::getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonArrayValues(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> options;
   String retStr = "";
   uint32_t retArrayStart = 0;
   uint32_t retArrayStart2 = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key, startPos, retStr, retArrayStart);
 
   if(ret==true)
   {
@@ -1031,13 +1051,13 @@ std::vector<String> WebSettings::getJsonOptionValues(const char *parameter, uint
   return options;
 }
 
-std::vector<String> WebSettings::getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonArrayLabels(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> labels;
   String retStr = "";
   uint32_t retArrayStart = 0;
   uint32_t retArrayStart2 = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key , startPos, retStr, retArrayStart);
 
   if(ret==true)
   {
@@ -1073,11 +1093,11 @@ String WebSettings::getJsonArrValue(const char *parameter, String str_key1, Stri
   return retStr;
 }
 
-uint8_t WebSettings::getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonArrayCnt(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key, startPos, retStr, retArrayStart);
   if(ret==true){return json.getArraySize(parameter, retArrayStart);}
   return 0;
 }

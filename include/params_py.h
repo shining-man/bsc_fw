@@ -1625,8 +1625,9 @@ const String paramDeviceNeeyBalancer PROGMEM = "{'page':["
     "'groupsize':7,"
     "'type':"+String(HTML_OPTIONGROUP)+","
     "'depId':"+String(ID_PARAM_SS_BTDEV)+","    //dependence
-    "'depVal':"+String(ID_BT_DEVICE_NEEY4A)+"," //dependence
-//    "'depVal':['"+String(ID_BT_DEVICE_NEEY4A)+"','"+String(ID_BT_DEVICE_NEEY8A)+"'],"
+    "'depVal':["
+      "{'v':'"+String(ID_BT_DEVICE_NEEY4A)+"'},"
+      "{'v':'"+String(ID_BT_DEVICE_NEEY8A)+"'}],"
     "'depDt':1,"  //dependence   DT_ID_PARAM_SS_BTDEV
     "'group':["
     "{"
