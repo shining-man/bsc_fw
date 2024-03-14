@@ -1039,9 +1039,9 @@ void handle_getDashboardData()
   tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
 
   //13. BSC SN
-  tmp += "|SN";
+  tmp += "|S";
   tmp += getSN();
-  tmp += "|X";
+  tmp += "Z";
 
   server.send(200, "text/html", tmp.c_str());
 }
