@@ -525,11 +525,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
         u16_lDepId = (uint16_t)getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
         u8_lDepDt = (uint8_t)getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
-
-        //u8_lDepVal = (uint8_t)getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
-
         uint8_t nrOfDepts = getJsonArrayCnt(parameter, CONST_depVal, a, jsonStartPos);
-        BSC_LOGI(TAG,"nrOfDepts=%i", nrOfDepts);
         std::vector<String> deptsValues = getJsonArrayValues(parameter, CONST_depVal, a, jsonStartPos);
 
         if(optionGroupSize>1 && !jsonLabel.equals(""))
@@ -541,17 +537,16 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         for(g=0; g<optionGroupSize; g++)
         {
           u8_mAktOptionGroupNr=g;
-          //BSC_LOGI(TAG,"u16_lDepId=%i, u8_lDepVal=%i, u8_lDepDt=%i, g=%i, val=%i",u16_lDepId,u8_lDepVal,u8_lDepDt,g,getInt(u16_lDepId,g,u8_lDepDt));
-          //if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
-          bool depOk = false;
-          for(uint8_t nd = 0 ; nd<nrOfDepts; nd++)  //depence
+          if(nrOfDepts>0)
           {
-            uint8_t depVal = deptsValues.at(nd).toInt();
-            if(getInt(u16_lDepId,g,u8_lDepDt)==depVal) depOk=true;
-            BSC_LOGI(TAG,"dpt nr=%i, u8_lDepVal=%i, depOk=%d", nd, u8_lDepVal, depOk);
+            bool depOk = false;
+            for(uint8_t nd = 0 ; nd<nrOfDepts; nd++)  //depence
+            {
+              uint8_t depVal = deptsValues.at(nd).toInt();
+              if(getInt(u16_lDepId,g,u8_lDepDt)==depVal) depOk=true;
+            }
+            if(depOk==false) continue;
           }
-          if(depOk==false) continue;
-          //BSC_LOGI(TAG,"DEP OK");
 
           sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
           sendContentHtml(server,_buf,false);
