@@ -90,6 +90,8 @@ Interface | RX | TX
 **Serial 2**   | GPIO 35   | GPIO 33
 **CAN**   | GPIO 5   | GPIO 4
 
+Further description can be found [here](https://github.com/shining-man/bsc_fw/wiki/BSC%E2%80%90Test-ohne-orig.-Hardware).
+
 ## More information
 * [Discord Forum](https://discord.gg/WRUhegRPQn)
 (The Discord is in German, but you can also write in English. 
