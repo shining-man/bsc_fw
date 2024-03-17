@@ -8,7 +8,7 @@
 
 #include "params_dt.h"
 
-#define BSC_SW_VERSION      "V0.5.12"
+#define BSC_SW_VERSION      "V0.5.13"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -23,7 +23,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //#define DEBUG_JTAG
 //#define BPN
-#define INSIDER_V1
+//#define INSIDER_V1
 
 #ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
