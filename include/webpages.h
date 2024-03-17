@@ -25,7 +25,7 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
 "</head>"
 "<body>"
   "<div class='topnav'>"
-    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.5.12</span>"
+    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.5.13</span>"
   "</div>"
   "<div class='content'>"
     "<div class='cards'>"
@@ -607,101 +607,12 @@ const char htmlPageSupport[] PROGMEM = "<!DOCTYPE HTML>"
   "</div>"
   "<div class='content' style='max-width:500px'>"
     "<p>In der Entwicklung des BSC und dessen Software steckt viel Arbeit.</p>"
-    "<p>Jeder der den BSC nutzt, egal ob mit der BSC-Hardware, oder auf einem NodeMCU, kann sich &uuml;berlegen, was ihm der BSC eigentlich wert ist, oder wo er das Projekt unterst&uuml;tzen kann.<p>"
-    "<br><p><a href=\"javascript:window.open('https://www.paypal.me/shiningman22');\">Paypal: https://www.paypal.me/shiningman22</a></p><br>"
-    "<p>Wenn du ein Unterst&uuml;tzer bist, kannst du in den Einstellungen unter System die Option \"Ich bin Unterst&uuml;tzer\" aktivieren:-)</p>"
-    "<p>Diese Option ist f&uuml;r Unterst&uuml;tzer gedacht. Jeder andere sollte zumindest ein schlechtes Gewissen haben.</p>"
+    "<p>Jeder der die Arbeit schätzt kann mich unterstützen.<p>"
+    "<p>Ich freue mich über jede Unterstützung<p>"
+    "<br><p><a href=\"javascript:window.open('https://www.paypal.me/shiningman11');\">Paypal: https://www.paypal.me/shiningman11</a></p><br>"
   "</div>"
 "</body>"
 "</html>";
-
-
-
-
-/*const char htmlPageBpnSettings[] PROGMEM = "<!DOCTYPE HTML>"
-"<html>"
-"<head>"
-  "<title>BSC</title>"
-  "<meta name='viewport' content='width=device-width, initial-scale=1'>"
-  "<link rel='icon' href='data:,'>"
-  "<style>html {font-family:Helvetica;display:inline-block;margin:0px auto;text-align:center;}body {margin:0;}.content {padding:20px;}.topnav {overflow: hidden;position:sticky;top:0;background-color:#6E6E6E;color:white;padding:5px;cursor:default;}.topnav span {float:left; padding: 14px 16px; text-decoration:none; font-size:1.7rem;}.btnBack:hover {background-color:#555555;color:white;}.hl {flex:1;font-size:2rem;}.cards {padding:20px;max-width:700px;margin:0 auto;display:grid;grid-gap:2rem;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}.cardBtn {background-color:white;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);text-decoration:none;font-size:26px; cursor:default;}.cardDash {background-color:#F2F2F2;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);text-decoration:none;font-size:26px; cursor:default;}.cardDashBtn {background-color:#F2F2F2;box-shadow:2px 2px 12px 1px rgba(140,140,140,.5);text-decoration:none;font-size:26px; cursor:default;}.cardBtn:hover {background-color:#555555;color:white;}.cardDashBtn:hover {background-color:#555555;color:white;}.button {background-color:#BDBDBD;border:none;border-radius:10px;color:white;padding:16px 40px;text-decoration:none;font-size:26px;margin:2px;cursor:default;}.button:hover {background-color:#555555;color:white;}.button:active {color:#BDBDBD;}meter {margin: 0 20px 0 20px;}</style>"
-
-  "<STYLE>"
-  "td {text-align: left; vertical-align: top;}"
-  "</STYLE>"
-
-  "<script>\n"
-    "function getData() {\n"
-    "var xhttp = new XMLHttpRequest();\n"
-    "xhttp.onreadystatechange = function(){\n"
-      "if (this.readyState == 4 && this.status == 200){\n"
-        "if(this.responseText!='ok'){\n"
-          //"console.log(this.responseText);\n"
-          "var jsonObj = JSON.parse(this.responseText);\n"
-          "for (let i=0; i<jsonObj.length; i++) {\n"
-            "elem = document.getElementById(jsonObj[i].id);\n"
-            "if(elem!=null){\n"
-              "elem.value=jsonObj[i].val;\n"
-            "}\n"
-          "}\n"
-        "}\n"
-      "}\n"
-    "};\n"
-    "xhttp.open('GET', 'getBpnData', true);\n"
-    "xhttp.timeout=1000;\n"
-    "xhttp.send();\n"
-    "var timer = window.setTimeout('getData()', 1000);\n"
-    "}\n"
-  "</script>\n"
-"</head>"
-
-"<body>"
-  "<div class='topnav'>"
-    "<span class='btnBack' onclick=\"location.href='../'\">&#10094;</span>"
-    "<span class='btnBack' onclick=location.href='/'>&#10094;&#10094;</span>"
-    "<span class='hl'>Einstellungen - Schnittstellen</span>"
-  "</div>"
-  "<div class='content'><form method='post'>"
-    "<table>"
-      //General
-      "<tr><td><b>General</b></td><td></td></tr>"
-      "<tr><td>Anzahl Zellen</td><td><input type='number' step='1' min='0' max='18' value='0' id='1' name='1'></td></tr>" //Anzahl Zellen pro Pack
-      "<tr><td><br></td><td></td></tr>"
-
-      //Alarm
-      "<tr><td><b>Alarm</b></td><td></td></tr>"
-      "<tr><td>Low Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='2' name='2'></td><td>mV</td></tr>"
-      "<tr><td>High Cell Voltage</td><td><input type='number' step='1' min='2500' max='4000' value='0' id='3' name='3'></td><td>mV</td></tr>"
-      "<tr><td>Alarm Delay - Cell Voltage</td><td><input type='number' step='1' min='0' max='255' value='0' id='4' name='4'></td><td>s</td></tr>"
-      "<tr><td><br></td><td></td></tr>"
-
-      "<tr><td>Low Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='6' name='6'></td><td>V</td></tr>"
-      "<tr><td>High Battery Voltage</td><td><input type='number' step='0.01' min='1' max='100' value='0' id='7' name='7'></td><td>V</td></tr>"
-      "<tr><td>Alarm Delay - Battery Voltage</td><td><input type='number' step='0' min='0' max='255' value='0' id='8' name='8'></td><td>s</td></tr>"
-      "<tr><td><br></td><td></td></tr>"
-
-      "<tr><td>Max Charge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='10' name='10'></td><td>A</td></tr>"
-      "<tr><td>Alarm Delay - Charge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='11' name='11'></td><td>s</td></tr>"
-      "<tr><td><br></td><td></td></tr>"
-
-      "<tr><td>Max Discharge Current</td><td><input type='number' step='1' min='0' max='4000' value='0' id='13' name='13'></td><td>A</td></tr>"
-      "<tr><td>Alarm Delay - Discharge Current</td><td><input type='number' step='1' min='0' max='255' value='0' id='14' name='14'></td><td>s</td></tr>"
-      "<tr><td><br></td><td></td></tr>"
-
-      //Shunt
-      "<tr><td><b>Shunt</b></td><td></td></tr>"
-      "<tr><td>Nominal Capacity</td><td><input type='number' step='1' min='1' max='1000' value='0' id='16' name='16'></td><td>Ah</td></tr>"
-      "<tr><td><br></td><td></td></tr>"
-
-    "</table>"
-    "<button type='Submit' name='S_BPN_SET'>Übernehmen</button>"
-  "</form></div>"
-
-  "<script>"
-    "getData();"
-  "</script>"
-"</body>"
-"</html>";*/
 
 
 const char htmlPageUpload[] PROGMEM = "<!DOCTYPE HTML>"
