@@ -433,7 +433,7 @@ void Inverter::sendCanMsg_ChgVoltCur_DisChgCur_351()
     nsChargeVoltageCtrl::ChargeVoltageCtrl chargeVoltageCtrl = nsChargeVoltageCtrl::ChargeVoltageCtrl();
 
     //Soll-Ladespannung in die Ausgangs-Msg. schreiben
-    msgData.chargevoltagelimit = chargeVoltageCtrl.calcChargVoltage(*this, inverterData)*10;
+    msgData.chargevoltagelimit = inverterData. chargeVoltageCtrl.calcChargVoltage(*this, inverterData)*10;
 
     if(u8_mMqttTxTimer==15)
     {
