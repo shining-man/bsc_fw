@@ -8,7 +8,7 @@
 #include "defines.h"
 #include "log.h"
 #include "WebSettings.h"
-#include "Canbus.h"
+#include "inverter/Inverter.hpp"
 #include "AlarmRules.h"
 #include "BmsData.h"
 #include "mcp23017.h"
@@ -18,7 +18,6 @@ static const char *TAG = "I2C";
 
 
 struct  bmsData_s *p_lBmsData;
-struct  inverterData_s *p_lInverterData;
 bool    bo_mDisplayEnabled;
 bool    bo_mSerialExtEnabled;
 bool    bo_mSlaveEnabled[I2C_CNT_SLAVES];
@@ -31,7 +30,7 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 
 void isI2CdeviceConn();
-void displaySendData_bms();
+void displaySendData_bms(Inverter &inverter);
 void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
@@ -85,7 +84,6 @@ void i2cInit()
   }
 
   p_lBmsData = getBmsData();
-  p_lInverterData = getInverterData();
 
   //u8_mMasterSlaveId = WebSettings::getInt(ID_PARAM_MASTER_SLAVE_TYP,0,0,0,DT_ID_PARAM_MASTER_SLAVE_TYP);
 
@@ -174,14 +172,14 @@ bool isSerialExtEnabled()
 }
 
 
-void i2cCyclicRun()
+void i2cCyclicRun(Inverter &inverter)
 {
   if(u8_mMasterSlaveId==ID_I2C_MASTER)
   {
     //Display
     if(bo_mDisplayEnabled)
     {
-      displaySendData_bms();
+      displaySendData_bms(inverter);
     }
 
     //Slaves
@@ -193,7 +191,7 @@ void i2cCyclicRun()
 }
 
 
-void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
+void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
 {
   uint8_t   txBuf[104];
   txBuf[0]=data1;
@@ -202,12 +200,12 @@ void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, co
   txBuf[3]=0x00;  //Reserve (evtl. CRC8)
 
   if(data1==BMS_DATA){bmsDataSemaphoreTake();}
-  else if(data1==INVERTER_DATA){inverterDataSemaphoreTake();}
+  else if(data1==INVERTER_DATA){inverter.inverterDataSemaphoreTake();}
 
   if(dataLen>0) memcpy(&txBuf[TXBUFF_OFFSET], dataAdr, dataLen);
 
   if(data1==BMS_DATA){bmsDataSemaphoreGive();}
-  else if(data1==INVERTER_DATA){inverterDataSemaphoreGive();}
+  else if(data1==INVERTER_DATA){inverter.inverterDataSemaphoreGive();}
 
   xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(i2cAdr);
@@ -219,9 +217,9 @@ void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, co
 }
 
 
-void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data, uint8_t dataLen)
+void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data, uint8_t dataLen)
 {
-  i2cSendData(i2cAdr, data1, data2, data3, data.c_str(), dataLen);
+  i2cSendData(inverter, i2cAdr, data1, data2, data3, data.c_str(), dataLen);
 }
 
 
@@ -395,7 +393,7 @@ void i2cSendDataToMaster()
 /******************************************************
  * Display
  ******************************************************/
-void displaySendData_bms()
+void displaySendData_bms(Inverter &inverter)
 {
   for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {
@@ -435,6 +433,8 @@ void displaySendData_bms()
     i++;
   }
 
+  struct Inverter::inverterData_s *p_lInverterData;
+  p_lInverterData = inverter.getInverterData();
   i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->inverterVoltage, 2);
   i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->inverterCurrent, 2);
   i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);

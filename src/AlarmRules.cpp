@@ -7,11 +7,11 @@
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
-#include "Canbus.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "FreqCountESP.h"
 #include "log.h"
+#include "inverter/Inverter.hpp"
 
 static const char *TAG = "ALARM";
 
@@ -44,7 +44,7 @@ uint8_t u8_merkerHysterese_TriggerAtSoc=0;
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter();
+void rules_CanInverter(Inverter &inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
@@ -59,11 +59,11 @@ bool tachoRead(uint16_t &tachoRpm);
 void tachoSetMux(uint8_t channel);
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
-void rules_soc();
+void rules_soc(Inverter &inverter);
 void rules_vTrigger();
 
 
-void initAlarmRules()
+void initAlarmRules(Inverter *inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
@@ -201,7 +201,7 @@ bool setVirtualTrigger(uint8_t triggerNr, bool val)
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void runAlarmRules()
+void runAlarmRules(Inverter &inverter)
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;
@@ -223,7 +223,7 @@ void runAlarmRules()
   rules_PlausibilityCeck();
 
   //Inverter (CAN)
-  rules_CanInverter();
+  rules_CanInverter(inverter);
 
   //Digitaleingänge
   getDIs();
@@ -232,7 +232,7 @@ void runAlarmRules()
   //rules_Tacho();
 
   //Rules Soc
-  rules_soc();
+  rules_soc(inverter);
 
   //Virtual Trigger
   rules_vTrigger();
@@ -719,19 +719,19 @@ void rules_Temperatur()
 }
 
 
-void rules_CanInverter()
+void rules_CanInverter(Inverter &inverter)
 {
   //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) canSetChargeCurrentToZero(true);
-  else canSetChargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
+  else inverter.setChargeCurrentToZero(false);
 
   //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) canSetDischargeCurrentToZero(true);
-  else canSetDischargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) inverter.setDischargeCurrentToZero(true);
+  else inverter.setDischargeCurrentToZero(false);
 
   //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) canSetSocToFull(true);
-  else canSetSocToFull(false);
+  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) inverter.setSocToFull(true);
+  else inverter.setSocToFull(false);
 }
 
 uint16_t u16_mMerkerTemperaturTrigger=0;
@@ -911,11 +911,11 @@ void rules_PlausibilityCeck()
 
 
 //
-void rules_soc()
+void rules_soc(Inverter &inverter)
 {
-  inverterDataSemaphoreTake();
-  inverterData_s *inverterData = getInverterData();
-  inverterDataSemaphoreGive();
+  inverter.inverterDataSemaphoreTake();
+  Inverter::inverterData_s *inverterData = inverter.getInverterData();
+  inverter.inverterDataSemaphoreGive();
 
   if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
