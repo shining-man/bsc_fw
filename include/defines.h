@@ -173,11 +173,13 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
 
 
+// Inverter
+#define CAN_BMS_COMMUNICATION_TIMEOUT 5000
+
+
 //Send serial Data
 enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS, BPN_START_FWUPDATE};
 //#define SERIAL_DATA_RW_LEN__BPN_READ_SETTINGS 20
-
-
 
 
 // Register
