@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "restapi.h"
+#include "inverter/Inverter.hpp"
 #include "BmsData.h"
 #include "Ow.h"
 #include "Json.h"

@@ -31,7 +31,7 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 
 void isI2CdeviceConn();
 void displaySendData_bms(Inverter &inverter);
-void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
+void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
 void getBscSlaveData(uint8_t u8_slaveNr);
 void i2cSendDataToMaster();
 void i2cInitExtSerial();
@@ -397,60 +397,60 @@ void displaySendData_bms(Inverter &inverter)
 {
   for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[i], 48);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[i], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[i], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[i], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[i], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[i], 6);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[i], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[i], 4);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[i], 48);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[i], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[i], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[i], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[i], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[i], 6);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[i], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[i], 4);
   }
 
   uint i=5;
   for(uint8_t n=BT_DEVICES_COUNT;n<(BT_DEVICES_COUNT+3);n++)
   {
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[n], 48);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[n], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[n], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[n], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[n], 2);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[n], 6);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[n], 1);
-    i2cSendData(I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[n], 4);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[n], 48);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_DIFFERENCE_VOLTAGE, i, &p_lBmsData->bmsMaxCellDifferenceVoltage[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_AVG_VOLTAGE, i, &p_lBmsData->bmsAvgVoltage[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_CURRENT, i, &p_lBmsData->bmsTotalCurrent[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_CELL_VOLTAGE, i, &p_lBmsData->bmsMaxCellVoltage[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_CELL_VOLTAGE, i, &p_lBmsData->bmsMinCellVoltage[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MAX_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMaxVoltageCellNumber[n], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_MIN_VOLTAGE_CELL_NUMBER, i, &p_lBmsData->bmsMinVoltageCellNumber[n], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_IS_BALANCING_ACTIVE, i, &p_lBmsData->bmsIsBalancingActive[n], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_BALANCING_CURRENT, i, &p_lBmsData->bmsBalancingCurrent[n], 2);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TEMPERATURE, i, &p_lBmsData->bmsTempature[n], 6);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CHARGE_PERCENT, i, &p_lBmsData->bmsChargePercentage[n], 1);
+    i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_ERRORS, i, &p_lBmsData->bmsErrors[n], 4);
     i++;
   }
 
   struct Inverter::inverterData_s *p_lInverterData;
   p_lInverterData = inverter.getInverterData();
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->inverterVoltage, 2);
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->inverterCurrent, 2);
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &p_lInverterData->inverterChargeCurrent, 2);
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &p_lInverterData->inverterDischargeCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->inverterVoltage, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->inverterCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &p_lInverterData->inverterChargeCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &p_lInverterData->inverterDischargeCurrent, 2);
 
   uint16_t u16_lBscAlarms = getAlarm();
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);
 
   //Relaistate
   uint8_t ioData = getDoData();
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_RELAIS, 0, &ioData, 1);
 
   //Display Timeout
   uint8_t dispTimeout = WebSettings::getInt(ID_PARAM_DISPLAY_TIMEOUT,0,DT_ID_PARAM_DISPLAY_TIMEOUT);
-  i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_DISPLAY_TIMEOUT, 0, &dispTimeout, 1);
 }
 
 

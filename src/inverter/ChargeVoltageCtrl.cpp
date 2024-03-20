@@ -25,6 +25,8 @@ namespace nsChargeVoltageCtrl
   {
     uint16_t u16_lChargeVoltage = (uint16_t)WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0);
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(inverterData, u16_lChargeVoltage);
+
+    inverterData.inverterChargeVoltage = u16_lChargeVoltage; //ToDo semaphore
   }
 
 

@@ -17,7 +17,7 @@ namespace nsDisChargeCurrentCtrl
         DisChargeCurrentCtrl();
         ~DisChargeCurrentCtrl();
 
-        uint16_t calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero);
+        void calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero);
 
     private:
         int16_t calcEntladestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxDischargeCurrent);

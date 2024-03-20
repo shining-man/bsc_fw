@@ -246,53 +246,35 @@ void Inverter::readCanMessages()
 
 void Inverter::getInverterValues()
 {
+  // Ladespannung
+  nsChargeVoltageCtrl::ChargeVoltageCtrl chargeVoltageCtrl = nsChargeVoltageCtrl::ChargeVoltageCtrl();
+  chargeVoltageCtrl.calcChargVoltage(*this, inverterData);
 
-   /*******************************
-     * Ladespannung
-     *******************************/
-    nsChargeVoltageCtrl::ChargeVoltageCtrl chargeVoltageCtrl = nsChargeVoltageCtrl::ChargeVoltageCtrl();
+  // Ladestrom
+  nsChargeCurrentCtrl::ChargeCurrentCtrl chargeCurrentCtl = nsChargeCurrentCtrl::ChargeCurrentCtrl();
+  chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetChargeCurrentToZero);
 
-    //Soll-Ladespannung in die Ausgangs-Msg. schreiben
-    chargeVoltageCtrl.calcChargVoltage(*this, inverterData)*10;
+  // Entladestrom
+  nsDisChargeCurrentCtrl::DisChargeCurrentCtrl disChargeCurrentCtl = nsDisChargeCurrentCtrl::DisChargeCurrentCtrl();
+  disChargeCurrentCtl.calcDisChargCurrent(*this, inverterData, alarmSetDischargeCurrentToZero);
 
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(msgData.chargevoltagelimit/10.0));
-    }
-
-    /*******************************
-     * Ladestrom
-     *******************************/
-    nsChargeCurrentCtrl::ChargeCurrentCtrl chargeCurrentCtl = nsChargeCurrentCtrl::ChargeCurrentCtrl();
-
-    //Soll-Ladestrom in die Ausgangs-Msg. schreiben
-    chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetChargeCurrentToZero)*10;
-
-    // Wert per mqqt senden
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
-    }
-
-    /*******************************
-     * Entladestrom
-     *******************************/
-    nsDisChargeCurrentCtrl::DisChargeCurrentCtrl disChargeCurrentCtl = nsDisChargeCurrentCtrl::DisChargeCurrentCtrl();
-
-    // Soll-Entladestrom in die Ausgangs-Msg. schreiben
-    chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetDischargeCurrentToZero)*10;
-
-    // Wert per mqqt senden
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
-    }
-
-
+  // SoC
+  nsSocCtrl::SocCtrl socCtrl = nsSocCtrl::SocCtrl();
+  socCtrl.calcSoc(*this, inverterData, alarmSetSocToFull);
 
 }
 
 
+void Inverter::sendMqttMsg()
+{
+  if(u8_mMqttTxTimer==15)
+  {
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(inverterData.inverterChargeVoltage));
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_PERCENT, -1, inverterData.inverterSoc);
+  }
+}
 
 
 
@@ -384,15 +366,16 @@ void Inverter::sendBmsCanMessages()
 // Transmit hostname
 void Inverter::sendCanMsg_hostname_35e_370_371()
 {
-  char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
-  char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+  static char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+  static char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
-    switch (u8_mSelCanInverter)
+  switch (u8_mSelCanInverter)
   {
     case ID_CAN_DEVICE_DEYE:
     case ID_CAN_DEVICE_SOLISRHI:
       sendCanMsg(0x35e, (uint8_t *)&hostname_pylon, 6);
       break;
+
     case ID_CAN_DEVICE_VICTRON:
       sendCanMsg(0x370, (uint8_t *)&hostname_general, 8);
       sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
@@ -412,62 +395,17 @@ void Inverter::sendCanMsg_hostname_35e_370_371()
 void Inverter::sendCanMsg_ChgVoltCur_DisChgCur_351()
 {
   data351 msgData;
-  uint8_t errors = 0;
 
-  /* Hier evtl. weitere Fehler feststellen
-   * Aktuell nicht notwendig, da die Fehler in den Unterfunktionen festgestellt werden */
-  if (errors!=0) //wenn Fehler
-  {
-    msgData.chargevoltagelimit  = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0);
-    msgData.maxchargecurrent    = 0;
-    msgData.maxDischargeCurrent = 0;
-    msgData.dischargevoltage    = 0; //not use
-  }
-  else
-  {
-    msgData.dischargevoltage    = 0; //not use
+  msgData.dischargevoltage    = 0; //not use
 
-    /*******************************
-     * Ladespannung
-     *******************************/
-    nsChargeVoltageCtrl::ChargeVoltageCtrl chargeVoltageCtrl = nsChargeVoltageCtrl::ChargeVoltageCtrl();
+  // Ladespannung
+  msgData.chargevoltagelimit = inverterData.inverterChargeVoltage*10;
 
-    //Soll-Ladespannung in die Ausgangs-Msg. schreiben
-    msgData.chargevoltagelimit = inverterData. chargeVoltageCtrl.calcChargVoltage(*this, inverterData)*10;
+  // Ladestrom
+  msgData.maxchargecurrent = inverterData.inverterChargeCurrent*10;
 
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(msgData.chargevoltagelimit/10.0));
-    }
-
-    /*******************************
-     * Ladestrom
-     *******************************/
-    nsChargeCurrentCtrl::ChargeCurrentCtrl chargeCurrentCtl = nsChargeCurrentCtrl::ChargeCurrentCtrl();
-
-    //Soll-Ladestrom in die Ausgangs-Msg. schreiben
-    msgData.maxchargecurrent = chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetChargeCurrentToZero)*10;
-
-    // Wert per mqqt senden
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
-    }
-
-    /*******************************
-     * Entladestrom
-     *******************************/
-    nsDisChargeCurrentCtrl::DisChargeCurrentCtrl disChargeCurrentCtl = nsDisChargeCurrentCtrl::DisChargeCurrentCtrl();
-
-    // Soll-Entladestrom in die Ausgangs-Msg. schreiben
-    msgData.maxDischargeCurrent = chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetDischargeCurrentToZero)*10;
-
-    // Wert per mqqt senden
-    if(u8_mMqttTxTimer==15)
-    {
-      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
-    }
-  }
+  // Entladestrom
+  msgData.maxDischargeCurrent = inverterData.inverterDischargeCurrent*10;
 
   sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
 }
@@ -483,16 +421,7 @@ void Inverter::sendCanMsg_soc_soh_355()
 {
   data355 msgData;
 
-  nsSocCtrl::SocCtrl socCtrl = nsSocCtrl::SocCtrl();
-
-  // Soll-Entladestrom in die Ausgangs-Msg. schreiben
-  msgData.soc = socCtrl.calcSoc(*this, inverterData, alarmSetSocToFull);
-
-  // Wert per mqqt senden
-  if(u8_mMqttTxTimer==15)
-  {
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_PERCENT, -1, msgData.soc);
-  }
+  msgData.soc = inverterData.inverterSoc;
 
   msgData.soh = 100; // SOH, uint16 1 %
   sendCanMsg(0x355, (uint8_t *)&msgData, sizeof(data355));
@@ -950,8 +879,8 @@ void Inverter::sendCanMsg_372()
   data372 msgData;
 
   msgData.numberofmodulesok = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
-  msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(u8_bmsDatasource, u16_bmsDatasourceAdd);
-  msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(u8_bmsDatasource, u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(u8_bmsDatasource, u16_bmsDatasourceAdd);
+  msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+  msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
   //msgData.numberofmodulesoffline = 0;
 
   sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
@@ -981,6 +910,32 @@ void Inverter::sendCanMsg_373_376_377()
   //sendCanMsg(0x376, (uint8_t *)&msgData, 8); //lowestExternalTemp
   //sendCanMsg(0x377, (uint8_t *)&msgData, 8); //highestExternalTemp
 }
+
+
+// Min. Zellspannung
+void Inverter::sendCanMsg_minCellVoltage_text_374()
+{
+  uint8_t BmsNr, CellNr;
+  BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
+
+  char buf[8];
+  BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
+  sendCanMsg(0x374, (uint8_t *)&buf, 8);
+}
+
+
+// Max. Zellspannung (Text)
+void Inverter::sendCanMsg_maxCellVoltage_text_375()
+{
+  uint8_t BmsNr, CellNr;
+  BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
+
+  char buf[8];
+  BmsDataUtils::buildBatteryCellText(buf,BmsNr,CellNr);
+  sendCanMsg(0x375, (uint8_t *)&buf, 8);
+}
+
+
 
 
 

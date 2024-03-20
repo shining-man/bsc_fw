@@ -26,7 +26,7 @@ class Inverter;
 #define ALARM_CAUSE_FAN 9
 #define ALARM_VIRTUAL_TRIGGER 10
 
-void initAlarmRules();
+void initAlarmRules(Inverter &inverter);
 void runAlarmRules(Inverter &inverter);
 void changeAlarmSettings();
 

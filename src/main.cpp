@@ -702,7 +702,7 @@ void task_alarmRules(void *param)
   BSC_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
 
   vTaskDelay(pdMS_TO_TICKS(15000));
-  initAlarmRules();
+  initAlarmRules(inverter);
 
   for (;;)
   {
