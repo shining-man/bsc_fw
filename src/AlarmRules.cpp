@@ -63,7 +63,7 @@ void rules_soc(Inverter &inverter);
 void rules_vTrigger();
 
 
-void initAlarmRules(Inverter *inverter)
+void initAlarmRules(Inverter &inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;

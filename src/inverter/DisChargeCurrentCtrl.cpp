@@ -20,7 +20,7 @@ namespace nsDisChargeCurrentCtrl
     ;
   }
 
-  uint16_t DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero)
+  void DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero)
   {
     int16_t i16_lMaxDischargeCurrentList[1] = {0};
     int16_t i16_mNewDisChargeCurrent = 0;
@@ -80,8 +80,6 @@ namespace nsDisChargeCurrentCtrl
     inverterData.inverterDischargeCurrent = i16_mNewDisChargeCurrent;
     inverterData.calcDischargeCurrentCellVoltage = i16_lMaxDischargeCurrentList[0];
     inverter.inverterDataSemaphoreGive();
-
-    return i16_mNewDisChargeCurrent;
   }
 
 

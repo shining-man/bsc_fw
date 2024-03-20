@@ -20,7 +20,7 @@ namespace nsChargeCurrentCtrl
     ;
   }
 
-  uint16_t ChargeCurrentCtrl::calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero)
+  void ChargeCurrentCtrl::calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero)
   {
     int16_t i16_lMaxChargeCurrentList[4] = {0};
     int16_t i16_mNewChargeCurrent = 0;
@@ -92,8 +92,6 @@ namespace nsChargeCurrentCtrl
     inverterData.calcChargeCurrentCelldrift = i16_lMaxChargeCurrentList[2];
     inverterData.calcChargeCurrentCutOff = i16_lMaxChargeCurrentList[3];
     inverter.inverterDataSemaphoreGive();
-
-    return i16_mNewChargeCurrent;
   }
 
 

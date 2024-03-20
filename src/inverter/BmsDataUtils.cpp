@@ -80,6 +80,12 @@ uint8_t BmsDataUtils::getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasour
 //Maximale Zellspannung von allen aktiven BMSen ermitteln
 uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
+  uint8_t BmsNr, CellNr;
+  return getMaxCellSpannungFromBms(u8_mBmsDatasource, u16_mBmsDatasourceAdd, BmsNr, CellNr);
+}
+
+uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
+{
   uint8_t u8_lBmsNr=0;
   uint8_t u8_lCellNr=0;
 
@@ -118,16 +124,20 @@ uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
   }
   #endif
 
-  char buf[8];
-  buildBatteryCellText(buf,u8_lBmsNr,u8_lCellNr);
-  sendCanMsg(0x375, (uint8_t *)&buf, 8);
-
+  BmsNr = u8_lBmsNr;
+  CellNr = u8_lCellNr;
   return u16_lCellSpg;
 }
 
 
 //Minimale Zellspannung von allen aktiven BMSen ermitteln
 uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+{
+  uint8_t BmsNr, CellNr;
+  return getMinCellSpannungFromBms(u8_mBmsDatasource, u16_mBmsDatasourceAdd, BmsNr, CellNr);
+}
+
+uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr)
 {
   uint8_t u8_lBmsNr=0;
   uint8_t u8_lCellNr=0;
@@ -170,10 +180,8 @@ uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
   }
   #endif
 
-  char buf[8];
-  buildBatteryCellText(buf,u8_lBmsNr,u8_lCellNr);
-  sendCanMsg(0x374, (uint8_t *)&buf, 8);
-
+  BmsNr = u8_lBmsNr;
+  CellNr = u8_lCellNr;
   return u16_lCellSpg;
 }
 

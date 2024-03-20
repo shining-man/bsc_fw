@@ -6,14 +6,17 @@
 #pragma once
 
 #include <cstdint>
+#ifndef PIO_UNIT_TESTING
 #include "WebSettings.h"
+#endif
 #include "defines.h"
 #include "BmsData.h"
+#ifndef PIO_UNIT_TESTING
 #include "Ow.h"
 #include "mqtt_t.h"
 #include "log.h"
 #include "AlarmRules.h"
-
+#endif
 
 
 class Inverter {
@@ -30,6 +33,7 @@ public:
         // Wechselrichterdaten
         bool       noBatteryPackOnline;
         int16_t    inverterVoltage;
+        uint16_t   inverterChargeVoltage;
         int16_t    inverterCurrent;
         uint16_t   inverterSoc;
         int16_t    inverterChargeCurrent;
@@ -127,26 +131,24 @@ private:
     void sendBmsCanMessages();
 
     void getInverterValues();
+    void sendMqttMsg();
 
 
-    //void buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr);
-
-    //int16_t calcEntladestromZellspanung(int16_t i16_pMaxDischargeCurrent);
-
-    //uint16_t calcDynamicReduzeChargeVolltage(uint16_t u16_lChargeVoltage);
-    //uint8_t getNewSocByMinCellVoltage(uint8_t u8_lSoc);
-    void sendCanMsg_hostname_35e_370_371();
     void sendCanMsg_ChgVoltCur_DisChgCur_351();
     void sendCanMsg_soc_soh_355();
     void sendCanMsg_356();
     void sendCanMsg_359();
     void sendCanMsg_35a();
+    void sendCanMsg_hostname_35e_370_371();
+    void sendCanMsg_35f();
+    void sendCanMsg_372();
     void sendCanMsg_373_376_377();
+    void sendCanMsg_minCellVoltage_text_374();
+    void sendCanMsg_maxCellVoltage_text_375();
+
+    void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
     void sendCanMsgTemp();
     void sendCanMsgBmsData();
-    void sendCanMsg_372();
-    void sendCanMsg_35f();
-    void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
 
     void onCanReceive(int packetSize);
 
