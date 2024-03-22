@@ -1,5 +1,6 @@
 v0.5.13
 - Remove WebUI v2
+- Anpassungen für HW2.4.1
 
 v0.5.12
 - Display of groups in WebUI changed
