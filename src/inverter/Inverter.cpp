@@ -9,6 +9,7 @@
 #include "inverter/DisChargeCurrentCtrl.hpp"
 #include "inverter/ChargeVoltageCtrl.hpp"
 #include "inverter/SocCtrl.hpp"
+#include "inverter/InverterBattery.hpp"
 
 #include "WebSettings.h"
 #include "defines.h"
@@ -25,8 +26,6 @@ const char *Inverter::TAG = "CAN";
 
 Inverter::Inverter() :
 u8_mMqttTxTimer(0),
-//u8_mBmsDatasource(0),
-//u8_mBmsDatasourceAdd(0),
 u8_mSelCanInverter(0),
 alarmSetChargeCurrentToZero(false),
 alarmSetDischargeCurrentToZero(false),
@@ -120,6 +119,7 @@ void Inverter::loadIverterSettings()
   BSC_LOGI(TAG,"loadIverterSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_bmsDatasource,bmsConnectFilter, u16_bmsDatasourceAdd);
 }
 
+
 //Ladeleistung auf 0 einstellen
 void Inverter::setChargeCurrentToZero(bool val)
 {
@@ -146,7 +146,11 @@ void Inverter::cyclicRun()
   {
     u8_mMqttTxTimer++;
     readCanMessages();
+
+    getInverterValues();
     sendBmsCanMessages();
+
+    sendMqttMsg();
     if(u8_mMqttTxTimer>=15)u8_mMqttTxTimer=0;
   }
   else inverterData.noBatteryPackOnline = true;
@@ -262,6 +266,12 @@ void Inverter::getInverterValues()
   nsSocCtrl::SocCtrl socCtrl = nsSocCtrl::SocCtrl();
   socCtrl.calcSoc(*this, inverterData, alarmSetSocToFull);
 
+  // Batteriespannung
+  nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+  inverterBattery.getBatteryVoltage(*this, inverterData);
+
+  // Batteriestrom
+  inverterBattery.getBatteryCurrent(*this, inverterData);
 }
 
 
@@ -273,6 +283,14 @@ void Inverter::sendMqttMsg()
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_PERCENT, -1, inverterData.inverterSoc);
+
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, (float)(inverterData.batteryVoltage));
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TOTAL_CURRENT, -1, (float)(inverterData.batteryCurrent));
+
+
+    nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+    int16_t i16_lBattTemp = inverterBattery.getBatteryTemp(inverterData);
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TEMPERATURE, -1, (float)(i16_lBattTemp));
   }
 }
 
@@ -324,10 +342,10 @@ void Inverter::sendBmsCanMessages()
     case ID_CAN_DEVICE_SOLISRHI:
       sendCanMsg_ChgVoltCur_DisChgCur_351();
       sendCanMsg_soc_soh_355();
-      sendCanMsg_356();
+      sendCanMsg_Battery_Voltage_Current_Temp_356();
       vTaskDelay(pdMS_TO_TICKS(50));
       sendCanMsg_hostname_35e_370_371();
-      sendCanMsg_359(); //Alarms
+      sendCanMsg_Alarm_359(); //Alarms
       break;
 
     case ID_CAN_DEVICE_VICTRON:
@@ -335,20 +353,20 @@ void Inverter::sendBmsCanMessages()
       // CAN-IDs for core functionality: 0x351, 0x355, 0x356 and 0x35A.
       sendCanMsg_ChgVoltCur_DisChgCur_351();
       sendCanMsg_hostname_35e_370_371();
-      sendCanMsg_35a(); //Alarms
+      sendCanMsg_Alarm_35a(); //Alarms
 
-      sendCanMsg_372();
-      sendCanMsg_35f();
+      sendCanMsg_battery_modules_372();
+      sendCanMsg_version_35f();
 
       sendCanMsg_soc_soh_355();
-      sendCanMsg_356();
-      sendCanMsg_373_376_377();
+      sendCanMsg_Battery_Voltage_Current_Temp_356();
+      sendCanMsg_min_max_values_373_376_377();
 
       //Send extended data
       if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
       {
-        sendCanMsgTemp();
-        sendCanMsgBmsData();
+        sendExtendedCanMsgTemp();
+        sendExtendedCanMsgBmsData();
       }
       //374, 359
       break;
@@ -436,116 +454,26 @@ void Inverter::sendCanMsg_soc_soh_355()
  * Data 4 + 5:
  * Battery Temperature (data type : 16bit signed int, 2's complement, byte order : little endian, scale factor : 0.1, unit : degC)
  */
-void Inverter::sendCanMsg_356()
+void Inverter::sendCanMsg_Battery_Voltage_Current_Temp_356()
 {
   data356 msgData;
-  bool isOneBatteryPackOnline=false;
 
-  //Batteriespannung
-  msgData.voltage = 0;
+  msgData.voltage = inverterData.batteryVoltage*100;
+  msgData.current = inverterData.batteryCurrent*10;
 
-  if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
-  {
-    msgData.voltage = (int16_t)(getBmsTotalVoltage(inverterData.u8_bmsDatasource)*100);
-  }
-  else //Wenn Masterquelle offline, dann nächstes BMS nehmen das online ist
-  {
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-    {
-      //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-      if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
-      {
-          msgData.voltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100);
-          break;
-      }
-    }
-  }
-
-  //Batteriestrom
-  msgData.current = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource)*10);
-  if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
-  #ifdef CAN_DEBUG
-  BSC_LOGI(TAG,"Battery current: u8_mBmsDatasource=%i, cur=%i, u8_mBmsDatasourceAdd=%i",u8_mBmsDatasource, msgData.current, u8_mBmsDatasourceAdd);
-  #endif
-
-  //Wenn zusätzliche Datenquellen angegeben sind:
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-  {
-    #ifdef CAN_DEBUG
-    long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
-    #endif
-    //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-    if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
-    {
-      isOneBatteryPackOnline=true;
-      msgData.current += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10);
-      #ifdef CAN_DEBUG
-      BSC_LOGI(TAG,"Battery current (T): dev=%i, time=%i, cur=%i",i,millis()-lTime, msgData.current);
-      #endif
-    }
-    #ifdef CAN_DEBUG
-    else
-    {
-      BSC_LOGI(TAG,"Battery current (F): dev=%i, time1=%i, time2=%i, cur=%i",i,millis()-lTime,lTime,msgData.current);
-    }
-    #endif
-  }
-
-  //Temperatur
-  uint8_t u8_lBmsTempQuelle=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_QUELLE,0,DT_ID_PARAM_INVERTER_BATT_TEMP_QUELLE);
-  uint8_t u8_lBmsTempSensorNr=WebSettings::getInt(ID_PARAM_INVERTER_BATT_TEMP_SENSOR,0,DT_ID_PARAM_INVERTER_BATT_TEMP_SENSOR);
-  if(u8_lBmsTempQuelle==1)
-  {
-    if(u8_lBmsTempSensorNr<3)
-    {
-      msgData.temperature = (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,u8_lBmsTempSensorNr)*10);
-    }
-    else
-    {
-      msgData.temperature = (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
-    }
-  }
-  else if(u8_lBmsTempQuelle==2)
-  {
-    if(u8_lBmsTempSensorNr<MAX_ANZAHL_OW_SENSOREN)
-    {
-      msgData.temperature = (int16_t)(owGetTemp(u8_lBmsTempSensorNr)*10);
-    }
-    else
-    {
-      msgData.temperature = (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
-    }
-  }
-  else
-  {
-    msgData.temperature = (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)*10);  //Im Fehlerfall immer Sensor 0 des BMS nehmen
-  }
-
+  nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+  msgData.temperature = inverterBattery.getBatteryTemp(inverterData)*10; //Temperatur
 
   #ifdef CAN_DEBUG
   BSC_LOGD(TAG, "CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);
   #endif
-
-  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
-  if(isOneBatteryPackOnline) inverterData.noBatteryPackOnline=false;
-  else inverterData.noBatteryPackOnline=true;
-  inverterData.inverterVoltage = msgData.voltage;
-  inverterData.inverterCurrent = msgData.current;
-  xSemaphoreGive(mInverterDataMutex);
-
-  if(u8_mMqttTxTimer==15)
-  {
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, (float)(msgData.voltage/100));
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TOTAL_CURRENT, -1, (float)(msgData.current/10));
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TEMPERATURE, -1, (float)(msgData.temperature/10));
-  }
 
   sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356));
 }
 
 
 // Send alarm details
-void Inverter::sendCanMsg_359()
+void Inverter::sendCanMsg_Alarm_359()
 {
   data35a msgData;
   uint8_t u8_lValue=0;
@@ -671,7 +599,7 @@ void Inverter::sendCanMsg_359()
 
 
 // Send alarm details
-void Inverter::sendCanMsg_35a()
+void Inverter::sendCanMsg_Alarm_35a()
 {
   const uint8_t BB0_ALARM = B00000001;
   const uint8_t BB1_ALARM = B00000100;
@@ -848,7 +776,7 @@ void Inverter::sendCanMsg_35a()
 }
 
 
-void Inverter::sendCanMsg_35f()
+void Inverter::sendCanMsg_version_35f()
 {
   struct data35f
   {
@@ -867,7 +795,7 @@ void Inverter::sendCanMsg_35f()
 }
 
 
-void Inverter::sendCanMsg_372()
+void Inverter::sendCanMsg_battery_modules_372()
 {
   struct data372
   {
@@ -887,7 +815,7 @@ void Inverter::sendCanMsg_372()
 }
 
 
-void Inverter::sendCanMsg_373_376_377()
+void Inverter::sendCanMsg_min_max_values_373_376_377()
 {
   data373 msgData;
 
@@ -939,7 +867,7 @@ void Inverter::sendCanMsg_maxCellVoltage_text_375()
 
 
 
-void Inverter::sendCanMsgTemp()
+void Inverter::sendExtendedCanMsgTemp()
 {
   uint32_t u16_lCanId = 0x380;
 
@@ -957,7 +885,7 @@ void Inverter::sendCanMsgTemp()
   }
 }
 
-void Inverter::sendCanMsgBmsData()
+void Inverter::sendExtendedCanMsgBmsData()
 {
   uint32_t u16_lBaseCanId = 0x400;
   uint32_t u16_lCanId=u16_lBaseCanId;
