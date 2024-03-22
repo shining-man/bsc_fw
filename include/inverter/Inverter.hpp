@@ -32,9 +32,10 @@ public:
 
         // Wechselrichterdaten
         bool       noBatteryPackOnline;
-        int16_t    inverterVoltage;
+        int16_t    batteryVoltage;
+        int16_t    batteryCurrent;
+        int16_t    batteryTemperatur;
         uint16_t   inverterChargeVoltage;
-        int16_t    inverterCurrent;
         uint16_t   inverterSoc;
         int16_t    inverterChargeCurrent;
         int16_t    inverterDischargeCurrent;
@@ -136,19 +137,19 @@ private:
 
     void sendCanMsg_ChgVoltCur_DisChgCur_351();
     void sendCanMsg_soc_soh_355();
-    void sendCanMsg_356();
-    void sendCanMsg_359();
-    void sendCanMsg_35a();
+    void sendCanMsg_Battery_Voltage_Current_Temp_356();
+    void sendCanMsg_Alarm_359();
+    void sendCanMsg_Alarm_35a();
     void sendCanMsg_hostname_35e_370_371();
-    void sendCanMsg_35f();
-    void sendCanMsg_372();
-    void sendCanMsg_373_376_377();
+    void sendCanMsg_version_35f();
+    void sendCanMsg_battery_modules_372();
+    void sendCanMsg_min_max_values_373_376_377();
     void sendCanMsg_minCellVoltage_text_374();
     void sendCanMsg_maxCellVoltage_text_375();
 
     void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
-    void sendCanMsgTemp();
-    void sendCanMsgBmsData();
+    void sendExtendedCanMsgTemp();
+    void sendExtendedCanMsgBmsData();
 
     void onCanReceive(int packetSize);
 

@@ -23,7 +23,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //#define DEBUG_JTAG
 //#define BPN
-#define INSIDER_V1
+//#define INSIDER_V1
 
 #ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
@@ -511,7 +511,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_AMOUNT_CH_ENERGY            54
 
 
-static const char* mqttTopics[] PROGMEM = {"", // 0
+static const char* mqttTopics[] = {"", // 0
   "bms/bt",        // 1
   "temperatur",    // 2
   "trigger",       // 3

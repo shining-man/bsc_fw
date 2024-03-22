@@ -435,8 +435,8 @@ void displaySendData_bms(Inverter &inverter)
 
   struct Inverter::inverterData_s *p_lInverterData;
   p_lInverterData = inverter.getInverterData();
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->inverterVoltage, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->inverterCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->batteryVoltage, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->batteryCurrent, 2);
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &p_lInverterData->inverterChargeCurrent, 2);
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &p_lInverterData->inverterDischargeCurrent, 2);

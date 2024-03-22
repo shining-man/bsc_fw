@@ -131,8 +131,8 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
     Inverter::inverterData_s *inverterData = inverter.getInverterData();
     int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
     int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
-    int16_t inverterCurrent = inverterData->inverterCurrent;
-    int16_t inverterVoltage = inverterData->inverterVoltage;
+    int16_t inverterCurrent = inverterData->batteryCurrent;
+    int16_t inverterVoltage = inverterData->batteryVoltage;
     uint16_t inverterSoc = inverterData->inverterSoc;
 
     int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;

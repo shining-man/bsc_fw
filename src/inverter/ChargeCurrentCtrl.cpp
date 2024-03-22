@@ -294,7 +294,7 @@ namespace nsChargeCurrentCtrl
     uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
 
     uint8_t u8_lSoc = (uint8_t)inverterData.inverterSoc;
-    fl_lTotalCurrent = inverterData.inverterCurrent/10;
+    fl_lTotalCurrent = inverterData.batteryCurrent/10;
 
     #ifdef CAN_DEBUG
     uint16_t u16_mChargeCurrentCutOfTimerOld = u16_mChargeCurrentCutOfTimer; //nur fürs Debug
