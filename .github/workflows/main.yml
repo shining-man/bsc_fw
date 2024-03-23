@@ -46,7 +46,7 @@ jobs:
         run: python ./scripts/githubCI.py
 
       - name: Build firmware
-        run: platformio run
+        run: platformio run -e bsc -e bsc_hw_log
 
       - name: Copy output
         run: |
