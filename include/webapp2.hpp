@@ -13,6 +13,7 @@
 #include <BscSerial.h>
 
 void initWebApp2(WebServer *lserver, WebSettings *lwebSettings, BleHandler *lbleHandler, BscSerial *lBscSerial);
+String getSN();
 
 
 #endif
