@@ -12,6 +12,9 @@
 #include "FreqCountESP.h"
 #include "log.h"
 #include "inverter/Inverter.hpp"
+#ifdef LILYGO_TCAN485
+#include <Adafruit_NeoPixel.h>
+#endif
 
 static const char *TAG = "ALARM";
 
@@ -24,8 +27,12 @@ bool bo_Alarm[CNT_ALARMS];
 bool bo_Alarm_old[CNT_ALARMS];
 uint16_t alarmCauseAktiv[CNT_ALARMS];
 
+#ifndef LILYGO_TCAN485
 uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
 uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
+#else
+Adafruit_NeoPixel pixels(1, GPIO_NUM_4, NEO_GRB + NEO_KHZ800);
+#endif
 
 bool bo_alarmActivate[CNT_ALARMS]; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
 bool bo_timerPulseOffIsRunning;
@@ -42,6 +49,16 @@ uint32_t u32_hystereseTotalVoltageMin=0;
 uint32_t u32_hystereseTotalVoltageMax=0;
 uint8_t u8_merkerHysterese_TriggerAtSoc=0;
 
+#ifndef LILYGO_TCAN485
+void runDigitalAusgaenge();
+void doOffPulse(TimerHandle_t xTimer);
+void getDIs();
+void setDOs();
+void tachoInit();
+bool tachoRead(uint16_t &tachoRpm);
+void tachoSetMux(uint8_t channel);
+#endif
+
 void rules_Bms();
 void rules_Temperatur();
 void rules_CanInverter(Inverter &inverter);
@@ -50,13 +67,6 @@ bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
 bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
-void runDigitalAusgaenge();
-void doOffPulse(TimerHandle_t xTimer);
-void getDIs();
-void setDOs();
-void tachoInit();
-bool tachoRead(uint16_t &tachoRpm);
-void tachoSetMux(uint8_t channel);
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
 void rules_soc(Inverter &inverter);
@@ -85,14 +95,15 @@ void initAlarmRules(Inverter &inverter)
     }
   }
 
+  doMutex = xSemaphoreCreateMutex();
+  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
+
+  #ifndef LILYGO_TCAN485
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
   {
     u16_DoPulsOffCounter[i] = 0;
     u8_DoVerzoegerungTimer[i] = 0xFF;
   }
-
-  doMutex = xSemaphoreCreateMutex();
-  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
 
   timer_doOffPulse = xTimerCreate("doPulse", pdMS_TO_TICKS(10), pdFALSE, (void *)1, &doOffPulse);
   assert(timer_doOffPulse);
@@ -101,6 +112,11 @@ void initAlarmRules(Inverter &inverter)
   {
     //tachoInit();
   }
+  #else
+  pixels.begin();
+  pixels.clear();
+  pixels.setBrightness(20);
+  #endif
 }
 
 bool isTriggerSelected(uint16_t paramId, uint8_t groupNr, uint8_t dataType, uint8_t triggerNr)
@@ -207,8 +223,15 @@ void runAlarmRules(Inverter &inverter)
   bool bo_lChangeAlarmSettings=false;
 
   //Toggle LED
+  #ifdef LILYGO_TCAN485
+  if(pixels.getPixelColor(0)>=0x100) pixels.setPixelColor(0, pixels.Color(0, 0, 150));
+  else pixels.setPixelColor(0, pixels.Color(0, 150, 0));
+  pixels.show();
+
+  #else
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
   else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+  #endif
 
   //Merker vor jedem run auf false setzen
   for(i=0;i<CNT_ALARMS;i++){bo_alarmActivate[i]=false;}
@@ -226,10 +249,12 @@ void runAlarmRules(Inverter &inverter)
   rules_CanInverter(inverter);
 
   //Digitaleingänge
+  #ifndef LILYGO_TCAN485
   getDIs();
 
   //Tacho auswerten
   //rules_Tacho();
+  #endif
 
   //Rules Soc
   rules_soc(inverter);
@@ -269,6 +294,7 @@ void runAlarmRules(Inverter &inverter)
       }
 
       //Bearbeiten der 6 Relaisausgaenge
+      #ifndef LILYGO_TCAN485
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
@@ -293,13 +319,16 @@ void runAlarmRules(Inverter &inverter)
           }
         }
       }
+      #endif
 
       //Alarm an BT Device weiterleiten
       setAlarmToBtDevices(i, bo_Alarm[i]);
     }
   }
 
+  #ifndef LILYGO_TCAN485
   setDOs();
+  #endif
 }
 
 
@@ -316,6 +345,7 @@ void changeAlarmSettings()
 }
 
 
+#ifndef LILYGO_TCAN485
 void setDOs()
 {
   //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut
@@ -554,7 +584,7 @@ void rules_Tacho()
     }
   }
 }
-
+#endif
 
 
 void rules_Bms()

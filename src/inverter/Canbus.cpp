@@ -26,13 +26,21 @@ namespace nsCanbus
 
   void Canbus::init()
   {
+    #ifdef LILYGO_TCAN485
+    pinMode(TCAN485_PIN_5V_EN, OUTPUT);
+    digitalWrite(TCAN485_PIN_5V_EN, HIGH);
+
+    pinMode(TCAN485_CAN_SE_PIN, OUTPUT);
+    digitalWrite(TCAN485_CAN_SE_PIN, LOW);
+    #endif
+
     constexpr bool CAN_ENABLE_ALERTS {true};
     constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
     constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
     const can::Baudrate baudrate = (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN)==ID_CAN_DEVICE_VICTRON_250K) ? can::Baudrate::BAUD_250KBPS :
                                                                                                                             can::Baudrate::BAUD_500KBPS;
-    const esp_err_t err = CAN.begin(GPIO_NUM_5, // Rx pin
-                                    GPIO_NUM_4, // Tx pin
+    const esp_err_t err = CAN.begin(CAN_RX_PIN,
+                                    CAN_TX_PIN,
                                     baudrate,
                                     CAN_ENABLE_ALERTS,
                                     CAN_RX_QUEUE_LENGTH,
