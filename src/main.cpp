@@ -1139,7 +1139,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_ow,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_onewire>2000) ret+=4;
+    if(millis()-lastTaskRun_onewire>3000) ret+=4;
     xSemaphoreGive(mutexTaskRunTime_ow);
   }
 
@@ -1151,7 +1151,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_serial,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
+    if(millis()-lastTaskRun_bscSerial>10000) ret+=16;
     xSemaphoreGive(mutexTaskRunTime_serial);
   }
 

@@ -95,6 +95,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ANZAHL_RULES_TRIGGER_SOC      4
 
 //DI/DO
+#ifndef LILYGO_TCAN485
 #define H_CLK                        14
 #define H_MOSI                       13
 #define H_MISO                       12
@@ -102,13 +103,16 @@ static const char COMPILE_DATE_TIME[] = "";
 #define CNT_DIGITALOUT                6
 #define CNT_DIGITALIN                 4
 #define GPIO_LED1_HW1                 0
+#endif
 
 //Tacho
+#ifndef LILYGO_TCAN485
 #define TACHO_ADDR0                   6
 #define TACHO_ADDR1                   7
 #define TACHO_ADDR2                  15
 #define TACHO_GPIO                   27
 #define TACHO_MEAS_TIME            3000
+#endif
 
 //Onewire
 #define MAX_ANZAHL_OW_SENSOREN         64
@@ -139,8 +143,21 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define SERIAL3_PIN_TX_EN             3
 #define SERIAL3_PIN_RX_EN            32
 
+//CAN
+#ifdef LILYGO_TCAN485
+  #define CAN_TX_PIN GPIO_NUM_27
+  #define CAN_RX_PIN GPIO_NUM_26
+#else
+  #define CAN_TX_PIN GPIO_NUM_4
+  #define CAN_RX_PIN GPIO_NUM_5
+#endif
+
 //Onewire (Temperatur)
-#define OW_PIN                       19
+#ifdef LILYGO_TCAN485
+  #define OW_PIN                     25
+#else
+  #define OW_PIN                     19
+#endif
 #define COUNT_TEMP_RULES             10
 
 //I2C
@@ -149,11 +166,24 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_DEV_ADDR_SLAVE1           16
 #define I2C_DEV_ADDR_SLAVE2           17
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
-#define I2C_SDA_PIN                   21
-#define I2C_SCL_PIN                   22
 #define I2C_FREQUENCY           1000000U
-//#define I2C_FREQUENCY           400000U
 #define I2C_CNT_SLAVES                2
+
+#ifdef LILYGO_TCAN485
+  #define I2C_SDA_PIN                   32
+  #define I2C_SCL_PIN                   33
+#else
+  #define I2C_SDA_PIN                   21
+  #define I2C_SCL_PIN                   22
+#endif
+
+//LILYGO_TCAN485
+#define TCAN485_PIN_5V_EN    16
+#define TCAN485_CAN_SE_PIN   23
+#define TCAN485_RS485_EN_PIN 17
+#define TCAN485_RS485_TX_PIN 22
+#define TCAN485_RS485_RX_PIN 21
+#define TCAN485_RS485_SE_PIN 19
 
 
 //BMS Data
