@@ -5,6 +5,7 @@
 
 
 #include "BmsData.h"
+#include "BmsDataTypes.hpp"
 #include "WebSettings.h"
 
 static const char * TAG = "BMSDATA";
@@ -374,10 +375,18 @@ uint32_t getBmsErrors(uint8_t devNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+
 void setBmsErrors(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsErrors[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
   xSemaphoreGive(mBmsDataMutex);
 }
 
