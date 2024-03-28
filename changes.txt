@@ -1,15 +1,6 @@
+v0.5.14
+- Toggeln des Triggergrundes im Log behoben
+
 v0.5.13
 - Remove WebUI v2
 - Anpassungen für HW2.4.1
-
-v0.5.12
-- Display of groups in WebUI changed
-- Alarm/trigger name changed in the log
-- Charging voltage range changed
-
-v0.5.11:
-- Fixed: SoC from BMS
-- Fixed: Copy from BT-MAC (#85)
-
-v0.5.10:
-- Problem with the calculation of the SoC average fixed
