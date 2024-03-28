@@ -160,11 +160,6 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
   {
     //BSC_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
-    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==0)
-    {
-      BSC_LOGI(TAG,"Trigger %i high, cause %i",alarmNr+1,cause);
-      logTrigger(alarmNr, cause, bo_lAlarm);
-    }
     bitSet(alarmCauseAktiv[alarmNr],cause);
     bo_alarmActivate[alarmNr]=true;
   }
@@ -177,15 +172,29 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
       bo_alarmActivate[alarmNr]=true;
     }
   }
+}
 
-  if(bo_lAlarm==false)
+/* Wenn sich die Triggergründe geändert haben, dann Meldung ins Log */
+void handleLogTrigger(uint16_t (&alarmCauseAktivLast)[CNT_ALARMS])
+{
+  for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++)
   {
-    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==1)
+    for(uint8_t cause=0; cause < 16; cause++)
     {
-      BSC_LOGI(TAG,"Trigger %i low, cause %i",alarmNr+1,cause);
-      logTrigger(alarmNr, cause, bo_lAlarm);
+      if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==0 &&
+        isBitSet(alarmCauseAktiv[triggerNr], cause)==1)
+      {
+        BSC_LOGI(TAG,"Trigger %i high, cause %i",triggerNr+1,cause);
+        logTrigger(triggerNr, cause, true);
+      }
+      else if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==1 &&
+        isBitSet(alarmCauseAktiv[triggerNr], cause)==0)
+      {
+        BSC_LOGI(TAG,"Trigger %i low, cause %i",triggerNr+1,cause);
+        logTrigger(triggerNr, cause, false);
+        bitClear(alarmCauseAktiv[triggerNr],cause);
+      }
     }
-    bitClear(alarmCauseAktiv[alarmNr],cause);
   }
 }
 
@@ -205,6 +214,12 @@ void runAlarmRules()
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;
+
+  // Merker für die letzten Alarm Gründe
+  uint16_t alarmCauseAktivLast[CNT_ALARMS];
+  memcpy(alarmCauseAktivLast, alarmCauseAktiv, sizeof(uint16_t)*CNT_ALARMS);
+  // Lösche den letzten Triggergrund; Der Grund wird in dem Durchgang neu gesetzt
+  for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++) alarmCauseAktiv[triggerNr]=0;
 
   //Toggle LED
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
@@ -300,6 +315,7 @@ void runAlarmRules()
   }
 
   setDOs();
+  handleLogTrigger(alarmCauseAktivLast);
 }
 
 
