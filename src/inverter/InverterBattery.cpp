@@ -28,7 +28,7 @@ namespace nsInverterBattery
     if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
     {
       inverter.inverterDataSemaphoreTake();
-      inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.u8_bmsDatasource));
+      inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.u8_bmsDatasource)*100.0f);
       inverter.inverterDataSemaphoreGive();
       return;
     }
@@ -40,7 +40,7 @@ namespace nsInverterBattery
         if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
         {
           inverter.inverterDataSemaphoreTake();
-          inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i));
+          inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100.0f);
           inverter.inverterDataSemaphoreGive();
           return;
         }
@@ -56,7 +56,7 @@ namespace nsInverterBattery
   void InverterBattery::getBatteryCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
     bool isOneBatteryPackOnline = false;
-    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource));
+    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource)*10.0f);
 
     if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
     #ifdef CAN_DEBUG
@@ -73,7 +73,7 @@ namespace nsInverterBattery
       if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
       {
         isOneBatteryPackOnline=true;
-        u16_lBatteryCurrent += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i));
+        u16_lBatteryCurrent += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10.0f);
         #ifdef CAN_DEBUG
         BSC_LOGI(TAG,"Battery current (T): dev=%i, time=%i, cur=%i",i,millis()-lTime, msgData.current);
         #endif

@@ -298,8 +298,8 @@ namespace nsCanbus
   {
   data356 msgData;
 
-  msgData.voltage = inverterData.batteryVoltage*100;
-  msgData.current = inverterData.batteryCurrent*10;
+  msgData.voltage = inverterData.batteryVoltage; //*100
+  msgData.current = inverterData.batteryCurrent; //*10;
 
   nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
   msgData.temperature = inverterBattery.getBatteryTemp(inverterData)*10; //Temperatur

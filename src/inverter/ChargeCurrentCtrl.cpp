@@ -204,7 +204,7 @@ namespace nsChargeCurrentCtrl
       {
         if(u32_lMaxCellDrift>u16_lstartDrift) //Wenn Drift groß genug ist
         {
-          if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)>=WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE)) //Wenn höchste Zellspannung groß genug ist
+          if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)>WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE)) //Wenn höchste Zellspannung groß genug ist
           {
             i16_lMaxChargeCurrent = i16_lMaxChargeCurrent-((u32_lMaxCellDrift-u16_lstartDrift)*WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_MV));
             if(i16_lMaxChargeCurrent<0) i16_lMaxChargeCurrent=0;
@@ -285,7 +285,7 @@ namespace nsChargeCurrentCtrl
    ********************************************************************************************/
   int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent)
   {
-    float fl_lTotalCurrent=0;
+    float lTotalCurrent=0;
 
     uint16_t u16_lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);
     if(u16_lCutOffTime==0) return u16_lChargeCurrent;
@@ -294,7 +294,7 @@ namespace nsChargeCurrentCtrl
     uint8_t u16_lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
 
     uint8_t u8_lSoc = (uint8_t)inverterData.inverterSoc;
-    fl_lTotalCurrent = inverterData.batteryCurrent/10;
+    lTotalCurrent = (float)(inverterData.batteryCurrent/10.0f);
 
     #ifdef CAN_DEBUG
     uint16_t u16_mChargeCurrentCutOfTimerOld = u16_mChargeCurrentCutOfTimer; //nur fürs Debug
@@ -311,7 +311,7 @@ namespace nsChargeCurrentCtrl
     else
     {
       //Timer hochzählen, wenn Strom kleiner
-      if(fl_lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
+      if(lTotalCurrent<fl_lCutOffCurrent && u8_lSoc>=u16_lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
       else inverterData.u16_mChargeCurrentCutOfTimer=0;
     }
 
@@ -325,4 +325,6 @@ namespace nsChargeCurrentCtrl
 
     return u16_lChargeCurrent;
   }
+
+
 }
