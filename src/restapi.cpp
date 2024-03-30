@@ -298,6 +298,9 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
 
 #ifdef UTEST_RESTAPI
 uint8_t u8_activeBms=0;
+uint16_t u16_paramNr=0;
+uint8_t u8_groupNr=0;
+uint8_t u8_dt=0;
 #endif
 bool handleRestArgs(WebServer * server)
 {
@@ -320,6 +323,22 @@ bool handleRestArgs(WebServer * server)
     #ifdef UTEST_RESTAPI
     else if(argName==F("setBms")) {u8_activeBms=(uint8_t)argValue.toInt();}
     else if(argName==F("soc")) {setBmsChargePercentage(u8_activeBms,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
+
+    else if(argName==F("param")) {u16_paramNr=(uint16_t)argValue.toInt();}
+    else if(argName==F("group")) {u8_groupNr=(uint8_t)argValue.toInt();}
+    else if(argName==F("dt"))
+    {
+      if(argValue=="U8") u8_dt=PARAM_DT_U8;
+      else if(argValue=="I8") u8_dt=PARAM_DT_I8;
+      else if(argValue=="U16") u8_dt=PARAM_DT_U16;
+      else if(argValue=="I16") u8_dt=PARAM_DT_I16;
+      else if(argValue=="U32") u8_dt=PARAM_DT_U32;
+      else if(argValue=="I32") u8_dt=PARAM_DT_I32;
+      else if(argValue=="FL") u8_dt=PARAM_DT_FL;
+      else if(argValue=="ST") u8_dt=PARAM_DT_ST;
+      else if(argValue=="BO") u8_dt=PARAM_DT_BO;
+    }
+    else if(argName==F("val")) ws.setParameter(u16_paramNr, u8_groupNr, argValue, u8_dt);
     #endif
     else ret=false;
   }
