@@ -9,8 +9,10 @@
 #include <Arduino.h>
 #include <WebServer.h>
 
+class Inverter;
 
-void buildJsonRest(WebServer * server);
+
+void buildJsonRest(Inverter &inverter, WebServer * server);
 void handle_setParameter(WebServer * server);
 
 #endif

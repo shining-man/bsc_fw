@@ -10,7 +10,7 @@
 RTC_DATA_ATTR uint8_t doOutData;
 static uint8_t u8_mHwVersion;
 
-#ifndef DEBUG_JTAG
+#if !defined(DEBUG_JTAG) && !defined(LILYGO_TCAN485)
 SPIClass * hspi = NULL;
 
 void initDio(bool restore)
@@ -27,6 +27,9 @@ void initDio(bool restore)
 
   hspi = new SPIClass(HSPI);
   hspi->begin(H_CLK, H_MISO, H_MOSI);
+  hspi->setDataMode(SPI_MODE3);
+  hspi->setBitOrder(MSBFIRST);
+  hspi->setFrequency(1000000);
 
   dioRwInOut();
 
@@ -53,20 +56,23 @@ uint8_t dioRwInOut()
 {
   uint8_t receivedVal = 0;
 
-  //Eingänge ins Eingangsregister des HC165 laden (High-Flanke)
+  // PL Pin auf LOW
   digitalWrite(IO_DO_PL, LOW);
-  delayMicroseconds(5);
-  digitalWrite(IO_DO_PL, HIGH);
-  delayMicroseconds(5);
 
-  hspi->beginTransaction(SPISettings(1000000, MSBFIRST, SPI_MODE2));
-  receivedVal = hspi->transfer(doOutData);
-  hspi->endTransaction();
+  //Ausgaänge ins HC595 schreiben
+  hspi->transfer(doOutData);
 
-  //Ausgänge setzen HC595 (High-Flanke)
-  digitalWrite(IO_DO_PL, LOW);
-  delayMicroseconds(5);
+  // SPI Mode wechseln
+  hspi->setDataMode(SPI_MODE2);
+
+  // Ausgänge von HC595 übernehmen und HC165 einlesen (HIGH-Flanke)
   digitalWrite(IO_DO_PL, HIGH);
+
+  // Eingänge des HC165 lesen
+  receivedVal = hspi->transfer(0);
+
+  // Spi Mode wieder zurück wechseln
+  hspi->setDataMode(SPI_MODE3);
 
   return receivedVal;
 }

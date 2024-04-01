@@ -3,13 +3,12 @@
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
-
 #ifndef BMSDATA_H
 #define BMSDATA_H
 
 #include <Arduino.h>
 #include "defines.h"
-
+#include "BmsDataTypes.hpp"
 
 struct bmsData_s
 {
@@ -46,28 +45,6 @@ struct bmsData_s
   uint8_t    bmsLastChangeCellVoltageCrc[BMSDATA_NUMBER_ALLDEVICES]; // Wird nach dem Holen Daten vom BMS berechnet
   //                                                                 // *=Teilweise; -=Nicht verfügbar; c=wird berechnet
 };
-
-
-
-//bmsErrors
-#define BMS_ERR_STATUS_OK                0
-#define BMS_ERR_STATUS_CELL_OVP          1   //bit0  single cell overvoltage protection
-#define BMS_ERR_STATUS_CELL_UVP          2   //bit1  single cell undervoltage protection
-#define BMS_ERR_STATUS_BATTERY_OVP       4   //bit2  whole pack overvoltage protection
-#define BMS_ERR_STATUS_BATTERY_UVP       8   //bit3  Whole pack undervoltage protection
-#define BMS_ERR_STATUS_CHG_OTP          16   //bit4  charging over temperature protection
-#define BMS_ERR_STATUS_CHG_UTP          32   //bit5  charging low temperature protection
-#define BMS_ERR_STATUS_DSG_OTP          64   //bit6  Discharge over temperature protection
-#define BMS_ERR_STATUS_DSG_UTP         128   //bit7  discharge low temperature protection
-#define BMS_ERR_STATUS_CHG_OCP         256   //bit8  charging overcurrent protection
-#define BMS_ERR_STATUS_DSG_OCP         512   //bit9  Discharge overcurrent protection
-#define BMS_ERR_STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection
-#define BMS_ERR_STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error
-#define BMS_ERR_STATUS_SOFT_LOCK      4096   //bit12 software lock MOS
-#define BMS_ERR_STATUS_RESERVED1      8192   //bit13 Reserved
-#define BMS_ERR_STATUS_RESERVED2     16384   //bit14 Reserved
-#define BMS_ERR_STATUS_RESERVED3     32768   //bit15 Reserved
-
 
 //Filter
 struct bmsFilterData_s
@@ -130,6 +107,7 @@ void setBmsMinCellVoltage(uint8_t devNr, uint16_t value);
 
 uint32_t getBmsErrors(uint8_t devNr);
 void setBmsErrors(uint8_t devNr, uint32_t value);
+void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status);
 
 uint8_t getBmsStateFETs(uint8_t devNr);
 void    setBmsStateFETs(uint8_t devNr, uint8_t value);

@@ -60,17 +60,29 @@ void BscSerial::initSerial()
 {
   mSerialMutex = xSemaphoreCreateMutex();
 
+  #ifdef LILYGO_TCAN485
+  pinMode(TCAN485_RS485_EN_PIN, OUTPUT);
+  digitalWrite(TCAN485_RS485_EN_PIN, HIGH);
+  pinMode(TCAN485_RS485_SE_PIN, OUTPUT);
+  digitalWrite(TCAN485_RS485_SE_PIN, HIGH);
+
+  pinMode(TCAN485_PIN_5V_EN, OUTPUT);
+  digitalWrite(TCAN485_PIN_5V_EN, HIGH);
+
+  #else
+
   pinMode(SERIAL1_PIN_TX_EN, OUTPUT);  //HW serial0
   pinMode(SERIAL2_PIN_TX_EN, OUTPUT);  //HW serial1
   if(getHwVersion()>=2) pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //HW serial2
   pinMode(SERIAL3_PIN_RX_EN, OUTPUT);  //HW serial2
+  #endif
 
   for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
   {
     serialDeviceData[i].u8_mFilterBmsCellVoltageMaxCount=0;
     serialDeviceData[i].u32_baudrate=9600;
 
-    #ifdef DEBUG_ON_HW_SERIAL
+    #if defined(DEBUG_ON_HW_SERIAL) && !defined(LILYGO_TCAN485)
     if(i==0) setSoftSerial(i,serialDeviceData[i].u32_baudrate);
     #endif
 
@@ -99,33 +111,44 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
 {
   //BSC_LOGI(TAG,"setHwSerial() devNr=%i, baudrate=%i",u8_devNr,baudrate);
 
+  #ifdef LILYGO_TCAN485
+  if(u8_devNr==2) // Hw Serial 0
+  {
+    Serial2.end();
+    Serial2.begin(baudrate,SERIAL_8N1,TCAN485_RS485_RX_PIN,TCAN485_RS485_TX_PIN);
+    serialDeviceData[u8_devNr].stream_mPort=&Serial2;
+  }
+
+  #else
+
   if(u8_devNr==0) // Hw Serial 1
   {
     Serial.end();
     //Serial.setRxBufferSize(300);
     Serial.begin(baudrate,SERIAL_8N1,SERIAL1_PIN_RX,SERIAL1_PIN_TX);
-        serialDeviceData[u8_devNr].stream_mPort=&Serial;
+    serialDeviceData[u8_devNr].stream_mPort=&Serial;
   }
   else if(u8_devNr==1) // Hw Serial 2
   {
     Serial1.end();
     //Serial1.setRxBufferSize(300);
     Serial1.begin(baudrate,SERIAL_8N1,SERIAL2_PIN_RX,SERIAL2_PIN_TX);
-        serialDeviceData[u8_devNr].stream_mPort=&Serial1;
+    serialDeviceData[u8_devNr].stream_mPort=&Serial1;
   }
   else if(u8_devNr==2) // Hw Serial 0
   {
     Serial2.end();
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
-        serialDeviceData[u8_devNr].stream_mPort=&Serial2;
+    serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
   else if(u8_devNr>2 && isSerialExtEnabled()) // Hw Serial 0
   {
     Serial2.end();
     //Serial2.setRxBufferSize(300);
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
-        serialDeviceData[u8_devNr].stream_mPort=&Serial2;
+    serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
+  #endif
 }
 
 
@@ -141,6 +164,12 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr, uint32_t baudrate)
 {
   serialDeviceData[u8_devNr].u32_baudrate = baudrate;
 
+  #ifdef LILYGO_TCAN485
+  if(u8_devNr>=2)
+  {
+    setHwSerial(u8_devNr, baudrate);
+  }
+  #else
   if(u8_devNr==0)
   {
     #ifndef DEBUG_ON_HW_SERIAL
@@ -158,6 +187,7 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr, uint32_t baudrate)
   {
     setHwSerial(u8_devNr, baudrate);
   }
+  #endif
 }
 
 void BscSerial::setSerialBaudrate(uint8_t u8_devNr)
@@ -168,6 +198,14 @@ void BscSerial::setSerialBaudrate(uint8_t u8_devNr)
 
 void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 {
+  #ifdef LILYGO_TCAN485
+  if(u8_devNr<2)
+  {
+    serialDeviceData[u8_devNr].readBms = 0;
+    return;
+  }
+  #endif
+
   serialDeviceData[u8_devNr].u8_mFilterBmsCellVoltageMaxCount = (uint8_t)WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_RX_ERROR_COUNT,0,DT_ID_PARAM_BMS_FILTER_RX_ERROR_COUNT);
 
   //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
@@ -268,6 +306,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
 {
+  #ifndef LILYGO_TCAN485
   if(u8_devNr==0)
   {
     if(e_rw==serialRxTx_TxEn)
@@ -316,6 +355,7 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
   {
     i2cExtSerialSetEnable(u8_devNr-3, (serialRxTxEn_e)e_rw);
   }
+  #endif
 }
 
 

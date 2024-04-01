@@ -5,6 +5,7 @@
 
 
 #include "BmsData.h"
+#include "BmsDataTypes.hpp"
 #include "WebSettings.h"
 
 static const char * TAG = "BMSDATA";
@@ -329,11 +330,11 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
 
-    uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    uint16_t u16_CellvoltSoc0 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
 
 
-    if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
+    if(u16_CellvoltSoc100 > 0 && ( bmsData.bmsMaxCellVoltage[devNr] >= u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
@@ -355,7 +356,7 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       else
         value = result;
     }
-    else
+    else if(u16_CellvoltSoc100 > 0)
     {
       if(value==100) value=99;
     }
@@ -374,10 +375,18 @@ uint32_t getBmsErrors(uint8_t devNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+
 void setBmsErrors(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsErrors[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
   xSemaphoreGive(mBmsDataMutex);
 }
 
