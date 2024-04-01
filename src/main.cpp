@@ -38,6 +38,7 @@
 #endif
 
 #include "defines.h"
+#include "inverter/Inverter.hpp"
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"
@@ -45,7 +46,6 @@
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
-#include "Canbus.h"
 #include "BscSerial.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
@@ -73,6 +73,7 @@ static const char *TAG = "MAIN";
 WebServer server;
 BleHandler bleHandler;
 BscSerial bscSerial;   // Serial
+Inverter inverter;
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -702,12 +703,12 @@ void task_alarmRules(void *param)
   BSC_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
 
   vTaskDelay(pdMS_TO_TICKS(15000));
-  initAlarmRules();
+  initAlarmRules(inverter);
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    runAlarmRules();
+    runAlarmRules(inverter);
     xSemaphoreTake(mutexTaskRunTime_alarmrules, portMAX_DELAY);
     lastTaskRun_alarmrules=millis();
     xSemaphoreGive(mutexTaskRunTime_alarmrules);
@@ -735,12 +736,12 @@ void task_canbusTx(void *param)
 {
   BSC_LOGD(TAG, "-> 'task_canbusTx' runs on core %d", xPortGetCoreID());
 
-  canSetup();
+  inverter.inverterInit();
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    canTxCyclicRun();
+    inverter.cyclicRun();
     if(xSemaphoreTake(mutexTaskRunTime_can, 100))
     {
       lastTaskRuncanbusTx=millis();
@@ -775,7 +776,7 @@ void task_i2c(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
-    i2cCyclicRun(); //Sende Daten zum Display
+    i2cCyclicRun(inverter); //Sende Daten zum Display
 
     if(changeWlanDataForI2C)
     {
@@ -783,7 +784,7 @@ void task_i2c(void *param)
       String ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
-      i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
@@ -909,7 +910,7 @@ void handle_paramBmsToInverter()
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
-    loadCanSettings();
+    inverter.loadIverterSettings();
   }
 }
 
@@ -1075,7 +1076,7 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(&server);
+  buildJsonRest(inverter, &server);
 }
 
 
@@ -1144,7 +1145,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_ow,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_onewire>2000) ret+=4;
+    if(millis()-lastTaskRun_onewire>3000) ret+=4;
     xSemaphoreGive(mutexTaskRunTime_ow);
   }
 
@@ -1156,7 +1157,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_serial,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
+    if(millis()-lastTaskRun_bscSerial>10000) ret+=16;
     xSemaphoreGive(mutexTaskRunTime_serial);
   }
 
@@ -1282,7 +1283,7 @@ void setup()
 
   //ini WebPages
   #ifdef INSIDER_V1
-  if(bo_isSupporter)
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
   {
     server.on("/old",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
@@ -1300,12 +1301,12 @@ void setup()
     server.on("/p_neey", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
     server.on("/p_jbd", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceJbdBms);});
     server.on("/p_bpn", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceBpn);});
-  }
+  /*}
   else
   {
     server.on("/",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
-  }
+  }*/
   #else
   server.on("/",handlePage_root);
   server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
@@ -1318,7 +1319,7 @@ void setup()
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(&server);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, &server);});
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
 
   server.on("/settings/system/",handle_paramSystem);
@@ -1371,6 +1372,12 @@ void setup()
     ESP.restart();
   });
 
+  #ifdef INSIDER_V1
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
+  {
+    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
+  }
+  #endif
 
   //Erstelle Tasks
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
@@ -1424,7 +1431,7 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
-  logValues();
+  logValues(inverter);
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)

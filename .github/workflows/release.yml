@@ -45,8 +45,11 @@ jobs:
       - name: Run githubCI.py
         run: python ./scripts/githubCI.py
 
+      - name: Build & run native unit tests
+        run: platformio test -e native_test
+
       - name: Build firmware
-        run: platformio run
+        run: platformio run -e bsc -e bsc_hw_log
 
       - name: Copy output
         run: |

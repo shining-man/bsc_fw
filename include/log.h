@@ -8,6 +8,8 @@
 
 #include <Arduino.h>
 
+class Inverter;
+
 void debugInit();
 
 #ifdef DEBUG_ON_FS
@@ -15,7 +17,7 @@ void writeLogToFS();
 #endif
 void deleteLogfile();
 void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger);
-void logValues();
+void logValues(Inverter &inverter);
 
 void fsLock();
 void fsUnlock();

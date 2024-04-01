@@ -12,7 +12,8 @@
 #include <BleHandler.h>
 #include <BscSerial.h>
 
-bool initWebApp2(WebServer *lserver, WebSettings *lwebSettings, BleHandler *lbleHandler, BscSerial *lBscSerial);
+void initWebApp2(WebServer *lserver, WebSettings *lwebSettings, BleHandler *lbleHandler, BscSerial *lBscSerial);
 String getSN();
+
 
 #endif

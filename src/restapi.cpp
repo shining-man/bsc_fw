@@ -1,11 +1,12 @@
 #include <Arduino.h>
 #include "restapi.h"
+#include "inverter/Inverter.hpp"
 #include "BmsData.h"
 #include "Ow.h"
 #include "Json.h"
 #include "WebSettings.h"
 #include "dio.h"
-#include "Canbus.h"
+#include "AlarmRules.h"
 
 static const char* TAG = "REST";
 
@@ -91,7 +92,7 @@ const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
 const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(WebServer * server)
+void buildJsonRest(Inverter &inverter, WebServer * server)
 {
   if(server->args()>0)
   {
@@ -124,15 +125,25 @@ void buildJsonRest(WebServer * server)
     server->sendContent(str_htmlOut);
     str_htmlOut="";
 
+    // Trigger
+    genJsonEntryArray(arrStart4, F("trigger"), "", str_htmlOut, true);
+
+    for(uint8_t i=0;i<9;i++) genJsonEntryArray(entrySingle, String(i), getAlarm(i), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, String(9), getAlarm(9), str_htmlOut, true);
+
+    genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
+    server->sendContent(str_htmlOut);
+    str_htmlOut="";
+
     // Inverter
     genJsonEntryArray(arrStart4, F("inverter"), "", str_htmlOut, true);
 
-    inverterDataSemaphoreTake();
-    inverterData_s *inverterData = getInverterData();
+    inverter.inverterDataSemaphoreTake();
+    Inverter::inverterData_s *inverterData = inverter.getInverterData();
     int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
     int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
-    int16_t inverterCurrent = inverterData->inverterCurrent;
-    int16_t inverterVoltage = inverterData->inverterVoltage;
+    int16_t inverterCurrent = inverterData->batteryCurrent;
+    int16_t inverterVoltage = inverterData->batteryVoltage;
     uint16_t inverterSoc = inverterData->inverterSoc;
 
     int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
@@ -141,7 +152,7 @@ void buildJsonRest(WebServer * server)
     int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
 
     int16_t calcDischargeCurrentCellVoltage = inverterData->calcDischargeCurrentCellVoltage;
-    inverterDataSemaphoreGive();
+    inverter.inverterDataSemaphoreGive();
     genJsonEntryArray(entrySingle, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("voltage"), inverterVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("soc"), inverterSoc, str_htmlOut, false);
@@ -299,6 +310,9 @@ void buildJsonRest(WebServer * server)
 #ifdef UTEST_RESTAPI
 uint8_t u8_activeBms=0;
 uint8_t u8_activeCellNr=0;
+uint16_t u16_paramNr=0;
+uint8_t u8_groupNr=0;
+uint8_t u8_dt=0;
 #endif
 bool handleRestArgs(WebServer * server)
 {
@@ -325,6 +339,22 @@ bool handleRestArgs(WebServer * server)
     else if(argName==F("cellNr")) {u8_activeCellNr=(uint8_t)argValue.toInt();}
     else if(argName==F("soc")) {setBmsChargePercentage(u8_activeBms,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
     else if(argName==F("cellV")) {setBmsCellVoltage(u8_activeBms,u8_activeCellNr,argValue.toInt()); setBmsLastDataMillis(u8_activeBms,millis());}
+
+    else if(argName==F("param")) {u16_paramNr=(uint16_t)argValue.toInt();}
+    else if(argName==F("group")) {u8_groupNr=(uint8_t)argValue.toInt();}
+    else if(argName==F("dt"))
+    {
+      if(argValue=="U8") u8_dt=PARAM_DT_U8;
+      else if(argValue=="I8") u8_dt=PARAM_DT_I8;
+      else if(argValue=="U16") u8_dt=PARAM_DT_U16;
+      else if(argValue=="I16") u8_dt=PARAM_DT_I16;
+      else if(argValue=="U32") u8_dt=PARAM_DT_U32;
+      else if(argValue=="I32") u8_dt=PARAM_DT_I32;
+      else if(argValue=="FL") u8_dt=PARAM_DT_FL;
+      else if(argValue=="ST") u8_dt=PARAM_DT_ST;
+      else if(argValue=="BO") u8_dt=PARAM_DT_BO;
+    }
+    else if(argName==F("val")) ws.setParameter(u16_paramNr, u8_groupNr, argValue, u8_dt);
     #endif
     else ret=false;
   }

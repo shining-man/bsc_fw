@@ -7,11 +7,14 @@
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
-#include "Canbus.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "FreqCountESP.h"
 #include "log.h"
+#include "inverter/Inverter.hpp"
+#ifdef LILYGO_TCAN485
+#include <Adafruit_NeoPixel.h>
+#endif
 
 static const char *TAG = "ALARM";
 
@@ -24,8 +27,12 @@ bool bo_Alarm[CNT_ALARMS];
 bool bo_Alarm_old[CNT_ALARMS];
 uint16_t alarmCauseAktiv[CNT_ALARMS];
 
+#ifndef LILYGO_TCAN485
 uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
 uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
+#else
+Adafruit_NeoPixel pixels(1, GPIO_NUM_4, NEO_GRB + NEO_KHZ800);
+#endif
 
 bool bo_alarmActivate[CNT_ALARMS]; //Merker ob ein Alarm in diesem 'run' gesetzt wurde
 bool bo_timerPulseOffIsRunning;
@@ -42,14 +49,7 @@ uint32_t u32_hystereseTotalVoltageMin=0;
 uint32_t u32_hystereseTotalVoltageMax=0;
 uint8_t u8_merkerHysterese_TriggerAtSoc=0;
 
-void rules_Bms();
-void rules_Temperatur();
-void rules_CanInverter();
-void rules_Tacho();
-bool temperatur_maxWertUeberwachung(uint8_t);
-bool temperatur_maxWertUeberwachungReferenz(uint8_t);
-bool temperatur_DifferenzUeberwachung(uint8_t);
-void temperatur_senorsErrors();
+#ifndef LILYGO_TCAN485
 void runDigitalAusgaenge();
 void doOffPulse(TimerHandle_t xTimer);
 void getDIs();
@@ -57,13 +57,23 @@ void setDOs();
 void tachoInit();
 bool tachoRead(uint16_t &tachoRpm);
 void tachoSetMux(uint8_t channel);
+#endif
+
+void rules_Bms();
+void rules_Temperatur();
+void rules_CanInverter(Inverter &inverter);
+void rules_Tacho();
+bool temperatur_maxWertUeberwachung(uint8_t);
+bool temperatur_maxWertUeberwachungReferenz(uint8_t);
+bool temperatur_DifferenzUeberwachung(uint8_t);
+void temperatur_senorsErrors();
 void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
-void rules_soc();
+void rules_soc(Inverter &inverter);
 void rules_vTrigger();
 
 
-void initAlarmRules()
+void initAlarmRules(Inverter &inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
@@ -85,14 +95,15 @@ void initAlarmRules()
     }
   }
 
+  doMutex = xSemaphoreCreateMutex();
+  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
+
+  #ifndef LILYGO_TCAN485
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
   {
     u16_DoPulsOffCounter[i] = 0;
     u8_DoVerzoegerungTimer[i] = 0xFF;
   }
-
-  doMutex = xSemaphoreCreateMutex();
-  if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
 
   timer_doOffPulse = xTimerCreate("doPulse", pdMS_TO_TICKS(10), pdFALSE, (void *)1, &doOffPulse);
   assert(timer_doOffPulse);
@@ -101,6 +112,11 @@ void initAlarmRules()
   {
     //tachoInit();
   }
+  #else
+  pixels.begin();
+  pixels.clear();
+  pixels.setBrightness(20);
+  #endif
 }
 
 bool isTriggerSelected(uint16_t paramId, uint8_t groupNr, uint8_t dataType, uint8_t triggerNr)
@@ -160,11 +176,6 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
   {
     //BSC_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
     bo_Alarm[alarmNr]=true;
-    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==0)
-    {
-      BSC_LOGI(TAG,"Trigger %i high, cause %i",alarmNr+1,cause);
-      logTrigger(alarmNr, cause, bo_lAlarm);
-    }
     bitSet(alarmCauseAktiv[alarmNr],cause);
     bo_alarmActivate[alarmNr]=true;
   }
@@ -177,15 +188,29 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
       bo_alarmActivate[alarmNr]=true;
     }
   }
+}
 
-  if(bo_lAlarm==false)
+/* Wenn sich die Triggergründe geändert haben, dann Meldung ins Log */
+void handleLogTrigger(uint16_t (&alarmCauseAktivLast)[CNT_ALARMS])
+{
+  for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++)
   {
-    if(((alarmCauseAktiv[alarmNr]>>cause)&0x1)==1)
+    for(uint8_t cause=0; cause < 16; cause++)
     {
-      BSC_LOGI(TAG,"Trigger %i low, cause %i",alarmNr+1,cause);
-      logTrigger(alarmNr, cause, bo_lAlarm);
+      if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==0 &&
+        isBitSet(alarmCauseAktiv[triggerNr], cause)==1)
+      {
+        BSC_LOGI(TAG,"Trigger %i high, cause %i",triggerNr+1,cause);
+        logTrigger(triggerNr, cause, true);
+      }
+      else if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==1 &&
+        isBitSet(alarmCauseAktiv[triggerNr], cause)==0)
+      {
+        BSC_LOGI(TAG,"Trigger %i low, cause %i",triggerNr+1,cause);
+        logTrigger(triggerNr, cause, false);
+        bitClear(alarmCauseAktiv[triggerNr],cause);
+      }
     }
-    bitClear(alarmCauseAktiv[alarmNr],cause);
   }
 }
 
@@ -201,14 +226,27 @@ bool setVirtualTrigger(uint8_t triggerNr, bool val)
 
 
 //Wird vom Task aus der main.c zyklisch aufgerufen
-void runAlarmRules()
+void runAlarmRules(Inverter &inverter)
 {
   uint8_t i;
   bool bo_lChangeAlarmSettings=false;
 
+  // Merker für die letzten Alarm Gründe
+  uint16_t alarmCauseAktivLast[CNT_ALARMS];
+  memcpy(alarmCauseAktivLast, alarmCauseAktiv, sizeof(uint16_t)*CNT_ALARMS);
+  // Lösche den letzten Triggergrund; Der Grund wird in dem Durchgang neu gesetzt
+  for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++) alarmCauseAktiv[triggerNr]=0;
+
   //Toggle LED
+  #ifdef LILYGO_TCAN485
+  if(pixels.getPixelColor(0)>=0x100) pixels.setPixelColor(0, pixels.Color(0, 0, 150));
+  else pixels.setPixelColor(0, pixels.Color(0, 150, 0));
+  pixels.show();
+
+  #else
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
   else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+  #endif
 
   //Merker vor jedem run auf false setzen
   for(i=0;i<CNT_ALARMS;i++){bo_alarmActivate[i]=false;}
@@ -223,16 +261,18 @@ void runAlarmRules()
   rules_PlausibilityCeck();
 
   //Inverter (CAN)
-  rules_CanInverter();
+  rules_CanInverter(inverter);
 
   //Digitaleingänge
+  #ifndef LILYGO_TCAN485
   getDIs();
 
   //Tacho auswerten
   //rules_Tacho();
+  #endif
 
   //Rules Soc
-  rules_soc();
+  rules_soc(inverter);
 
   //Virtual Trigger
   rules_vTrigger();
@@ -269,6 +309,7 @@ void runAlarmRules()
       }
 
       //Bearbeiten der 6 Relaisausgaenge
+      #ifndef LILYGO_TCAN485
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
@@ -293,13 +334,17 @@ void runAlarmRules()
           }
         }
       }
+      #endif
 
       //Alarm an BT Device weiterleiten
       setAlarmToBtDevices(i, bo_Alarm[i]);
     }
   }
 
+  #ifndef LILYGO_TCAN485
   setDOs();
+  #endif
+  handleLogTrigger(alarmCauseAktivLast);
 }
 
 
@@ -316,6 +361,7 @@ void changeAlarmSettings()
 }
 
 
+#ifndef LILYGO_TCAN485
 void setDOs()
 {
   //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut
@@ -554,7 +600,7 @@ void rules_Tacho()
     }
   }
 }
-
+#endif
 
 
 void rules_Bms()
@@ -719,19 +765,19 @@ void rules_Temperatur()
 }
 
 
-void rules_CanInverter()
+void rules_CanInverter(Inverter &inverter)
 {
   //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) canSetChargeCurrentToZero(true);
-  else canSetChargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
+  else inverter.setChargeCurrentToZero(false);
 
   //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) canSetDischargeCurrentToZero(true);
-  else canSetDischargeCurrentToZero(false);
+  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) inverter.setDischargeCurrentToZero(true);
+  else inverter.setDischargeCurrentToZero(false);
 
   //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) canSetSocToFull(true);
-  else canSetSocToFull(false);
+  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) inverter.setSocToFull(true);
+  else inverter.setSocToFull(false);
 }
 
 uint16_t u16_mMerkerTemperaturTrigger=0;
@@ -911,14 +957,15 @@ void rules_PlausibilityCeck()
 
 
 //
-void rules_soc()
+void rules_soc(Inverter &inverter)
 {
-  inverterDataSemaphoreTake();
-  inverterData_s *inverterData = getInverterData();
-  inverterDataSemaphoreGive();
+  inverter.inverterDataSemaphoreTake();
+  Inverter::inverterData_s *inverterData = inverter.getInverterData();
+  inverter.inverterDataSemaphoreGive();
 
   if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
+    //BSC_LOGI(TAG,"No battery online");
     u8_merkerHysterese_TriggerAtSoc=0;
     return;
   }
@@ -934,7 +981,7 @@ void rules_soc()
     {
       u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
       u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
-      //BSC_LOGI(TAG,"ruleNr=%i, socOn=%i, socOff=%i, hyst=%i",ruleNr, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
+      //BSC_LOGI(TAG,"ruleNr=%i, soc=%i, socOn=%i, socOff=%i, hyst=%i", ruleNr, inverterData->inverterSoc, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
 
       if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {
