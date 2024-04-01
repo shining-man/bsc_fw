@@ -965,6 +965,7 @@ void rules_soc(Inverter &inverter)
 
   if(inverterData->noBatteryPackOnline==true) //Wenn kein Batterypack online ist, dann zurück
   {
+    //BSC_LOGI(TAG,"No battery online");
     u8_merkerHysterese_TriggerAtSoc=0;
     return;
   }
@@ -980,7 +981,7 @@ void rules_soc(Inverter &inverter)
     {
       u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
       u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
-      //BSC_LOGI(TAG,"ruleNr=%i, socOn=%i, socOff=%i, hyst=%i",ruleNr, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
+      //BSC_LOGI(TAG,"ruleNr=%i, soc=%i, socOn=%i, socOff=%i, hyst=%i", ruleNr, inverterData->inverterSoc, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
 
       if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {
