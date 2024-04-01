@@ -1039,11 +1039,6 @@ void handle_getDashboardData()
   tmp += "|";
   tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
 
-  //13. BSC SN
-  tmp += "|S";
-  tmp += getSN();
-  tmp += "Z";
-
   server.send(200, "text/html", tmp.c_str());
 }
 
@@ -1278,8 +1273,6 @@ void setup()
   #ifdef INSIDER_V1
   bo_isSupporter=initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
   #endif
-  String bscSn = getSN();
-  ESP_LOGI(TAG,"BSC SN: %s, %i",bscSn.c_str());
 
   //ini WebPages
   #ifdef INSIDER_V1
