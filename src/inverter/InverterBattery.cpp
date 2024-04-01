@@ -87,7 +87,7 @@ namespace nsInverterBattery
     }
 
     inverter.inverterDataSemaphoreTake();
-    inverterData.noBatteryPackOnline = isOneBatteryPackOnline;
+    inverterData.noBatteryPackOnline = !isOneBatteryPackOnline;
     inverterData.batteryCurrent = u16_lBatteryCurrent;
     inverter.inverterDataSemaphoreGive();
   }
