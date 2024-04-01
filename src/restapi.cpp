@@ -6,6 +6,7 @@
 #include "Json.h"
 #include "WebSettings.h"
 #include "dio.h"
+#include "AlarmRules.h"
 
 static const char* TAG = "REST";
 
@@ -119,6 +120,16 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
     genJsonEntryArray(entrySingle, F("fw_add"), BSC_SW_SPEZIAL, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("hw_version"), getHwVersion(), str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
+
+    genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
+    server->sendContent(str_htmlOut);
+    str_htmlOut="";
+
+    // Trigger
+    genJsonEntryArray(arrStart4, F("trigger"), "", str_htmlOut, true);
+
+    for(uint8_t i=0;i<9;i++) genJsonEntryArray(entrySingle, String(i), getAlarm(i), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, String(9), getAlarm(9), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
