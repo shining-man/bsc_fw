@@ -485,15 +485,15 @@ void BscSerial::cyclicRun()
     }
     else
     {
-      #ifndef UTEST_RESTAPI
+      //#ifndef UTEST_RESTAPI
       auto GetReasonStr = [u8_lReason]()
       {
         return (1==u8_lReason) ? "Checksum wrong" : "Filter";
       };
       BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
-      #else
-      setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
-      #endif
+      //#else
+      //setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      //#endif
     }
 
 
