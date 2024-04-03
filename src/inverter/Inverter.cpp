@@ -49,6 +49,11 @@ void Inverter::inverterInit()
   inverterData.u16_mSocZellspannungSperrzeitTimer=0;
   inverterData.u8_mSocZellspannungState=nsSocCtrl::SocCtrl::SM_SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
 
+  // Autoblance
+  inverterData.mStateAutobalance = nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT;
+  inverterData.lastAutobalanceRun=millis();
+  inverterData.autobalanceStartTime=0;
+
   loadIverterSettings();
   canbus.init();
 }
@@ -180,7 +185,7 @@ void Inverter::sendMqttMsg()
 {
   if(u8_mMqttTxTimer==15)
   {
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(inverterData.inverterChargeVoltage));
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(inverterData.inverterChargeVoltage/10.0f));
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_PERCENT, -1, inverterData.inverterSoc);
