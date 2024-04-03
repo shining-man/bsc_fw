@@ -234,3 +234,33 @@ void BmsDataUtils::buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t
   if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
   else snprintf(buffer, 8, "S%d C%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
 }
+
+
+// Ermitteln des niedrigsten Ladestroms der BMSen
+float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
+{
+  float u16_lMinCurrent=0xFFFF;
+
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+  {
+    u16_lMinCurrent = getBmsTotalCurrent(u8_mBmsDatasource);
+  }
+
+  if(u16_mBmsDatasourceAdd>0)
+  {
+    float u16_lMinCurrentTmp=0;
+    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    {
+      if((u16_mBmsDatasourceAdd>>i)&0x01)
+      {
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        {
+          u16_lMinCurrentTmp=getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
+          if(u16_lMinCurrentTmp<u16_lMinCurrent) u16_lMinCurrent=u16_lMinCurrentTmp;
+        }
+      }
+    }
+  }
+
+  return u16_lMinCurrent;
+}

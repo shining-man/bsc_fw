@@ -32,10 +32,10 @@ public:
 
         // Wechselrichterdaten
         bool       noBatteryPackOnline;
-        int16_t    batteryVoltage;
-        int16_t    batteryCurrent;
+        int16_t    batteryVoltage;        // Faktor: 100
+        int16_t    batteryCurrent;        // Faktor: 10
         int16_t    batteryTemperatur;
-        uint16_t   inverterChargeVoltage;
+        uint16_t   inverterChargeVoltage; // Faktor: 10
         uint16_t   inverterSoc;
         int16_t    inverterChargeCurrent;
         int16_t    inverterDischargeCurrent;
@@ -55,6 +55,11 @@ public:
         // Wenn Zellspannung kleiner x mV wird SoC auf x% setzen
         uint8_t  u8_mSocZellspannungState;
         uint16_t u16_mSocZellspannungSperrzeitTimer;
+
+        // Autoballance
+        uint8_t mStateAutobalance;
+        uint32_t lastAutobalanceRun;
+        uint32_t autobalanceStartTime;
     };
 
     void inverterInit();

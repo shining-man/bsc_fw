@@ -257,7 +257,7 @@ namespace nsCanbus
   msgData.dischargevoltage    = 0; //not use
 
   // Ladespannung
-  msgData.chargevoltagelimit = inverterData.inverterChargeVoltage*10;
+  msgData.chargevoltagelimit = inverterData.inverterChargeVoltage;
 
   // Ladestrom
   msgData.maxchargecurrent = inverterData.inverterChargeCurrent*10;

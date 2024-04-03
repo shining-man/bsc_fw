@@ -23,9 +23,11 @@ namespace nsChargeVoltageCtrl
 
   void ChargeVoltageCtrl::calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
-    uint16_t u16_lChargeVoltage = (uint16_t)WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0);
+    uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0f);
+    //calcDynamicChargeVoltageOffset(inverterData, u16_lChargeVoltage); // Hier den dynamischen Offset addieren
+    setAutobalanceVoltage(inverterData, u16_lChargeVoltage); //Ggf. die Ladespannung anheben auf die Autobalancespannung
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(inverterData, u16_lChargeVoltage);
-
+    BSC_LOGI("CV","AA %i", u16_lChargeVoltage);
     inverterData.inverterChargeVoltage = u16_lChargeVoltage; //ToDo semaphore
   }
 
@@ -59,4 +61,107 @@ namespace nsChargeVoltageCtrl
     }
     return u16_lChargeVoltage;
   }
+
+
+  /*
+   * Autobalancing
+   */
+  void ChargeVoltageCtrl::setAutobalanceVoltage(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage)
+  {
+    const uint8_t u16_lStartInterval = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL);
+    if(u16_lStartInterval==0)
+    {
+      inverterData.mStateAutobalance=STATE_AUTOBAL_OFF;
+      return;
+    }
+
+
+    if(inverterData.mStateAutobalance==STATE_AUTOBAL_OFF)
+    {
+      inverterData.lastAutobalanceRun=millis();
+      inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+    }
+
+    // Warte auf den Start (Intervall)
+    if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT)
+    {
+      BSC_LOGI("CV","A");
+      #ifdef UTEST_RESTAPI
+      if(millis()-inverterData.lastAutobalanceRun > ((uint32_t)u16_lStartInterval*1000))
+      #else
+      if(millis()-inverterData.lastAutobalanceRun > ((uint32_t)u16_lStartInterval*1440000)) // Tage: 24*60*1000
+      #endif
+      {
+        inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT_START_VOLTAGE;
+      }
+    }
+
+    // Wenn Intervall erreicht, dann auf Start-Cellvoltage warten
+    else if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT_START_VOLTAGE)
+    {
+      BSC_LOGI("CV","B");
+      const uint16_t u16_lStartCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE);
+      if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) >= u16_lStartCellVoltage)
+      {
+        inverterData.mStateAutobalance=STATE_AUTOBAL_RUNING;
+        inverterData.autobalanceStartTime=millis();
+      }
+    }
+
+    // Autobalancing läuft
+    else if(inverterData.mStateAutobalance==STATE_AUTOBAL_RUNING)
+    {
+      BSC_LOGI("CV","C");
+      // Timeout
+      const uint16_t u16_lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
+      if(millis()-inverterData.autobalanceStartTime > (u16_lTimeout*60*1000)) // if timeout
+      {
+        BSC_LOGI("CV","D");
+        // ToDo: MQTT Message, Trigger?
+        inverterData.lastAutobalanceRun=millis();
+        inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+        return;
+      }
+
+      // Finish
+      const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
+      if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
+      {
+        BSC_LOGI("CV","E");
+        inverterData.lastAutobalanceRun=millis();
+        inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+        return;
+      }
+
+      // Ladespannung einstellen
+      u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
+    }
+
+    // Error
+    else
+    {
+      BSC_LOGI("CV","F");
+    }
+  }
+
+
+    /*
+    * Berechnen des dynamischen Offsets
+    */
+    void ChargeVoltageCtrl::calcDynamicChargeVoltageOffset(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage)
+    {
+      uint16_t u16_lCurrent = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT);
+      if(u16_lCurrent>0)
+      {
+        uint16_t u16_lOffsetMin = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN);
+        uint16_t u16_lOffsetMax = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX);
+        int16_t u16_lMinBmsCurrent = (int16_t)BmsDataUtils::getMinCurrentFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+
+        if(u16_lMinBmsCurrent>=u16_lCurrent) u16_lChargeVoltage+=u16_lOffsetMax;
+        else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffsetMin+((u16_lOffsetMax-u16_lOffsetMin)/u16_lCurrent*u16_lMinBmsCurrent));
+      }
+    }
+
+
+
 }

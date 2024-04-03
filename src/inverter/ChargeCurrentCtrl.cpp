@@ -5,6 +5,7 @@
 
 #include "inverter/ChargeCurrentCtrl.hpp"
 #include "inverter/BmsDataUtils.hpp"
+#include "inverter/ChargeVoltageCtrl.hpp"
 #include "defines.h"
 #include "WebSettings.h"
 
@@ -160,10 +161,16 @@ namespace nsChargeCurrentCtrl
         uint16_t u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_ENDSPG);
         int16_t i16_lMindestChargeCurrent = (WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_MINDEST_STROM));
 
-        if(u16_lStartSpg>u16_lEndSpg) return i16_pMaxChargeCurrent; //Startspannung > Endspannung => Fehler
-        if(i16_pMaxChargeCurrent<=i16_lMindestChargeCurrent) return i16_pMaxChargeCurrent; //Maximaler Ladestrom < Mindest-Ladestrom => Fehler
+        // Wenn Autobalancing aktiv ist
+        if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING)
+        {
+          u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
+        }
 
-        if(u16_lAktuelleMaxZellspg>u16_lEndSpg)
+        if(u16_lStartSpg>=u16_lEndSpg) return i16_pMaxChargeCurrent; //Startspannung > Endspannung => Fehler
+        if(i16_pMaxChargeCurrent <= i16_lMindestChargeCurrent) return i16_pMaxChargeCurrent; //Maximaler Ladestrom < Mindest-Ladestrom => Fehler
+
+        if(u16_lAktuelleMaxZellspg > u16_lEndSpg)
         {
           //Wenn die aktuelle Zellspannung bereits größer als der Endzellspannung ist,
           //dann Ladestrom auf Mindest-Ladestrom einstellen
@@ -171,15 +178,16 @@ namespace nsChargeCurrentCtrl
         }
         else
         {
-          uint32_t u32_lAenderungProMv = ((u16_lEndSpg-u16_lStartSpg)*100)/(i16_pMaxChargeCurrent-i16_lMindestChargeCurrent); //Änderung pro mV
-          uint32_t u32_lStromAenderung = ((u16_lAktuelleMaxZellspg-u16_lStartSpg)*100)/u32_lAenderungProMv; //Ladestrom um den theoretisch reduziert werden muss
-          if(u32_lStromAenderung>(i16_pMaxChargeCurrent-i16_lMindestChargeCurrent))
+          uint32_t u32_lAenderungProMv = ((u16_lEndSpg - u16_lStartSpg)*100) / (i16_pMaxChargeCurrent - i16_lMindestChargeCurrent); //Änderung pro mV
+          if(u32_lAenderungProMv == 0) return i16_pMaxChargeCurrent;
+          uint32_t u32_lStromAenderung = ((u16_lAktuelleMaxZellspg - u16_lStartSpg)*100) / u32_lAenderungProMv; //Ladestrom um den theoretisch reduziert werden muss
+          if(u32_lStromAenderung > (i16_pMaxChargeCurrent - i16_lMindestChargeCurrent))
           {
             return i16_lMindestChargeCurrent;
           }
           else
           {
-            uint16_t u16_lNewChargeCurrent = i16_pMaxChargeCurrent-u32_lStromAenderung; //neuer Ladestrom
+            uint16_t u16_lNewChargeCurrent = i16_pMaxChargeCurrent - u32_lStromAenderung; //neuer Ladestrom
             return u16_lNewChargeCurrent;
           }
 
@@ -285,6 +293,8 @@ namespace nsChargeCurrentCtrl
    ********************************************************************************************/
   int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent)
   {
+    if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING) return u16_lChargeCurrent; //Wenn der Autobalancer gerade aktiv ist
+
     float lTotalCurrent=0;
 
     uint16_t u16_lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);

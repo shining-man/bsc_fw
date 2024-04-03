@@ -11,15 +11,19 @@
 
 namespace nsChargeVoltageCtrl
 {
-    class ChargeVoltageCtrl
-    {
-    public:
-        ChargeVoltageCtrl();
-        ~ChargeVoltageCtrl();
+  class ChargeVoltageCtrl
+  {
+  public:
+    ChargeVoltageCtrl();
+    ~ChargeVoltageCtrl();
 
-        void calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData);
+    void calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData);
 
-    private:
-        uint16_t calcDynamicReduzeChargeVolltage(Inverter::inverterData_s &inverterData, uint16_t u16_lChargeVoltage);
-    };
+    enum e_stateAutobalance {STATE_AUTOBAL_OFF, STATE_AUTOBAL_WAIT, STATE_AUTOBAL_WAIT_START_VOLTAGE, STATE_AUTOBAL_RUNING};
+
+  private:
+    uint16_t calcDynamicReduzeChargeVolltage(Inverter::inverterData_s &inverterData, uint16_t u16_lChargeVoltage);
+    void setAutobalanceVoltage(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage);
+    void calcDynamicChargeVoltageOffset(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage);
+  };
 }
