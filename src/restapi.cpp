@@ -12,7 +12,7 @@ static const char* TAG = "REST";
 
 enum genJsonTypes{arrStart,arrEnd,entrySingle,arrStart2,arrStart3,arrStart4,arrEnd2,entrySingle2};
 
-bool handleRestArgs(WebServer * server);
+bool handleRestArgs(WebServer * server, WebSettings &ws);
 
 
 void genJsonEntrySingle(String key, String value, String &str_retStr)
@@ -88,20 +88,22 @@ void genJsonEntryArray(genJsonTypes type, String key, int32_t value, String &str
 
 
 
-const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
-const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
+//const char JSON_BMS_BT_1[] PROGMEM ="\"bms_bt\":[%s]";
+//const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(Inverter &inverter, WebServer * server)
+void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
 {
   if(server->args()>0)
   {
-    handleRestArgs(server);
+    handleRestArgs(server, ws);
     server->send(200, "application/json", F("{\"state\":1}"));
   }
   else
   {
-    String str_htmlOut="";
+    String str_htmlOut;
+    str_htmlOut.reserve(2048);
+
     uint8_t u8_val=0;
 
     uint8_t u8_nrOfCells=WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
@@ -140,6 +142,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
 
     inverter.inverterDataSemaphoreTake();
     Inverter::inverterData_s *inverterData = inverter.getInverterData();
+    int16_t inverterChargeVoltage = inverterData->inverterChargeVoltage;
     int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
     int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
     int16_t inverterCurrent = inverterData->batteryCurrent;
@@ -153,10 +156,11 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
 
     int16_t calcDischargeCurrentCellVoltage = inverterData->calcDischargeCurrentCellVoltage;
     inverter.inverterDataSemaphoreGive();
-    genJsonEntryArray(entrySingle, F("current"), inverterCurrent, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("voltage"), inverterVoltage, str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("current"), String((float)(inverterCurrent/10.0f)), str_htmlOut, false);
+    genJsonEntryArray(entrySingle, F("voltage"), String((float)(inverterVoltage/100.0f)), str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("soc"), inverterSoc, str_htmlOut, false);
 
+    genJsonEntryArray(entrySingle, F("setpoint_cv"), String((float)(inverterChargeVoltage/10.0f)), str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingle, F("setpoint_dcc"), inverterDischargeCurrent, str_htmlOut, false);
 
@@ -218,6 +222,9 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
         genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
       }
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
+
+      server->sendContent(str_htmlOut);
+      str_htmlOut="";
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
@@ -283,6 +290,9 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
         genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
       }
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
+
+      server->sendContent(str_htmlOut);
+      str_htmlOut="";
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
@@ -304,6 +314,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server)
 
     server->sendContent(str_htmlOut);
     str_htmlOut="";
+    str_htmlOut.clear();
   }
 }
 
@@ -314,9 +325,8 @@ uint16_t u16_paramNr=0;
 uint8_t u8_groupNr=0;
 uint8_t u8_dt=0;
 #endif
-bool handleRestArgs(WebServer * server)
+bool handleRestArgs(WebServer * server, WebSettings &ws)
 {
-  WebSettings ws;
   bool ret=true;
   String argName, argValue;
 

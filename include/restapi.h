@@ -10,9 +10,10 @@
 #include <WebServer.h>
 
 class Inverter;
+class WebSettings;
 
 
-void buildJsonRest(Inverter &inverter, WebServer * server);
+void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws);
 void handle_setParameter(WebServer * server);
 
 #endif
