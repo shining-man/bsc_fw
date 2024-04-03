@@ -812,7 +812,7 @@ void WebSettings::createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt,
 void WebSettings::createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, int32_t value, uint8_t precision)
 {
   //if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  BSC_LOGI(TAG,"createHtmlFloat_int: precision=%i", precision);
+  //BSC_LOGI(TAG,"createHtmlFloat_int: precision=%i", precision);
   String str_className;
   String str_precision;
   float fl_lVal=0;
@@ -836,7 +836,7 @@ void WebSettings::createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt
     fl_lVal=(float)value/1000;
   }
   String valueStr = String(fl_lVal);
-  BSC_LOGI(TAG,"createHtmlFloat_int: valStr=%s, val=%f", valueStr.c_str(), fl_lVal);
+  //BSC_LOGI(TAG,"createHtmlFloat_int: valStr=%s, val=%f", valueStr.c_str(), fl_lVal);
   sprintf(buf,HTML_ENTRY_FLOAT_X,label->c_str(),
     str_precision.c_str(),
     getJsonOptionsMin(parameter, idx, startPos),
