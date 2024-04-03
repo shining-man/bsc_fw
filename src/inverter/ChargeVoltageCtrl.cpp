@@ -27,7 +27,6 @@ namespace nsChargeVoltageCtrl
     //calcDynamicChargeVoltageOffset(inverterData, u16_lChargeVoltage); // Hier den dynamischen Offset addieren
     setAutobalanceVoltage(inverterData, u16_lChargeVoltage); //Ggf. die Ladespannung anheben auf die Autobalancespannung
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(inverterData, u16_lChargeVoltage);
-    BSC_LOGI("CV","AA %i", u16_lChargeVoltage);
     inverterData.inverterChargeVoltage = u16_lChargeVoltage; //ToDo semaphore
   }
 
@@ -85,7 +84,6 @@ namespace nsChargeVoltageCtrl
     // Warte auf den Start (Intervall)
     if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT)
     {
-      BSC_LOGI("CV","A");
       #ifdef UTEST_RESTAPI
       if(millis()-inverterData.lastAutobalanceRun > ((uint32_t)u16_lStartInterval*1000))
       #else
@@ -99,7 +97,6 @@ namespace nsChargeVoltageCtrl
     // Wenn Intervall erreicht, dann auf Start-Cellvoltage warten
     else if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT_START_VOLTAGE)
     {
-      BSC_LOGI("CV","B");
       const uint16_t u16_lStartCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE);
       if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) >= u16_lStartCellVoltage)
       {
@@ -111,12 +108,10 @@ namespace nsChargeVoltageCtrl
     // Autobalancing läuft
     else if(inverterData.mStateAutobalance==STATE_AUTOBAL_RUNING)
     {
-      BSC_LOGI("CV","C");
       // Timeout
       const uint16_t u16_lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
       if(millis()-inverterData.autobalanceStartTime > (u16_lTimeout*60*1000)) // if timeout
       {
-        BSC_LOGI("CV","D");
         // ToDo: MQTT Message, Trigger?
         inverterData.lastAutobalanceRun=millis();
         inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
@@ -127,7 +122,6 @@ namespace nsChargeVoltageCtrl
       const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
       if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
       {
-        BSC_LOGI("CV","E");
         inverterData.lastAutobalanceRun=millis();
         inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
         return;
@@ -138,10 +132,9 @@ namespace nsChargeVoltageCtrl
     }
 
     // Error
-    else
+    /*else
     {
-      BSC_LOGI("CV","F");
-    }
+    }*/
   }
 
 
