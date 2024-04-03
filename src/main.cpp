@@ -1071,7 +1071,7 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(inverter, &server);
+  buildJsonRest(inverter, &server, webSettingsSystem);
 }
 
 
@@ -1312,7 +1312,7 @@ void setup()
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, &server);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, &server, webSettingsSystem);});
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
 
   server.on("/settings/system/",handle_paramSystem);
