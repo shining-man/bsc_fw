@@ -8,6 +8,7 @@
 #include <cstdint>
 #include "inverter/Inverter.hpp"
 
+
 namespace nsCanbus
 {
   class Canbus
@@ -33,8 +34,8 @@ namespace nsCanbus
 
     struct data355
     {
-      uint16_t soc; //state of charge
-      uint16_t soh; //state of health
+           uint16_t soc; //state of charge
+           uint16_t soh; //state of health
     };
 
     struct data356
@@ -81,5 +82,11 @@ namespace nsCanbus
     void sendExtendedCanMsgBmsData();
 
     void onCanReceive(int packetSize);
+    void sendCanMsg_productinfo_382();
+    void sendCanMsg_version_35f_SolarEdgeRWS();
+    void sendCanMsg_soc_soh_355_SolarEdgeRWS(Inverter::inverterData_s &inverterData); //Anpassung SolaredgeRWS
+    void sendCanMsg_ChgVoltCur_DisChgCur_351_SolarEdgeRWS(Inverter::inverterData_s &inverterData);
+
+    void sendCanMsg_Battery_Voltage_Current_Temp_356_SolarEdgeRWS(Inverter::inverterData_s &inverterData); //Anpassung SolaredgeRWS
   };
 }
