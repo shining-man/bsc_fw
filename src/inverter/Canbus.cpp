@@ -6,6 +6,7 @@
 #include "inverter/Canbus.hpp"
 #include "inverter/InverterBattery.hpp"
 #include "inverter/BmsDataUtils.hpp"
+#include "inverter/Solaredge.hpp"
 #include <ESP32TWAISingleton.hpp>
 #include "defines.h"
 #include "WebSettings.h"
@@ -26,21 +27,13 @@ namespace nsCanbus
 
   void Canbus::init()
   {
-    #ifdef LILYGO_TCAN485
-    pinMode(TCAN485_PIN_5V_EN, OUTPUT);
-    digitalWrite(TCAN485_PIN_5V_EN, HIGH);
-
-    pinMode(TCAN485_CAN_SE_PIN, OUTPUT);
-    digitalWrite(TCAN485_CAN_SE_PIN, LOW);
-    #endif
-
     constexpr bool CAN_ENABLE_ALERTS {true};
     constexpr std::size_t CAN_RX_QUEUE_LENGTH {10};
     constexpr std::size_t CAN_TX_QUEUE_LENGTH {10};
     const can::Baudrate baudrate = (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN)==ID_CAN_DEVICE_VICTRON_250K) ? can::Baudrate::BAUD_250KBPS :
                                                                                                                             can::Baudrate::BAUD_500KBPS;
-    const esp_err_t err = CAN.begin(CAN_RX_PIN,
-                                    CAN_TX_PIN,
+    const esp_err_t err = CAN.begin(GPIO_NUM_5, // Rx pin
+                                    GPIO_NUM_4, // Tx pin
                                     baudrate,
                                     CAN_ENABLE_ALERTS,
                                     CAN_RX_QUEUE_LENGTH,
@@ -77,6 +70,7 @@ namespace nsCanbus
         sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData);
         sendCanMsg_min_max_values_373_376_377(inverterData);
 
+
         //Send extended data
         if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
         {
@@ -86,6 +80,17 @@ namespace nsCanbus
         //374, 359
         break;
 
+      case ID_CAN_DEVICE_SOLAREDGE_RWS: //Anpassung SolarEdgeRWS
+        sendCanMsg_hostname_35e_370_371();
+        sendCanMsg_productinfo_382();//Anpassung SolaredgeRWS
+        sendCanMsg_version_35f_SolarEdgeRWS();//Anpassung SolaredgeRWS
+        sendCanMsg_Alarm_35a(inverterData);
+        sendCanMsg_ChgVoltCur_DisChgCur_351_SolarEdgeRWS(inverterData);
+        sendCanMsg_soc_soh_355_SolarEdgeRWS(inverterData);//Anpassung SolaredgeRWS
+        sendCanMsg_Battery_Voltage_Current_Temp_356_SolarEdgeRWS(inverterData); //Anpassung SolaredgeRWS
+        //sendCanMsg_372();
+        sendCanMsg_min_max_values_373_376_377(inverterData);
+        //sendCanMsg_359(); //Alarms
       default:
         break;
     }
@@ -226,6 +231,7 @@ namespace nsCanbus
   {
     static char hostname_general[16] = {'B','S','C',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
     static char hostname_pylon[16] = {'P','Y','L','O','N',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+    static char hostname_byd[16] = {'B','Y','D',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' ',' '};
 
     switch (WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN))
     {
@@ -239,6 +245,11 @@ namespace nsCanbus
         sendCanMsg(0x371, (uint8_t *)&hostname_general[8], 8);
         sendCanMsg(0x35e, (uint8_t *)&hostname_general, 6);
         break;
+
+      case ID_CAN_DEVICE_SOLAREDGE_RWS:
+        sendCanMsg(0x35e, (uint8_t *)&hostname_byd, 6);
+        break;
+
     }
   }
 
@@ -267,6 +278,23 @@ namespace nsCanbus
 
   sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
   }
+  void Canbus::sendCanMsg_ChgVoltCur_DisChgCur_351_SolarEdgeRWS(Inverter::inverterData_s &inverterData)
+  {
+  data351 msgData;
+
+  msgData.dischargevoltage    = 480; //set fixed to 480 or SolarEdgeRWS
+
+  // Ladespannung
+  msgData.chargevoltagelimit = inverterData.inverterChargeVoltage*10;
+
+  // Ladestrom
+  msgData.maxchargecurrent = inverterData.inverterChargeCurrent*10;
+
+  // Entladestrom
+  msgData.maxDischargeCurrent = inverterData.inverterDischargeCurrent*10;
+
+  sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
+  }
 
 
   /* SOC
@@ -280,7 +308,6 @@ namespace nsCanbus
   data355 msgData;
 
   msgData.soc = inverterData.inverterSoc;
-
   msgData.soh = 100; // SOH, uint16 1 %
   sendCanMsg(0x355, (uint8_t *)&msgData, sizeof(data355));
   }
@@ -298,8 +325,8 @@ namespace nsCanbus
   {
   data356 msgData;
 
-  msgData.voltage = inverterData.batteryVoltage; //*100
-  msgData.current = inverterData.batteryCurrent; //*10;
+  msgData.voltage = inverterData.batteryVoltage*100;
+  msgData.current = inverterData.batteryCurrent*10;
 
   nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
   msgData.temperature = inverterBattery.getBatteryTemp(inverterData)*10; //Temperatur
@@ -310,7 +337,6 @@ namespace nsCanbus
 
   sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356));
   }
-
 
   // Send alarm details
   void Canbus::sendCanMsg_Alarm_359(Inverter::inverterData_s &inverterData)
@@ -703,10 +729,6 @@ namespace nsCanbus
   sendCanMsg(0x375, (uint8_t *)&buf, 8);
   }
 
-
-
-
-
   void Canbus::sendExtendedCanMsgTemp()
   {
   uint32_t u16_lCanId = 0x380;
@@ -776,4 +798,55 @@ namespace nsCanbus
   if(u8_mCanSendDataBmsNumber==BMSDATA_NUMBER_ALLDEVICES)u8_mCanSendDataBmsNumber=0;
   }
 
+//SolarEdgeRWS
+  void Canbus::sendCanMsg_soc_soh_355_SolarEdgeRWS(Inverter::inverterData_s &inverterData)//Anpassung SolaredgeRWS
+  {
+    data355_SOLAREDGERWS msgData;
+
+  msgData.soc = inverterData.inverterSoc;
+  msgData.soh = 100; // SOH, uint16 1 %
+  sendCanMsg(0x355, (uint8_t *)&msgData, sizeof(data355_SOLAREDGERWS));
+
+  }
+
+  void Canbus::sendCanMsg_Battery_Voltage_Current_Temp_356_SolarEdgeRWS(Inverter::inverterData_s &inverterData) //Anpassug SolarEdgeRWS
+  {
+  data356_SOLAREDGERWS msgData;
+
+  msgData.voltage = inverterData.batteryVoltage*100;
+  msgData.current = inverterData.batteryCurrent*10;
+
+  nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+  msgData.temperature = inverterBattery.getBatteryTemp(inverterData)*10; //Temperatur
+
+  #ifdef CAN_DEBUG
+  BSC_LOGD(TAG, "CAN: current=%i temperature=%i voltage=%i", msgData.current, msgData.temperature, msgData.voltage);
+  #endif
+
+  sendCanMsg(0x356, (uint8_t *)&msgData, sizeof(data356_SOLAREDGERWS));
+  }
+  void Canbus::sendCanMsg_productinfo_382()
+  {
+  char product_ident[16] = {'P','R','E','M','I','U','M',' ',' ',' ',' ',' ',' ',' ',' ',' '};
+      sendCanMsg(0x382, (uint8_t *)&product_ident, 8);
+  }
+
+  void Canbus::sendCanMsg_version_35f_SolarEdgeRWS() // Anpassung SolarEdgeRWS
+  {
+  struct data35f_SERWS
+  {
+      uint16_t BatteryModel;
+      uint16_t Firmwareversion;
+      uint16_t Onlinecapacity;
+      uint16_t bum;
+  };
+
+  data35f_SERWS msgData;
+
+  msgData.BatteryModel = 0x694C;
+  msgData.Firmwareversion = 0x1701;
+  msgData.Onlinecapacity = 0;
+
+  sendCanMsg(0x35f, (uint8_t *)&msgData, sizeof(data35f_SERWS));
+  }
 }
