@@ -18,6 +18,8 @@ namespace nsChargeCurrentCtrl {
         void calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero);
 
         #ifdef PIO_UNIT_TESTING
+        int16_t calcMaximalChargeCurrentProPack(Inverter::inverterData_s &inverterData);
+
         int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
         int16_t calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent);
 
@@ -28,7 +30,11 @@ namespace nsChargeCurrentCtrl {
         #endif
 
     private:
+        static const char *TAG;
+
         #ifndef PIO_UNIT_TESTING
+        int16_t calcMaximalChargeCurrentProPack(Inverter::inverterData_s &inverterData);
+
         int16_t calcMaximalenLadestromSprung(int16_t i16_pNewChargeCurrent, int16_t i16_lastChargeCurrent);
         int16_t calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent);
 

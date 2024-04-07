@@ -32,13 +32,13 @@ public:
 
         // Wechselrichterdaten
         bool       noBatteryPackOnline;
-        int16_t    batteryVoltage;        // Faktor: 100
-        int16_t    batteryCurrent;        // Faktor: 10
+        int16_t    batteryVoltage;           // Faktor: 100
+        int16_t    batteryCurrent;           // Faktor: 10
         int16_t    batteryTemperatur;
-        uint16_t   inverterChargeVoltage; // Faktor: 10
+        uint16_t   inverterChargeVoltage;    // Faktor: 10
         uint16_t   inverterSoc;
-        int16_t    inverterChargeCurrent;
-        int16_t    inverterDischargeCurrent;
+        int16_t    inverterChargeCurrent;    // Faktor: 10
+        int16_t    inverterDischargeCurrent; // Faktor: 10
 
         // Ströme von der Ladestromregelung
         int16_t calcChargeCurrentCellVoltage;
