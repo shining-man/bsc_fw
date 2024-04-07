@@ -260,10 +260,10 @@ namespace nsCanbus
   msgData.chargevoltagelimit = inverterData.inverterChargeVoltage;
 
   // Ladestrom
-  msgData.maxchargecurrent = inverterData.inverterChargeCurrent*10;
+  msgData.maxchargecurrent = inverterData.inverterChargeCurrent;
 
   // Entladestrom
-  msgData.maxDischargeCurrent = inverterData.inverterDischargeCurrent*10;
+  msgData.maxDischargeCurrent = inverterData.inverterDischargeCurrent;
 
   sendCanMsg(0x351, (uint8_t *)&msgData, sizeof(msgData));
   }

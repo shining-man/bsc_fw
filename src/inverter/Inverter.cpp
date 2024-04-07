@@ -186,7 +186,7 @@ void Inverter::sendMqttMsg()
   if(u8_mMqttTxTimer==15)
   {
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(inverterData.inverterChargeVoltage/10.0f));
-    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent);
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent/10);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_PERCENT, -1, inverterData.inverterSoc);
 

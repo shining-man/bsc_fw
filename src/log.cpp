@@ -333,8 +333,8 @@ void logValues(Inverter &inverter)
   int16_t inverterCurrent = inverterData->batteryCurrent;
   int16_t inverterVoltage = inverterData->batteryVoltage;
   uint16_t inverterSoc = inverterData->inverterSoc;
-  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
-  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
+  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent/10;
+  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent/10;
 
   int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
   int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;

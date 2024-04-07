@@ -223,6 +223,12 @@ void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data
 }
 
 
+void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, int16_t data)
+{
+  i2cSendData(inverter, i2cAdr, data1, data2, data3, &data, 2);
+}
+
+
 //Anfordern der Daten vom Slave
 void getBscSlaveData(uint8_t u8_slaveNr)
 {
@@ -438,8 +444,8 @@ void displaySendData_bms(Inverter &inverter)
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_VOLTAGE, 0, &p_lInverterData->batteryVoltage, 2);
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CURRENT, 0, &p_lInverterData->batteryCurrent, 2);
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_SOC, 0, &p_lInverterData->inverterSoc, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, &p_lInverterData->inverterChargeCurrent, 2);
-  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, &p_lInverterData->inverterDischargeCurrent, 2);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_CHARGE_CURRENT, 0, p_lInverterData->inverterChargeCurrent/10);
+  i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, INVERTER_DATA, INVERTER_DISCHARG_CURRENT, 0, p_lInverterData->inverterDischargeCurrent/10);
 
   uint16_t u16_lBscAlarms = getAlarm();
   i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_ALARMS, 0, &u16_lBscAlarms, 2);

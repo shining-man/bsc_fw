@@ -20,6 +20,7 @@ namespace nsDisChargeCurrentCtrl
         void calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero);
 
     private:
+        int16_t calcMaxDischargeCurrentProPack(Inverter::inverterData_s &inverterData);
         int16_t calcEntladestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxDischargeCurrent);
     };
 }

@@ -23,11 +23,15 @@ namespace nsChargeVoltageCtrl
 
   void ChargeVoltageCtrl::calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
-    uint16_t u16_lChargeVoltage = (uint16_t)(WebSettings::getFloat(ID_PARAM_BMS_MAX_CHARGE_SPG,0)*10.0f);
+    uint16_t u16_lChargeVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_MAX_CHARGE_SPG,0,DT_ID_PARAM_BMS_MAX_CHARGE_SPG);
+
     //calcDynamicChargeVoltageOffset(inverterData, u16_lChargeVoltage); // Hier den dynamischen Offset addieren
     setAutobalanceVoltage(inverterData, u16_lChargeVoltage); //Ggf. die Ladespannung anheben auf die Autobalancespannung
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(inverterData, u16_lChargeVoltage);
+
+    inverter.inverterDataSemaphoreTake();
     inverterData.inverterChargeVoltage = u16_lChargeVoltage; //ToDo semaphore
+    inverter.inverterDataSemaphoreGive();
   }
 
 
