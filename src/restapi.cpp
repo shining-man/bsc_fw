@@ -10,7 +10,7 @@
 
 static const char* TAG = "REST";
 
-enum genJsonTypes{arrStart,arrEnd,entrySingle,arrStart2,arrStart3,arrStart4,arrEnd2,entrySingle2};
+enum genJsonTypes{arrStart,arrEnd,entrySingle,entrySingleNumber,arrStart2,arrStart3,arrStart4,arrEnd2,entrySingle2};
 
 bool handleRestArgs(WebServer * server, WebSettings &ws);
 
@@ -23,6 +23,16 @@ void genJsonEntrySingle(String key, String value, String &str_retStr)
   str_retStr += "\":\"";
   str_retStr += value;
   str_retStr += "\"";
+}
+
+void genJsonEntrySingleNumber(String key, String value, String &str_retStr)
+{
+  //\"cells\":16,
+  str_retStr += "\"";
+  str_retStr += String(key);
+  str_retStr += "\":";
+  str_retStr += value;
+  str_retStr += "";
 }
 
 void genJsonEntrySingle(String key, int32_t value, String &str_retStr)
@@ -62,6 +72,11 @@ void genJsonEntryArray(genJsonTypes type, String key, String value, String &str_
       if(!lastEntry)str_retStr += ",";
       break;
 
+    case entrySingleNumber: //Entry
+      genJsonEntrySingleNumber(key, value, str_retStr);
+      if(!lastEntry)str_retStr += ",";
+      break;
+
     case entrySingle2: //Entry 2
       str_retStr += value;
       if(!lastEntry)str_retStr += ",";
@@ -84,6 +99,17 @@ void genJsonEntryArray(genJsonTypes type, String key, String value, String &str_
 void genJsonEntryArray(genJsonTypes type, String key, int32_t value, String &str_retStr, boolean lastEntry)
 {
   genJsonEntryArray(type, key, String(value), str_retStr, lastEntry);
+}
+
+void genJsonEntryArray(genJsonTypes type, String key, uint32_t value, String &str_retStr, boolean lastEntry)
+{
+  genJsonEntryArray(type, key, String(value), str_retStr, lastEntry);
+}
+
+void genJsonEntryArray(genJsonTypes type, String key, float value, String &str_retStr, boolean lastEntry)
+{
+  //BSC_LOGI(TAG,"value=%f", value);
+  genJsonEntryArray(type, key, String(value, 2), str_retStr, lastEntry);
 }
 
 
@@ -130,8 +156,8 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     // Trigger
     genJsonEntryArray(arrStart4, F("trigger"), "", str_htmlOut, true);
 
-    for(uint8_t i=0;i<9;i++) genJsonEntryArray(entrySingle, String(i), getAlarm(i), str_htmlOut, false);
-    genJsonEntryArray(entrySingle, String(9), getAlarm(9), str_htmlOut, true);
+    for(uint8_t i=0;i<9;i++) genJsonEntryArray(entrySingleNumber, String(i), getAlarm(i), str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, String(9), getAlarm(9), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
@@ -142,34 +168,35 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
 
     inverter.inverterDataSemaphoreTake();
     Inverter::inverterData_s *inverterData = inverter.getInverterData();
-    int16_t inverterChargeVoltage = inverterData->inverterChargeVoltage;
-    int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
-    int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
-    int16_t inverterCurrent = inverterData->batteryCurrent;
-    int16_t inverterVoltage = inverterData->batteryVoltage;
+    float inverterChargeVoltage = (float)inverterData->inverterChargeVoltage / 10.0f;
+    float inverterChargeCurrent = (float)inverterData->inverterChargeCurrent / 10.0f;
+    float inverterDischargeCurrent = (float)inverterData->inverterDischargeCurrent / 10.0f;
+    float inverterCurrent = (float)inverterData->batteryCurrent / 10.0f;
+    float inverterVoltage = (float)inverterData->batteryVoltage / 100.0f;
     uint16_t inverterSoc = inverterData->inverterSoc;
 
-    int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
-    int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
-    int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
-    int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
+    float calcChargeCurrentCellVoltage = (float)inverterData->calcChargeCurrentCellVoltage / 10.0f;
+    float calcChargeCurrentSoc = (float)inverterData->calcChargeCurrentSoc / 10.0f;
+    float calcChargeCurrentCelldrift = (float)inverterData->calcChargeCurrentCelldrift / 10.0f;
+    float calcChargeCurrentCutOff = (float)inverterData->calcChargeCurrentCutOff / 10.0f;
 
-    int16_t calcDischargeCurrentCellVoltage = inverterData->calcDischargeCurrentCellVoltage;
+    float calcDischargeCurrentCellVoltage = (float)inverterData->calcDischargeCurrentCellVoltage / 10.0f;
     inverter.inverterDataSemaphoreGive();
-    genJsonEntryArray(entrySingle, F("current"), String((float)(inverterCurrent/10.0f)), str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("voltage"), String((float)(inverterVoltage/100.0f)), str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("soc"), inverterSoc, str_htmlOut, false);
 
-    genJsonEntryArray(entrySingle, F("setpoint_cv"), String((float)(inverterChargeVoltage/10.0f)), str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("setpoint_dcc"), inverterDischargeCurrent, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("current"), inverterCurrent, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("voltage"), inverterVoltage, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("soc"), inverterSoc, str_htmlOut, false);
 
-    genJsonEntryArray(entrySingle, F("cc_cellVoltage"), calcChargeCurrentCellVoltage, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_soc"), calcChargeCurrentSoc, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
-    genJsonEntryArray(entrySingle, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("setpoint_cv"), inverterChargeVoltage, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("setpoint_dcc"), inverterDischargeCurrent, str_htmlOut, false);
 
-    genJsonEntryArray(entrySingle, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
+    genJsonEntryArray(entrySingleNumber, F("cc_cellVoltage"), calcChargeCurrentCellVoltage, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cc_soc"), calcChargeCurrentSoc, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
+
+    genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server->sendContent(str_htmlOut);
@@ -180,27 +207,27 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     for(uint8_t bmsDevNr=0;bmsDevNr<BT_DEVICES_COUNT;bmsDevNr++)
     {
       if(WebSettings::getInt(ID_PARAM_SS_BTDEV,bmsDevNr,DT_ID_PARAM_SS_BTDEV)!=0)
-        genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
-      else genJsonEntryArray(entrySingle, F("en"), 0, str_htmlOut, false);
+        genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
+      else genJsonEntryArray(entrySingleNumber, F("en"), 0, str_htmlOut, false);
 
       if((millis()-getBmsLastDataMillis(bmsDevNr)<5000)) u8_val=1;
       else u8_val=0;
-      genJsonEntryArray(entrySingle, F("valid"), u8_val, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("valid"), u8_val, str_htmlOut, false);
 
-      genJsonEntryArray(entrySingle, F("nr"), bmsDevNr, str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("cells"), u8_nrOfCells, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("nr"), bmsDevNr, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("cells"), u8_nrOfCells, str_htmlOut, false);
 
-      genJsonEntryArray(entrySingle, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
 
       genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
       for(uint8_t i=0;i<(u8_nrOfCells-1);i++)
@@ -241,29 +268,29 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     {
       u8_device = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,bmsDevNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
       //BSC_LOGI(TAG,"Restapi: u8_device=%i, u8_deviceSerial2=%i, bmsDevNr=%i, u8_deviceSerial2NrOfBms=%i",u8_device, u8_deviceSerial2, bmsDevNr, u8_deviceSerial2NrOfBms);
-      if(u8_device!=0) genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
+      if(u8_device!=0) genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
       else if(isMultiple485bms(u8_deviceSerial2) && bmsDevNr>BT_DEVICES_COUNT+2 && bmsDevNr<BT_DEVICES_COUNT+2+u8_deviceSerial2NrOfBms)
-        genJsonEntryArray(entrySingle, F("en"), 1, str_htmlOut, false);
-      else genJsonEntryArray(entrySingle, F("en"), 0, str_htmlOut, false);
+        genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
+      else genJsonEntryArray(entrySingleNumber, F("en"), 0, str_htmlOut, false);
 
       if((millis()-getBmsLastDataMillis(bmsDevNr)<5000)) u8_val=1;
       else u8_val=0;
-      genJsonEntryArray(entrySingle, F("valid"), u8_val, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("valid"), u8_val, str_htmlOut, false);
 
-      genJsonEntryArray(entrySingle, F("nr"), bmsDevNr-BT_DEVICES_COUNT, str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("cells"), u8_nrOfCells, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("nr"), bmsDevNr-BT_DEVICES_COUNT, str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("cells"), u8_nrOfCells, str_htmlOut, false);
 
-      genJsonEntryArray(entrySingle, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingle, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
 
       genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
       uint16_t u16_lZellVoltage=0;
