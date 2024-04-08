@@ -1268,12 +1268,6 @@ void setup()
     BSC_LOGI(TAG, "MDNS responder gestartet");
   }
 
-  //
-  bool bo_isSupporter = false;
-  #ifdef INSIDER_V1
-  bo_isSupporter=initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
-  #endif
-
   //ini WebPages
   #ifdef INSIDER_V1
   if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
@@ -1294,12 +1288,12 @@ void setup()
     server.on("/p_neey", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
     server.on("/p_jbd", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceJbdBms);});
     server.on("/p_bpn", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceBpn);});
-  /*}
+  }
   else
   {
     server.on("/",handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
-  }*/
+  }
   #else
   server.on("/",handlePage_root);
   server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
@@ -1368,7 +1362,7 @@ void setup()
   #ifdef INSIDER_V1
   if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
   {
-    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
+    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial, &inverter);
   }
   #endif
 
