@@ -256,20 +256,13 @@ namespace nsChargeCurrentCtrl
       {
         uint16_t u8_lReduzierenUmA = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC);
 
-        uint8_t lMindestLadestrom = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_MINDEST_STROM);
+        uint8_t lMindestLadestrom = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_MINDEST_STROM);
         lMindestLadestrom *= 10;
 
-        int16_t lChargeCurrent = (i16_lMaxChargeCurrent)-((u8_lSoc-u8_lReduzierenAbSoc+1)*u8_lReduzierenUmA);
+        int16_t lChargeCurrent = i16_lMaxChargeCurrent - ((u8_lSoc-u8_lReduzierenAbSoc + 1) * u8_lReduzierenUmA);
 
-        if(lChargeCurrent>=0)
-        {
-          if(lChargeCurrent < lMindestLadestrom) return lMindestLadestrom;
-          return lChargeCurrent;
-        }
-        else
-        {
-          return 0;
-        }
+        if(lChargeCurrent < lMindestLadestrom) return lMindestLadestrom;
+        return lChargeCurrent;
       }
 
       return i16_lMaxChargeCurrent;
@@ -311,8 +304,6 @@ namespace nsChargeCurrentCtrl
   }*/
 
 
-
-
   /********************************************************************************************
    * calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
    * Ladestrom auf 0 setzen, wenn längere Zeit mit einem geringen Ladestrom geladen wurde.
@@ -322,8 +313,9 @@ namespace nsChargeCurrentCtrl
   {
     if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING) return u16_lChargeCurrent; //Wenn der Autobalancer gerade aktiv ist
 
+    if(WebSettings::getBool(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_ENABLE, 0) == false) return u16_lChargeCurrent;
+
     uint16_t lCutOffTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_TIME);
-    if(lCutOffTime==0) return u16_lChargeCurrent;
 
     int16_t lCutOffCurrent = (int16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT);
     uint8_t lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);

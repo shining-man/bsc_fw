@@ -71,13 +71,12 @@ namespace nsChargeVoltageCtrl
    */
   void ChargeVoltageCtrl::setAutobalanceVoltage(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage)
   {
-    const uint8_t u16_lStartInterval = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL);
-    if(u16_lStartInterval==0)
+    // Wenn deaktiviert
+    if(WebSettings::getBool(ID_PARAM_INVERTER_AUTOBALANCE_ENABLE, 0) == false)
     {
       inverterData.mStateAutobalance=STATE_AUTOBAL_OFF;
       return;
     }
-
 
     if(inverterData.mStateAutobalance==STATE_AUTOBAL_OFF)
     {
@@ -88,6 +87,8 @@ namespace nsChargeVoltageCtrl
     // Warte auf den Start (Intervall)
     if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT)
     {
+      const uint8_t u16_lStartInterval = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL);
+
       #ifdef UTEST_RESTAPI
       if(millis()-inverterData.lastAutobalanceRun > ((uint32_t)u16_lStartInterval*1000))
       #else
