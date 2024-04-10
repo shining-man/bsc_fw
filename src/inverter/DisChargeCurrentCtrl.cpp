@@ -99,10 +99,10 @@ namespace nsDisChargeCurrentCtrl
    *******************************************************************************************************/
   int16_t DisChargeCurrentCtrl::calcEntladestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxDischargeCurrent)
   {
-    uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG);
-
-    if(u16_lStartSpg>0) //wenn enabled
+    if(WebSettings::getBool(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_EN, 0))
     {
+      uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,DT_ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_STARTSPG);
+
       //Kleinste Zellspannung von den aktiven BMSen ermitteln
       uint16_t u16_lAktuelleMinZellspg = BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
 
