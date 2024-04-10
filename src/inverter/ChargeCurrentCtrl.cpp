@@ -304,7 +304,7 @@ namespace nsChargeCurrentCtrl
   }*/
 
 
-  /********************************************************************************************
+   /********************************************************************************************
    * calcChargeCurrentCutOff(int16_t u16_lChargeCurrent)
    * Ladestrom auf 0 setzen, wenn längere Zeit mit einem geringen Ladestrom geladen wurde.
    *
@@ -319,6 +319,7 @@ namespace nsChargeCurrentCtrl
 
     int16_t lCutOffCurrent = (int16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT);
     uint8_t lCutOffSoc = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC);
+    uint16_t lCutOffStartVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_START_VOLTAGE,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_START_VOLTAGE);
 
     uint8_t lSoc = (uint8_t)inverterData.inverterSoc;
 
@@ -328,18 +329,28 @@ namespace nsChargeCurrentCtrl
 
     if(inverterData.u16_mChargeCurrentCutOfTimer>=lCutOffTime)
     {
-      if(lSoc < lCutOffSoc) //Wenn SoC zur Freigabe wieder unterschritten
-      {
-        inverterData.u16_mChargeCurrentCutOfTimer=0;
-        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-      }
-      else u16_lChargeCurrent=0;
+      //Wenn SoC zur Freigabe wieder unterschritten
+      if(lSoc < lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer = 0;
+      else u16_lChargeCurrent = 0;
+
+      inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
     }
     else
     {
       //Timer hochzählen, wenn Strom kleiner
-      if(inverterData.batteryCurrent < lCutOffCurrent && lSoc>=lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
-      else inverterData.u16_mChargeCurrentCutOfTimer=0;
+      if(lCutOffStartVoltage > 0) // Wenn eine Startvoltage eingestellt ist
+      {
+        uint16_t lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+
+        if(inverterData.batteryCurrent < lCutOffCurrent && (lAktuelleMaxZellspg >= lCutOffStartVoltage || inverterData.u16_mChargeCurrentCutOfTimer > 0) ) inverterData.u16_mChargeCurrentCutOfTimer++;
+        else inverterData.u16_mChargeCurrentCutOfTimer = 0;
+      }
+      else // Wenn keine Startvoltage eingestellt ist, dann muss der aktuelle SoC größer dem cutOffSoc sein.
+      {
+        if(inverterData.batteryCurrent < lCutOffCurrent && lSoc >= lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
+        else inverterData.u16_mChargeCurrentCutOfTimer = 0;
+      }
+
     }
 
     #ifdef CAN_DEBUG
