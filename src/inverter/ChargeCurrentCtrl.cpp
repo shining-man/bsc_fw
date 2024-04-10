@@ -331,6 +331,7 @@ namespace nsChargeCurrentCtrl
       if(lSoc < lCutOffSoc) //Wenn SoC zur Freigabe wieder unterschritten
       {
         inverterData.u16_mChargeCurrentCutOfTimer=0;
+        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
       }
       else u16_lChargeCurrent=0;
     }

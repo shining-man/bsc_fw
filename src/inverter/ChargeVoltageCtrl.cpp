@@ -29,8 +29,23 @@ namespace nsChargeVoltageCtrl
     setAutobalanceVoltage(inverterData, u16_lChargeVoltage); //Ggf. die Ladespannung anheben auf die Autobalancespannung
     u16_lChargeVoltage = calcDynamicReduzeChargeVolltage(inverterData, u16_lChargeVoltage);
 
+
+    // Wenn Float, dann die Ladespannung auf die Float-Voltage setzen
+    if(inverterData.floatState == Inverter::e_stateFloat::FLOAT_VOLTAGE)
+    {
+      uint16_t lFloatVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_FLOAT_CHARGE_SPG,0,DT_ID_PARAM_BMS_FLOAT_CHARGE_SPG);
+      if(lFloatVoltage < u16_lChargeVoltage) u16_lChargeVoltage = lFloatVoltage;
+    }
+    else
+    {
+      if(WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC) < inverterData.inverterSoc)
+      {
+        inverterData.floatState = Inverter::e_stateFloat::ABSORPTION_VOLTAGE;
+      }
+    }
+
     inverter.inverterDataSemaphoreTake();
-    inverterData.inverterChargeVoltage = u16_lChargeVoltage; //ToDo semaphore
+    inverterData.inverterChargeVoltage = u16_lChargeVoltage;
     inverter.inverterDataSemaphoreGive();
   }
 
@@ -107,6 +122,8 @@ namespace nsChargeVoltageCtrl
       {
         inverterData.mStateAutobalance=STATE_AUTOBAL_RUNING;
         inverterData.autobalanceStartTime=millis();
+
+        inverterData.floatState = Inverter::e_stateFloat::ABSORPTION_VOLTAGE_AUTOBALANCER;
       }
     }
 
@@ -120,6 +137,8 @@ namespace nsChargeVoltageCtrl
         // ToDo: MQTT Message, Trigger?
         inverterData.lastAutobalanceRun=millis();
         inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+
+        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
         return;
       }
 
@@ -129,6 +148,8 @@ namespace nsChargeVoltageCtrl
       {
         inverterData.lastAutobalanceRun=millis();
         inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+
+        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
         return;
       }
 

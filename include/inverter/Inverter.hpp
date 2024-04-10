@@ -24,6 +24,8 @@ public:
     Inverter();
     ~Inverter();
 
+    enum e_stateFloat {FLOAT_VOLTAGE, ABSORPTION_VOLTAGE, ABSORPTION_VOLTAGE_AUTOBALANCER};
+
     struct inverterData_s
     {
         // Ausgewählte BMS Quellen
@@ -60,6 +62,9 @@ public:
         uint8_t mStateAutobalance;
         uint32_t lastAutobalanceRun;
         uint32_t autobalanceStartTime;
+
+        //
+        e_stateFloat floatState;
     };
 
     void inverterInit();
