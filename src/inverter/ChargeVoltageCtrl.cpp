@@ -35,14 +35,13 @@ namespace nsChargeVoltageCtrl
     {
       uint16_t lFloatVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_FLOAT_CHARGE_SPG,0,DT_ID_PARAM_BMS_FLOAT_CHARGE_SPG);
       if(lFloatVoltage < u16_lChargeVoltage) u16_lChargeVoltage = lFloatVoltage;
-    }
-    else
-    {
-      if(WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC) < inverterData.inverterSoc)
+
+      if(inverterData.inverterSoc < WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC))
       {
         inverterData.floatState = Inverter::e_stateFloat::ABSORPTION_VOLTAGE;
       }
     }
+
 
     inverter.inverterDataSemaphoreTake();
     inverterData.inverterChargeVoltage = u16_lChargeVoltage;
