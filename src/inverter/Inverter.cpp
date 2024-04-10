@@ -54,6 +54,8 @@ void Inverter::inverterInit()
   inverterData.lastAutobalanceRun=millis();
   inverterData.autobalanceStartTime=0;
 
+  inverterData.floatState = e_stateFloat::ABSORPTION_VOLTAGE;
+
   loadIverterSettings();
   canbus.init();
 }
