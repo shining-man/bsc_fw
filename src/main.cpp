@@ -1344,11 +1344,11 @@ void setup()
   server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, true, "bpnFw.bin");});
   #endif
 
-  server.on("/log", HTTP_GET, []() {if(!handleFileRead(&server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(&server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/trigger", HTTP_GET, []() {if(!handleFileRead(&server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(&server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
-  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(&server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/trigger", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
+  //server.on("/param", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
   otaUpdater.init(&server, "/settings/webota/", true);
 
