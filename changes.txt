@@ -1,3 +1,9 @@
+Folgende Werte müssen nach dem Update kontrolliert und ggf. angepasst werden:
+- ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT
+- ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC
+- ID_PARAM_BMS_MAX_CHARGE_SPG
+
+
 v0.5.13
 - Remove WebUI v2
 - Anpassungen für HW2.4.1
