@@ -837,15 +837,15 @@ void task_fsTest3(void *param)
 /*
   Handle WebPages
 */
-void handlePage_root(){server.send(200, "text/html", htmlPageRoot);}
-void handlePage_settings(){server.send(200, "text/html", htmlPageSettings);}
-void handlePage_alarm(){server.send(200, "text/html", htmlPageAlarm);}
-void handlePage_schnittstellen(){server.send(200, "text/html", htmlPageSchnittstellen);}
-void handle_htmlPageBmsSpg(){server.send(200, "text/html", htmlPageBmsSpg);}
-void handlePage_status(){server.send(200, "text/html", htmlPageStatus);}
-void handlePage_htmlPageMenuLivedata(){server.send(200, "text/html", htmlPageMenuLivedata);}
-void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
-void handlePage_htmlPageBscDataLive(){server.send(200, "text/html", htmlPageBscDataLive);}
+void handlePage_root(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageRoot);}
+void handlePage_settings(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSettings);}
+void handlePage_alarm(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageAlarm);}
+void handlePage_schnittstellen(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSchnittstellen);}
+void handle_htmlPageBmsSpg(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBmsSpg);}
+void handlePage_status(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageStatus);}
+void handlePage_htmlPageMenuLivedata(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageMenuLivedata);}
+void handlePage_htmlPageOwTempLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageOwTempLive);}
+void handlePage_htmlPageBscDataLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBscDataLive);}
 
 /*#ifdef BPN
 void handlePage_htmlPageBpnSettings()
@@ -968,13 +968,12 @@ void handle_getNeeySettingsReadback()
 
 void handle_paramDeviceJbdBms(){webSettingsDeviceJbdBms.handleHtmlFormRequest(&server);}
 
-void handle_getData()
-{
-  server.send(200, "text/html", "Testdata");
-}
+void handle_getData(){ server.send(200, "text/html", "Testdata"); }
 
 void handle_getDashboardData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   //1. Free Heap
   String tmp = String(xPortGetFreeHeapSize());
   tmp += " / ";
@@ -1044,6 +1043,8 @@ void handle_getDashboardData()
 
 void handle_getBmsSpgData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   String sendData = "";
   float onePer = (4-0.5)/100;
   for(uint8_t i=0;i<16;i++)
@@ -1060,6 +1061,8 @@ void handle_getBmsSpgData()
 
 void handle_getOwTempData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   String sendData = "";
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
@@ -1071,12 +1074,14 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(inverter, &server, webSettingsSystem);
+  if(!performAuthentication(server, webSettingsSystem)) return;
+  buildJsonRest(inverter, server, webSettingsSystem);
 }
 
 
 void handle_getBtDevices()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
   bleHandler.startScan(); //BT Scan starten
   server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
 }
@@ -1084,12 +1089,15 @@ void handle_getBtDevices()
 
 void handle_getOnewireDeviceAdr()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
   server.send(200, "text/html", getSensorAdr().c_str());
 }
 
 
 void btnSystemDeleteLog()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   SPIFFS.remove("/log.txt");
   SPIFFS.remove("/log1.txt");
   if(SPIFFS.exists("/log.txt")) //Wenn Log-Datei immer noch vorhanden
@@ -1174,6 +1182,7 @@ uint8_t checkTaskRun()
 
 void sendResponceUpdateBpnFw()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
 
   BSC_LOGI(TAG,"Upload ok");
   uint8_t data=0;
@@ -1272,41 +1281,45 @@ void setup()
   #ifdef INSIDER_V1
   if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
   {
-    server.on("/old",handlePage_root);
+    server.on("/old", handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
 
-    server.on("/p_system", HTTP_GET, []() {server.send_P(200, "application/json", paramSystem);});
-    server.on("/p_bt", HTTP_GET, []() {server.send_P(200, "application/json", paramBluetooth);});
-    server.on("/p_serial", HTTP_GET, []() {server.send_P(200, "application/json", paramSerial);});
-    server.on("/p_alarmbms", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmBms);});
-    server.on("/p_alarmtemp", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmTemp);});
-    server.on("/p_do", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalOut);});
-    server.on("/p_di", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalIn);});
-    server.on("/p_ow", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewire2);});
-    server.on("/p_owadr", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewireAdr);});
-    server.on("/p_inverter", HTTP_GET, []() {server.send_P(200, "application/json", paramBmsToInverter);});
-    server.on("/p_neey", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
-    server.on("/p_jbd", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceJbdBms);});
-    server.on("/p_bpn", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceBpn);});
+    server.on("/p_system", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramSystem);});
+    server.on("/p_bt", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramBluetooth);});
+    server.on("/p_serial", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramSerial);});
+    server.on("/p_alarmbms", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramAlarmBms);});
+    server.on("/p_alarmtemp", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramAlarmTemp);});
+    server.on("/p_do", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDigitalOut);});
+    server.on("/p_di", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDigitalIn);});
+    server.on("/p_ow", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewire2);});
+    server.on("/p_owadr", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewireAdr);});
+    server.on("/p_inverter", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramBmsToInverter);});
+    server.on("/p_neey", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
+    server.on("/p_jbd", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceJbdBms);});
+    server.on("/p_bpn", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceBpn);});
   }
   else
   {
     server.on("/",handlePage_root);
-    server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
+    server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   }
   #else
   server.on("/",handlePage_root);
-  server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
+  server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   #endif
   server.on("/favicon.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlFavicon);});
+
+  //server.on("/login", HTTP_GET, []() {handleLogin(server);});
+  //server.on("/login", HTTP_POST, []() {handleLogin(server);});
+  //server.on("/logout", HTTP_GET, []() {handleLogout(server);});
 
   server.on("/htmlPageStatus/",handlePage_status);
   server.on("/settings/",handlePage_settings);
   server.on("/settings/alarm/",handlePage_alarm);
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
-  server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, &server, webSettingsSystem);});
+  server.on("/settings/devices/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageDevices);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, server, webSettingsSystem);}); // Die Restapi ist ohne pw abrufbar
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
 
   server.on("/settings/system/",handle_paramSystem);
@@ -1344,13 +1357,13 @@ void setup()
   server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, true, "bpnFw.bin");});
   #endif
 
-  server.on("/log", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/trigger", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/trigger", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/valueslog", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
   //server.on("/param", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
-  otaUpdater.init(&server, "/settings/webota/", true);
+  otaUpdater.init(&server, &webSettingsSystem, "/settings/webota/", true);
 
   server.on("/restart/", []() {
     server.sendHeader("Connection", "close");

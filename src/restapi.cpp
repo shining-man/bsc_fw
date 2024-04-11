@@ -7,12 +7,13 @@
 #include "WebSettings.h"
 #include "dio.h"
 #include "AlarmRules.h"
+#include "WebUtility.h"
 
 static const char* TAG = "REST";
 
 enum genJsonTypes{arrStart,arrEnd,entrySingle,entrySingleNumber,arrStart2,arrStart3,arrStart4,arrEnd2,entrySingle2};
 
-bool handleRestArgs(WebServer * server, WebSettings &ws);
+bool handleRestArgs(WebServer &server, WebSettings &ws);
 
 
 void genJsonEntrySingle(String key, String value, String &str_retStr)
@@ -118,12 +119,18 @@ void genJsonEntryArray(genJsonTypes type, String key, float value, String &str_r
 //const char JSON_BMS_BT_2[] PROGMEM ="\"{\"nr\":%i,\"cells\":%i,\"cell_voltage\":[%s],\"temperature\":[%s]}";
 
 
-void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
+void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
 {
-  if(server->args()>0)
+  if(server.args()>0)
   {
+    if(!performAuthentication(server, ws))
+    {
+      server.send(200, "application/json", F("{\"state\":0}"));
+      return;
+    }
+
     handleRestArgs(server, ws);
-    server->send(200, "application/json", F("{\"state\":1}"));
+    server.send(200, "application/json", F("{\"state\":1}"));
   }
   else
   {
@@ -134,8 +141,8 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
 
     uint8_t u8_nrOfCells=WebSettings::getInt(ID_PARAM_SERIAL_NUMBER_OF_CELLS,0,DT_ID_PARAM_SERIAL_NUMBER_OF_CELLS);
 
-    server->setContentLength(CONTENT_LENGTH_UNKNOWN);
-    server->send(200, "application/json", "");
+    server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+    server.send(200, "application/json", "");
 
     //Start
     genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
@@ -150,7 +157,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
     // Trigger
@@ -160,7 +167,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, String(9), getAlarm(9), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
     // Inverter
@@ -199,7 +206,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
     // BMS Bluetooth
@@ -250,11 +257,11 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
       }
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
 
-      server->sendContent(str_htmlOut);
+      server.sendContent(str_htmlOut);
       str_htmlOut="";
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
 
@@ -318,11 +325,11 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
       }
       else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
 
-      server->sendContent(str_htmlOut);
+      server.sendContent(str_htmlOut);
       str_htmlOut="";
     }
     genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
 
 
@@ -339,7 +346,7 @@ void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws)
     //Ende
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
 
-    server->sendContent(str_htmlOut);
+    server.sendContent(str_htmlOut);
     str_htmlOut="";
     str_htmlOut.clear();
   }
@@ -352,15 +359,15 @@ uint16_t u16_paramNr=0;
 uint8_t u8_groupNr=0;
 uint8_t u8_dt=0;
 #endif
-bool handleRestArgs(WebServer * server, WebSettings &ws)
+bool handleRestArgs(WebServer &server, WebSettings &ws)
 {
   bool ret=true;
   String argName, argValue;
 
-  for(uint8_t i=0;i<server->args();i++)
+  for(uint8_t i=0;i<server.args();i++)
   {
-    argName = server->argName(i);
-    argValue = server->arg(i);
+    argName = server.argName(i);
+    argValue = server.arg(i);
 
     #ifndef UTEST_RESTAPI
     BSC_LOGI(TAG,"%s=%s",argName.c_str(), argValue.c_str());
