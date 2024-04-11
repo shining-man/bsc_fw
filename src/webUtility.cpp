@@ -14,7 +14,6 @@
   #include <SPIFFS.h>
 #endif
 #include <fs/FileGuard.hpp>
-#include <WebServer.h>
 
 namespace // anonymous namespace - methods, variables, and types in this namespace have file scope only
 {
@@ -140,4 +139,90 @@ void handleFileUpload(fs::FS &fs, WebServer &server, [[maybe_unused]] bool fsIsS
         }
         file = root.openNextFile();
     }
+}*/
+
+
+bool performAuthentication(WebServer &server, WebSettings &ws)
+{
+  String bscName = ws.getString(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws.getString(ID_PARAM_BSC_PASSWORD, 0);
+
+
+  if (!server.authenticate(bscName.c_str(), bscPw.c_str()))
+  {
+    server.requestAuthentication();
+    return false;
+  }
+  return true;
+}
+
+bool performAuthentication(WebServer *server, WebSettings *ws)
+{
+  if(server==nullptr) return false;
+  if(ws==nullptr) return false;
+
+  String bscName = ws->getString(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws->getString(ID_PARAM_BSC_PASSWORD, 0);
+
+  if (!server->authenticate(bscName.c_str(), bscPw.c_str()))
+  {
+    server->requestAuthentication();
+    return false;
+  }
+  return true;
+}
+
+bool performAuthentication(WebServer *server, WebSettings &ws)
+{
+  if(server==nullptr) return false;
+
+  String bscName = ws.getString(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws.getString(ID_PARAM_BSC_PASSWORD, 0);
+
+  if (!server->authenticate(bscName.c_str(), bscPw.c_str()))
+  {
+    server->requestAuthentication();
+    return false;
+  }
+  return true;
+}
+
+
+//const char* loginForm = "<form method='post' action='/login'><input type='text' name='username' placeholder='Benutzername'><br><input type='password' name='password' placeholder='Passwort'><br><input type='submit' value='Einloggen'></form>";
+
+/*bool performAuthentication(WebServer &server)
+{
+  BSC_LOGI(TAG,"performAuthentication");
+  if (!server.authenticate(http_username, http_password))
+  {
+    BSC_LOGI(TAG,"performAuthentication OK");
+    server.sendHeader("Location", "/login");
+    server.send(301);
+    return true;
+
+    //server.requestAuthentication();
+    //return false;
+  }
+  BSC_LOGI(TAG,"performAuthentication OK2");
+  return true;
+}
+
+void handleLogin(WebServer &server) {
+  // Überprüfen, ob die POST-Daten Benutzername und Passwort korrekt sind
+  if (server.hasArg("username") && server.hasArg("password")) {
+    if (server.arg("username") == http_username && server.arg("password") == http_password) {
+      // Weiterleitung zur Hauptseite, wenn die Anmeldeinformationen korrekt sind
+      server.sendHeader("Location", "/");
+      server.send(301);
+      return;
+    }
+  }
+  // Falls Anmeldeinformationen nicht korrekt sind, wird die Loginseite erneut angezeigt
+  server.send(200, "text/html", loginForm);
+}
+
+void handleLogout(WebServer &server) {
+  // Lösche die HTTP Basic Authentication-Informationen im Client (Webbrowser)
+  server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
+  server.send(401);
 }*/

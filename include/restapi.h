@@ -13,7 +13,7 @@ class Inverter;
 class WebSettings;
 
 
-void buildJsonRest(Inverter &inverter, WebServer * server, WebSettings &ws);
+void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws);
 void handle_setParameter(WebServer * server);
 
 #endif
