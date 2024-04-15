@@ -41,18 +41,22 @@ void Inverter::inverterInit()
 {
   mInverterDataMutex = xSemaphoreCreateMutex();
 
-  //u8_mBmsDatasource=0;
-  alarmSetChargeCurrentToZero=false;
-  alarmSetDischargeCurrentToZero=false;
-  alarmSetSocToFull=false;
+  //u8_mBmsDatasource = 0;
+  alarmSetChargeCurrentToZero = false;
+  alarmSetDischargeCurrentToZero = false;
+  alarmSetSocToFull = false;
 
-  inverterData.u16_mSocZellspannungSperrzeitTimer=0;
-  inverterData.u8_mSocZellspannungState=nsSocCtrl::SocCtrl::SM_SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
+  inverterData.u16_mSocZellspannungSperrzeitTimer = 0;
+  inverterData.u8_mSocZellspannungState = nsSocCtrl::SocCtrl::SM_SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
 
   // Autoblance
   inverterData.mStateAutobalance = nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT;
-  inverterData.lastAutobalanceRun=millis();
-  inverterData.autobalanceStartTime=0;
+  inverterData.lastAutobalanceRun = millis();
+  inverterData.autobalanceStartTime = 0;
+
+  // Cut-Off
+  inverterData.mChargeCurrentCutOffMittelwert = 0;
+  inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
 
   inverterData.floatState = e_stateFloat::ABSORPTION_VOLTAGE;
 
@@ -150,7 +154,6 @@ void Inverter::cyclicRun()
     canbus.sendBmsCanMessages(inverterData);
 
     sendMqttMsg();
-    if(u8_mMqttTxTimer>=15)u8_mMqttTxTimer=0;
   }
   else inverterData.noBatteryPackOnline = true;
 }
@@ -185,8 +188,10 @@ void Inverter::getInverterValues()
 
 void Inverter::sendMqttMsg()
 {
-  if(u8_mMqttTxTimer==15)
+  if(u8_mMqttTxTimer == 15)
   {
+    u8_mMqttTxTimer=0;
+
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_INVERTER_CHARGE_VOLTAGE, -1, (float)(inverterData.inverterChargeVoltage/10.0f));
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_CURRENT_SOLL, -1, inverterData.inverterChargeCurrent/10);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_DISCHARGE_CURRENT_SOLL, -1, inverterData.inverterDischargeCurrent/10);
@@ -199,5 +204,7 @@ void Inverter::sendMqttMsg()
     nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
     int16_t i16_lBattTemp = inverterBattery.getBatteryTemp(inverterData);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TEMPERATURE, -1, (float)(i16_lBattTemp));
+
+    //BSC_LOGI("PETER-SPEZIAL", "CUT-OFF: Counter=%i, value=%i", inverterData.mChargeCurrentCutOffMittelwertCounter, inverterData.mChargeCurrentCutOffMittelwert);
   }
 }

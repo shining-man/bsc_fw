@@ -52,7 +52,9 @@ public:
         int16_t calcDischargeCurrentCellVoltage;
 
         // Charge current cut off
-        uint16_t u16_mChargeCurrentCutOfTimer;
+        uint16_t mChargeCurrentCutOfTimer;
+        int16_t  mChargeCurrentCutOffMittelwert;
+        uint16_t mChargeCurrentCutOffMittelwertCounter;
 
         // Wenn Zellspannung kleiner x mV wird SoC auf x% setzen
         uint8_t  u8_mSocZellspannungState;
