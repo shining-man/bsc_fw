@@ -76,6 +76,17 @@ namespace nsChargeCurrentCtrl
   }
 
 
+  /* Berechnet den Mittelwert
+   * aktuellerWert: Der aktuelle Wert
+   * mittelwert: Übergeben wird der letzte Mittelwert, der auf den neuen Mittelwert aktualisiert wird
+   * anzahlMessungen: Anzahl der Messungen*/
+  void calcMittelwert(int16_t aktuellerWert, int16_t &mittelwert, uint16_t anzahlMessungen)
+  {
+    if(anzahlMessungen == 0) anzahlMessungen = 1;
+    mittelwert = mittelwert + (aktuellerWert - mittelwert) / anzahlMessungen;
+  }
+
+
   // Berechnet den maximal zulässigen Ladestrom aus allen vorhanden Packs
   int16_t ChargeCurrentCtrl::calcMaximalChargeCurrentProPack(Inverter::inverterData_s &inverterData)
   {
@@ -324,13 +335,19 @@ namespace nsChargeCurrentCtrl
     uint8_t lSoc = (uint8_t)inverterData.inverterSoc;
 
     #ifdef CAN_DEBUG
-    uint16_t u16_mChargeCurrentCutOfTimerOld = u16_mChargeCurrentCutOfTimer; //nur fürs Debug
+    uint16_t u16_mChargeCurrentCutOfTimerOld = mChargeCurrentCutOfTimer; //nur fürs Debug
     #endif
 
-    if(inverterData.u16_mChargeCurrentCutOfTimer>=lCutOffTime)
+    if(inverterData.mChargeCurrentCutOfTimer >= lCutOffTime)
     {
+      if(inverterData.mChargeCurrentCutOfTimer != 0)
+      {
+        inverterData.mChargeCurrentCutOffMittelwert = 0;
+        inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
+      }
+
       //Wenn SoC zur Freigabe wieder unterschritten
-      if(lSoc < lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer = 0;
+      if(lSoc < lCutOffSoc) inverterData.mChargeCurrentCutOfTimer = 0;
       else u16_lChargeCurrent = 0;
 
       inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
@@ -342,22 +359,62 @@ namespace nsChargeCurrentCtrl
       {
         uint16_t lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
 
-        if(inverterData.batteryCurrent < lCutOffCurrent && (lAktuelleMaxZellspg >= lCutOffStartVoltage || inverterData.u16_mChargeCurrentCutOfTimer > 0) ) inverterData.u16_mChargeCurrentCutOfTimer++;
-        else inverterData.u16_mChargeCurrentCutOfTimer = 0;
+        // ToDo: Aktualwert, Mittelwert über Weboberfläche wählbar machen
+
+        // Aktualwert
+        //if(inverterData.batteryCurrent < lCutOffCurrent && (lAktuelleMaxZellspg >= lCutOffStartVoltage || inverterData.mChargeCurrentCutOfTimer > 0) ) inverterData.mChargeCurrentCutOfTimer++;
+        //else inverterData.mChargeCurrentCutOfTimer = 0;
+
+        // Mittelwert
+        inverterData.mChargeCurrentCutOffMittelwertCounter++;
+        calcMittelwert(inverterData.batteryCurrent, inverterData.mChargeCurrentCutOffMittelwert, inverterData.mChargeCurrentCutOffMittelwertCounter);
+
+        if( inverterData.mChargeCurrentCutOffMittelwert < lCutOffCurrent &&
+          (lAktuelleMaxZellspg >= lCutOffStartVoltage || inverterData.mChargeCurrentCutOfTimer > 0) )
+        {
+          inverterData.mChargeCurrentCutOfTimer++;
+        }
+        else
+        {
+          inverterData.mChargeCurrentCutOfTimer = 0;
+
+          inverterData.mChargeCurrentCutOffMittelwert = 0;
+          inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
+        }
+
       }
       else // Wenn keine Startvoltage eingestellt ist, dann muss der aktuelle SoC größer dem cutOffSoc sein.
       {
-        if(inverterData.batteryCurrent < lCutOffCurrent && lSoc >= lCutOffSoc) inverterData.u16_mChargeCurrentCutOfTimer++;
-        else inverterData.u16_mChargeCurrentCutOfTimer = 0;
+        // ToDo: Aktualwert, Mittelwert über Weboberfläche wählbar machen
+
+        // Aktualwert
+        // if(inverterData.batteryCurrent < lCutOffCurrent && lSoc >= lCutOffSoc) inverterData.mChargeCurrentCutOfTimer++;
+        // else inverterData.mChargeCurrentCutOfTimer = 0;
+
+        // Mittelwert
+        inverterData.mChargeCurrentCutOffMittelwertCounter++;
+        calcMittelwert(inverterData.batteryCurrent, inverterData.mChargeCurrentCutOffMittelwert, inverterData.mChargeCurrentCutOffMittelwertCounter);
+
+        if(inverterData.mChargeCurrentCutOffMittelwert < lCutOffCurrent && lSoc >= lCutOffSoc)
+        {
+          inverterData.mChargeCurrentCutOfTimer++;
+        }
+        else
+        {
+          inverterData.mChargeCurrentCutOfTimer = 0;
+
+          inverterData.mChargeCurrentCutOffMittelwert = 0;
+          inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
+        }
       }
 
     }
 
     #ifdef CAN_DEBUG
-    if(u16_mChargeCurrentCutOfTimerOld!=u16_mChargeCurrentCutOfTimer)
+    if(u16_mChargeCurrentCutOfTimerOld!=mChargeCurrentCutOfTimer)
     {
-      if(u16_mChargeCurrentCutOfTimer==0 || u16_mChargeCurrentCutOfTimer==1 || u16_mChargeCurrentCutOfTimer==lCutOffTime)
-      BSC_LOGI(TAG,"calcChargeCurrentCutOff: u16_mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", u16_mChargeCurrentCutOfTimer, u16_lChargeCurrent);
+      if(mChargeCurrentCutOfTimer==0 || mChargeCurrentCutOfTimer==1 || mChargeCurrentCutOfTimer==lCutOffTime)
+      BSC_LOGI(TAG,"calcChargeCurrentCutOff: mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", mChargeCurrentCutOfTimer, u16_lChargeCurrent);
     }
     #endif
 

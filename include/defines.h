@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.5.15"
+#define BSC_SW_VERSION      "V0.5.15_T5"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -421,6 +421,9 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_BSC_USERNAME 160
 #define ID_PARAM_BSC_PASSWORD 161
+
+#define ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME 162
+
 
 
 

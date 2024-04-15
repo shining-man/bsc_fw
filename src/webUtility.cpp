@@ -144,8 +144,8 @@ void handleFileUpload(fs::FS &fs, WebServer &server, [[maybe_unused]] bool fsIsS
 
 bool performAuthentication(WebServer &server, WebSettings &ws)
 {
-  String bscName = ws.getString(ID_PARAM_BSC_USERNAME, 0);
-  String bscPw = ws.getString(ID_PARAM_BSC_PASSWORD, 0);
+  String bscName = ws.getStringFlash(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws.getStringFlash(ID_PARAM_BSC_PASSWORD, 0);
 
 
   if (!server.authenticate(bscName.c_str(), bscPw.c_str()))
@@ -161,8 +161,8 @@ bool performAuthentication(WebServer *server, WebSettings *ws)
   if(server==nullptr) return false;
   if(ws==nullptr) return false;
 
-  String bscName = ws->getString(ID_PARAM_BSC_USERNAME, 0);
-  String bscPw = ws->getString(ID_PARAM_BSC_PASSWORD, 0);
+  String bscName = ws->getStringFlash(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws->getStringFlash(ID_PARAM_BSC_PASSWORD, 0);
 
   if (!server->authenticate(bscName.c_str(), bscPw.c_str()))
   {
@@ -176,8 +176,8 @@ bool performAuthentication(WebServer *server, WebSettings &ws)
 {
   if(server==nullptr) return false;
 
-  String bscName = ws.getString(ID_PARAM_BSC_USERNAME, 0);
-  String bscPw = ws.getString(ID_PARAM_BSC_PASSWORD, 0);
+  String bscName = ws.getStringFlash(ID_PARAM_BSC_USERNAME, 0);
+  String bscPw = ws.getStringFlash(ID_PARAM_BSC_PASSWORD, 0);
 
   if (!server->authenticate(bscName.c_str(), bscPw.c_str()))
   {

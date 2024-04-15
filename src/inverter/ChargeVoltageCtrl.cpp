@@ -131,7 +131,7 @@ namespace nsChargeVoltageCtrl
     {
       // Timeout
       const uint16_t u16_lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
-      if(millis()-inverterData.autobalanceStartTime > (u16_lTimeout*60*1000)) // if timeout
+      if(millis() - inverterData.autobalanceStartTime > (u16_lTimeout * 60 * 1000)) // if timeout
       {
         // ToDo: MQTT Message, Trigger?
         inverterData.lastAutobalanceRun=millis();
@@ -145,11 +145,16 @@ namespace nsChargeVoltageCtrl
       const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
       if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
       {
-        inverterData.lastAutobalanceRun=millis();
-        inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
+        // Warten bis Mindestzeit abgelaufen
+        const uint16_t autobalMindestTime = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME);
+        if(millis() - inverterData.autobalanceStartTime >= (autobalMindestTime * 60 * 1000))
+        {
+          inverterData.lastAutobalanceRun=millis();
+          inverterData.mStateAutobalance=STATE_AUTOBAL_WAIT;
 
-        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-        return;
+          inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
+          return;
+        }
       }
 
       // Ladespannung einstellen

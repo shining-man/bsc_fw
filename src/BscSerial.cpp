@@ -371,7 +371,8 @@ void BscSerial::cyclicRun()
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
   }
 
-  if((millis()-serialMqttSendeTimer)>60000)
+
+  if((millis()-serialMqttSendeTimer) > (WebSettings::getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000))
   {
     serialMqttSendeTimer=millis();
     bo_lMqttSendMsg=true;
