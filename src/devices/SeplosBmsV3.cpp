@@ -108,7 +108,7 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   setBmsMinVoltageCellNumber(devNr,minCellVoltageNr);
 
   // Temperature
-  for(uint8_t i=0;i<3;i++) setBmsTempature(devNr,i,modbus->getU16Value(TEMPERATURE_1+i));
+  for(uint8_t i=0;i<3;i++) setBmsTempatureI16(devNr, i, (int16_t)modbus->getU16Value(TEMPERATURE_1+i));
 }
 
 
