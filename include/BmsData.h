@@ -95,6 +95,7 @@ void setBmsBalancingCurrent(uint8_t devNr, float value);
 
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr);
 void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value);
+void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value);
 
 uint8_t getBmsChargePercentage(uint8_t devNr);
 void setBmsChargePercentage(uint8_t devNr, uint8_t value);
@@ -140,7 +141,7 @@ uint8_t getBmsDataBytes(uint8_t dataType);
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr);
 
 bool isMultiple485bms(uint8_t bms);
-
+bool haveAllBmsFirstData();
 
 #ifdef LOG_BMS_DATA
 void logBmsData(uint8_t bmsNr);

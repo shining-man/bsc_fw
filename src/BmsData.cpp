@@ -315,6 +315,12 @@ void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
   bmsData.bmsTempature[devNr][sensorNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
+void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsTempature[devNr][sensorNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 
 uint8_t getBmsChargePercentage(uint8_t devNr)
@@ -630,6 +636,36 @@ bool isMultiple485bms(uint8_t bms)
     default:
       return false;
   }
+}
+
+
+// Hiermit kann nach dem Start des BSC überprüft werden, ob schon einmal Daten von den BMS empfangen wurden
+bool haveAllBmsFirstData()
+{
+  uint8_t i = 0;
+  bool allBmsHaveData = true;
+
+  // Bluetooth
+  for(i = 0; i < BT_DEVICES_COUNT; i++)
+  {
+    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,0,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
+    {
+      if(bmsData.bmsLastDataMillis[i] == 0) allBmsHaveData = false;
+    }
+  }
+
+  // Serial
+  for(i = BMSDATA_FIRST_DEV_SERIAL; i < BMSDATA_LAST_DEV_SERIAL; i++)
+  {
+    if(i >= BMSDATA_NUMBER_ALLDEVICES) break;
+
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
+    {
+      if(bmsData.bmsLastDataMillis[i] == 0) allBmsHaveData = false;
+    }
+  }
+
+  return !allBmsHaveData;
 }
 
 
