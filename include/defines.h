@@ -425,6 +425,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_CAN_DEVICE_DEYE          2
 #define ID_CAN_DEVICE_VICTRON       3
 #define ID_CAN_DEVICE_VICTRON_250K  4
+#define ID_CAN_DEVICE_SOLAREDGE_RWS 5
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0
