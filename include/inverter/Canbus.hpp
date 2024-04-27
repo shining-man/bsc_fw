@@ -81,5 +81,10 @@ namespace nsCanbus
     void sendExtendedCanMsgBmsData();
 
     void onCanReceive(int packetSize);
+    void sendCanMsg_productinfo_382();//Anpassung SolarEdgeRWS
+    void sendCanMsg_version_35f_SolarEdgeRWS();//Anpassung SolarEdgeRWS
+    void sendCanMsg_soc_soh_355_SolarEdgeRWS(Inverter::inverterData_s &inverterData); //Anpassung SolaredgeRWS
+    void sendCanMsg_ChgVoltCur_DisChgCur_351_SolarEdgeRWS(Inverter::inverterData_s &inverterData);//Anpassung SolaredgeRWS
+    void sendCanMsg_Battery_Voltage_Current_Temp_356_SolarEdgeRWS(Inverter::inverterData_s &inverterData); //Anpassung SolaredgeRWS
   };
 }
