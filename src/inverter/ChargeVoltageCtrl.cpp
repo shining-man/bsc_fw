@@ -35,12 +35,11 @@ namespace nsChargeVoltageCtrl
     {
       uint16_t lFloatVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_FLOAT_CHARGE_SPG,0,DT_ID_PARAM_BMS_FLOAT_CHARGE_SPG);
       if(lFloatVoltage < u16_lChargeVoltage) u16_lChargeVoltage = lFloatVoltage;
-      else BSC_LOGI("floatState","FloatVoltage > ChargeVoltage fl=%i, abs=%i", lFloatVoltage, u16_lChargeVoltage);
+      //else BSC_LOGI("floatState","FloatVoltage > ChargeVoltage fl=%i, abs=%i", lFloatVoltage, u16_lChargeVoltage);
 
       if(inverterData.inverterSoc < WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC,0,DT_ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_SOC))
       {
         inverterData.floatState = Inverter::e_stateFloat::ABSORPTION_VOLTAGE;
-        BSC_LOGI("floatState","set ABSORPTION_VOLTAGE (A)");
       }
     }
 
@@ -100,7 +99,6 @@ namespace nsChargeVoltageCtrl
     {
       inverterData.lastAutobalanceRun=millis();
       inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT;
-      BSC_LOGI("CC", "AUTOBAL A: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
     }
 
     // Warte auf den Start (Intervall)
@@ -115,7 +113,6 @@ namespace nsChargeVoltageCtrl
       #endif
       {
         inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_START_VOLTAGE;
-       BSC_LOGI("CC", "AUTOBAL B: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
       }
     }
 
@@ -129,7 +126,6 @@ namespace nsChargeVoltageCtrl
         inverterData.autobalanceStartTime = millis();
 
         inverterData.floatState = Inverter::e_stateFloat::ABSORPTION_VOLTAGE_AUTOBALANCER;
-        BSC_LOGI("CC", "AUTOBAL C: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
       }
     }
 
@@ -142,11 +138,10 @@ namespace nsChargeVoltageCtrl
       if(millis() - inverterData.autobalanceStartTime > lTimeout) // if timeout
       {
         // ToDo: MQTT Message, Trigger?
-        //inverterData.lastAutobalanceRun = millis();
+        
         inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
 
         inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-      BSC_LOGI("CC", "AUTOBAL D: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
         return;
       }
 
@@ -155,8 +150,6 @@ namespace nsChargeVoltageCtrl
       if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
       {
         inverterData.mStateAutobalance = STATE_AUTOBAL_FINISH;
-
-        BSC_LOGI("CC", "AUTOBAL E: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
       }
 
       // Ladespannung einstellen
@@ -170,13 +163,9 @@ namespace nsChargeVoltageCtrl
       uint32_t autobalMindestTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME);
       autobalMindestTime = autobalMindestTime * 60 * 1000;
       if(millis() - inverterData.autobalanceStartTime >= autobalMindestTime)
-      {
-        //inverterData.lastAutobalanceRun = millis();
+      {;
         inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
-
         inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-
-        BSC_LOGI("CC", "AUTOBAL F: state=%i, runtime=%l", inverterData.mStateAutobalance, inverterData.autobalanceStartTime-millis());
         return;
       }
 
