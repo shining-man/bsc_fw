@@ -187,7 +187,8 @@ namespace nsChargeCurrentCtrl
         i16_lMindestChargeCurrent *= 10; // Anpassung, da der rückgegeben Stromwert x10 ist (Festkomm mit einer Kommastelle)
 
         // Wenn Autobalancing aktiv ist
-        if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING)
+        if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
+          || inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
         {
           u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
         }
@@ -322,7 +323,22 @@ namespace nsChargeCurrentCtrl
    ********************************************************************************************/
   int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent)
   {
-    if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING) return u16_lChargeCurrent; //Wenn der Autobalancer gerade aktiv ist
+    if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
+      || inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
+    {
+      //CutOff zurücksetzen
+      if(inverterData.mChargeCurrentCutOfTimer != 0)
+      {
+        inverterData.mChargeCurrentCutOfTimer = 0;
+        inverterData.mChargeCurrentCutOffMittelwert = 0;
+        inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
+      }
+
+      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CUTOFF_VALUE, -1, (float)(inverterData.mChargeCurrentCutOffMittelwert/10.0f));
+      mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CUTOFF_TIMER, -1, -1);
+
+      return u16_lChargeCurrent; //Wenn der Autobalancer gerade aktiv ist
+    }
 
     if(WebSettings::getBool(ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_ENABLE, 0) == false) return u16_lChargeCurrent;
 
@@ -340,17 +356,17 @@ namespace nsChargeCurrentCtrl
 
     if(inverterData.mChargeCurrentCutOfTimer >= lCutOffTime)
     {
-      if(inverterData.mChargeCurrentCutOfTimer != 0)
+      //Wenn SoC zur Freigabe wieder unterschritten
+      if(lSoc < lCutOffSoc)
       {
+        inverterData.mChargeCurrentCutOfTimer = 0;
         inverterData.mChargeCurrentCutOffMittelwert = 0;
         inverterData.mChargeCurrentCutOffMittelwertCounter = 0;
       }
-
-      //Wenn SoC zur Freigabe wieder unterschritten
-      if(lSoc < lCutOffSoc) inverterData.mChargeCurrentCutOfTimer = 0;
       else u16_lChargeCurrent = 0;
 
       inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
+      BSC_LOGI("floatState","set FLOAT_VOLTAGE (B)");
     }
     else
     {
@@ -417,6 +433,9 @@ namespace nsChargeCurrentCtrl
       BSC_LOGI(TAG,"calcChargeCurrentCutOff: mChargeCurrentCutOfTimer=%i, u16_lChargeCurrent=%i", mChargeCurrentCutOfTimer, u16_lChargeCurrent);
     }
     #endif
+
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CUTOFF_VALUE, -1, (float)(inverterData.mChargeCurrentCutOffMittelwert/10.0f));
+    mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CUTOFF_TIMER, -1, inverterData.mChargeCurrentCutOfTimer);
 
     return u16_lChargeCurrent;
   }

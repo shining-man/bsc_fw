@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.5.15_T5"
+#define BSC_SW_VERSION      "V0.5.15_T8"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -24,7 +24,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //#define DEBUG_JTAG
 //#define BPN
-#define INSIDER_V1
+//#define INSIDER_V1
 
 #ifdef DEBUG_ON_FS
 //Erweitertes Logging (zum debuggen)
@@ -570,6 +570,9 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT        52
 #define MQTT_TOPIC2_AMOUNT_DCH_ENERGY           53
 #define MQTT_TOPIC2_AMOUNT_CH_ENERGY            54
+#define MQTT_TOPIC2_CUTOFF_VALUE                55
+#define MQTT_TOPIC2_CUTOFF_TIMER                56
+#define MQTT_TOPIC2_AUTOBAL_STATE               57
 
 
 static const char* mqttTopics[] = {"", // 0
@@ -627,9 +630,9 @@ static const char* mqttTopics[] = {"", // 0
   "totalVoltMaxCount",         // 52
   "amountDchEnergy",           // 53
   "amountChEnergy",            // 54
-  "",                          // 55
-  "",                          // 56
-  "",                          // 57
+  "cutoffValue",               // 55
+  "cutoffTimer",               // 56
+  "autoBalState",              // 57
   "",                          // 58
   "",                          // 59
   "",                          // 60
@@ -706,4 +709,4 @@ static const char* mqttTopics[] = {"", // 0
 
 
 #define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
-#define mc_POS_DIV(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))
+#define ROUND(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))

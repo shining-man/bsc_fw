@@ -86,6 +86,8 @@ WebSettings webSettingsDitialIn;
 WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
+WebSettings webSettingsInverterCharge;
+WebSettings webSettingsInverterDischarge;
 WebSettings webSettingsDeviceNeeyBalancer;
 WebSettings webSettingsDeviceJbdBms;
 
@@ -846,6 +848,8 @@ void handlePage_status(){if(performAuthentication(server, webSettingsSystem)) se
 void handlePage_htmlPageMenuLivedata(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageMenuLivedata);}
 void handlePage_htmlPageOwTempLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageOwTempLive);}
 void handlePage_htmlPageBscDataLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBscDataLive);}
+void handlePage_inverter(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageInverter);}
+
 
 /*#ifdef BPN
 void handlePage_htmlPageBpnSettings()
@@ -908,6 +912,24 @@ void handle_paramOnewire2(){webSettingsOnewire2.handleHtmlFormRequest(&server);}
 void handle_paramBmsToInverter()
 {
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    inverter.loadIverterSettings();
+  }
+}
+
+void handle_paramInverterCharge()
+{
+  webSettingsInverterCharge.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    inverter.loadIverterSettings();
+  }
+}
+
+void handle_paramInverterDischarge()
+{
+  webSettingsInverterDischarge.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
     inverter.loadIverterSettings();
@@ -1241,6 +1263,8 @@ void setup()
   webSettingsOnewire.initWebSettings(paramOnewireAdr, "Onewire", "/WebSettings.conf");
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
   webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf");
+  webSettingsInverterCharge.initWebSettings(paramInverterCharge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
+  webSettingsInverterDischarge.initWebSettings(paramInverterDischarge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
@@ -1294,6 +1318,8 @@ void setup()
     server.on("/p_ow", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewire2);});
     server.on("/p_owadr", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewireAdr);});
     server.on("/p_inverter", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramBmsToInverter);});
+    server.on("/p_invertercharge", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramInverterCharge);});
+    server.on("/p_inverterdischarge", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramInverterDischarge);});
     server.on("/p_neey", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
     server.on("/p_jbd", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceJbdBms);});
     server.on("/p_bpn", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceBpn);});
@@ -1320,10 +1346,14 @@ void setup()
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
   server.on("/settings/devices/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageDevices);});
   server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, server, webSettingsSystem);}); // Die Restapi ist ohne pw abrufbar
+  server.on("/settings/inverter/",handlePage_inverter);
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
 
   server.on("/settings/system/",handle_paramSystem);
-  server.on("/settings/bms_can/",handle_paramBmsToInverter);
+  server.on("/settings/inverter/bms_can/",handle_paramBmsToInverter);
+  server.on("/settings/inverter/can_charge/",handle_paramInverterCharge);
+  server.on("/settings/inverter/can_discharge/",handle_paramInverterDischarge);
+
   server.on("/settings/alarm/alarmTemp/",handle_paramAlarmTemp);
   server.on("/settings/alarm/alarmBt/",handle_paramAlarmBt);
   server.on("/settings/schnittstellen/dout/",handle_paramDigitalOut);

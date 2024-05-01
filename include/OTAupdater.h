@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <WebServer.h>
 #include <WebSettings.h>
-#include <WebUtility.h>
+#include <webUtility.h>
 
 class OTAupdater {
 	public:
