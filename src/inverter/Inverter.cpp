@@ -117,7 +117,8 @@ void Inverter::loadIverterSettings()
   inverterData.u8_bmsDatasource = u8_bmsDatasource;
   inverterData.u16_bmsDatasourceAdd = u16_bmsDatasourceAdd;
 
-  BSC_LOGI(TAG,"loadIverterSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_bmsDatasource,bmsConnectFilter, u16_bmsDatasourceAdd);
+  BSC_LOGI(TAG,"Load inverter settings(): dataSrc=%i, dataSrcAdd=%i",inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+  //BSC_LOGI(TAG,"loadIverterSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_bmsDatasource,bmsConnectFilter, u16_bmsDatasourceAdd);
 }
 
 
@@ -204,7 +205,5 @@ void Inverter::sendMqttMsg()
     nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
     int16_t i16_lBattTemp = inverterBattery.getBatteryTemp(inverterData);
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TEMPERATURE, -1, (float)(i16_lBattTemp));
-
-    //BSC_LOGI("PETER-SPEZIAL", "CUT-OFF: Counter=%i, value=%i", inverterData.mChargeCurrentCutOffMittelwertCounter, inverterData.mChargeCurrentCutOffMittelwert);
   }
 }

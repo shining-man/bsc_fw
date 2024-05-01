@@ -7,7 +7,7 @@
 #include "WebSettings.h"
 #include "dio.h"
 #include "AlarmRules.h"
-#include "WebUtility.h"
+#include "webUtility.h"
 
 static const char* TAG = "REST";
 

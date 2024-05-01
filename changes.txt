@@ -1,7 +1,10 @@
 Folgende Werte müssen nach dem Update kontrolliert und ggf. angepasst werden:
-- ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT
-- ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC
-- ID_PARAM_BMS_MAX_CHARGE_SPG
+- Cut-Off Strom (ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT)
+- Ladestrom reduzieren - SoC; Pro 1% um x A reduzieren (ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC)
+- Float Ladespannung (ID_PARAM_BMS_MAX_CHARGE_SPG)
+
+
+
 
 v0.5.14
 - Toggeln des Triggergrundes im Log behoben

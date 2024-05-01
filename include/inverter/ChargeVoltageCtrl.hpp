@@ -19,7 +19,7 @@ namespace nsChargeVoltageCtrl
 
     void calcChargVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData);
 
-    enum e_stateAutobalance {STATE_AUTOBAL_OFF, STATE_AUTOBAL_WAIT, STATE_AUTOBAL_WAIT_START_VOLTAGE, STATE_AUTOBAL_RUNING};
+    enum e_stateAutobalance {STATE_AUTOBAL_OFF, STATE_AUTOBAL_WAIT, STATE_AUTOBAL_WAIT_START_VOLTAGE, STATE_AUTOBAL_RUNING, STATE_AUTOBAL_FINISH};
 
   private:
     uint16_t calcDynamicReduzeChargeVolltage(Inverter::inverterData_s &inverterData, uint16_t u16_lChargeVoltage);
