@@ -410,7 +410,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
       message2Log(t_message, address);
     }
     #endif
-    setBmsChargePercentage(BT_DEVICES_COUNT+address, get16bitFromMsg(u8_lMsgoffset+9)/10);
+    setBmsChargePercentage(BT_DEVICES_COUNT+address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
 
     //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
     //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
