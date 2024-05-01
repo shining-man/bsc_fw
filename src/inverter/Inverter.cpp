@@ -50,7 +50,8 @@ void Inverter::inverterInit()
   inverterData.u8_mSocZellspannungState = nsSocCtrl::SocCtrl::SM_SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
 
   // Autoblance
-  inverterData.mStateAutobalance = nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT;
+  // Mit STATE_AUTOBAL_WAIT_START_VOLTAGE starten um den Startintervall zu umgehen
+  inverterData.mStateAutobalance = nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT_START_VOLTAGE; 
   inverterData.lastAutobalanceRun = millis();
   inverterData.autobalanceStartTime = 0;
 
