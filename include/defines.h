@@ -453,9 +453,10 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
 #define ID_CAN_DEVICE_SOLISRHI      1
-#define ID_CAN_DEVICE_DEYE          2
+#define ID_CAN_DEVICE_PYLONTECH     2
 #define ID_CAN_DEVICE_VICTRON       3
 #define ID_CAN_DEVICE_VICTRON_250K  4
+#define ID_CAN_DEVICE_BYD_PROTOCOL  5
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0

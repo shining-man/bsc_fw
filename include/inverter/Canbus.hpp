@@ -35,6 +35,8 @@ namespace nsCanbus
     {
       uint16_t soc; //state of charge
       uint16_t soh; //state of health
+      uint16_t notUsed0;
+      uint16_t notUsed1;
     };
 
     struct data356
@@ -42,6 +44,7 @@ namespace nsCanbus
       int16_t voltage;
       int16_t current;
       int16_t temperature;
+      uint16_t notUsed0;
     };
 
     struct data35a
@@ -64,13 +67,13 @@ namespace nsCanbus
       uint16_t maxCellTemp;
     };
 
-    void sendCanMsg_ChgVoltCur_DisChgCur_351(Inverter::inverterData_s &inverterData);
-    void sendCanMsg_soc_soh_355(Inverter::inverterData_s &inverterData);
-    void sendCanMsg_Battery_Voltage_Current_Temp_356(Inverter::inverterData_s &inverterData);
+    void sendCanMsg_ChgVoltCur_DisChgCur_351(Inverter::inverterData_s &inverterData, uint8_t canDevice);
+    void sendCanMsg_soc_soh_355(Inverter::inverterData_s &inverterData, uint8_t canDevice);
+    void sendCanMsg_Battery_Voltage_Current_Temp_356(Inverter::inverterData_s &inverterData, uint8_t canDevice);
     void sendCanMsg_Alarm_359(Inverter::inverterData_s &inverterData);
     void sendCanMsg_Alarm_35a(Inverter::inverterData_s &inverterData);
     void sendCanMsg_hostname_35e_370_371();
-    void sendCanMsg_version_35f();
+    void sendCanMsg_version_35f(uint8_t canDevice);
     void sendCanMsg_battery_modules_372(Inverter::inverterData_s &inverterData);
     void sendCanMsg_min_max_values_373_376_377(Inverter::inverterData_s &inverterData);
     void sendCanMsg_minCellVoltage_text_374(Inverter::inverterData_s &inverterData);
@@ -81,5 +84,6 @@ namespace nsCanbus
     void sendExtendedCanMsgBmsData();
 
     void onCanReceive(int packetSize);
+    void sendCanMsg_productinfo_382();//Anpassung SolarEdgeRWS
   };
 }

@@ -111,7 +111,7 @@ namespace nsChargeVoltageCtrl
       #ifdef UTEST_RESTAPI
       if(millis()-inverterData.lastAutobalanceRun > (lStartInterval*1000))
       #else
-      if(millis()-inverterData.lastAutobalanceRun > (lStartInterval*79200000)) // Tage: 24(22)*60*60*1000
+      if(millis()-inverterData.lastAutobalanceRun > ((lStartInterval*86400000)-7200000)) // Tage: ((24h*60*60*1000) - 2h)
       #endif
       {
         inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_START_VOLTAGE;
