@@ -69,7 +69,7 @@ static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   setBmsTotalVoltage_int(devNr,modbus->getU16Value(TOTAL_VOLTAGE)); // 10mV
   setBmsTotalCurrent_int(devNr,modbus->getU16Value(TOTAL_CURRENT)); // 10mA
   setBmsAvgVoltage(devNr,modbus->getU16Value(AVG_CELL_VOLTAGE)); // 1mV
-  setBmsChargePercentage(devNr,modbus->getU16Value(SEPLOSV3_SOC)/10); // 0.1%
+  setBmsChargePercentage(devNr, ROUND(modbus->getU16Value(SEPLOSV3_SOC), 10)); // 0.1%
 
   uint16_t maxCellVoltage = modbus->getU16Value(MAX_CELL_VOLTAGE); // 1mV
   uint16_t minCellVoltage = modbus->getU16Value(MIN_CELL_VOLTAGE); // 1mV

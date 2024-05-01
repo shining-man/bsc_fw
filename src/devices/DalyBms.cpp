@@ -256,7 +256,7 @@ static void parseMessage(uint8_t * t_message)
     case DALY_REQUEST_BATTERY_SOC:
       setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, ((float)((t_message[4]<<8) | t_message[5]) / 10.0f));
       setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, ((float)(((t_message[8]<<8) | t_message[9]) - DALY_CURRENT_OFFSET) / 10.0f));
-      setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, (uint8_t)(((t_message[10]<<8) | t_message[11]) / 10));
+      setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, ROUND( ((t_message[10]<<8) | t_message[11]), 10 ) );
       break;
 
     case DALY_REQUEST_MIN_MAX_VOLTAGE:
