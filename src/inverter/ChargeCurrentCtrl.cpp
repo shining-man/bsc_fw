@@ -366,7 +366,6 @@ namespace nsChargeCurrentCtrl
       else u16_lChargeCurrent = 0;
 
       inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-      BSC_LOGI("floatState","set FLOAT_VOLTAGE (B)");
     }
     else
     {
