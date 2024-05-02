@@ -105,7 +105,7 @@ namespace nsChargeVoltageCtrl
     // Wenn deaktiviert
     if(WebSettings::getBool(ID_PARAM_INVERTER_AUTOBALANCE_ENABLE, 0) == false)
     {
-      inverterData.mStateAutobalance=STATE_AUTOBAL_OFF;
+      inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
       return;
     }
 
@@ -154,7 +154,7 @@ namespace nsChargeVoltageCtrl
       u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
 
       // Überprüfen ob Chargevoltage erreicht
-      if(inverterData.autobalanceVoltageErreichtTime != 0)
+      if(inverterData.autobalanceVoltageErreichtTime == 0)
       { 
         if(inverterData.batteryVoltage >= (u16_lChargeVoltage - u16_lChargeVoltage/100)) 
         {
@@ -167,7 +167,7 @@ namespace nsChargeVoltageCtrl
       const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
       if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
       {
-        inverterData.mStateAutobalance = STATE_AUTOBAL_FINISH;
+        inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_CHARGE_VOLTAGE;
       }
 
     }
