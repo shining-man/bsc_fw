@@ -84,6 +84,20 @@ namespace nsChargeVoltageCtrl
   /*
    * Autobalancing
    */
+  bool ChargeVoltageCtrl::isAutobalanceTimeout(Inverter::inverterData_s &inverterData)
+  {
+    // Timeout
+    uint32_t lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
+    lTimeout = lTimeout * 60 * 1000;
+    if(millis() - inverterData.autobalanceStartTime > lTimeout) // if timeout
+    {        
+      inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
+      inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
+      return true;
+    }
+    return false;
+  } 
+
   void ChargeVoltageCtrl::setAutobalanceVoltage(Inverter::inverterData_s &inverterData, uint16_t &u16_lChargeVoltage)
   {
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_AUTOBAL_STATE, -1, inverterData.mStateAutobalance);
@@ -97,7 +111,8 @@ namespace nsChargeVoltageCtrl
 
     if(inverterData.mStateAutobalance==STATE_AUTOBAL_OFF)
     {
-      inverterData.lastAutobalanceRun=millis();
+      inverterData.lastAutobalanceRun = millis();
+      inverterData.autobalanceVoltageErreichtTime = 0;
       inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT;
     }
 
@@ -133,17 +148,20 @@ namespace nsChargeVoltageCtrl
     else if(inverterData.mStateAutobalance == STATE_AUTOBAL_RUNING)
     {
       // Timeout
-      uint32_t lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
-      lTimeout = lTimeout * 60 * 1000;
-      if(millis() - inverterData.autobalanceStartTime > lTimeout) // if timeout
-      {
-        // ToDo: MQTT Message, Trigger?
-        
-        inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
+      if(isAutobalanceTimeout(inverterData)) return;
 
-        inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
-        return;
-      }
+      // Ladespannung einstellen
+      u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
+
+      // Überprüfen ob Chargevoltage erreicht
+      if(inverterData.autobalanceVoltageErreichtTime != 0)
+      { 
+        if(inverterData.batteryVoltage >= (u16_lChargeVoltage - u16_lChargeVoltage/100)) 
+        {
+         inverterData.autobalanceVoltageErreichtTime = millis();
+         if(inverterData.autobalanceVoltageErreichtTime == 0) inverterData.autobalanceVoltageErreichtTime++;
+        }
+      } 
 
       // Finish
       const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
@@ -152,9 +170,32 @@ namespace nsChargeVoltageCtrl
         inverterData.mStateAutobalance = STATE_AUTOBAL_FINISH;
       }
 
+    }
+
+    // Wenn die Chargevoltage noch nicht erreicht ist, warten bis erreicht
+    else if(inverterData.mStateAutobalance == STATE_AUTOBAL_WAIT_CHARGE_VOLTAGE)
+    {
+      // Timeout
+      if(isAutobalanceTimeout(inverterData)) return;
+
       // Ladespannung einstellen
       u16_lChargeVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE);
-    }
+
+      // Überprüfen ob Startspannnung erreicht ist
+      if(inverterData.autobalanceVoltageErreichtTime != 0)
+      {
+        inverterData.mStateAutobalance = STATE_AUTOBAL_FINISH;
+      } 
+      else
+      { 
+        if(inverterData.batteryVoltage >= (u16_lChargeVoltage - u16_lChargeVoltage/100)) 
+        {
+          inverterData.autobalanceVoltageErreichtTime = millis();
+          if(inverterData.autobalanceVoltageErreichtTime == 0) inverterData.autobalanceVoltageErreichtTime++;
+          inverterData.mStateAutobalance = STATE_AUTOBAL_FINISH;
+        } 
+      } 
+    } 
 
     // Fertig; Warten bis Mindestzeit abgelaufen
     else if(inverterData.mStateAutobalance == STATE_AUTOBAL_FINISH)
@@ -162,7 +203,7 @@ namespace nsChargeVoltageCtrl
       // Warten bis Mindestzeit abgelaufen
       uint32_t autobalMindestTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME);
       autobalMindestTime = autobalMindestTime * 60 * 1000;
-      if(millis() - inverterData.autobalanceStartTime >= autobalMindestTime)
+      if(millis() - inverterData.autobalanceVoltageErreichtTime >= autobalMindestTime)
       {;
         inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
         inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;

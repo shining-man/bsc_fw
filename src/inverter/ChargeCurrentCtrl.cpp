@@ -187,8 +187,8 @@ namespace nsChargeCurrentCtrl
         i16_lMindestChargeCurrent *= 10; // Anpassung, da der rückgegeben Stromwert x10 ist (Festkomm mit einer Kommastelle)
 
         // Wenn Autobalancing aktiv ist
-        if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
-          || inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
+        if(inverterData.mStateAutobalance >= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
+          && inverterData.mStateAutobalance <= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
         {
           u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
         }
@@ -323,8 +323,8 @@ namespace nsChargeCurrentCtrl
    ********************************************************************************************/
   int16_t ChargeCurrentCtrl::calcChargeCurrentCutOff(Inverter::inverterData_s &inverterData, int16_t u16_lChargeCurrent)
   {
-    if(inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
-      || inverterData.mStateAutobalance == nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
+    if(inverterData.mStateAutobalance >= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
+      && inverterData.mStateAutobalance <= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
     {
       //CutOff zurücksetzen
       if(inverterData.mChargeCurrentCutOfTimer != 0)

@@ -60,10 +60,11 @@ public:
         uint8_t  u8_mSocZellspannungState;
         uint16_t u16_mSocZellspannungSperrzeitTimer;
 
-        // Autoballance
+        // Autobalance
         uint8_t mStateAutobalance;
         uint32_t lastAutobalanceRun;
         uint32_t autobalanceStartTime;
+        uint32_t autobalanceVoltageErreichtTime;
 
         //
         e_stateFloat floatState;
