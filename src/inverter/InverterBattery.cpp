@@ -105,7 +105,7 @@ namespace nsInverterBattery
       }
       else
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)*10); //Im Fehlerfall immer Sensor 0 des BMS nehmen
+        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
       }
     }
     else if(u8_lBmsTempQuelle==2)

@@ -65,14 +65,12 @@ namespace nsChargeVoltageCtrl
         uint16_t u16_lMaxCellDiffVoltage = BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
         if(u16_lMaxCellDiffVoltage>u16_lDeltaCellVoltage)
         {
-          u16_lDynamicChargeVoltage-=1; //1=100mV
-          if(u16_lDynamicChargeVoltage<0)u16_lDynamicChargeVoltage=0;
+          if (u16_lDynamicChargeVoltage > 0) u16_lDynamicChargeVoltage -= 1; //1=100mV
           return u16_lDynamicChargeVoltage;
         }
         else if(u16_lMaxCellDiffVoltage<u16_lDeltaCellVoltage)
         {
-          u16_lDynamicChargeVoltage+=1; //1=100mV
-          if(u16_lDynamicChargeVoltage>u16_lChargeVoltage)u16_lDynamicChargeVoltage=u16_lChargeVoltage;
+          if(u16_lDynamicChargeVoltage < u16_lChargeVoltage) u16_lDynamicChargeVoltage += 1; //1=100mV
           return u16_lDynamicChargeVoltage;
         }
       }
@@ -156,7 +154,8 @@ namespace nsChargeVoltageCtrl
       // Überprüfen ob Chargevoltage erreicht
       if(inverterData.autobalanceVoltageErreichtTime == 0)
       { 
-        if(inverterData.batteryVoltage >= (u16_lChargeVoltage - u16_lChargeVoltage/100)) 
+        // Der Wert u16_lChargeVoltage muss x10 genommen werden, damit er dem Wert batteryVoltage entspricht
+        if(inverterData.batteryVoltage >= ((u16_lChargeVoltage - u16_lChargeVoltage/100)*10)) 
         {
          inverterData.autobalanceVoltageErreichtTime = millis();
          if(inverterData.autobalanceVoltageErreichtTime == 0) inverterData.autobalanceVoltageErreichtTime++;
@@ -188,7 +187,8 @@ namespace nsChargeVoltageCtrl
       } 
       else
       { 
-        if(inverterData.batteryVoltage >= (u16_lChargeVoltage - u16_lChargeVoltage/100)) 
+        // Der Wert u16_lChargeVoltage muss x10 genommen werden, damit er dem Wert batteryVoltage entspricht
+        if(inverterData.batteryVoltage >= ((u16_lChargeVoltage - u16_lChargeVoltage/100)*10)) 
         {
           inverterData.autobalanceVoltageErreichtTime = millis();
           if(inverterData.autobalanceVoltageErreichtTime == 0) inverterData.autobalanceVoltageErreichtTime++;
