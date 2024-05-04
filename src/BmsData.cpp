@@ -648,9 +648,13 @@ bool haveAllBmsFirstData()
   // Bluetooth
   for(i = 0; i < BT_DEVICES_COUNT; i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,0,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
+    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
     {
-      if(bmsData.bmsLastDataMillis[i] == 0) allBmsHaveData = false;
+      if(bmsData.bmsLastDataMillis[i] == 0) 
+      {
+        allBmsHaveData = false;
+        // BSC_LOGI(TAG,"Keine Daten: BT %i", i);
+      } 
     }
   }
 
@@ -659,13 +663,17 @@ bool haveAllBmsFirstData()
   {
     if(i >= BMSDATA_NUMBER_ALLDEVICES) break;
 
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,0,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
     {
-      if(bmsData.bmsLastDataMillis[i] == 0) allBmsHaveData = false;
+      if(bmsData.bmsLastDataMillis[i] == 0) 
+      { 
+        allBmsHaveData = false;
+        // BSC_LOGI(TAG,"Keine Daten: SER %i", i);
+      } 
     }
   }
 
-  return !allBmsHaveData;
+  return allBmsHaveData;
 }
 
 
