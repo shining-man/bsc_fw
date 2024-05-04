@@ -1393,7 +1393,7 @@ const String paramInverterCharge PROGMEM = "{'page':["
 
   //Ladestrom reduzieren ab bestimmten SoC
   "{"
-    "'label':'Ladesstrom reduzieren - SoC',"
+    "'label':'Ladestrom reduzieren - SoC',"
     "'type':"+String(HTML_SEPARATION)+""
   "},"
   "{"
