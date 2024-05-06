@@ -109,7 +109,7 @@ bool mqttLoop()
       txBuffer.clear();
       xSemaphoreGive(mMqttMutex);
       mMqttEnable = MQTT_ENABLE_STATE_READY;
-      BSC_LOGI(TAG,"Daten von allen BMS's vorhanden. Das Senden kann starten :)");
+      BSC_LOGI(TAG,"Daten von allen BMS's vorhanden. Das Senden kann starten.");
     }
     else return true;
   }
