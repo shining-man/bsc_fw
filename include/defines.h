@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.5.17"
+#define BSC_SW_VERSION      "V0.6.0_B1"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -631,9 +631,9 @@ static const char* mqttTopics[] = {"", // 0
   "totalVoltMaxCount",         // 52
   "amountDchEnergy",           // 53
   "amountChEnergy",            // 54
-  "cutoffValue",               // 55
-  "cutoffTimer",               // 56
-  "autoBalState",              // 57
+  "cutoffValue",               // 55  Debug
+  "cutoffTimer",               // 56  Debug
+  "autoBalState",              // 57  Debug
   "",                          // 58
   "",                          // 59
   "",                          // 60
