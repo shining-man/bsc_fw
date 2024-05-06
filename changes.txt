@@ -1,26 +1,24 @@
+v0.6.0
+Neue Funktionen/Verbesserungen bei der Laderegelung:
+- Absorbtion/Float Ladespannung
+- Autobalancing
+- CutOff (Überarbeitet)
+- Funktion "Ladesstrom reduzieren - SoC" erweitert um "Mindest Ladestrom in A" (#101)
+
+Weitere neue Features/Verbesserungen:
+- Neues BMS: Seplos V3 (#81)
+- Neues Wechselrichter CAN-Protokoll: BYD Protocol (SolarEdge RWS)
+- Passwortschutz für das WebUI (#93)
+    Username: bsc
+    Passwort: admin
+
+- Problem beim Runden des SoC behoben (Fix 100% SOC bei Seplos) (#113)
+- Kleinere Änderungen/Verbesserungen in den Menüs des WebUI (z.B. Invertermenü aufgeteilt zu bessern Übersichtlichkeit)
+- Größere Änderungen im Unterbau des BSC
+
+
+Wichtiger Hinweis!
 Folgende Werte müssen nach dem Update kontrolliert und ggf. angepasst werden:
-- Cut-Off Strom (ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_CURRENT)
-- Ladestrom reduzieren - SoC; Pro 1% um x A reduzieren (ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC)
-- Float Ladespannung (ID_PARAM_BMS_MAX_CHARGE_SPG)
-
-
-
-
-v0.5.14
-- Toggeln des Triggergrundes im Log behoben
-
-v0.5.13
-- Remove WebUI v2
-- Anpassungen für HW2.4.1
-
-v0.5.12
-- Display of groups in WebUI changed
-- Alarm/trigger name changed in the log
-- Charging voltage range changed
-
-v0.5.11:
-- Fixed: SoC from BMS
-- Fixed: Copy from BT-MAC (#85)
-
-v0.5.10:
-- Problem with the calculation of the SoC average fixed
+- Absorption Ladespannung
+- Ladestrom reduzieren - SoC; Pro 1% um x A reduzieren
+- Cut-Off Strom
