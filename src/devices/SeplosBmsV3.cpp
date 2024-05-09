@@ -43,6 +43,11 @@ bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8
   {
     //message2Log(response, 36, 0);
     parsePackInfoA(&modbus, u8_lSeplosAdrBmsData);
+
+    // MQTT
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
+
     vTaskDelay(pdMS_TO_TICKS(25));
   }
   else return false;
