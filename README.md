@@ -1,5 +1,15 @@
-# Battery safety controller (BSC)
-![bsc_dashboard](https://github.com/shining-man/bsc_fw/blob/main/doc/README_Dashboard.png?raw=true)
+<H1 align="center">Battery safety controller (BSC)</H1>
+
+<!-- SPONSORS_START -->
+<p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
+<p align="center"><strong>Energie-Pionier</strong></p><p align="center">
+  <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a> 
+</p>
+<!-- SPONSORS_ENDE -->'
+
+<p align="center">
+  <img src="https://github.com/shining-man/bsc_fw/blob/main/doc/README_Dashboard.png"/>
+</p>
 
 The Battery Safety Controller (BSC) is a freely configurable controller that can be used for a wide range of control and monitoring tasks for DIY batteries. The BSC can take over the central control of the Energy-Sorange system and can be used to implement a second safety level in addition to the BMS.
 
