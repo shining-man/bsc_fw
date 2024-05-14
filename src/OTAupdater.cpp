@@ -42,10 +42,12 @@ const char uploadFormV1[] PROGMEM = R"!^!(
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">
+	<div><u>Installierte FW-Version:</u> <span id='FwVersion'></span><br>
+  <span id='FwVersionHinweis'></span></div><br>
 	<p><b>Aktuelles verfügbares Release (github)</b>
 	<div><u>FW-Version:</u> <span id='gitFwVersion'></span></div><br>
 	<div><u>Veröffentlicht am:</u> <span id='gitFwPublishedAt'></span></div><br>
-	<div><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
+	<div id='fitFwDescLabel'><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
 	<div><a onclick="window.open('https://github.com/shining-man/bsc_fw/releases/latest/download/fw_bsc_ota.bin','_blank');" href="#">Download from GitHub</a></div>
 	</p>
 	<hr><br>
@@ -128,7 +130,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
   function __readLastFwVersionGithub()
   {
     var __fwVersion="";
-    var __fwVersionNew="";
+    var __fwVersionNow="";
     var __description="";
     var __published_at="";
 
@@ -140,16 +142,25 @@ const char uploadFormV1[] PROGMEM = R"!^!(
       __description=__data.body.replaceAll("\r\n", "<br>");
       __description=__description.replaceAll("\n", "<br>");
 
-	  document.getElementById('gitFwVersion').innerHTML =__fwVersion;
-	  document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
-	  document.getElementById('fitFwDesc').innerHTML = __description;
-    });
+      document.getElementById('gitFwVersion').innerHTML =__fwVersion;
+      document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
 
-    fetch('/restapi')
-    .then(__response => __response.json())
-    .then((__data) => {
-	  __fwVersionNew=__data.system.fw_version.toLowerCase();
-	  if(__fwVersion!=__fwVersionNew) console.log("New FW available");
+      fetch('/restapi')
+      .then(__response => __response.json())
+      .then((__data) => {
+        __fwVersionNow = __data.system.fw_version.toLowerCase();
+        document.getElementById('FwVersion').innerHTML = __fwVersionNow;
+        
+        console.log(__fwVersionNow);
+        console.log(__fwVersion);
+
+        if(__fwVersion != __fwVersionNow){ 
+          document.getElementById('fitFwDesc').innerHTML = __description;
+        } else {
+          document.getElementById('FwVersionHinweis').innerHTML = "Es ist keine neue Version verfügbar!";
+          document.getElementById('fitFwDescLabel').innerHTML = "";
+        } 
+      });
     });
   }
 </script>
