@@ -411,18 +411,21 @@ namespace nsCanbus
     */
 
     uint32_t u32_bmsErrors = getBmsErrors(inverterData.u8_bmsDatasource);
+    uint32_t u32_bmsWarnings = getBmsWarnings(inverterData.u8_bmsDatasource);
 
     if(inverterData.u16_bmsDatasourceAdd>0)
     {
-        for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-        {
+      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      {
         if((inverterData.u16_bmsDatasourceAdd>>i)&0x01)
         {
-            u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+          u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+          u32_bmsWarnings |= getBmsWarnings(BMSDATA_FIRST_DEV_SERIAL+i);
         }
-        }
+      }
     }
 
+    // Errors
     msgData.u8_b0=0;
     if((u32_bmsErrors&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP) msgData.u8_b0 |= B00000010;    //1: Battery high voltage
     if((u32_bmsErrors&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP) msgData.u8_b0 |= B00000100;    //2: Battery low voltage alarm
@@ -450,8 +453,27 @@ namespace nsCanbus
     if(isTriggerActive(ID_PARAM_BMS_ALARM_LOWTEMPERATURE,0,DT_ID_PARAM_BMS_ALARM_LOWTEMPERATURE)) msgData.u8_b0 |= B00010000;
 
 
+    // Warnings
     msgData.u8_b2=0;
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP) msgData.u8_b2 |= B00000010;    //1: Battery high voltage
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP) msgData.u8_b2 |= B00000100;    //2: Battery low voltage alarm
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_BATTERY_OVP) msgData.u8_b2 |= B00000010; //1: Battery high voltage
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_BATTERY_UVP) msgData.u8_b2 |= B00000100; //2: Battery low voltage alarm
+
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CHG_OTP)==BMS_ERR_STATUS_CHG_OTP) msgData.u8_b2 |= B00001000;      //3: Battery high temp
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CHG_UTP)==BMS_ERR_STATUS_CHG_UTP) msgData.u8_b2 |= B00010000;      //4: Battery low temp
+    if((u32_bmsWarnings&BMS_ERR_STATUS_DSG_OTP)==BMS_ERR_STATUS_DSG_OTP) msgData.u8_b2 |= B00001000;      //3: Battery high temp
+    if((u32_bmsWarnings&BMS_ERR_STATUS_DSG_UTP)==BMS_ERR_STATUS_DSG_UTP) msgData.u8_b2 |= B00010000;      //4: Battery low temp
+
+    if((u32_bmsWarnings&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) msgData.u8_b2 |= B10000000;      //7: Discharge over current
+
     msgData.u8_b3=0;
+    if((u32_bmsWarnings&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) msgData.u8_b3 |= B00000001;              //0: Charge high current
+    if((u32_bmsWarnings&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b3 |= B00001000;  //3: System error
+    if((u32_bmsWarnings&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) msgData.u8_b3 |= B00001000;          //3: System error
+    if((u32_bmsWarnings&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SHORT_CIRCUIT) msgData.u8_b3 |= B00001000;      //3: System error
+
+
     msgData.u8_b4=0x01; //Pack number (data type : 8bit unsigned char)
     msgData.u8_b5=0x50;
     msgData.u8_b6=0x4E;
@@ -527,19 +549,22 @@ namespace nsCanbus
     //msgData.u8_b3 |= BB3_ALARM; //n.b.
 
     uint32_t u32_bmsErrors = getBmsErrors(inverterData.u8_bmsDatasource);
+    uint32_t u32_bmsWarnings = getBmsWarnings(inverterData.u8_bmsDatasource);
     //BSC_LOGI(TAG,"u8_mBmsDatasource=%i, u32_bmsErrors=%i",u8_mBmsDatasource,u32_bmsErrors);
 
     if(inverterData.u16_bmsDatasourceAdd>0)
     {
-        for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
-        {
+      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      {
         if((inverterData.u16_bmsDatasourceAdd>>i)&0x01)
         {
-            u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+          u32_bmsErrors |= getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i);
+          u32_bmsWarnings |= getBmsWarnings(BMSDATA_FIRST_DEV_SERIAL+i);
         }
-        }
+      }
     }
 
+    // Errors
     // 0 (bit 0+1) n.b.
     msgData.u8_b0 |= BB0_OK;
 
@@ -586,7 +611,7 @@ namespace nsCanbus
     // 3 (bit 6+7) n.b.
 
 
-    //Warnings
+    // Warnings
     // 4 (bit 0+1) n.b.
     // 4 (bit 2+3) Battery high voltage warning
     // 4 (bit 4+5) Battery low voltage warning
@@ -606,6 +631,52 @@ namespace nsCanbus
     // 7 (bit 2+3) System status (online/offline)
     // 7 (bit 4+5) n.b.
     // 7 (bit 6+7) n.b.
+
+    // 4 (bit 0+1) n.b.
+    msgData.u8_b4 |= BB0_OK;
+
+    // 4 (bit 2+3) Battery high voltage alarm
+    msgData.u8_b4 |= (((u32_bmsWarnings&BMS_ERR_STATUS_BATTERY_OVP)==BMS_ERR_STATUS_BATTERY_OVP) ||
+        ((u32_bmsWarnings&BMS_ERR_STATUS_CELL_OVP)==BMS_ERR_STATUS_CELL_OVP))? BB1_ALARM : BB1_OK;
+
+    // 4 (bit 4+5) Battery low voltage alarm
+    msgData.u8_b4 |= (((u32_bmsWarnings&BMS_ERR_STATUS_BATTERY_UVP)==BMS_ERR_STATUS_BATTERY_UVP) ||
+        ((u32_bmsWarnings&BMS_ERR_STATUS_CELL_UVP)==BMS_ERR_STATUS_CELL_UVP)) ? BB2_ALARM : BB2_OK;
+
+    // 4 (bit 6+7) Battery high temperature alarm
+    msgData.u8_b4 |= ((u32_bmsWarnings&BMS_ERR_STATUS_DSG_OTP)==BMS_ERR_STATUS_DSG_OTP) ? BB3_ALARM : BB3_OK;
+
+    // 5 (bit 0+1) Battery low temperature alarm
+    msgData.u8_b5 |= ((u32_bmsWarnings&BMS_ERR_STATUS_DSG_UTP)==BMS_ERR_STATUS_DSG_UTP) ? BB0_ALARM : BB0_OK;
+
+    // 5 (bit 2+3) Battery high temperature charge alarm
+    msgData.u8_b5 |= ((u32_bmsWarnings&BMS_ERR_STATUS_CHG_OTP)==BMS_ERR_STATUS_CHG_OTP) ? BB1_ALARM : BB1_OK;
+
+    // 5 (bit 4+5) Battery low temperature charge alarm
+    msgData.u8_b5 |= ((u32_bmsWarnings&BMS_ERR_STATUS_CHG_UTP)==BMS_ERR_STATUS_CHG_UTP) ? BB2_ALARM : BB2_OK;
+
+    // 5 (bit 6+7) Battery high discharge current alarm
+    msgData.u8_b5 |= ((u32_bmsWarnings&BMS_ERR_STATUS_DSG_OCP)==BMS_ERR_STATUS_DSG_OCP) ? BB3_ALARM : BB3_OK;
+
+    // 6 (bit 0+1) Battery high charge current alarm
+    msgData.u8_b6 |= ((u32_bmsWarnings&BMS_ERR_STATUS_CHG_OCP)==BMS_ERR_STATUS_CHG_OCP) ? BB0_ALARM : BB0_OK;
+
+    // 6 (bit 2+3) Contactor Alarm (not implemented)
+    msgData.u8_b6 |= BB1_OK;
+
+    // 6 (bit 4+5) Short circuit Alarm (not implemented)
+    msgData.u8_b6 |= BB2_OK;
+
+    // 6 (bit 6+7) BMS internal alarm
+    msgData.u8_b6 |= (((u32_bmsWarnings&BMS_ERR_STATUS_AFE_ERROR)==BMS_ERR_STATUS_AFE_ERROR) ||
+        ((u32_bmsWarnings&BMS_ERR_STATUS_SHORT_CIRCUIT)==BMS_ERR_STATUS_SHORT_CIRCUIT) ||
+        ((u32_bmsWarnings&BMS_ERR_STATUS_SOFT_LOCK)==BMS_ERR_STATUS_SOFT_LOCK)) ? BB3_ALARM : BB3_OK;
+
+    // 7 (bit 0+1) Cell imbalance alarm
+    // 7 (bit 2+3) n.b.
+    // 7 (bit 4+5) n.b.
+    // 7 (bit 6+7) n.b.
+
 
 
     //Alarme über Trigger einbinden

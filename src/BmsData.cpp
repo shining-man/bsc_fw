@@ -396,6 +396,23 @@ void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
   xSemaphoreGive(mBmsDataMutex);
 }
 
+
+uint32_t getBmsWarnings(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  uint32_t ret = bmsData.bmsWarnings[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+
+void setBmsWarnings(uint8_t devNr, uint32_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsWarnings[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
+
 uint8_t getBmsStateFETs(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);

@@ -574,6 +574,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_CUTOFF_VALUE                55
 #define MQTT_TOPIC2_CUTOFF_TIMER                56
 #define MQTT_TOPIC2_AUTOBAL_STATE               57
+#define MQTT_TOPIC2_WARNINGS                    58
 
 
 static const char* mqttTopics[] = {"", // 0
@@ -602,7 +603,7 @@ static const char* mqttTopics[] = {"", // 0
   "totalCurrent",              // 23
   "FullCapacity",              // 24
   "BalanceStatus",             // 25
-  "dischargeCurrentSoll",      // 26  frei
+  "dischargeCurrentSoll",      // 26
   "ChargedEnergy",             // 27
   "DischargedEnergy",          // 28
   "chargeCurrentSoll",         // 29
@@ -634,7 +635,7 @@ static const char* mqttTopics[] = {"", // 0
   "cutoffValue",               // 55  Debug
   "cutoffTimer",               // 56  Debug
   "autoBalState",              // 57  Debug
-  "",                          // 58
+  "warnings",                  // 58
   "",                          // 59
   "",                          // 60
   };
