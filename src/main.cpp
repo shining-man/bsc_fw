@@ -1118,17 +1118,12 @@ void handle_getOnewireDeviceAdr()
 
 void btnSystemDeleteLog()
 {
+  #ifdef DEBUG_ON_FS
   if(!performAuthentication(server, webSettingsSystem)) return;
 
-  SPIFFS.remove("/log.txt");
-  SPIFFS.remove("/log1.txt");
-  if(SPIFFS.exists("/log.txt")) //Wenn Log-Datei immer noch vorhanden
-  {
-    SPIFFS.format();
-    delay(100);
-    webSettingsSystem.writeConfig();
-  }
-  BSC_LOGI(TAG, "Logfiles deleted");
+  deleteLogfile();
+  BSC_LOGI(TAG, "Logfile deleted");
+  #endif
 }
 
 
