@@ -171,18 +171,19 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
 
 
 
-uint8_t NeeyBalancer::neeyBtCrc(uint8_t* data, uint16_t len)
+uint8_t NeeyBalancer::neeyBtCrc(uint8_t devTyp, uint8_t* data, uint16_t len)
 {
     uint8_t crc = 0;
     for (uint16_t i = 0; i < len; i++)
     {
-        crc = crc ^ data[i];
+        if(devTyp==ID_BT_DEVICE_NEEY4A) crc = crc ^ data[i];
+        else crc = crc + data[i];
     }
     return crc;
 }
 
 
-void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value)
+void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value)
 {
     frame[0] = 0xAA;     // start sequence
     frame[1] = 0x55;     // start sequence
@@ -202,7 +203,7 @@ void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cm
     frame[15] = 0x00;
     frame[16] = 0x00;
     frame[17] = 0x00;
-    frame[18] = neeyBtCrc(frame, 18);
+    frame[18] = neeyBtCrc(devTyp, frame, 18);
     frame[19] = 0xFF;
 
     #ifdef NEEY_WRITE_DATA_DEBUG
@@ -220,9 +221,9 @@ void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cm
     #endif
 }
 
-void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value)
+void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value)
 {
-    neeyBtBuildSendData(frame, 0x0, cmd, func, value);
+    neeyBtBuildSendData(devTyp, frame, 0x0, cmd, func, value);
 }
 
 #if 0
@@ -235,21 +236,47 @@ void NeeyBalancer::neeyWriteMsg1(NimBLERemoteCharacteristic* pChr)
 }
 #endif
 
-void NeeyBalancer::neeyWriteMsg2(NimBLERemoteCharacteristic* pChr)
+void NeeyBalancer::neeyWriteMsg2(uint8_t devTyp, NimBLERemoteCharacteristic* pChr)
 {
   uint8_t  frame[20];
-  neeyBtBuildSendData(frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
+  neeyBtBuildSendData(devTyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
   pChr->writeValue(frame, 20, true);
 }
 
-void NeeyBalancer::neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, float value)
+void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, float value)
 {
   //{0xaa, 0x55, 0x11, 0x01, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
   uint32_t ui32_lValue;
   memcpy(&ui32_lValue, &value, 4);
 
-  neeyBtBuildSendData(frame, 0x0, cmd, func, ui32_lValue);
+  neeyBtBuildSendData(devTyp, frame, 0x0, cmd, func, ui32_lValue);
 }
+
+void NeeyBalancer::sendNeeyConnectMsg(uint8_t devtyp, NimBLERemoteCharacteristic* pChr)
+{
+  uint8_t  frame[20];
+  if(devtyp==ID_BT_DEVICE_NEEY8A)
+  {
+    //byte NeeyBalancer_8A_getInfo1[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff}; // 0x26
+    //byte NeeyBalancer_8A_getInfo2[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0xff}; // 0x29
+    //byte NeeyBalancer_8A_getInfo3[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x27, 0xff}; // 0x27
+
+    neeyBtBuildSendData(devtyp, frame, 0x01, 0x01, 0x0, (uint32_t)0x0);
+    frame[18]=0x26;
+    pChr->writeValue(frame, 20, true);
+    delay(200);
+
+    neeyBtBuildSendData(devtyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0);
+    frame[18]=0x29;
+    pChr->writeValue(frame, 20, true);
+    delay(200);
+
+    neeyBtBuildSendData(devtyp, frame, 0x01, 0x02, 0x0, (uint32_t)0x0);
+    frame[18]=0x27;
+    pChr->writeValue(frame, 20, true);
+  }
+}
+
 
 void NeeyBalancer::neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolean u8_state)
 {
@@ -257,7 +284,7 @@ void NeeyBalancer::neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolea
   else pChr->writeValue(NeeyBalancer_cmdBalanceOff, 20);
 }
 
-bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pChr)
+bool NeeyBalancer::neeyWriteData(uint8_t devtyp, uint8_t btDevNr, NimBLERemoteCharacteristic* pChr)
 {
   bool ret=false;
 
@@ -275,12 +302,12 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
   switch(u8_neeySendStep)
   {
     case 1:
-      neeyBtBuildSendData(frame, 0x04, 0x0, (uint32_t)0x0);
+      neeyBtBuildSendData(devtyp, frame, 0x04, 0x0, (uint32_t)0x0);
       pChr->writeValue(frame, 20, true);
       break;
 
     case 2:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,btDevNr,DT_ID_PARAM_NEEY_BALANCER_ON);
+      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,btDevNr,DT_ID_PARAM_NEEY_BALANCER_ON);
       if(u8_lValue==0) neeySetBalancerOnOff(pChr, false);
       else if(u8_lValue==110) neeySetBalancerOnOff(pChr, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
@@ -289,8 +316,8 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 3:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_TYPE,btDevNr,DT_ID_PARAM_NEEY_BAT_TYPE);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_TYPE, (uint32_t)u8_lValue);
+      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_TYPE,btDevNr,DT_ID_PARAM_NEEY_BAT_TYPE);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_TYPE, (uint32_t)u8_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: BAT_TYPE val=%i",u8_lValue);
@@ -298,8 +325,8 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 4:
-      u8_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_CELLS,btDevNr,DT_ID_PARAM_NEEY_CELLS);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_CELLS, (uint32_t)u8_lValue);
+      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_CELLS,btDevNr,DT_ID_PARAM_NEEY_CELLS);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_CELLS, (uint32_t)u8_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: CELLS val=%i",u8_lValue);
@@ -308,7 +335,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
 
     case 5:
       f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_START_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_START_VOL, f_lValue);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_START_VOL, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: START_VOL val=%f",f_lValue);
@@ -317,7 +344,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
 
     case 6:
       f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_MAX_BALANCE_CURRENT,btDevNr);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT, f_lValue);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: BAL_CUR val=%f",f_lValue);
@@ -326,7 +353,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
 
     case 7:
       f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE, f_lValue);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: EQL_VOL val=%f",f_lValue);
@@ -335,7 +362,7 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
 
     case 8:
       f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_SLEEP_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE, f_lValue);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE, f_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: SLEEP_VOL val=%f",f_lValue);
@@ -343,8 +370,8 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 9:
-      u16_lValue=WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY,btDevNr,DT_ID_PARAM_NEEY_BAT_CAPACITY);
-      neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_CAP, (uint32_t)u16_lValue);
+      u16_lValue=(uint16_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY,btDevNr,DT_ID_PARAM_NEEY_BAT_CAPACITY);
+      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_CAP, (uint32_t)u16_lValue);
       pChr->writeValue(frame, 20, true);
       #ifdef NEEY_WRITE_DATA_DEBUG
       BSC_LOGI(TAG,"neeyWriteData: BAT_CAP val=%f",f_lValue);
@@ -352,12 +379,12 @@ bool NeeyBalancer::neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pC
       break;
 
     case 10:
-      neeyBtBuildSendData(frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
+      neeyBtBuildSendData(devtyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
       pChr->writeValue(frame, 20, true);
       break;
 
     case 11:
-      neeyBtBuildSendData(frame, 0x04, 0x0, (uint32_t)0x0);
+      neeyBtBuildSendData(devtyp, frame, 0x04, 0x0, (uint32_t)0x0);
       pChr->writeValue(frame, 20, true);
 
       //u8_neeySendStep=0;
@@ -457,6 +484,7 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
 {
   String  str_lText="";
   uint8_t u8_lValue=0;
+  uint8_t devTyp;
 
   //ID_PARAM_NEEY_BUZZER //not use
   //ID_PARAM_NEEY_BALANCER_ON
@@ -476,7 +504,8 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
 
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)==ID_BT_DEVICE_NEEY4A)
+    devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
+    if(devTyp==ID_BT_DEVICE_NEEY4A || devTyp==ID_BT_DEVICE_NEEY8A)
     {
       value += "|";
 

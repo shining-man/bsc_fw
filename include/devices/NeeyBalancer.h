@@ -166,21 +166,23 @@ public:
 
   void init();
   static void neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length);
-  static void neeyBtBuildSendData(uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value);
-  static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value);
-  static void neeyBtBuildSendData(uint8_t* frame, uint8_t cmd, uint8_t func, float value);
-  static bool neeyWriteData(uint8_t btDevNr, NimBLERemoteCharacteristic* pChr);
+  static void neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value);
+  static void neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value);
+  static void neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, float value);
+  static bool neeyWriteData(uint8_t devtyp, uint8_t btDevNr, NimBLERemoteCharacteristic* pChr);
   static void neeyWriteData_GotoStartStep(uint8_t startStep);
   static bool neeyWriteData_GotoNextStep();
   static void neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolean u8_state);
-  static void neeyWriteMsg2(NimBLERemoteCharacteristic* pChr);
+  static void neeyWriteMsg2(uint8_t devTyp, NimBLERemoteCharacteristic* pChr);
 
   static float    neeyGetReadbackDataFloat(uint8_t devNr, uint8_t dataType);
   static uint32_t neeyGetReadbackDataInt(uint8_t devNr, uint8_t dataType);
   static void     getNeeyReadbackDataAsString(String &value);
 
+  static void sendNeeyConnectMsg(uint8_t devTyp, NimBLERemoteCharacteristic* pChr);
+
 private:
-  static uint8_t neeyBtCrc(uint8_t* data, uint16_t len);
+  static uint8_t neeyBtCrc(uint8_t devTyp, uint8_t* data, uint16_t len);
 
 };
 

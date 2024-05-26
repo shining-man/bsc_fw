@@ -12,6 +12,8 @@
 #include "BleHandler.h"
 #include "defines.h"
 
+class Inverter;
+
 #define ALARM_CAUSE_DI 0
 #define ALARM_CAUSE_BMS_NO_DATA 1
 #define ALARM_CAUSE_BMS_CELL_VOLTAGE 2
@@ -24,8 +26,8 @@
 #define ALARM_CAUSE_FAN 9
 #define ALARM_VIRTUAL_TRIGGER 10
 
-void initAlarmRules();
-void runAlarmRules();
+void initAlarmRules(Inverter &inverter);
+void runAlarmRules(Inverter &inverter);
 void changeAlarmSettings();
 
 bool getAlarm(uint8_t alarmNr);

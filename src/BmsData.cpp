@@ -315,6 +315,12 @@ void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
   bmsData.bmsTempature[devNr][sensorNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
+void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsTempature[devNr][sensorNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 
 uint8_t getBmsChargePercentage(uint8_t devNr)
@@ -330,11 +336,11 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
 
-    uint16_t u16_CellvoltSoc100 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    uint16_t u16_CellvoltSoc0 = WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
 
 
-    if(u16_CellvoltSoc100>0 && ( bmsData.bmsMaxCellVoltage[devNr]>=u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
+    if(u16_CellvoltSoc100 > 0 && ( bmsData.bmsMaxCellVoltage[devNr] >= u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
     {
       bo_SOC100CellvolHasBeenReached[devNr]=true;
       value=100;
@@ -356,7 +362,7 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       else
         value = result;
     }
-    else
+    else if(u16_CellvoltSoc100 > 0)
     {
       if(value==100) value=99;
     }
@@ -389,6 +395,23 @@ void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
   bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
   xSemaphoreGive(mBmsDataMutex);
 }
+
+
+uint32_t getBmsWarnings(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  uint32_t ret = bmsData.bmsWarnings[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
+
+void setBmsWarnings(uint8_t devNr, uint32_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsWarnings[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
+
 
 uint8_t getBmsStateFETs(uint8_t devNr)
 {
@@ -630,6 +653,44 @@ bool isMultiple485bms(uint8_t bms)
     default:
       return false;
   }
+}
+
+
+// Hiermit kann nach dem Start des BSC überprüft werden, ob schon einmal Daten von den BMS empfangen wurden
+bool haveAllBmsFirstData()
+{
+  uint8_t i = 0;
+  bool allBmsHaveData = true;
+
+  // Bluetooth
+  for(i = 0; i < BT_DEVICES_COUNT; i++)
+  {
+    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
+    {
+      if(bmsData.bmsLastDataMillis[i] == 0) 
+      {
+        allBmsHaveData = false;
+        // BSC_LOGI(TAG,"Keine Daten: BT %i", i);
+      } 
+    }
+  }
+
+  // Serial
+  for(i = BMSDATA_FIRST_DEV_SERIAL; i < BMSDATA_LAST_DEV_SERIAL; i++)
+  {
+    if(i >= BMSDATA_NUMBER_ALLDEVICES) break;
+
+    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
+    {
+      if(bmsData.bmsLastDataMillis[i] == 0) 
+      { 
+        allBmsHaveData = false;
+        // BSC_LOGI(TAG,"Keine Daten: SER %i", i);
+      } 
+    }
+  }
+
+  return allBmsHaveData;
 }
 
 
