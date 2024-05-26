@@ -15,9 +15,9 @@
 #endif
 #include <FS.h>
 #include "bscTime.h"
-#include "Canbus.h"
 #include "BmsData.h"
 #include "WebSettings.h"
+#include "inverter/Inverter.hpp"
 
 static const char *TAG = "LOG";
 
@@ -307,7 +307,7 @@ void logTrigger(uint8_t triggerNr, uint8_t cause, bool trigger)
 
 
 uint8_t u8_lGetMinutesOld;
-void logValues()
+void logValues(Inverter &inverter)
 {
   uint8_t u8_lGetMinutes = getMinutes();
   if(u8_lGetMinutes==u8_lGetMinutesOld) return;
@@ -328,19 +328,19 @@ void logValues()
   }
 
 
-  inverterDataSemaphoreTake();
-  inverterData_s *inverterData = getInverterData();
-  int16_t inverterCurrent = inverterData->inverterCurrent;
-  int16_t inverterVoltage = inverterData->inverterVoltage;
+  inverter.inverterDataSemaphoreTake();
+  Inverter::inverterData_s *inverterData = inverter.getInverterData();
+  int16_t inverterCurrent = inverterData->batteryCurrent;
+  int16_t inverterVoltage = inverterData->batteryVoltage;
   uint16_t inverterSoc = inverterData->inverterSoc;
-  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent;
-  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent;
+  int16_t inverterChargeCurrent = inverterData->inverterChargeCurrent/10;
+  int16_t inverterDischargeCurrent = inverterData->inverterDischargeCurrent/10;
 
   int16_t calcChargeCurrentCellVoltage = inverterData->calcChargeCurrentCellVoltage;
   int16_t calcChargeCurrentSoc = inverterData->calcChargeCurrentSoc;
   int16_t calcChargeCurrentCelldrift = inverterData->calcChargeCurrentCelldrift;
   int16_t calcChargeCurrentCutOff = inverterData->calcChargeCurrentCutOff;
-  inverterDataSemaphoreGive();
+  inverter.inverterDataSemaphoreGive();
 
   /*bmsDataSemaphoreTake();
   bmsData_s *bmsData = getBmsData();

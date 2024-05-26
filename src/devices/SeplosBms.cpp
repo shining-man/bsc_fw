@@ -163,7 +163,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
+
+      #ifndef UTEST_RESTAPI
       BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      #endif
       #ifdef SEPLOS_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -407,7 +410,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
       message2Log(t_message, address);
     }
     #endif
-    setBmsChargePercentage(BT_DEVICES_COUNT+address, get16bitFromMsg(u8_lMsgoffset+9)/10);
+    setBmsChargePercentage(BT_DEVICES_COUNT+address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
 
     //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
     //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
@@ -671,6 +674,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 
   uint8_t  u8_dataLen = convertAsciiHexToByte(t_message[10], t_message[11]); //5
   uint32_t u32_alarm = 0;
+  uint32_t u32_warnings = 0;
   boolean  bo_lValue=false;
 
   /*bmsErrors
@@ -709,44 +713,57 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
         if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
         if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
-        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
-        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP; //?
-        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
-        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP; //?
+        if ((u8_lByte & 0x10) == 0x10) u32_warnings |= BMS_ERR_STATUS_BATTERY_OVP; // Warning
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;    // Alarm
+        if ((u8_lByte & 0x40) == 0x40) u32_warnings |= BMS_ERR_STATUS_BATTERY_UVP; // Warning
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;    // Alarm
         break;
 
       //  37    Alarm event 3
       case 74:
-        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
-        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OTP; //?
-        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
-        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CHG_UTP; //?
-        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
-        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_DSG_OTP; //?
-        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
-        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_DSG_UTP; //?
+        if ((u8_lByte & 0x1) == 0x1) u32_warnings |= BMS_ERR_STATUS_CHG_OTP;   // Warning
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;      // Alarm
+        if ((u8_lByte & 0x4) == 0x4) u32_warnings |= BMS_ERR_STATUS_CHG_UTP;   // Warning
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CHG_UTP;      // Alarm
+        if ((u8_lByte & 0x10) == 0x10) u32_warnings |= BMS_ERR_STATUS_DSG_OTP; // Warning
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;    // Alarm
+        if ((u8_lByte & 0x40) == 0x40) u32_warnings |= BMS_ERR_STATUS_DSG_UTP; // Warning
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_DSG_UTP;    // Alarm
         break;
 
       //  38    Alarm event 4
       case 76:
-        if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x1) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
+        if ((u8_lByte & 0x2) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;       // Alarm
+        if ((u8_lByte & 0x4) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
+        if ((u8_lByte & 0x8) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;       // Alarm
+        if ((u8_lByte & 0x10) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;      // Alarm
+        if ((u8_lByte & 0x20) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;   // Warning
+        if ((u8_lByte & 0x40) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;      // Alarm
         break;
 
       //  39    Alarm event 5
       case 78:
-        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
-        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP; //?
-        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
-        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP; //?
-        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
-        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
-        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
-        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x1) == 0x1) u32_warnings |= BMS_ERR_STATUS_CHG_OCP;    // Warning
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP; 
+        if ((u8_lByte & 0x4) == 0x4) u32_warnings |= BMS_ERR_STATUS_DSG_OCP;    // Warning
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP; 
+        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
         break;
 
       //  40    Alarm event 6
       case 80:
-        if (u8_lByte > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; //?
+        if ((u8_lByte & 0x1) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x2) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
+        if ((u8_lByte & 0x4) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
+        if ((u8_lByte & 0x8) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x10) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;   // Warning
+        if ((u8_lByte & 0x20) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x40) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        //if ((u8_lByte & 0x80) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
         break;
 
       //  41    On-off state - Flag bit information (1: on, 0: off)
@@ -765,6 +782,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   }
 
   setBmsErrors(BT_DEVICES_COUNT+address, u32_alarm);
+  setBmsWarnings(BT_DEVICES_COUNT+address, u32_warnings);
 }
 
 

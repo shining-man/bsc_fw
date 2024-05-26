@@ -42,10 +42,12 @@ const char uploadFormV1[] PROGMEM = R"!^!(
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">
+	<div><u>Installierte FW-Version:</u> <span id='FwVersion'></span><br>
+  <span id='FwVersionHinweis'></span></div><br>
 	<p><b>Aktuelles verfügbares Release (github)</b>
 	<div><u>FW-Version:</u> <span id='gitFwVersion'></span></div><br>
 	<div><u>Veröffentlicht am:</u> <span id='gitFwPublishedAt'></span></div><br>
-	<div><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
+	<div id='fitFwDescLabel'><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
 	<div><a onclick="window.open('https://github.com/shining-man/bsc_fw/releases/latest/download/fw_bsc_ota.bin','_blank');" href="#">Download from GitHub</a></div>
 	</p>
 	<hr><br>
@@ -128,7 +130,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
   function __readLastFwVersionGithub()
   {
     var __fwVersion="";
-    var __fwVersionNew="";
+    var __fwVersionNow="";
     var __description="";
     var __published_at="";
 
@@ -140,16 +142,25 @@ const char uploadFormV1[] PROGMEM = R"!^!(
       __description=__data.body.replaceAll("\r\n", "<br>");
       __description=__description.replaceAll("\n", "<br>");
 
-	  document.getElementById('gitFwVersion').innerHTML =__fwVersion;
-	  document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
-	  document.getElementById('fitFwDesc').innerHTML = __description;
-    });
+      document.getElementById('gitFwVersion').innerHTML =__fwVersion;
+      document.getElementById('gitFwPublishedAt').innerHTML =__published_at;
 
-    fetch('/restapi')
-    .then(__response => __response.json())
-    .then((__data) => {
-	  __fwVersionNew=__data.system.fw_version.toLowerCase();
-	  if(__fwVersion!=__fwVersionNew) console.log("New FW available");
+      fetch('/restapi')
+      .then(__response => __response.json())
+      .then((__data) => {
+        __fwVersionNow = __data.system.fw_version.toLowerCase();
+        document.getElementById('FwVersion').innerHTML = __fwVersionNow;
+        
+        console.log(__fwVersionNow);
+        console.log(__fwVersion);
+
+        if(__fwVersion != __fwVersionNow){ 
+          document.getElementById('fitFwDesc').innerHTML = __description;
+        } else {
+          document.getElementById('FwVersionHinweis').innerHTML = "Es ist keine neue Version verfügbar!";
+          document.getElementById('fitFwDescLabel').innerHTML = "";
+        } 
+      });
     });
   }
 </script>
@@ -157,10 +168,10 @@ const char uploadFormV1[] PROGMEM = R"!^!(
 </html>)!^!";
 
 
-bool OTAupdater::init(WebServer *server, const char *path, bool enUpdatePage)
+bool OTAupdater::init(WebServer *server, WebSettings *webSettings, const char *path, bool enUpdatePage)
 {
 	if(this->isInit) return false;
-	setHttpRoutes(server, path, enUpdatePage);
+	setHttpRoutes(server, webSettings, path, enUpdatePage);
 	this->isInit = true;
 
 	return true;
@@ -176,26 +187,32 @@ void OTAupdater::delayWithHandleClient(WebServer *server, uint16_t delay_ms) {
   }
 }
 
-void OTAupdater::setHttpRoutes(WebServer *server, const char *path, bool enUpdatePage) {
+void OTAupdater::setHttpRoutes(WebServer *server, WebSettings *webSettings, const char *path, bool enUpdatePage)
+{
 	// Upload firmware page
 	if(enUpdatePage)
 	{
-		server->on(path, HTTP_GET, [server,this]()
+		server->on(path, HTTP_GET, [server, webSettings, this]()
 		{
+      if(!performAuthentication(server, webSettings)) return;
 			String html = FPSTR(uploadFormV1);
 			server->send_P(200, "text/html", html.c_str());
 		});
 	}
 
 	// Handling uploading firmware file
-	server->on(path, HTTP_POST, [server,this]()
+	server->on(path, HTTP_POST, [server, webSettings, this]()
 	{
+    if(!performAuthentication(server, webSettings)) return;
+
 		server->send(200, "text/plain", (Update.hasError()) ? "Update: fail\n" : "Update: OK\n");
 		delayWithHandleClient(server, 1000);
 		ESP.restart();
 	},
-	[server,this]()
+	[server, webSettings, this]()
 	{
+    if(!performAuthentication(server, webSettings)) return;
+
 		HTTPUpload& upload = server->upload();
 
 		if(upload.status == UPLOAD_FILE_START)

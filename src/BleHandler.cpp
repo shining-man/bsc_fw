@@ -30,13 +30,14 @@ uint8_t u8_mScanAndNotConnectTimer;
 uint8_t u8_mSendDataToNeey;
 
 //NEEY
-NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
-NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
+//NimBLEUUID NeyyBalancer4A_serviceUUID("0000ffe0-0000-1000-8000-00805f9b34fb");
+//NimBLEUUID NeyyBalancer4A_charUUID   ("0000ffe1-0000-1000-8000-00805f9b34fb");
 //byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff};
-byte NeeyBalancer_getInfo[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff};
-//aa	55	11	1	1	0	14	0	0	0	0	0	0	0	0	0	0	0	26	ff
-//aa	55	11	1	4	0	14	0	0	0	0	0	0	0	0	0	0	0	29	ff
-//aa	55	11	1	2	0	14	0	0	0	0	0	0	0	0	0	0	0	27	ff
+byte NeeyBalancer_getInfo[20] PROGMEM =  {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFA, 0xff};
+byte NeeyBalancer_getInfo3[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf9, 0xff};
+//aa	55	11	1	1	0	14   0	0	0	0	0	0	0	0	0	0	0	fa	ff
+//aa	55	11	1	4	0	14 	 0	0	0	0	0	0	0	0	0	0	0	ff	ff   // Lesen der Settings
+//aa	55	11	1	2	0	 0  14	0	0	0	0	0	0	0	0	0	0	f9	ff
 
 //JK-BMS
 NimBLEUUID BtServiceUUID("ffe0");
@@ -56,8 +57,10 @@ class ClientCallbacks : public NimBLEClientCallbacks
         switch(bleDevices[i].deviceTyp)
         {
           case ID_BT_DEVICE_NEEY4A:
+          case ID_BT_DEVICE_NEEY8A:
             // interval 1,25ms; timeout 10ms
-            pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,5,300); //timeout 1500
+            pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
+            //pClient->updateConnParams(50,50,0,300); //timeout 1500
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
           case ID_BT_DEVICE_JKBMS_JK02_32S:
@@ -103,6 +106,10 @@ class ClientCallbacks : public NimBLEClientCallbacks
       params->itvl_min,params->itvl_max,params->latency,params->supervision_timeout);
     #endif
 
+    //BSC_LOGI(TAG, "onConnParamsUpdateRequest(): itvl_min=%i itvl_max=%i latency=%i supervision_timeout=%i",
+    //  params->itvl_min,params->itvl_max,params->latency,params->supervision_timeout);
+
+    //return true;
     return false; //Änderungen immer ablehnen
 
     #if 0
@@ -245,8 +252,9 @@ bool btDeviceConnect()
   switch(bleDevices[devNr].deviceTyp)
   {
     case ID_BT_DEVICE_NEEY4A:
-      serviceUUID=NeyyBalancer4A_serviceUUID;
-      charUUID=NeyyBalancer4A_charUUID;
+    case ID_BT_DEVICE_NEEY8A:
+      serviceUUID=BtServiceUUID;
+      charUUID=BtCharUUID;
       break;
     case ID_BT_DEVICE_JKBMS_JK02:
     case ID_BT_DEVICE_JKBMS_JK02_32S:
@@ -362,6 +370,7 @@ bool btDeviceConnect()
         switch(bleDevices[devNr].deviceTyp)
         {
           case ID_BT_DEVICE_NEEY4A:
+          case ID_BT_DEVICE_NEEY8A:
             bo_lSubscribeRet=bleDevices[devNr].pChr->subscribe(true, notifyCB_NEEY);
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
@@ -461,6 +470,29 @@ void btDeviceDisconnectSingle(uint8_t devNr)
   }
 }
 
+//#define BT_LATENCY 0
+//#define BT_NEEY_POLL_MAX_INTERVAL 720
+//#define BT_TIMEOUT (((1+BT_LATENCY)*BT_NEEY_POLL_MAX_INTERVAL)/4)+1
+
+/*void changeBtConnParams(uint8_t devNr, uint8_t speed)
+{
+  BSC_LOGI(TAG,"changeBtConnParams: A");
+  if(NimBLEDevice::getClientListSize())
+  {
+    BSC_LOGI(TAG,"changeBtConnParams: B");
+    std::string adrStr = std::string(bleDevices[devNr].macAdr.c_str());
+    NimBLEAddress adr = NimBLEAddress(adrStr);
+
+    NimBLEClient* pClient = nullptr;
+    pClient = NimBLEDevice::getClientByPeerAddress(adr);
+    if(pClient)
+    {
+      BSC_LOGI(TAG,"changeBtConnParams: dev=%i, speed=%i",devNr, speed);
+      if(speed==0) pClient->updateConnParams(8,16,0,500);
+      else if(speed==10) pClient->updateConnParams(720,720,0,300);
+    }
+  }
+}*/
 
 
 
@@ -724,13 +756,26 @@ bool BleHandler::handleConnectionToDevices()
             case ID_BT_DEVICE_NEEY4A:
               BSC_LOGD(TAG,"BT write dev=%i",i);
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
+              delay(200);
+              NeeyBalancer::neeyWriteMsg2(ID_BT_DEVICE_NEEY4A, bleDevices[i].pChr);
+              delay(200);
+              bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo3, 20);
+
+              bleDevices[i].doConnect = btDoConnectionIdle;
+              bleDevices[i].sendDataStep = 0;
+              break;
+
+            case ID_BT_DEVICE_NEEY8A:
+              BSC_LOGD(TAG,"BT write dev=%i",i);
+              NeeyBalancer::sendNeeyConnectMsg(ID_BT_DEVICE_NEEY8A, bleDevices[i].pChr);
+
               bleDevices[i].doConnect = btDoConnectionIdle;
               bleDevices[i].sendDataStep = 0;
               break;
 
             case ID_BT_DEVICE_JKBMS_JK02:
             case ID_BT_DEVICE_JKBMS_JK02_32S:
-              BSC_LOGI(TAG,"BT write (A) dev=%i",i);
+              //BSC_LOGI(TAG,"BT write (A) dev=%i",i);
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_DEVICE_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
@@ -742,81 +787,100 @@ bool BleHandler::handleConnectionToDevices()
         }
         else if(bleDevices[i].doConnect==btDoConnectionIdle)
         {
-          switch(bleDevices[i].deviceTyp)
+          if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A || bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY8A)
           {
-            case ID_BT_DEVICE_NEEY4A:
-              switch(bleDevices[i].sendDataStep)
+            if(bleDevices[i].sendDataStep==0)
+            {
+              bleDevices[i].sendDataStep=1;
+              //NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr);
+
+              //changeBtConnParams(i, 10);
+            }
+            else if(bleDevices[i].sendDataStep==1)
+            {
+              bleDevices[i].sendDataStep=2;
+              //bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo3, 20);
+
+              // Update connections parameter
+              /*NimBLEClient* pClient = nullptr;
+              if(NimBLEDevice::getClientListSize())
               {
-                case 0:
-                  bleDevices[i].sendDataStep++;
-                  NeeyBalancer::neeyWriteMsg2(bleDevices[i].pChr);
-                  break;
-                case 1:
-                  if(u8_mSendDataToNeey>0)
-                  {
-                    if(u8_mSendDataToNeey==1)
-                    {
-                      NeeyBalancer::neeyWriteData_GotoStartStep(1);
-                      u8_mSendDataToNeey=10;
-                    }
-                    else if(u8_mSendDataToNeey==2) //Nur lesen der Settings
-                    {
-                      NeeyBalancer::neeyWriteData_GotoStartStep(10);
-                      u8_mSendDataToNeey=10;
-                    }
-                    NeeyBalancer::neeyWriteData(i, bleDevices[i].pChr);
-                  }
-                  else //Hier befinden wir uns, wenn alle Devices verbunden sind und wir im normalen Betrieb sind
-                  {
-                    //Überprüfen ob Daten noch aktuell sind
-                    uint8_t u8_lBtDevType, u8_devDeativateTriggerNr;
-                    bool bo_devDeactivateTrigger=false;
-                    for(uint8_t devNr=0;devNr<BT_DEVICES_COUNT;devNr++)
-                    {
-                      if((millis()-getBmsLastDataMillis(devNr))>5000)
-                      {
-                        u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,devNr,DT_ID_PARAM_SS_BTDEV);
-                        u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,devNr,DT_ID_PARAM_BTDEV_DEACTIVATE);
-                        bo_devDeactivateTrigger=false;
-                        if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
+                std::string adrStr = std::string(bleDevices[i].macAdr.c_str());
+                NimBLEAddress adr = NimBLEAddress(adrStr);
 
-                        //Überprüfen ob BT-Devices verbunden sein sollte
-                        if(u8_lBtDevType==ID_BT_DEVICE_NEEY4A && !bo_devDeactivateTrigger)
-                        {
-                          BSC_LOGI(TAG,"No cyclical data from dev %i", devNr);
-                          //btDeviceDisconnectSingle(devNr);
-                        }
-                      }
-                    }
+                pClient = NimBLEDevice::getClientByPeerAddress(adr);
+                if(pClient)
+                {
+                  pClient->updateConnParams(720,720,1,1500);
+                }
+              }*/
+            }
+            else if(bleDevices[i].sendDataStep==2)
+            {
+              if(u8_mSendDataToNeey>0)
+              {
+                if(u8_mSendDataToNeey==1)
+                {
+                  //changeBtConnParams(i, 0);
+                  NeeyBalancer::neeyWriteData_GotoStartStep(1);
+                  u8_mSendDataToNeey=10;
+                }
+                else if(u8_mSendDataToNeey==2) //Nur lesen der Settings
+                {
+                  //changeBtConnParams(i, 0);
+                  NeeyBalancer::neeyWriteData_GotoStartStep(10);
+                  u8_mSendDataToNeey=10;
+                }
+                NeeyBalancer::neeyWriteData(bleDevices[i].deviceTyp, i, bleDevices[i].pChr);
 
-                    if(bleDevices[i].balancerOn==e_BalancerChangeToOff)
-                    {
-                      bleDevices[i].balancerOn=e_BalancerIsOff;
-                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, false);
-                    }
-                    else if(bleDevices[i].balancerOn==e_BalancerChangeToOn)
-                    {
-                      bleDevices[i].balancerOn=e_BalancerIsOn;
-                      NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, true);
-                    }
-                  }
-                  break;
+                //if(u8_mSendDataToNeey==10) changeBtConnParams(i, 10);
               }
-              break;
-
-            case ID_BT_DEVICE_JKBMS_JK02:
-            case ID_BT_DEVICE_JKBMS_JK02_32S:
-              bleDevices[i].sendDataStep++;
-              if(bleDevices[i].sendDataStep>2)
+              else //Hier befinden wir uns, wenn alle Devices verbunden sind und wir im normalen Betrieb sind
               {
-              BSC_LOGI(TAG,"BT write (B) dev=%i",i);
+                //Überprüfen ob Daten noch aktuell sind
+                uint8_t u8_lBtDevType, u8_devDeativateTriggerNr;
+                bool bo_devDeactivateTrigger=false;
+
+                if((millis()-getBmsLastDataMillis(i))>5000)
+                {
+                  u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
+                  u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,i,DT_ID_PARAM_BTDEV_DEACTIVATE);
+                  bo_devDeactivateTrigger=false;
+                  if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
+
+                  //Überprüfen ob BT-Devices verbunden sein sollte
+                  if((u8_lBtDevType==ID_BT_DEVICE_NEEY4A || u8_lBtDevType==ID_BT_DEVICE_NEEY8A)&& !bo_devDeactivateTrigger)
+                  {
+                    BSC_LOGI(TAG,"No cyclical data from dev %i", i);
+                    btDeviceDisconnectSingle(i);
+                  }
+                }
+
+                if(bleDevices[i].balancerOn==e_BalancerChangeToOff)
+                {
+                  bleDevices[i].balancerOn=e_BalancerIsOff;
+                  NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, false);
+                }
+                else if(bleDevices[i].balancerOn==e_BalancerChangeToOn)
+                {
+                  bleDevices[i].balancerOn=e_BalancerIsOn;
+                  NeeyBalancer::neeySetBalancerOnOff(bleDevices[i].pChr, true);
+                }
+              }
+            }
+          }
+          else if(bleDevices[i].deviceTyp==ID_BT_DEVICE_JKBMS_JK02 || bleDevices[i].deviceTyp==ID_BT_DEVICE_JKBMS_JK02_32S)
+          {
+            bleDevices[i].sendDataStep++;
+            if(bleDevices[i].sendDataStep>2)
+            {
+              //BSC_LOGI(TAG,"BT write (B) dev=%i",i);
               uint8_t frame[20];
               jkBmsBtBuildSendFrame(frame, JKBMS_BT_COMMAND_CELL_INFO, 0x00000000, 0x00);
               bleDevices[i].pChr->writeValue(frame, 20);
 
               bleDevices[i].sendDataStep=0;
-              }
-              break;
+            }
           }
         }
       }

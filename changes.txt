@@ -1,6 +1,24 @@
-v0.5.14
-- Toggeln des Triggergrundes im Log behoben
+v0.6.0
+Neue Funktionen/Verbesserungen bei der Laderegelung:
+- Absorbtion/Float Ladespannung
+- Autobalancing
+- CutOff (Überarbeitet)
+- Funktion "Ladesstrom reduzieren - SoC" erweitert um "Mindest Ladestrom in A" (#101)
 
-v0.5.13
-- Remove WebUI v2
-- Anpassungen für HW2.4.1
+Weitere neue Features/Verbesserungen:
+- Neues BMS: Seplos V3 (#81)
+- Neues Wechselrichter CAN-Protokoll: BYD Protocol (SolarEdge RWS)
+- Passwortschutz für das WebUI (#93)
+    Username: bsc
+    Passwort: admin
+
+- Problem beim Runden des SoC behoben (Fix 100% SOC bei Seplos) (#113)
+- Kleinere Änderungen/Verbesserungen in den Menüs des WebUI (z.B. Invertermenü aufgeteilt zu bessern Übersichtlichkeit)
+- Größere Änderungen im Unterbau des BSC
+
+
+Wichtiger Hinweis!
+Folgende Werte müssen nach dem Update kontrolliert und ggf. angepasst werden:
+- Absorption Ladespannung
+- Ladestrom reduzieren - SoC; Pro 1% um x A reduzieren
+- Cut-Off Strom

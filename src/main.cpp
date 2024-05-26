@@ -23,6 +23,7 @@
 #define CONFIG_BTDM_CTRL_MODEM_SLEEP_MODE_ORIG 0    //1->0  shiningman
 */
 
+//#include <esp_task_wdt.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
@@ -37,6 +38,7 @@
 #endif
 
 #include "defines.h"
+#include "inverter/Inverter.hpp"
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"
@@ -44,7 +46,6 @@
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
-#include "Canbus.h"
 #include "BscSerial.h"
 #include "BmsData.h"
 #include "mqtt_t.h"
@@ -72,6 +73,7 @@ static const char *TAG = "MAIN";
 WebServer server;
 BleHandler bleHandler;
 BscSerial bscSerial;   // Serial
+Inverter inverter;
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -84,6 +86,8 @@ WebSettings webSettingsDitialIn;
 WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
+WebSettings webSettingsInverterCharge;
+WebSettings webSettingsInverterDischarge;
 WebSettings webSettingsDeviceNeeyBalancer;
 WebSettings webSettingsDeviceJbdBms;
 
@@ -701,12 +705,12 @@ void task_alarmRules(void *param)
   BSC_LOGD(TAG, "-> 'task_alarmRules' runs on core %d", xPortGetCoreID());
 
   vTaskDelay(pdMS_TO_TICKS(15000));
-  initAlarmRules();
+  initAlarmRules(inverter);
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    runAlarmRules();
+    runAlarmRules(inverter);
     xSemaphoreTake(mutexTaskRunTime_alarmrules, portMAX_DELAY);
     lastTaskRun_alarmrules=millis();
     xSemaphoreGive(mutexTaskRunTime_alarmrules);
@@ -734,12 +738,12 @@ void task_canbusTx(void *param)
 {
   BSC_LOGD(TAG, "-> 'task_canbusTx' runs on core %d", xPortGetCoreID());
 
-  canSetup();
+  inverter.inverterInit();
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
-    canTxCyclicRun();
+    inverter.cyclicRun();
     if(xSemaphoreTake(mutexTaskRunTime_can, 100))
     {
       lastTaskRuncanbusTx=millis();
@@ -774,7 +778,7 @@ void task_i2c(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
-    i2cCyclicRun(); //Sende Daten zum Display
+    i2cCyclicRun(inverter); //Sende Daten zum Display
 
     if(changeWlanDataForI2C)
     {
@@ -782,7 +786,7 @@ void task_i2c(void *param)
       String ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
-      i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
@@ -835,15 +839,17 @@ void task_fsTest3(void *param)
 /*
   Handle WebPages
 */
-void handlePage_root(){server.send(200, "text/html", htmlPageRoot);}
-void handlePage_settings(){server.send(200, "text/html", htmlPageSettings);}
-void handlePage_alarm(){server.send(200, "text/html", htmlPageAlarm);}
-void handlePage_schnittstellen(){server.send(200, "text/html", htmlPageSchnittstellen);}
-void handle_htmlPageBmsSpg(){server.send(200, "text/html", htmlPageBmsSpg);}
-void handlePage_status(){server.send(200, "text/html", htmlPageStatus);}
-void handlePage_htmlPageMenuLivedata(){server.send(200, "text/html", htmlPageMenuLivedata);}
-void handlePage_htmlPageOwTempLive(){server.send(200, "text/html", htmlPageOwTempLive);}
-void handlePage_htmlPageBscDataLive(){server.send(200, "text/html", htmlPageBscDataLive);}
+void handlePage_root(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageRoot);}
+void handlePage_settings(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSettings);}
+void handlePage_alarm(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageAlarm);}
+void handlePage_schnittstellen(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSchnittstellen);}
+void handle_htmlPageBmsSpg(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBmsSpg);}
+void handlePage_status(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageStatus);}
+void handlePage_htmlPageMenuLivedata(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageMenuLivedata);}
+void handlePage_htmlPageOwTempLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageOwTempLive);}
+void handlePage_htmlPageBscDataLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBscDataLive);}
+void handlePage_inverter(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageInverter);}
+
 
 /*#ifdef BPN
 void handlePage_htmlPageBpnSettings()
@@ -908,7 +914,25 @@ void handle_paramBmsToInverter()
   webSettingsBmsToInverter.handleHtmlFormRequest(&server);
   if (server.hasArg("SAVE"))
   {
-    loadCanSettings();
+    inverter.loadIverterSettings();
+  }
+}
+
+void handle_paramInverterCharge()
+{
+  webSettingsInverterCharge.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    inverter.loadIverterSettings();
+  }
+}
+
+void handle_paramInverterDischarge()
+{
+  webSettingsInverterDischarge.handleHtmlFormRequest(&server);
+  if (server.hasArg("SAVE"))
+  {
+    inverter.loadIverterSettings();
   }
 }
 
@@ -924,7 +948,7 @@ void handle_paramSerial()
     changeAlarmSettings();
 
     bmsFilterData_s* bmsFilterData = getBmsFilterData();
-    bmsFilterData->u8_mFilterBmsCellVoltagePercent = WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
+    bmsFilterData->u8_mFilterBmsCellVoltagePercent = (uint8_t)WebSettings::getIntFlash(ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT,0,DT_ID_PARAM_BMS_FILTER_CELL_VOLTAGE_PERCENT);
   }
 }
 
@@ -966,13 +990,12 @@ void handle_getNeeySettingsReadback()
 
 void handle_paramDeviceJbdBms(){webSettingsDeviceJbdBms.handleHtmlFormRequest(&server);}
 
-void handle_getData()
-{
-  server.send(200, "text/html", "Testdata");
-}
+void handle_getData(){ server.send(200, "text/html", "Testdata"); }
 
 void handle_getDashboardData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   //1. Free Heap
   String tmp = String(xPortGetFreeHeapSize());
   tmp += " / ";
@@ -1042,6 +1065,8 @@ void handle_getDashboardData()
 
 void handle_getBmsSpgData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   String sendData = "";
   float onePer = (4-0.5)/100;
   for(uint8_t i=0;i<16;i++)
@@ -1058,6 +1083,8 @@ void handle_getBmsSpgData()
 
 void handle_getOwTempData()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
   String sendData = "";
   for(uint8_t i=0;i<MAX_ANZAHL_OW_SENSOREN;i++)
   {
@@ -1069,12 +1096,14 @@ void handle_getOwTempData()
 
 void handle_getBscLiveData()
 {
-  buildJsonRest(&server);
+  if(!performAuthentication(server, webSettingsSystem)) return;
+  buildJsonRest(inverter, server, webSettingsSystem);
 }
 
 
 void handle_getBtDevices()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
   bleHandler.startScan(); //BT Scan starten
   server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
 }
@@ -1082,21 +1111,19 @@ void handle_getBtDevices()
 
 void handle_getOnewireDeviceAdr()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
   server.send(200, "text/html", getSensorAdr().c_str());
 }
 
 
 void btnSystemDeleteLog()
 {
-  SPIFFS.remove("/log.txt");
-  SPIFFS.remove("/log1.txt");
-  if(SPIFFS.exists("/log.txt")) //Wenn Log-Datei immer noch vorhanden
-  {
-    SPIFFS.format();
-    delay(100);
-    webSettingsSystem.writeConfig();
-  }
-  BSC_LOGI(TAG, "Logfiles deleted");
+  #ifdef DEBUG_ON_FS
+  if(!performAuthentication(server, webSettingsSystem)) return;
+
+  deleteLogfile();
+  BSC_LOGI(TAG, "Logfile deleted");
+  #endif
 }
 
 
@@ -1138,7 +1165,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_ow,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_onewire>2000) ret+=4;
+    if(millis()-lastTaskRun_onewire>3000) ret+=4;
     xSemaphoreGive(mutexTaskRunTime_ow);
   }
 
@@ -1150,7 +1177,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_serial,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_bscSerial>3000) ret+=16;
+    if(millis()-lastTaskRun_bscSerial>10000) ret+=16;
     xSemaphoreGive(mutexTaskRunTime_serial);
   }
 
@@ -1172,6 +1199,7 @@ uint8_t checkTaskRun()
 
 void sendResponceUpdateBpnFw()
 {
+  if(!performAuthentication(server, webSettingsSystem)) return;
 
   BSC_LOGI(TAG,"Upload ok");
   uint8_t data=0;
@@ -1212,6 +1240,9 @@ void setup()
   else initDio(true);
   BSC_LOGI(TAG, "HW: %i", getHwVersion());
 
+  //esp_task_wdt_init(60,false);
+  //esp_task_wdt_add(NULL);
+
   bmsDataInit();
 
   //init WebSettings
@@ -1227,6 +1258,8 @@ void setup()
   webSettingsOnewire.initWebSettings(paramOnewireAdr, "Onewire", "/WebSettings.conf");
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
   webSettingsOnewire2.initWebSettings(paramOnewire2, "Onewire II", "/WebSettings.conf");
+  webSettingsInverterCharge.initWebSettings(paramInverterCharge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
+  webSettingsInverterDischarge.initWebSettings(paramInverterDischarge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
@@ -1265,47 +1298,57 @@ void setup()
 
   //ini WebPages
   #ifdef INSIDER_V1
-  //if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
-  //{
-    server.on("/old",handlePage_root);
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
+  {
+    server.on("/old", handlePage_root);
     server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", "<HEAD><meta http-equiv=\"refresh\" content=\"0;url=/#/support\"></HEAD>");});
 
-    server.on("/p_system", HTTP_GET, []() {server.send_P(200, "application/json", paramSystem);});
-    server.on("/p_bt", HTTP_GET, []() {server.send_P(200, "application/json", paramBluetooth);});
-    server.on("/p_serial", HTTP_GET, []() {server.send_P(200, "application/json", paramSerial);});
-    server.on("/p_alarmbms", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmBms);});
-    server.on("/p_alarmtemp", HTTP_GET, []() {server.send_P(200, "application/json", paramAlarmTemp);});
-    server.on("/p_do", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalOut);});
-    server.on("/p_di", HTTP_GET, []() {server.send_P(200, "application/json", paramDigitalIn);});
-    server.on("/p_ow", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewire2);});
-    server.on("/p_owadr", HTTP_GET, []() {server.send_P(200, "application/json", paramOnewireAdr);});
-    server.on("/p_inverter", HTTP_GET, []() {server.send_P(200, "application/json", paramBmsToInverter);});
-    server.on("/p_neey", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
-    server.on("/p_jbd", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceJbdBms);});
-    server.on("/p_bpn", HTTP_GET, []() {server.send_P(200, "application/json", paramDeviceBpn);});
-  /*}
+    server.on("/p_system", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramSystem);});
+    server.on("/p_bt", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramBluetooth);});
+    server.on("/p_serial", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramSerial);});
+    server.on("/p_alarmbms", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramAlarmBms);});
+    server.on("/p_alarmtemp", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramAlarmTemp);});
+    server.on("/p_do", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDigitalOut);});
+    server.on("/p_di", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDigitalIn);});
+    server.on("/p_ow", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewire2);});
+    server.on("/p_owadr", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramOnewireAdr);});
+    server.on("/p_inverter", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramBmsToInverter);});
+    server.on("/p_invertercharge", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramInverterCharge);});
+    server.on("/p_inverterdischarge", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramInverterDischarge);});
+    server.on("/p_neey", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceNeeyBalancer);});
+    server.on("/p_jbd", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceJbdBms);});
+    server.on("/p_bpn", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send_P(200, "application/json", paramDeviceBpn);});
+  }
   else
   {
     server.on("/",handlePage_root);
-    server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
-  }*/
+    server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
+  }
   #else
   server.on("/",handlePage_root);
-  server.on("/support/", HTTP_GET, []() {server.send(200, "text/html", htmlPageSupport);});
+  server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   #endif
   server.on("/favicon.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlFavicon);});
+
+  //server.on("/login", HTTP_GET, []() {handleLogin(server);});
+  //server.on("/login", HTTP_POST, []() {handleLogin(server);});
+  //server.on("/logout", HTTP_GET, []() {handleLogout(server);});
 
   server.on("/htmlPageStatus/",handlePage_status);
   server.on("/settings/",handlePage_settings);
   server.on("/settings/alarm/",handlePage_alarm);
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
   server.on("/bmsSpg/",handle_htmlPageBmsSpg);
-  server.on("/settings/devices/", HTTP_GET, []() {server.send(200, "text/html", htmlPageDevices);});
-  server.on("/restapi", HTTP_GET, []() {buildJsonRest(&server);});
+  server.on("/settings/devices/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageDevices);});
+  server.on("/restapi", HTTP_GET, []() {buildJsonRest(inverter, server, webSettingsSystem);}); // Die Restapi ist ohne pw abrufbar
+  server.on("/settings/inverter/",handlePage_inverter);
   //server.on("/setParameter", HTTP_POST, []() {handle_setParameter(&server);});
 
   server.on("/settings/system/",handle_paramSystem);
-  server.on("/settings/bms_can/",handle_paramBmsToInverter);
+  server.on("/settings/inverter/bms_can/",handle_paramBmsToInverter);
+  server.on("/settings/inverter/can_charge/",handle_paramInverterCharge);
+  server.on("/settings/inverter/can_discharge/",handle_paramInverterDischarge);
+
   server.on("/settings/alarm/alarmTemp/",handle_paramAlarmTemp);
   server.on("/settings/alarm/alarmBt/",handle_paramAlarmBt);
   server.on("/settings/schnittstellen/dout/",handle_paramDigitalOut);
@@ -1339,13 +1382,13 @@ void setup()
   server.on("/uploadPbnFw", HTTP_POST, sendResponceUpdateBpnFw, [](){handleFileUpload(&server, true, "bpnFw.bin");});
   #endif
 
-  server.on("/log", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/log1", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/trigger", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
-  server.on("/valueslog", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/log.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/log1", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/log1.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/trigger", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/trigger.txt")){server.send(404, "text/plain", "FileNotFound");}});
+  server.on("/valueslog", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) if(!handleFileRead(SPIFFS, server, true, "/values")){server.send(404, "text/plain", "FileNotFound");}});
   //server.on("/param", HTTP_GET, []() {if(!handleFileRead(SPIFFS, server, false, "/WebSettings.conf")){server.send(404, "text/plain", "FileNotFound");}});
 
-  otaUpdater.init(&server, "/settings/webota/", true);
+  otaUpdater.init(&server, &webSettingsSystem, "/settings/webota/", true);
 
   server.on("/restart/", []() {
     server.sendHeader("Connection", "close");
@@ -1355,10 +1398,10 @@ void setup()
   });
 
   #ifdef INSIDER_V1
-  //if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
-  //{
-    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial);
-  //}
+  if(webSettingsSystem.getBoolFlash(ID_PARAM_I_AM_A_SUPPORTER,0)==true)
+  {
+    initWebApp2(&server, &webSettingsSystem, &bleHandler, &bscSerial, &inverter);
+  }
   #endif
 
   //Erstelle Tasks
@@ -1413,7 +1456,7 @@ void loop()
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 
-  logValues();
+  logValues(inverter);
 
   #ifdef LOG_BMS_DATA
   if(millis()-debugLogTimer>=10000)

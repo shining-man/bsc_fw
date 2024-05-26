@@ -8,8 +8,12 @@
 
 #include <Arduino.h>
 #include <WebServer.h>
+#include <WebSettings.h>
 
 bool handleFileRead(fs::FS &fs, WebServer &server, bool fsIsSpiffs, const String &path);
 void handleFileUpload(fs::FS &fs, WebServer &server, bool fsIsSpiffs, const String &fileName);
+bool performAuthentication(WebServer &server, WebSettings &ws);
+bool performAuthentication(WebServer *server, WebSettings *ws);
+bool performAuthentication(WebServer *server, WebSettings &ws);
 
 #endif

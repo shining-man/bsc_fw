@@ -1,5 +1,5 @@
 // Copyright (c) 2022 tobias
-// 
+//
 // This software is released under the MIT License.
 // https://opensource.org/licenses/MIT
 
@@ -60,7 +60,7 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
 
   // Kleine Pause zwischen den Packs
   if(u8_lSylcinAdr>1)vTaskDelay(pdMS_TO_TICKS(50));
- 
+
   getDataFromBms(u8_lSylcinAdr, 0x42);
   if(recvAnswer(response))
   {
@@ -73,12 +73,12 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     }
     else
     {
-      ret=false; 
+      ret=false;
     }
   }
   else
   {
-    ret=false; 
+    ret=false;
   }
 
   if(ret==true)
@@ -88,7 +88,7 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     {
       if(!parseMessage_Alarms(response, u8_lSylcinAdrBmsData))
       {
-        ret=false; 
+        ret=false;
       }
     }
     else
@@ -98,13 +98,13 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   }
 
   if(u8_mDevNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
-  return ret;  
+  return ret;
 }
 
 static void getDataFromBms(uint8_t address, uint8_t function)
 {
   /* Beispieldaten
-   * ->: 7E 35 32 30 31 34 36 34 32 45 30 30 32 30 31 46 44 33 30 0D 
+   * ->: 7E 35 32 30 31 34 36 34 32 45 30 30 32 30 31 46 44 33 30 0D
    * <-: 7E 32 30 30 30 34 36 30 30 31 30 39 36 30 30 30 31 31 30 30 43 43 30 30 43 43 33 30 43 43 32 30 43 42 46 30 43 43 33 30 43 43 30 30 43 43 30 30 43 43 31 30 43 43 31 30 43 43 30 30 43 43 32 30 43 43 33 30 43 43 37 30 43 43 35 30 43 43 35 30 43 43 36 30 36 30 42 36 46 30 42 37 32 30 42 37 32 30 42 37 31 30 42 39 36 30 42 37 43 46 44 37 46 31 34 36 41 32 38 33 45 30 41 34 45 32 30 30 32 30 33 34 45 32 30 30 30 31 35 30 33 45 38 31 34 36 43 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 44 44 30 31 0D
    */
 
@@ -130,7 +130,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   #endif
   u8_lData[7]=(crc >> 8);  // CHKSUM (0xFD)
   u8_lData[8]=(crc >> 0);  // CHKSUM (0x30)
-  sylcinconvertByteToAsciiHex(&u8_lSendData[15], &u8_lData[7], 2); 
+  sylcinconvertByteToAsciiHex(&u8_lSendData[15], &u8_lData[7], 2);
 
   u8_lSendData[0]=0x7E;   // SOF (0x7E)
   u8_lSendData[19]=0x0D;  // EOF (0x0D)
@@ -152,14 +152,14 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
   usleep(20);
   mPort->write(u8_lSendData, 20);
-  mPort->flush();  
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn); 
+  mPort->flush();
+  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
-/// @brief 
-/// @param p_lRecvBytes 
-/// @return 
+/// @brief
+/// @param p_lRecvBytes
+/// @return
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
   uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen, u8_CyclesWithoutData;
@@ -172,10 +172,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
   for(;;)
   {
-    //Timeout 
+    //Timeout
     // wenn innerhalb von 500ms das Telegram noch nicht begonnen hat, dann Timeout
     // oder wenn es begonnen hat, dann 700ms
-    if( ((millis()-u32_lStartTime)>500 && u8_lRecvBytesCnt==0) || ((millis()-u32_lStartTime)>700 && u8_lRecvBytesCnt>0))      
+    if( ((millis()-u32_lStartTime)>500 && u8_lRecvBytesCnt==0) || ((millis()-u32_lStartTime)>700 && u8_lRecvBytesCnt>0))
     {
         BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
@@ -222,7 +222,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
           u8_lRecvBytesCnt++;
           break;
-      
+
         default:
           break;
         }
@@ -236,7 +236,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       vTaskDelay(pdMS_TO_TICKS(1));
     }
 
-    if(bo_lDataComplete) break; //Recv Pakage complete   
+    if(bo_lDataComplete) break; //Recv Pakage complete
     if(u8_lRecvBytesCnt>=SYLCINBMS_MAX_ANSWER_LEN) return false; //Answer too long!
   }
 
@@ -275,7 +275,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 {
   //lambda get16bitFromMsg(i)
 	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
-		return (uint16_t(sylcinconvertAsciiHexToByte(t_message[i * 2], t_message[(i * 2) + 1])) << 8) | 
+		return (uint16_t(sylcinconvertAsciiHexToByte(t_message[i * 2], t_message[(i * 2) + 1])) << 8) |
            (uint16_t(sylcinconvertAsciiHexToByte(t_message[(i * 2)+2], t_message[(i * 2) + 3])) << 0);
 	};
 
@@ -294,7 +294,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 
   uint16_t u16_lCellSum = 0;
 
-  uint16_t u16_lCellLow = 0xFFFF; 
+  uint16_t u16_lCellLow = 0xFFFF;
   uint16_t u16_lCellHigh = 0x0;
 
   uint8_t u8_lMsgoffset=0;
@@ -309,15 +309,15 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
   //   8      0x4              Data length checksum  LCHKSUM
   //   9-11   0x084            Data length           LENID     132 / 2 = 66
   //   12,13  0x01             Batterie Nummer                Adresse 1
-  //   14,15  0x10             Number of cells                16  
+  //   14,15  0x10             Number of cells                16
   //   16,17,18,19  0x0D1A     Cell voltage 1                 3354 * 0.001f = 3.354         V
   //   20,21,22,23  0x0D1D     Cell voltage 2                 3357 * 0.001f = 3.357         V
   //   ...    ...            ...
-  //   76,77,78,79  0x0D19     Cell voltage 16                3353 * 0.001f = 3.353         V  
+  //   76,77,78,79  0x0D19     Cell voltage 16                3353 * 0.001f = 3.353         V
 
 
   // Kontrolle ob Function Code OK
-  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00) 
+  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00)
   {
     BSC_LOGE(TAG, "Function Code nicht OK: 0x%02x", sylcinconvertAsciiHexToByte(t_message[6], t_message[7]));
     return false;
@@ -338,7 +338,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
   BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
   #endif
 
-  for (uint8_t i=0; i<u8_lNumOfCells; i++) 
+  for (uint8_t i=0; i<u8_lNumOfCells; i++)
   {
     u16_lZellVoltage = get16bitFromMsg(8+(i*2));
     setBmsCellVoltage(BT_DEVICES_COUNT+address,i, (float)(u16_lZellVoltage));
@@ -358,16 +358,16 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 
     u16_lZellMinVoltage=u16_lCellLow;
     u16_lZellMaxVoltage=u16_lCellHigh;
-    u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow; 
+    u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow;
   }
-  
+
   setBmsMaxCellVoltage(BT_DEVICES_COUNT+address, u16_lCellHigh);
   setBmsMinCellVoltage(BT_DEVICES_COUNT+address, u16_lCellLow);
   setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMaxVoltage);
   setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMinVoltage);
   setBmsAvgVoltage(BT_DEVICES_COUNT+address, (float)(u16_lCellSum/u8_lNumOfCells));
   setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+address,(float)(u16_lZellDifferenceVoltage));
-  
+
 
   u8_lMsgoffset = 8+(u8_lNumOfCells*2);
 
@@ -412,7 +412,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 
   //   124,125,126,127     0x00 0x12      Anzahl Zyklen                   0x12 -> 18
   uint16_t u16_lCycle=get16bitFromMsg(u8_lMsgoffset+9);
- 
+
   //   128,129             0x44           Stage of charge                 0x44 -> 68                     %
   setBmsChargePercentage(BT_DEVICES_COUNT+address, sylcinconvertAsciiHexToByte(t_message[(u8_lMsgoffset+11)*2], t_message[(u8_lMsgoffset+11)*2+1]));
 
@@ -421,7 +421,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
   //   132,133,134,135     0x00 0x00      Reserved
   //   136,137,138,139     0x00 0x00      Reserved
   //   140,141,142,143     0x00 0x00      Reserved
-  
+
 
   if(mDevData->bo_sendMqttMsg)
   {
@@ -463,7 +463,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //   6    0x01             Command group
 
   // Byte   Description
-  // The following are 24 byte alarms 
+  // The following are 24 byte alarms
   //   7    Number of cells M=16
   //   8    Cell 1 alarm
   //   9    Cell 2 alarm
@@ -482,15 +482,15 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   //  22    Cell 15 alarm
   //  23    Cell 16 alarm
   //  24    Number of temperatures N=6
-  //  25    Cell temperature alarm 1 
+  //  25    Cell temperature alarm 1
   //  26    Cell temperature alarm 2
   //  27    Cell temperature alarm 3
   //  28    Cell temperature alarm 4
-  //  29    Environment temperature alarm 
-  //  30    Power temperature alarm 1 
+  //  29    Environment temperature alarm
+  //  30    Power temperature alarm 1
   //  31    Charge/discharge current alarm
   //  32    Total battery voltage alarm
-  //  33    Short State 
+  //  33    Short State
   //  34    Short Times
   //  35    Anzahl OEM Bytes M=16
   //  36..  OEM Bytes
@@ -501,7 +501,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 0 - Warning Cell Voltage Above
   // Bit 1 - Warning Cell Voltage Under
   // Bit 2 - Warning Total Voltage Above
-  // Bit 3 - Warning Total Voltage Under  
+  // Bit 3 - Warning Total Voltage Under
   // Bit 4 - Warning Charge Overcurrent
   // Bit 5 - Warning Discharge Overcurrent
   // Bit 6 - Warning Voltage differnce
@@ -511,7 +511,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 0 - Protect Cell Voltage Above
   // Bit 1 - Protect Cell Voltage Under
   // Bit 2 - Protect Total Voltage Above
-  // Bit 3 - Protect Total Voltage Under  
+  // Bit 3 - Protect Total Voltage Under
   // Bit 4 - Protect Charge Overcurrent
   // Bit 5 - Protect Discharge Overcurrent
   // Bit 6 - Protect Discharge Overcurrent2
@@ -540,8 +540,8 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // OEM Byte 4
   // Bit 0 - Protect Inverse Charge
   // Bit 1 - Warning SOC low
-  // Bit 2 - Error Charge MOS 
-  // Bit 3 - Error Discharge MOS 
+  // Bit 2 - Error Charge MOS
+  // Bit 3 - Error Discharge MOS
   // Bit 4 - Warning Cell over Temperature
   // Bit 5 - Warning Cell under Temperature
   // Bit 6 - Status Charge
@@ -555,7 +555,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 4 - Status Full Charge
   // Bit 5 - -
   // Bit 6 - Status CurrentLimited
-  // Bit 7 - - 
+  // Bit 7 - -
 
   // OEM Byte 6
   // Bit 0 - -
@@ -565,11 +565,11 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 4 - -
   // Bit 5 - -
   // Bit 6 - -
-  // Bit 7 - - 
+  // Bit 7 - -
 
   // OEM Byte 13
-  // Bit 0 - Error Discharge MOS 
-  // Bit 1 - Error Charge MOS 
+  // Bit 0 - Error Discharge MOS
+  // Bit 1 - Error Charge MOS
   // Bit 2 - Error AFE
   // Bit 3 - Error Realtime clock
   // Bit 4 - Error Flash
@@ -588,28 +588,28 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 7 - -
 
 
-  //  Comments on byte alarms 
+  //  Comments on byte alarms
   //  S/N  Value  Meaning
   //  1    0x00   Normal, no alarm
   //  2    0x01   Alarm that analog quantity reaches the lower limit
   //  3    0x02   Alarm that analog quantity reaches the upper limit
-  //  4    0xF0   Other alarms 
-  //  
- 
+  //  4    0xF0   Other alarms
+  //
+
 
   // Beispieldaten:
-  // ->:  7E 35 32 30 31 34 36 34 34 45 30 30 32 30 31 46 44 32 45 0D                     
+  // ->:  7E 35 32 30 31 34 36 34 34 45 30 30 32 30 31 46 44 32 45 0D
   // <-: 7E 35 32 30 31 34 36 30 30 46 30 35 43 30 31 31 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 36 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 46 30 30 30 30 30 30 30 30 30 30 41 33 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 30 45 43 30 45 0D
 
   uint8_t  u8_countCells = sylcinconvertAsciiHexToByte(t_message[14], t_message[15]);
   uint8_t  u8_countTemps = sylcinconvertAsciiHexToByte(t_message[u8_countCells * 2 + 16], t_message[u8_countCells * 2 + 17]);
- 
-  uint8_t  u8_startOEMData = u8_countCells * 2 + 16 + 2 + u8_countTemps *2 + 10; 
+
+  uint8_t  u8_startOEMData = u8_countCells * 2 + 16 + 2 + u8_countTemps *2 + 10;
   uint32_t u32_alarm = 0;
   boolean  bo_lValue=false;
 
   // Kontrolle ob Function Code OK
-  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00) 
+  if (sylcinconvertAsciiHexToByte(t_message[6], t_message[7])!=0x00)
   {
     BSC_LOGE(TAG, "Function Code Alarme nicht OK: 0x%02x", sylcinconvertAsciiHexToByte(t_message[6], t_message[7]));
     return false;
@@ -646,11 +646,11 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   #define BMS_ERR_STATUS_RESERVED2     16384  - //bit14 Reserved
   #define BMS_ERR_STATUS_RESERVED3     32768  - //bit15 Reserved */
 
-  //  OEM Byte 0 
+  //  OEM Byte 0
   // Bit 0 - Warning Cell Voltage Above
   // Bit 1 - Warning Cell Voltage Under
   // Bit 2 - Warning Total Voltage Above
-  // Bit 3 - Warning Total Voltage Under  
+  // Bit 3 - Warning Total Voltage Under
   // Bit 4 - Warning Charge Overcurrent
   // Bit 5 - Warning Discharge Overcurrent
   // Bit 6 - Warning Voltage differnce
@@ -663,18 +663,18 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 0 - Protect Cell Voltage Above
   // Bit 1 - Protect Cell Voltage Under
   // Bit 2 - Protect Total Voltage Above
-  // Bit 3 - Protect Total Voltage Under  
+  // Bit 3 - Protect Total Voltage Under
   // Bit 4 - Protect Charge Overcurrent
   // Bit 5 - Protect Discharge Overcurrent
   // Bit 6 - Protect Discharge Overcurrent2
   // Bit 7 - Protect Short
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+2], t_message[u8_startOEMData+3]);
-  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; 
-  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; 
-  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP; 
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP; 
+  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
+  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
   if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
-  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_DSG_OCP; 
+  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
   if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
   if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_SHORT_CIRCUIT;
 
@@ -700,20 +700,20 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 6 - Protect FETs over Temperature
   // Bit 7 - Protect FETs under Temperature
     u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+6], t_message[u8_startOEMData+7]);
-  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OTP; 
-  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_UTP; 
-  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OTP; 
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_UTP; 
+  if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
+  if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
+  if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
   if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+  if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
   if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
   if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
 
   // OEM Byte 4
   // Bit 0 - Protect Inverse Charge
   // Bit 1 - Warning SOC low
-  // Bit 2 - Error Charge MOS 
-  // Bit 3 - Error Discharge MOS 
+  // Bit 2 - Error Charge MOS
+  // Bit 3 - Error Discharge MOS
   // Bit 4 - Warning Cell over Temperature
   // Bit 5 - Warning Cell under Temperature
   // Bit 6 - Status Charge
@@ -721,7 +721,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+8], t_message[u8_startOEMData+9]);
   if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
   if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+  if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
 
   // OEM Byte 5
   // Bit 0 - Status Discharge FET
@@ -731,7 +731,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 4 - Status Full Charge
   // Bit 5 - -
   // Bit 6 - Status CurrentLimited
-  // Bit 7 - - 
+  // Bit 7 - -
   u8_lByte = sylcinconvertAsciiHexToByte(t_message[u8_startOEMData+10], t_message[u8_startOEMData+11]);
   // Bit 0  Discharge switch state
   bo_lValue=false;
@@ -751,11 +751,11 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
   // Bit 4 - -
   // Bit 5 - -
   // Bit 6 - -
-  // Bit 7 - - 
+  // Bit 7 - -
 
   // OEM Byte 13
-  // Bit 0 - Error Discharge MOS 
-  // Bit 1 - Error Charge MOS 
+  // Bit 0 - Error Discharge MOS
+  // Bit 1 - Error Charge MOS
   // Bit 2 - Error AFE
   // Bit 3 - Error Realtime clock
   // Bit 4 - Error Flash
@@ -787,7 +787,7 @@ static bool parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 
 
   setBmsErrors(BT_DEVICES_COUNT+address, u32_alarm);
-  
+
   return true;
 
 }
@@ -835,7 +835,7 @@ uint16_t sylcinlCrc(const uint16_t len)
 static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt)
 {
   uint16_t u16_lCrc = calcCrc(recvMsg, u8_lRecvBytesCnt-4);
- 	uint16_t u16_lRemoteCrc = (uint16_t)sylcinconvertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1]) |	
+ 	uint16_t u16_lRemoteCrc = (uint16_t)sylcinconvertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-2], recvMsg[u8_lRecvBytesCnt-1]) |
     (uint16_t)(sylcinconvertAsciiHexToByte(recvMsg[u8_lRecvBytesCnt-4], recvMsg[u8_lRecvBytesCnt-3]))<<8;
 
   if (u16_lCrc != u16_lRemoteCrc)

@@ -29,11 +29,14 @@
 #define HTML_INPUTSELECT                  9
 #define HTML_INPUTCHECKBOX                10
 #define HTML_INPUTMULTICHECK              11
-#define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
 #define HTML_OPTIONGROUP                  12
-#define HTML_OPTIONGROUP_COLLAPSIBLE      15
 #define HTML_SEPARATION                   13
-//Max Type = 15
+#define HTML_INPUTMULTICHECK_COLLAPSIBLE  14
+#define HTML_OPTIONGROUP_COLLAPSIBLE      15
+#define HTML_INPUTFLOAT_1                 16
+#define HTML_INPUTFLOAT_2                 17
+#define HTML_INPUTFLOAT_3                 18
+//Max Type = 18
 
 #define BACKGROUND_COLOR "#ffffff"
 
@@ -61,8 +64,8 @@ public:
   static bool     getBool(uint16_t name);
   static bool     getBool(uint16_t name, uint8_t groupNr);
 
-  static int     getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
-  static int     getIntFlash(uint16_t name, uint8_t groupNr);
+  static uint32_t getIntFlash(uint16_t name, uint8_t groupNr, uint8_t dataType);
+  static uint32_t getIntFlash(uint16_t name, uint8_t groupNr);
   static float   getFloatFlash(uint16_t name, uint8_t groupNr);
   static float   getFloatFlash(uint16_t name);
   static boolean getBoolFlash(uint16_t name, uint8_t groupNr);
@@ -128,11 +131,11 @@ private:
   String   getJsonHelp(const char *parameter, uint8_t idx, uint32_t startPos);
   uint8_t  getJsonType(const char *parameter, uint8_t idx, uint32_t startPos);
   String   getJsonDefault(const char *parameter, uint8_t idx, uint32_t startPos);
-  uint8_t  getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos);
+  uint8_t  getJsonArrayCnt(const char *parameter, String key, uint8_t idx, uint32_t startPos);
   uint32_t getJsonOptionsMin(const char *parameter, uint8_t idx, uint32_t startPos);
   uint32_t getJsonOptionsMax(const char *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos);
-  std::vector<String> getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonArrayValues(const char *parameter, String key, uint8_t idx, uint32_t startPos);
+  std::vector<String> getJsonArrayLabels(const char *parameter, String key, uint8_t idx, uint32_t startPos);
   String   getJsonArrValue(const char *parameter, String str_key1, String str_key2, uint8_t u8_eCnt, uint8_t idx, uint32_t startPos);
 
   void createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value);
@@ -145,6 +148,7 @@ private:
   void createHtmlAddSelectOption(char * buf, String option, String label, String value);
   void createHtmlStartMulti(char * buf, String *label, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t u8_jsonType);
   void createHtmlAddMultiOption(char * buf, uint16_t *name, uint64_t *nameExt, const char *parameter, uint8_t idx, uint32_t startPos, uint8_t option, String label, uint32_t value, uint8_t u8_dataType);
+  void createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, int32_t value, uint8_t precision);
 
   void (*fn_mOnButtonSave)() = NULL;
   void (*fn_mOnButton1)() = NULL;

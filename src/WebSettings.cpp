@@ -48,6 +48,10 @@ static Json json;
 
 static Preferences prefs;
 
+const char* CONST_options PROGMEM = "options";
+const char* CONST_depVal PROGMEM = "depVal";
+
+
 //HTML templates
 const char HTML_START[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML>
@@ -96,6 +100,9 @@ const char HTML_ENTRY_AREA[] PROGMEM =
 const char HTML_ENTRY_FLOAT[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><input type='number' step='%s' min='%i' max='%i' value='%s' name='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
+const char HTML_ENTRY_FLOAT_X[] PROGMEM =
+"<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
+"<td class='Ctd'><input type='number' step='%s' min='%i' max='%i' value='%s' name='%s' class='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
 const char HTML_ENTRY_NUMBER[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
 "<td class='Ctd'><input type='number' min='%i' max='%i' value='%s' name='%s'>&nbsp;%s</td><td class='t1'></td><td class='Ctd'><span class='secVal' id='s%s'></span></td></tr>\n";
@@ -211,7 +218,7 @@ void WebSettings::initWebSettings(const char *parameter, String confName, String
   }
   getDefaultValuesFromNewKeys(parameterFile, 8);
 
-  if(bo_hasNewKeys) 
+  if(bo_hasNewKeys)
   {
     writeConfig();
     bo_hasNewKeys = false;
@@ -434,7 +441,7 @@ void WebSettings::readWebValues(WebServer * server, const String *parameter, uin
     uint32_t jsonName, jsonNameBase;
 
     type = getJsonType(parameter, a, jsonStartPos);
-    optionCnt = getJsonOptionsCnt(parameter, a, jsonStartPos);
+    optionCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
     jsonSize = getJsonSize(parameter, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
 
@@ -511,13 +518,16 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
     {
       case HTML_OPTIONGROUP:
       case HTML_OPTIONGROUP_COLLAPSIBLE:
+      {
         //bo_lIsGroup=true;
         st_jsonLabelEntry = getJsonLabelEntry(parameter, a, jsonStartPos);
         u8_jsonLabelOffset = getJson_Key(parameter, "label_offset", a, jsonStartPos, "0").toInt();
         optionGroupSize = getJsonGroupsize(parameter, a, jsonStartPos);
         u16_lDepId = (uint16_t)getJson_Key(parameter, "depId", a, jsonStartPos, "0").toInt(); //depence
-        u8_lDepVal = (uint8_t)getJson_Key(parameter, "depVal", a, jsonStartPos, "0").toInt();
         u8_lDepDt = (uint8_t)getJson_Key(parameter, "depDt", a, jsonStartPos, "1").toInt();
+        uint8_t nrOfDepts = getJsonArrayCnt(parameter, CONST_depVal, a, jsonStartPos);
+        std::vector<String> deptsValues = getJsonArrayValues(parameter, CONST_depVal, a, jsonStartPos);
+
         if(optionGroupSize>1 && !jsonLabel.equals(""))
         {
           if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE) sprintf(_buf,HTML_GROUP_START_DETAILS,jsonLabel.c_str());
@@ -527,9 +537,16 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         for(g=0; g<optionGroupSize; g++)
         {
           u8_mAktOptionGroupNr=g;
-          //BSC_LOGI(TAG,"u16_lDepId=%i, u8_lDepVal=%i, u8_lDepDt=%i, g=%i, val=%i",u16_lDepId,u8_lDepVal,u8_lDepDt,g,getInt(u16_lDepId,g,u8_lDepDt));
-          if(getInt(u16_lDepId,g,u8_lDepDt)!=u8_lDepVal) continue; //depence
-          //BSC_LOGI(TAG,"DEP OK");
+          if(nrOfDepts>0)
+          {
+            bool depOk = false;
+            for(uint8_t nd = 0 ; nd<nrOfDepts; nd++)  //depence
+            {
+              uint8_t depVal = deptsValues.at(nd).toInt();
+              if(getInt(u16_lDepId,g,u8_lDepDt)==depVal) depOk=true;
+            }
+            if(depOk==false) continue;
+          }
 
           sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
           sendContentHtml(server,_buf,false);
@@ -549,6 +566,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         }
         u8_mAktOptionGroupNr = 0;
         break;
+      }
       case HTML_INPUTTEXT:
         createHtmlTextfield(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,"text",getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
@@ -570,6 +588,18 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       case HTML_INPUTFLOAT:
         createHtmlFloat(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
+      case HTML_INPUTFLOAT_1:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),1);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),1);
+        break;
+      case HTML_INPUTFLOAT_2:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),2);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),2);
+        break;
+      case HTML_INPUTFLOAT_3:
+        if(bo_loadFromFlash) createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,(int32_t)getIntFlash(u64_jsonName, u8_dataType),3);
+        else createHtmlFloatX(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getInt(u64_jsonName, u8_dataType),3);
+        break;
       case HTML_INPUTNUMBER:
         createHtmlNumber(_buf,&u32_jsonName,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos,getString(u64_jsonName,bo_loadFromFlash,u8_dataType));
         break;
@@ -581,14 +611,14 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
         break;
       case HTML_INPUTSELECT:
         createHtmlStartSelect(_buf,&u64_jsonName,&jsonLabel,parameter,a,jsonStartPos);
-        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-        mOptions = getJsonOptionValues(parameter,a,jsonStartPos);
-        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        optionsCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
+        mOptions = getJsonArrayValues(parameter, CONST_options, a, jsonStartPos);
+        mOptionLabels = getJsonArrayLabels(parameter, CONST_options, a, jsonStartPos);
         for (uint8_t j = 0 ; j<optionsCnt; j++)
         {
           sendContentHtml(server,_buf,false);
           String str_lNewLabel = mOptionLabels[j];
-          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, CONST_options, "d", j, a, jsonStartPos));
           if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
           createHtmlAddSelectOption(_buf,mOptions.at(j),str_lNewLabel,getString(u32_jsonName,bo_loadFromFlash,u8_dataType));
         }
@@ -600,13 +630,13 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       case HTML_INPUTMULTICHECK:
       case HTML_INPUTMULTICHECK_COLLAPSIBLE:
         createHtmlStartMulti(_buf,&jsonLabel,parameter,a,jsonStartPos, u8_lJsonType);
-        optionsCnt = getJsonOptionsCnt(parameter,a,jsonStartPos);
-        mOptionLabels = getJsonOptionLabels(parameter,a,jsonStartPos);
+        optionsCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
+        mOptionLabels = getJsonArrayLabels(parameter, CONST_options, a, jsonStartPos);
         for (uint8_t j = 0 ; j<optionsCnt; j++)
         {
           sendContentHtml(server,_buf,false);
           String str_lNewLabel = mOptionLabels[j];
-          String str_lDes = getStringFlash(getJsonArrValue(parameter, "options", "d", j, a, jsonStartPos));
+          String str_lDes = getStringFlash(getJsonArrValue(parameter, CONST_options, "d", j, a, jsonStartPos));
           if(str_lDes.length()>0) str_lNewLabel += " ("+str_lDes+")";
           createHtmlAddMultiOption(_buf,&u32_jsonName,&u64_jsonName,parameter,a,jsonStartPos,j,str_lNewLabel,(uint32_t)getInt(u32_jsonName,u8_dataType),u8_dataType);
         }
@@ -657,7 +687,7 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
     uint16_t jsonName, jsonNameBase;
 
     type = getJsonType(parameter, a, jsonStartPos);
-    optionCnt = getJsonOptionsCnt(parameter, a, jsonStartPos);
+    optionCnt = getJsonArrayCnt(parameter, CONST_options, a, jsonStartPos);
     jsonNameBase = getJsonName(parameter, a, jsonStartPos);
     jsonName = getParmId(jsonNameBase,u8_mAktOptionGroupNr);
 
@@ -775,6 +805,42 @@ void WebSettings::createHtmlFloat(char * buf, uint16_t *name, uint64_t *nameExt,
     getJson_Key(parameter, "step", idx, startPos, "0.01").c_str(),
     getJsonOptionsMin(parameter, idx, startPos),
     getJsonOptionsMax(parameter, idx, startPos), value.c_str(),String(*nameExt).c_str(),
+    getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+}
+
+//HTML_INPUTFLOAT_1, HTML_INPUTFLOAT_2, HTML_INPUTFLOAT_3
+void WebSettings::createHtmlFloatX(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, int32_t value, uint8_t precision)
+{
+  //if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
+  //BSC_LOGI(TAG,"createHtmlFloat_int: precision=%i", precision);
+  String str_className;
+  String str_precision;
+  float fl_lVal=0;
+
+  if(precision==1)
+  {
+    str_className="fl1";
+    str_precision="0.1";
+    fl_lVal=(float)value/10;
+  }
+  else if(precision==2)
+  {
+    str_className="fl2";
+    str_precision="0.01";
+    fl_lVal=(float)value/100;
+  }
+  else if(precision==3)
+  {
+    str_className="fl3";
+    str_precision="0.001";
+    fl_lVal=(float)value/1000;
+  }
+  String valueStr = String(fl_lVal);
+  //BSC_LOGI(TAG,"createHtmlFloat_int: valStr=%s, val=%f", valueStr.c_str(), fl_lVal);
+  sprintf(buf,HTML_ENTRY_FLOAT_X,label->c_str(),
+    str_precision.c_str(),
+    getJsonOptionsMin(parameter, idx, startPos),
+    getJsonOptionsMax(parameter, idx, startPos), valueStr.c_str(),String(*nameExt).c_str(),str_className.c_str(),
     getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 
@@ -959,13 +1025,13 @@ String WebSettings::getJsonDefault(const char *parameter, uint8_t idx, uint32_t 
   return "0";
 }
 
-std::vector<String> WebSettings::getJsonOptionValues(const char *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonArrayValues(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> options;
   String retStr = "";
   uint32_t retArrayStart = 0;
   uint32_t retArrayStart2 = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key, startPos, retStr, retArrayStart);
 
   if(ret==true)
   {
@@ -980,13 +1046,13 @@ std::vector<String> WebSettings::getJsonOptionValues(const char *parameter, uint
   return options;
 }
 
-std::vector<String> WebSettings::getJsonOptionLabels(const char *parameter, uint8_t idx, uint32_t startPos)
+std::vector<String> WebSettings::getJsonArrayLabels(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   std::vector<String> labels;
   String retStr = "";
   uint32_t retArrayStart = 0;
   uint32_t retArrayStart2 = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key , startPos, retStr, retArrayStart);
 
   if(ret==true)
   {
@@ -1022,11 +1088,11 @@ String WebSettings::getJsonArrValue(const char *parameter, String str_key1, Stri
   return retStr;
 }
 
-uint8_t WebSettings::getJsonOptionsCnt(const char *parameter, uint8_t idx, uint32_t startPos)
+uint8_t WebSettings::getJsonArrayCnt(const char *parameter, String key, uint8_t idx, uint32_t startPos)
 {
   String retStr = "";
   uint32_t retArrayStart = 0;
-  bool ret = json.getValue(parameter, idx, "options", startPos, retStr, retArrayStart);
+  bool ret = json.getValue(parameter, idx, key, startPos, retStr, retArrayStart);
   if(ret==true){return json.getArraySize(parameter, retArrayStart);}
   return 0;
 }
@@ -1295,7 +1361,7 @@ bool WebSettings::getBool(uint16_t name, uint8_t groupNr)
 
 
 //Load Data from Flash
-int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
+uint32_t WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType)
 {
   int ret=0;
   uint16_t u32_name = getParmId(name, groupNr);
@@ -1322,7 +1388,7 @@ int WebSettings::getIntFlash(uint16_t name, uint8_t groupNr, uint8_t u8_dataType
   }
   return ret;
 }
-int WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
+uint32_t WebSettings::getIntFlash(uint16_t name, uint8_t u8_dataType)
 {
   int ret=0;
   switch(u8_dataType)
@@ -1761,7 +1827,7 @@ void WebSettings::handleGetValues(WebServer *server)
         if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBoolFlash((uint16_t)(argName&0xFFFF)));
         else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloatFlash((uint16_t)(argName&0xFFFF)));
         else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getStringFlash((uint16_t)(argName&0xFFFF)));
-        else addJsonElem(data, argName, getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
+        else addJsonElem(data, argName, (int)getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
       }
     }
     else

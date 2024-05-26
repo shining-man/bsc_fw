@@ -7,8 +7,9 @@
 #define DEFINES_H
 
 #include "params_dt.h"
+#include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.5.14"
+#define BSC_SW_VERSION      "V0.6.0_B2"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -95,6 +96,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define ANZAHL_RULES_TRIGGER_SOC      4
 
 //DI/DO
+#ifndef LILYGO_TCAN485
 #define H_CLK                        14
 #define H_MOSI                       13
 #define H_MISO                       12
@@ -102,13 +104,16 @@ static const char COMPILE_DATE_TIME[] = "";
 #define CNT_DIGITALOUT                6
 #define CNT_DIGITALIN                 4
 #define GPIO_LED1_HW1                 0
+#endif
 
 //Tacho
+#ifndef LILYGO_TCAN485
 #define TACHO_ADDR0                   6
 #define TACHO_ADDR1                   7
 #define TACHO_ADDR2                  15
 #define TACHO_GPIO                   27
 #define TACHO_MEAS_TIME            3000
+#endif
 
 //Onewire
 #define MAX_ANZAHL_OW_SENSOREN         64
@@ -139,8 +144,21 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define SERIAL3_PIN_TX_EN             3
 #define SERIAL3_PIN_RX_EN            32
 
+//CAN
+#ifdef LILYGO_TCAN485
+  #define CAN_TX_PIN GPIO_NUM_27
+  #define CAN_RX_PIN GPIO_NUM_26
+#else
+  #define CAN_TX_PIN GPIO_NUM_4
+  #define CAN_RX_PIN GPIO_NUM_5
+#endif
+
 //Onewire (Temperatur)
-#define OW_PIN                       19
+#ifdef LILYGO_TCAN485
+  #define OW_PIN                     25
+#else
+  #define OW_PIN                     19
+#endif
 #define COUNT_TEMP_RULES             10
 
 //I2C
@@ -149,11 +167,24 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_DEV_ADDR_SLAVE1           16
 #define I2C_DEV_ADDR_SLAVE2           17
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
-#define I2C_SDA_PIN                   21
-#define I2C_SCL_PIN                   22
 #define I2C_FREQUENCY           1000000U
-//#define I2C_FREQUENCY           400000U
 #define I2C_CNT_SLAVES                2
+
+#ifdef LILYGO_TCAN485
+  #define I2C_SDA_PIN                   32
+  #define I2C_SCL_PIN                   33
+#else
+  #define I2C_SDA_PIN                   21
+  #define I2C_SCL_PIN                   22
+#endif
+
+//LILYGO_TCAN485
+#define TCAN485_PIN_5V_EN    16
+#define TCAN485_CAN_SE_PIN   23
+#define TCAN485_RS485_EN_PIN 17
+#define TCAN485_RS485_TX_PIN 22
+#define TCAN485_RS485_RX_PIN 21
+#define TCAN485_RS485_SE_PIN 19
 
 
 //BMS Data
@@ -173,11 +204,13 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
 
 
+// Inverter
+#define CAN_BMS_COMMUNICATION_TIMEOUT 5000
+
+
 //Send serial Data
 enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS, BPN_START_FWUPDATE};
 //#define SERIAL_DATA_RW_LEN__BPN_READ_SETTINGS 20
-
-
 
 
 // Register
@@ -366,12 +399,40 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_DISPLAY_TIMEOUT 144
 
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_START_VOLTAGE 145
+
+#define ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_CURRENT    146
+#define ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX 147
+#define ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN 148
+
+#define ID_PARAM_INVERTER_AUTOBALANCE_START_INTERVAL     149
+#define ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE  150
+#define ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_VOLTAGE     151
+#define ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH     152
+#define ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT            153
+#define ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE 154
+
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_MINDEST_STROM 155
+#define ID_PARAM_BMS_FLOAT_CHARGE_SPG                            156
+
+#define ID_PARAM_INVERTER_AUTOBALANCE_ENABLE                     157
+#define ID_PARAM_INVERTER_CHARGE_CURRENT_CUT_OFF_ENABLE          158
+#define ID_PARAM_INVERTER_ENTLADESTROM_REDUZIEREN_ZELLSPG_EN     159
+
+#define ID_PARAM_BSC_USERNAME 160
+#define ID_PARAM_BSC_PASSWORD 161
+
+#define ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME 162
+
+
+
 
 //Auswahl Bluetooth Geräte
 #define ID_BT_DEVICE_NB             0
 #define ID_BT_DEVICE_NEEY4A         1
 #define ID_BT_DEVICE_JKBMS_JK02     2
 #define ID_BT_DEVICE_JKBMS_JK02_32S 3
+#define ID_BT_DEVICE_NEEY8A         4
 
 //Auswahl Serial Geräte
 #define ID_SERIAL_DEVICE_NB         0
@@ -386,13 +447,16 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_SERIAL_DEVICE_BPN        9
 #define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
 #define ID_SERIAL_DEVICE_GOBEL_PC200  11
+#define ID_SERIAL_DEVICE_SEPLOSBMS_V3 12
+#define ID_SERIAL_DEVICE_NEEY_4A      13
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
 #define ID_CAN_DEVICE_SOLISRHI      1
-#define ID_CAN_DEVICE_DEYE          2
+#define ID_CAN_DEVICE_PYLONTECH     2
 #define ID_CAN_DEVICE_VICTRON       3
 #define ID_CAN_DEVICE_VICTRON_250K  4
+#define ID_CAN_DEVICE_BYD_PROTOCOL  5
 
 //Auswahl Temp.Alarm Funktionen
 #define ID_TEMP_ALARM_FUNKTION_NB               0
@@ -507,9 +571,13 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT        52
 #define MQTT_TOPIC2_AMOUNT_DCH_ENERGY           53
 #define MQTT_TOPIC2_AMOUNT_CH_ENERGY            54
+#define MQTT_TOPIC2_CUTOFF_VALUE                55
+#define MQTT_TOPIC2_CUTOFF_TIMER                56
+#define MQTT_TOPIC2_AUTOBAL_STATE               57
+#define MQTT_TOPIC2_WARNINGS                    58
 
 
-static const char* mqttTopics[] PROGMEM = {"", // 0
+static const char* mqttTopics[] = {"", // 0
   "bms/bt",        // 1
   "temperatur",    // 2
   "trigger",       // 3
@@ -535,7 +603,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalCurrent",              // 23
   "FullCapacity",              // 24
   "BalanceStatus",             // 25
-  "dischargeCurrentSoll",      // 26  frei
+  "dischargeCurrentSoll",      // 26
   "ChargedEnergy",             // 27
   "DischargedEnergy",          // 28
   "chargeCurrentSoll",         // 29
@@ -564,10 +632,10 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
   "totalVoltMaxCount",         // 52
   "amountDchEnergy",           // 53
   "amountChEnergy",            // 54
-  "",                          // 55
-  "",                          // 56
-  "",                          // 57
-  "",                          // 58
+  "cutoffValue",               // 55  Debug
+  "cutoffTimer",               // 56  Debug
+  "autoBalState",              // 57  Debug
+  "warnings",                  // 58
   "",                          // 59
   "",                          // 60
   };
@@ -619,7 +687,7 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 #define BSC_LOGV ESP_LOGV
 */
 
-#include "bscTime.h"
+
 #define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGW( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_WARN,    tag, format, ##__VA_ARGS__)
 #define BSC_LOGI( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_INFO,    tag, format, ##__VA_ARGS__)
@@ -643,4 +711,4 @@ static const char* mqttTopics[] PROGMEM = {"", // 0
 
 
 #define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
-#define mc_POS_DIV(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))
+#define ROUND(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))
