@@ -204,7 +204,7 @@ namespace nsChargeVoltageCtrl
       uint32_t autobalMindestTime = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME);
       autobalMindestTime = autobalMindestTime * 60 * 1000;
       if(millis() - inverterData.autobalanceVoltageErreichtTime >= autobalMindestTime)
-      {;
+      {
         inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
         inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
         return;
