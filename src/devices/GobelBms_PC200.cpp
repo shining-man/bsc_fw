@@ -430,8 +430,9 @@ Byte | Data
   }
 
   // 54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-  float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset)) * 0.01f;
-  setBmsTotalCurrent(BT_DEVICES_COUNT + address, f_lTotalCurrent);
+  //float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset)) * 0.01f;
+  //setBmsTotalCurrent(BT_DEVICES_COUNT + address, f_lTotalCurrent);
+  setBmsTotalCurrent_int(BT_DEVICES_COUNT + address, (int16_t)get16bitFromMsg(u8_lMsgoffset));
   u8_lMsgoffset += 2;
 
   // 56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
@@ -440,15 +441,17 @@ Byte | Data
   u8_lMsgoffset += 2;
 
   // 58 | 31 32 38 45（PACK remain capacity，128EH, that’s 47.50AH）
-  uint16_t u16_lBalanceCapacity = get16bitFromMsg(u8_lMsgoffset) / 100;
+  uint16_t u16_lBalanceCapacity = get16bitFromMsg(u8_lMsgoffset);
   u8_lMsgoffset += 3;
 
   // 60 | 30 33（user define number P，03H）
   // 61 | 31 33 38 38（PACK full capacity ，1388H , that’s 50.00AH）
-  uint16_t u16_lFullCapacity = get16bitFromMsg(u8_lMsgoffset) / 100;
+  uint16_t u16_lFullCapacity = get16bitFromMsg(u8_lMsgoffset);
   u8_lMsgoffset += 2;
 
-  setBmsChargePercentage(BT_DEVICES_COUNT + address, (u16_lBalanceCapacity / u16_lFullCapacity) / 100);
+  setBmsChargePercentage(BT_DEVICES_COUNT + address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  u16_lBalanceCapacity /= 100;
+  u16_lFullCapacity /= 100;
 
   // 63 | 30 30 30 30（cycle times，0000H）
   uint16_t u16_lCycle = get16bitFromMsg(u8_lMsgoffset);
@@ -466,7 +469,6 @@ Byte | Data
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
     mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
-
   }
 }
 

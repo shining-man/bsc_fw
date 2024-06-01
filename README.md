@@ -10,7 +10,7 @@
 <p align="center"><strong>Solarfackel</strong></p><p align="center">
   <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a> 
 </p>
-<!-- SPONSORS_ENDE -->'
+<!-- SPONSORS_ENDE -->
 
 <p align="center">
   <img src="https://github.com/shining-man/bsc_fw/blob/main/doc/README_Dashboard.png"/>
