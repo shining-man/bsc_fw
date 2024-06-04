@@ -10,6 +10,8 @@
 <p align="center"><strong>Solarfackel</strong></p><p align="center">
   <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a> 
   <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a> 
+  <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a> 
+  <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a> 
 </p>
 <!-- SPONSORS_ENDE -->
 
