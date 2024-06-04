@@ -9,6 +9,7 @@
 
 <p align="center"><strong>Solarfackel</strong></p><p align="center">
   <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a> 
+  <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a> 
 </p>
 <!-- SPONSORS_ENDE -->
 
@@ -65,7 +66,7 @@ As an example a part of the Inverter Settings:<br>
 ## Supported BMS (RS485)
 - JBD (Jiabaida)
 - JK
-- Seplos [1]
+- Seplos, Seplos V3 [1]
 - DALY
 - Sylcin [1]
 - Gobel [1]
@@ -74,7 +75,8 @@ As an example a part of the Inverter Settings:<br>
 
 ## Supported Inverter
 - Victron
-- Solis, DEYE, ...
+- Pylontech protocol (Solis, DEYE, ...)
+- BYD protocol (only tested with SolarEdge RWS)
 
 ## Supported Bluetooth devices
 - NEEY (up to 7 pieces) [2]
