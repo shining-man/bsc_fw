@@ -13,6 +13,10 @@
   <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a> 
   <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a> 
 </p>
+
+<p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
+  <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a> 
+</p>
 <!-- SPONSORS_ENDE -->
 
 <p align="center">
