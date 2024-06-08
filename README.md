@@ -12,6 +12,7 @@
   <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a> 
   <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a> 
   <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a> 
+  <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a> 
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
