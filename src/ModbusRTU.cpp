@@ -191,4 +191,9 @@ int16_t ModbusRTU::getI16Value(uint16_t address)
 }
 
 
+uint16_t ModbusRTU::getU16ValueByOffset(uint16_t offset)
+{
+  return (mRetData[offset]<<8) | mRetData[offset+1];
+}
+
 } // namespace modbusrtu

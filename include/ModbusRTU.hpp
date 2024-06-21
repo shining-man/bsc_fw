@@ -17,8 +17,10 @@ namespace modbusrtu
         {
             READ_COIL_01       = 0x01,
             //WRITE_COIL_0F      = 0x0F,
-            READ_CMD_04        = 0x04
+            READ_CMD_04        = 0x04,
             //WRITE_CMD_10       = 0x10
+
+            READ_CMD_JK        = 0x03
         };
 
         // Konstruktor
@@ -33,6 +35,8 @@ namespace modbusrtu
         uint8_t  getU8Value(uint16_t address);
         uint16_t getU16Value(uint16_t address);
         int16_t  getI16Value(uint16_t address);
+
+        uint16_t getU16ValueByOffset(uint16_t offset);
 
     private:
         Stream *mPort;
