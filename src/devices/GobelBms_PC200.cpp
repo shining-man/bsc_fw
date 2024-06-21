@@ -190,7 +190,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   u8_lData[3] = function;     // CID2 (0x42)
   u8_lData[4] = (lenid >> 8); // LCHKSUM (0xE0)
   u8_lData[5] = (lenid >> 0); // LENGTH (0x02)
-  u8_lData[6] = address + 1;      // INFO
+  u8_lData[6] = 0xFF;         // INFO
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
@@ -418,7 +418,7 @@ Byte | Data
   // 48 | 30 42 42 36（forth temperature: 0BB6H，that’s 2998，26.8℃）
   // 50 | 30 42 42 33（fifth temperature （MOS）: 0BB3H，that’s 2995，26.5℃）
   // 52 | 30 42 42 44（sixth temperature（environment）: 0BBDH，that’s 2994，27.5℃）
-  float fl_lBmsTemps[3]; // Hier werden die ketzten drei Temperaturen zwischengespeichert
+  float fl_lBmsTemps[3]; // Hier werden die letzten drei Temperaturen zwischengespeichert
   for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
   {
     fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset) - 0xAAB) * 0.1;
