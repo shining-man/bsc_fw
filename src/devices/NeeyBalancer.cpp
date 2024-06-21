@@ -16,6 +16,12 @@ byte NeeyBalancer_cmdBalanceOff[20] PROGMEM = {0xaa, 0x55, 0x11, 0x00, 0x05, 0x0
 
 static uint8_t u8_neeySendStep=0;
 
+// Die Variablen sind für das empfangen bei den NEEYs die alles in 20 Byte Paketen senden
+static uint8_t  neeyPacketNumber[7] = {0,0,0,0,0,0,0}; 
+static uint32_t neeyLastRxBytes[7] = {0,0,0,0,0,0,0};
+static uint32_t neeyRxDataType[7] = {0,0,0,0,0,0,0};
+
+
 NeeyBalancer::NeeyBalancer()
 {
 };
@@ -26,60 +32,33 @@ void NeeyBalancer::init()
 
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
-    //BSC_LOGI(TAG,"RX devNr=%i, len=%i",devNr,length);
+  //BSC_LOGI(TAG,"RX dev=%i, len=%i, d=%i, %i, %i, %i, %i, %i",
+  //  devNr, length, pData[0], pData[1], pData[2], pData[3], pData[4], pData[5]);
 
-    #ifdef NEEY_DEBUG
-    BSC_LOGD(TAG,"RX devNr=%i, len=%i",devNr,length);
-    //log_print_buf(pData, length);
+  #ifdef NEEY_DEBUG
+  BSC_LOGI(TAG,"RX devNr=%i, len=%i",devNr,length);
+  //log_print_buf(pData, length);
 
-    String log="";
-    uint8_t logLenCnt=0;
-    for(uint8_t i=0;i<length;i++)
-    {
-      logLenCnt++;
-      log+=String(pData[i], HEX);
-      log+=" ";
-      if(logLenCnt==20)
-      {
-        logLenCnt=0;
-        BSC_LOGD(TAG,"RX: %s",log.c_str());
-        log="";
-      }
-    }
-    BSC_LOGD(TAG,"RX: %s",log.c_str());
-    log="";
-    #endif
-
-  if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
+  String log="";
+  uint8_t logLenCnt=0;
+  for(uint8_t i=0;i<length;i++)
   {
-    //BSC_LOGI(TAG,"RX settings");
-
-    /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
-    String log="";
-    uint8_t logLenCnt=0;
-    for(uint8_t i=0;i<length;i++)
+    logLenCnt++;
+    log+=String(pData[i], HEX);
+    log+=" ";
+    if(logLenCnt==20)
     {
-      logLenCnt++;
-      log+=String(pData[i], HEX);
-      log+=" ";
-      if(logLenCnt==20)
-      {
-        logLenCnt=0;
-        BSC_LOGI(TAG,"RX: %s",log.c_str());
-        log="";
-      }
+      logLenCnt=0;
+      BSC_LOGI(TAG,"RX: %s",log.c_str());
+      log="";
     }
-    BSC_LOGI(TAG,"RX: %s",log.c_str());
-    log="";*/
-
-    bmsDataSemaphoreTake();
-    memcpy(getBmsSettingsReadback(devNr), &pData[8], 32);
-    bmsDataSemaphoreGive();
-
-    return;
   }
+  BSC_LOGI(TAG,"RX: %s",log.c_str());
+  log="";
+  #endif
 
-  if(length==241)
+
+  if(length == 241)
   {
     // 0     2   0x55 0xAA              Header
     // 2     1   0x11                   Device address
@@ -153,18 +132,263 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     //BSC_LOGI(TAG,"setBmsLastDataMillis");
     setBmsLastDataMillis(devNr,millis());
   }
-  else if(length==59)
+  else if(length <= 20)
   {
+    /*Packet	von	bis
+     *  0      0	 19
+     *  1     20	 39
+     *  2     40	 59
+     *  3     60	 79
+     *  4	    80	 99
+     *  5	   100	119
+     *  6	   120	139
+     *  7	   140	159
+     *  8	   160	179
+     *  9	   180	199
+     *  10	 200	219
+     *  11	 220	239
+     *  12	 240	259
+     *  13	 260	279
+     *  14	 280	299
+     *  15	 300	319
+     */
 
-  }
-  else
-  {
+    #ifdef NEEY_DEBUG
+    BSC_LOGI(TAG,"dev=%i, p=%i", devNr, neeyPacketNumber[devNr]);
+    #endif
+
+    // Settings
+    if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
+    {
+      //#ifdef NEEY_DEBUG
+      BSC_LOGI(TAG,"Settings: dev=%i", devNr);
+      //#endif
+
+      neeyRxDataType[devNr] = 1;
+      neeyPacketNumber[devNr] = 0;
+      return;
+    }
+
+    // Batt. Data
+    else if(pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x02 && pData[5]==0x00)
+    {
+      //#ifdef NEEY_DEBUG
+      BSC_LOGI(TAG,"Battdata: dev=%i", devNr);
+      //#endif
+
+      neeyRxDataType[devNr] = 2;
+      neeyPacketNumber[devNr] = 0;
+    }
+
+
+
+    // Settings
+    if(neeyRxDataType[devNr] == 1)
+    { 
+      BSC_LOGI(TAG,"S; dev=%i, p=%i", devNr, neeyPacketNumber[devNr]);
+
+      if(neeyPacketNumber[devNr] == 0)
+      { 
+        neeyPacketNumber[devNr] = 1;
+
+        bmsDataSemaphoreTake();
+        memcpy(getBmsSettingsReadback(devNr), &pData[8], 11);
+        bmsDataSemaphoreGive();
+      } 
+      else if(neeyPacketNumber[devNr] == 1)
+      { 
+        neeyPacketNumber[devNr] = 2;
+
+        bmsDataSemaphoreTake();
+        memcpy(getBmsSettingsReadback(devNr)+11, &pData[0], 20);
+        bmsDataSemaphoreGive();
+      } 
+      else if(neeyPacketNumber[devNr] == 2)
+      { 
+        neeyPacketNumber[devNr] = 3;
+
+        bmsDataSemaphoreTake();
+        memcpy(getBmsSettingsReadback(devNr)+31, &pData[0], 1);
+        bmsDataSemaphoreGive();
+
+        setBmsLastDataMillis(devNr,millis());
+      } 
+    } 
+    
+    // NEEY Batt. Data
+    else if(neeyRxDataType[devNr] == 2)
+    { 
+      //BSC_LOGI(TAG,"B; dev=%i, p=%i", devNr, neeyPacketNumber[devNr]);
+
+      // Byte 0-19
+      if(neeyPacketNumber[devNr] == 0)
+      {
+        float    f_lTmpValue;
+        memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_CELVOLTAGE, 4);
+        setBmsCellVoltage(devNr,0,(uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv0=%f", f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_CELVOLTAGE+4, 4);
+        setBmsCellVoltage(devNr,1,(uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv1=%f", f_lTmpValue);
+
+        memcpy(((uint8_t*)&neeyLastRxBytes[devNr]), pData+OFFSET_NEEYBAL4A_DATA0x2_CELVOLTAGE+8, 3);  // Die ersten drei Byte der nächsten Zelle
+      }
+
+      // Byte 20-39, 40-59, 60-79, 80-99
+      else if(neeyPacketNumber[devNr] >= 1 && neeyPacketNumber[devNr] <= 4)
+      {
+        float    f_lTmpValue;
+
+        uint8_t ii = (neeyPacketNumber[devNr] - 1) * 5; 
+
+        memcpy(((uint8_t*)&f_lTmpValue), ((uint8_t*)&neeyLastRxBytes[devNr]), 3);
+        memcpy(((uint8_t*)&f_lTmpValue)+3, pData, 1);
+        setBmsCellVoltage(devNr, ii+2, (uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv%i=%f", ii+2, f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+1, 4);
+        setBmsCellVoltage(devNr, ii+3, (uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv%i=%f", ii+3, f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+5, 4);
+        setBmsCellVoltage(devNr, ii+4, (uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv%i=%f", ii+4, f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+9, 4);
+        setBmsCellVoltage(devNr, ii+5, (uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv%i=%f", ii+5, f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+13, 4);
+        setBmsCellVoltage(devNr, ii+6, (uint16_t)(f_lTmpValue*1000));
+        //BSC_LOGI(TAG,"cv%i=%f", ii+6, f_lTmpValue);
+
+        memcpy(((uint8_t*)&neeyLastRxBytes[devNr]), pData+17, 3);  // Die ersten drei Byte der nächsten Zelle
+      } 
+
+      // Byte 200-219
+      else if(neeyPacketNumber[devNr] == 10)
+      {
+        // 201   4   0xDE 0x40 0x51 0x42              Total voltage
+        // 205   4   0xDE 0x40 0x51 0x40              Average cell voltage
+        // 209   4   0x00 0x17 0x08 0x3C              Delta Cell Voltage
+        // 213   1   0x0A                             Max voltage cell
+        // 214   1   0x00                             Min voltage cell
+        // 215   1   0x0F                             Single number (not exposed at the android app)
+        // 217   4   0x19 0xA1 0x82 0xC0              Balancing current
+
+        float    f_lTmpValue;
+
+        memcpy(&f_lTmpValue, pData+1, 4);
+        setBmsTotalVoltage(devNr,f_lTmpValue);
+        //if(pData[1] == 0) { 
+          BSC_LOGI(TAG,"RX dev=%i, len=%i, d=%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i",
+            devNr, length, pData[0], pData[1], pData[2], pData[3], pData[4], pData[5], pData[6], pData[7], pData[8], pData[9], pData[10],
+            pData[11], pData[12], pData[13], pData[14], pData[15], pData[16], pData[17], pData[18], pData[19]);
+        //} 
+        BSC_LOGI(TAG,"tv=%f", f_lTmpValue);
+
+
+        memcpy(&f_lTmpValue, pData+5, 4);
+        setBmsAvgVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
+
+        //Delta Cell Voltage
+        memcpy(&f_lTmpValue, pData+9, 4);
+        setBmsMaxCellDifferenceVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
+        BSC_LOGI(TAG,"diff=%f", f_lTmpValue);
+
+        // Max Cellvoltage
+        setBmsMaxVoltageCellNumber(devNr,pData[13]);
+        uint16_t tCellVoltage = getBmsCellVoltage(devNr, pData[13]);
+        setBmsMaxCellVoltage(devNr, tCellVoltage);
+        BSC_LOGI(TAG,"max=%i, %i", pData[13], tCellVoltage);
+
+        // Min Cellvoltage
+        setBmsMinVoltageCellNumber(devNr,pData[14]);
+        tCellVoltage = getBmsCellVoltage(devNr, pData[14]);
+        setBmsMinCellVoltage(devNr, tCellVoltage);
+        BSC_LOGI(TAG,"min=%i, %i", pData[14], tCellVoltage);
+
+        memcpy(((uint8_t*)&neeyLastRxBytes[devNr]), pData+17, 3);  // Die ersten drei Byte vom nächste Wert
+      } 
+
+      // Byte 220-239
+      else if(neeyPacketNumber[devNr] == 11)
+      {
+        // 217   4   0x19 0xA1 0x82 0xC0              Balancing current
+        // 221   4   0xC3 0xF5 0x48 0x42              Temperature 1
+        // 225   4   0xC3 0xF5 0x48 0x42              Temperature 2
+
+        float    f_lTmpValue;
+
+        memcpy(((uint8_t*)&f_lTmpValue), ((uint8_t*)&neeyLastRxBytes[devNr]), 3);
+        memcpy(((uint8_t*)&f_lTmpValue)+3, pData, 1);
+        setBmsBalancingCurrent(devNr,f_lTmpValue);
+    
+        memcpy(&f_lTmpValue, pData+1, 4);
+        setBmsTempature(devNr,0,f_lTmpValue);
+        BSC_LOGI(TAG,"t0=%f", f_lTmpValue);
+
+        memcpy(&f_lTmpValue, pData+5, 4);
+        setBmsTempature(devNr,1,f_lTmpValue);
+        BSC_LOGI(TAG,"t1=%f", f_lTmpValue);
+
+        // 
+        setBmsLastDataMillis(devNr,millis());
+      } 
+
+      if(neeyPacketNumber[devNr] <= 15)
+      {
+        neeyPacketNumber[devNr]++;
+        //neeyRxDataType[devNr] = 0;
+      } 
+      else if(neeyPacketNumber[devNr] >= 16)
+      {
+        BSC_LOGI(TAG,"dev=%i: Paket %i", devNr, neeyPacketNumber[devNr]);
+        neeyPacketNumber[devNr]++;
+      } 
+    }
+
+    
+
+  } 
+  else //Alles was keine 241 oder 20 Byte ist
+  {  
     //String log="";
     //for(uint8_t i=0;i<length;i++){log+=String(pData[i], HEX); log+=" ";}
     //BSC_LOGI(TAG,"RX: %s",log.c_str()); log="";
 
     //BSC_LOGI(TAG,"RX");
     //log_print_buf(pData, length);
+
+    if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
+    {
+      //BSC_LOGI(TAG,"RX settings");
+
+      /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
+      String log="";
+      uint8_t logLenCnt=0;
+      for(uint8_t i=0;i<length;i++)
+      {
+        logLenCnt++;
+        log+=String(pData[i], HEX);
+        log+=" ";
+        if(logLenCnt==20)
+        {
+          logLenCnt=0;
+          BSC_LOGI(TAG,"RX: %s",log.c_str());
+          log="";
+        }
+      }
+      BSC_LOGI(TAG,"RX: %s",log.c_str());
+      log="";*/
+
+      bmsDataSemaphoreTake();
+      memcpy(getBmsSettingsReadback(devNr), &pData[8], 32);
+      bmsDataSemaphoreGive();
+
+      return;
+    }
   }
 
 }
