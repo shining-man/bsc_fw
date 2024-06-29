@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.6.0"
+#define BSC_SW_VERSION      "V0.6.1_T1"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -58,7 +58,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
-//#define MQTT_DEBUG
+#define MQTT_DEBUG
 //#define GOBEL_DEBUG
 #define GOBELPC200_DEBUG
 #define WLAN_DEBUG
@@ -122,6 +122,7 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
+#define BT_INTERNAL_DEVICES_COUNT     3
 #define BT_SCAN_RESULTS               5
 #define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
 

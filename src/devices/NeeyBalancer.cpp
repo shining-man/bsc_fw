@@ -30,6 +30,19 @@ void NeeyBalancer::init()
 {
 }
 
+void NeeyBalancer::searchDataStart(uint8_t* pData)
+{
+  for(uint8_t i=0;i<19;i++)
+  {
+    if(pData[i]==0x55 && pData[i+1]==0xAA)
+    {
+      BSC_LOGI(TAG,"Start gefunden (%i): %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i",
+        i, pData[0], pData[1], pData[2], pData[3], pData[4], pData[5], pData[6], pData[7], pData[8], pData[9], pData[10],
+        pData[11], pData[12], pData[13], pData[14], pData[15], pData[16], pData[17], pData[18], pData[19]);
+    }
+  }
+}
+
 void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
 {
   //BSC_LOGI(TAG,"RX dev=%i, len=%i, d=%i, %i, %i, %i, %i, %i",
@@ -157,12 +170,14 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     BSC_LOGI(TAG,"dev=%i, p=%i", devNr, neeyPacketNumber[devNr]);
     #endif
 
+    //NeeyBalancer::searchDataStart(pData);
+
     // Settings
     if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
     {
-      //#ifdef NEEY_DEBUG
+      #ifdef NEEY_DEBUG
       BSC_LOGI(TAG,"Settings: dev=%i", devNr);
-      //#endif
+      #endif
 
       neeyRxDataType[devNr] = 1;
       neeyPacketNumber[devNr] = 0;
@@ -172,9 +187,13 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     // Batt. Data
     else if(pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x02 && pData[5]==0x00)
     {
-      //#ifdef NEEY_DEBUG
-      BSC_LOGI(TAG,"Battdata: dev=%i", devNr);
-      //#endif
+      #ifdef NEEY_DEBUG
+      BSC_LOGI(TAG,"Battdata: dev=%i, len=%i, pkgNr=%i", devNr, length, neeyPacketNumber[devNr]);
+      #endif
+
+      //BSC_LOGI(TAG,"%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i",
+      //  pData[0], pData[1], pData[2], pData[3], pData[4], pData[5], pData[6], pData[7], pData[8], pData[9], pData[10],
+      //  pData[11], pData[12], pData[13], pData[14], pData[15], pData[16], pData[17], pData[18], pData[19]);
 
       neeyRxDataType[devNr] = 2;
       neeyPacketNumber[devNr] = 0;
@@ -282,11 +301,11 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
         memcpy(&f_lTmpValue, pData+1, 4);
         setBmsTotalVoltage(devNr,f_lTmpValue);
         //if(pData[1] == 0) { 
-          BSC_LOGI(TAG,"RX dev=%i, len=%i, d=%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i",
-            devNr, length, pData[0], pData[1], pData[2], pData[3], pData[4], pData[5], pData[6], pData[7], pData[8], pData[9], pData[10],
-            pData[11], pData[12], pData[13], pData[14], pData[15], pData[16], pData[17], pData[18], pData[19]);
+        //  BSC_LOGI(TAG,"RX dev=%i, len=%i, d=%i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i, %i",
+        //    devNr, length, pData[0], pData[1], pData[2], pData[3], pData[4], pData[5], pData[6], pData[7], pData[8], pData[9], pData[10],
+        //    pData[11], pData[12], pData[13], pData[14], pData[15], pData[16], pData[17], pData[18], pData[19]);
         //} 
-        BSC_LOGI(TAG,"tv=%f", f_lTmpValue);
+        //BSC_LOGI(TAG,"tv=%f", f_lTmpValue);
 
 
         memcpy(&f_lTmpValue, pData+5, 4);
@@ -295,19 +314,19 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
         //Delta Cell Voltage
         memcpy(&f_lTmpValue, pData+9, 4);
         setBmsMaxCellDifferenceVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
-        BSC_LOGI(TAG,"diff=%f", f_lTmpValue);
+        //BSC_LOGI(TAG,"diff=%f", f_lTmpValue);
 
         // Max Cellvoltage
         setBmsMaxVoltageCellNumber(devNr,pData[13]);
         uint16_t tCellVoltage = getBmsCellVoltage(devNr, pData[13]);
         setBmsMaxCellVoltage(devNr, tCellVoltage);
-        BSC_LOGI(TAG,"max=%i, %i", pData[13], tCellVoltage);
+        //BSC_LOGI(TAG,"max=%i, %i", pData[13], tCellVoltage);
 
         // Min Cellvoltage
         setBmsMinVoltageCellNumber(devNr,pData[14]);
         tCellVoltage = getBmsCellVoltage(devNr, pData[14]);
         setBmsMinCellVoltage(devNr, tCellVoltage);
-        BSC_LOGI(TAG,"min=%i, %i", pData[14], tCellVoltage);
+        //BSC_LOGI(TAG,"min=%i, %i", pData[14], tCellVoltage);
 
         memcpy(((uint8_t*)&neeyLastRxBytes[devNr]), pData+17, 3);  // Die ersten drei Byte vom nächste Wert
       } 
@@ -327,11 +346,11 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     
         memcpy(&f_lTmpValue, pData+1, 4);
         setBmsTempature(devNr,0,f_lTmpValue);
-        BSC_LOGI(TAG,"t0=%f", f_lTmpValue);
+        //BSC_LOGI(TAG,"t0=%f", f_lTmpValue);
 
         memcpy(&f_lTmpValue, pData+5, 4);
         setBmsTempature(devNr,1,f_lTmpValue);
-        BSC_LOGI(TAG,"t1=%f", f_lTmpValue);
+        //BSC_LOGI(TAG,"t1=%f", f_lTmpValue);
 
         // 
         setBmsLastDataMillis(devNr,millis());
@@ -344,7 +363,7 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
       } 
       else if(neeyPacketNumber[devNr] >= 16)
       {
-        BSC_LOGI(TAG,"dev=%i: Paket %i", devNr, neeyPacketNumber[devNr]);
+        //BSC_LOGI(TAG,"dev=%i: Paket %i", devNr, neeyPacketNumber[devNr]);
         neeyPacketNumber[devNr]++;
       } 
     }
