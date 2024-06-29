@@ -168,6 +168,9 @@ void debugInit()
   #ifdef WLAN_DEBUG2
   #endif
 
+  #ifdef MAIN_DEBUG
+  esp_log_level_set("MAIN", ESP_LOG_DEBUG);
+  #endif
 
   #ifdef DEBUG_ON_FS
   if(!SPIFFS.exists("/log.txt"))

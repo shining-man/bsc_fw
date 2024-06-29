@@ -184,6 +184,7 @@ public:
 private:
   static uint8_t neeyBtCrc(uint8_t devTyp, uint8_t* data, uint16_t len);
 
+  static void searchDataStart(uint8_t* pData);
 };
 
 #endif

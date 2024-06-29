@@ -59,12 +59,12 @@ class ClientCallbacks : public NimBLEClientCallbacks
           case ID_BT_DEVICE_NEEY4A:
           case ID_BT_DEVICE_NEEY8A:
             // interval 1,25ms; timeout 10ms
-            pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
-            //pClient->updateConnParams(50,50,0,300); //timeout 1500
+            //pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
+            pClient->updateConnParams(20,20,0,60);
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
           case ID_BT_DEVICE_JKBMS_JK02_32S:
-            pClient->updateConnParams(120,120,5,1500);
+            pClient->updateConnParams(120,120,0,60);
             jkBmsBtDevInit(i);
             break;
         }
