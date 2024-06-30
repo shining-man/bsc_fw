@@ -709,10 +709,10 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
 
       //  36    Alarm event 2
       case 72:
-        if ((u8_lByte & 0x1) == 0x1) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
-        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_OVP; //?
-        if ((u8_lByte & 0x4) == 0x4) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
-        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CELL_UVP; //?
+        if ((u8_lByte & 0x1) == 0x1) u32_warnings |= BMS_ERR_STATUS_CELL_OVP;         // Monomer high voltage alarm (Warning)
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;         // Monomer overvoltage protection (Alarm)
+        if ((u8_lByte & 0x4) == 0x4) u32_warnings |= BMS_ERR_STATUS_CELL_UVP;         // Monomer low voltage alarm (Warning)
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_CELL_UVP;         // Monomer under voltage protection (Alarm)
         if ((u8_lByte & 0x10) == 0x10) u32_warnings |= BMS_ERR_STATUS_BATTERY_OVP; // Warning
         if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;    // Alarm
         if ((u8_lByte & 0x40) == 0x40) u32_warnings |= BMS_ERR_STATUS_BATTERY_UVP; // Warning
