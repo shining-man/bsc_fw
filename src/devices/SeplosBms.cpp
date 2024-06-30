@@ -778,6 +778,15 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x2) == 0x2) bo_lValue=true;
         setBmsStateFETsCharge(BT_DEVICES_COUNT+address,bo_lValue);
         break;
+
+      //  42    Equilibrium state 1
+      //  43    Equilibrium state 2
+      case 84:
+        uint8_t u8_lByte2 = convertAsciiHexToByte(t_message[i+2], t_message[i+3]); // 86
+
+        if(u8_lByte > 0 || u8_lByte2 > 0) setBmsIsBalancingActive(BT_DEVICES_COUNT+address, true);
+        else setBmsIsBalancingActive(BT_DEVICES_COUNT+address, false);
+        break;
     }
   }
 
