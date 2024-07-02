@@ -46,6 +46,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WEBSET_DEBUG
 //#define MAIN_DEBUG
 //#define LOG_BMS_DATA
+//#define JK_INV_DEBUG
 #endif
 
 #ifdef DEBUG_ON_HW_SERIAL
@@ -68,6 +69,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WEBSET_DEBUG
 #define MAIN_DEBUG
 //#define LOG_BMS_DATA
+//#define JK_INV_DEBUG
 #endif
 
 //Tests
@@ -436,20 +438,21 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_BT_DEVICE_NEEY8A         4
 
 //Auswahl Serial Geräte
-#define ID_SERIAL_DEVICE_NB         0
-#define ID_SERIAL_DEVICE_JBDBMS     1
-#define ID_SERIAL_DEVICE_JKBMS      2
-#define ID_SERIAL_DEVICE_SEPLOSBMS  3
-#define ID_SERIAL_DEVICE_DALYBMS    4
-#define ID_SERIAL_DEVICE_SYLCINBMS  5
-#define ID_SERIAL_DEVICE_JKBMS_V13  6
-#define ID_SERIAL_DEVICE_GOBELBMS   7
-#define ID_SERIAL_DEVICE_JKBMS_CAN  8
-#define ID_SERIAL_DEVICE_BPN        9
+#define ID_SERIAL_DEVICE_NB                   0
+#define ID_SERIAL_DEVICE_JBDBMS               1
+#define ID_SERIAL_DEVICE_JKBMS                2
+#define ID_SERIAL_DEVICE_SEPLOSBMS            3
+#define ID_SERIAL_DEVICE_DALYBMS              4
+#define ID_SERIAL_DEVICE_SYLCINBMS            5
+#define ID_SERIAL_DEVICE_JKBMS_V13            6
+#define ID_SERIAL_DEVICE_GOBELBMS             7
+#define ID_SERIAL_DEVICE_JKBMS_CAN            8
+#define ID_SERIAL_DEVICE_BPN                  9
 #define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
-#define ID_SERIAL_DEVICE_GOBEL_PC200  11
-#define ID_SERIAL_DEVICE_SEPLOSBMS_V3 12
-#define ID_SERIAL_DEVICE_NEEY_4A      13
+#define ID_SERIAL_DEVICE_GOBEL_PC200         11
+#define ID_SERIAL_DEVICE_SEPLOSBMS_V3        12
+#define ID_SERIAL_DEVICE_NEEY_4A             13
+#define ID_SERIAL_DEVICE_JKINVERTERBMS       14
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0

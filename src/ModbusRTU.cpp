@@ -191,9 +191,35 @@ int16_t ModbusRTU::getI16Value(uint16_t address)
 }
 
 
+
+uint8_t ModbusRTU::getU8ValueByOffset(uint16_t offset)
+{
+  return mRetData[offset];
+}
+
+int8_t ModbusRTU::getI8ValueByOffset(uint16_t offset)
+{
+  return (int8_t)getU8ValueByOffset(offset);
+}
+
 uint16_t ModbusRTU::getU16ValueByOffset(uint16_t offset)
 {
   return (mRetData[offset]<<8) | mRetData[offset+1];
+}
+
+int16_t ModbusRTU::getI16ValueByOffset(uint16_t offset)
+{
+  return (int16_t)getU16ValueByOffset(offset);
+}
+
+uint32_t ModbusRTU::getU32ValueByOffset(uint16_t offset)
+{
+  return (mRetData[offset]<<24) | (mRetData[offset+1]<<16) | (mRetData[offset+2]<<8) | mRetData[offset+3];
+}
+
+int32_t ModbusRTU::getI32ValueByOffset(uint16_t offset)
+{
+  return (int32_t)getU32ValueByOffset(offset);
 }
 
 } // namespace modbusrtu
