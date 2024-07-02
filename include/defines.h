@@ -453,6 +453,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_SERIAL_DEVICE_SEPLOSBMS_V3        12
 #define ID_SERIAL_DEVICE_NEEY_4A             13
 #define ID_SERIAL_DEVICE_JKINVERTERBMS       14
+#define ID_SERIAL_DEVICE_PYLONTECH           15
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
