@@ -165,7 +165,7 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     getDataFromBms(u8_lGobelAdr, 0x44); // Alarms
     if (recvAnswer(response))
     {
-      parseMessage_Alarms(response, u8_lGobelAdrBmsData);
+      //parseMessage_Alarms(response, u8_lGobelAdrBmsData);
     }
     else ret = false;
   }
@@ -196,7 +196,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 
   uint16_t crc = calcCrc(&u8_lSendData[1], frame_len * 2);
 #ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "crc=%i", crc);
+  BSC_LOGD(TAG, "adr=%i, crc=%i", address, crc);
 #endif
   u8_lData[7] = (crc >> 8); // CHKSUM (0xFD)
   u8_lData[8] = (crc >> 0); // CHKSUM (0x37)
@@ -430,9 +430,7 @@ Byte | Data
   }
 
   // 54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-  //float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset)) * 0.01f;
-  //setBmsTotalCurrent(BT_DEVICES_COUNT + address, f_lTotalCurrent);
-  setBmsTotalCurrent_int(BT_DEVICES_COUNT + address, (int16_t)get16bitFromMsg(u8_lMsgoffset));
+  setBmsTotalCurrent_int(BT_DEVICES_COUNT + address, ((int16_t)get16bitFromMsg(u8_lMsgoffset)*10));
   u8_lMsgoffset += 2;
 
   // 56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
@@ -450,6 +448,9 @@ Byte | Data
   u8_lMsgoffset += 2;
 
   setBmsChargePercentage(BT_DEVICES_COUNT + address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  #ifdef GOBELPC200_DEBUG
+  BSC_LOGD(TAG, "Capacity: %f, %f, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(BT_DEVICES_COUNT + address));
+  #endif
   u16_lBalanceCapacity /= 100;
   u16_lFullCapacity /= 100;
 
@@ -475,7 +476,7 @@ Byte | Data
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address)
 {
 #ifdef GOBELPC200_DEBUG
-  BSC_LOGI(TAG, "parseMessage: serialDev=%i", address);
+  BSC_LOGI(TAG, "parseMessage_Alarms: serialDev=%i", address);
 #endif
 /*
 
