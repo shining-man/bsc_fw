@@ -298,6 +298,12 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       serialDeviceData[u8_devNr].readBms = &SeplosBmsV3_readBmsData;
       break;
 
+    case ID_SERIAL_DEVICE_PYLONTECH:
+      BSC_LOGI(TAG,"Set serial device %i: Pylontech",u8_devNr);
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &SeplosBms_readBmsData;
+      break;
+
     default:
       serialDeviceData[u8_devNr].readBms = 0;
   }
