@@ -300,6 +300,12 @@ void setBmsBalancingCurrent(uint8_t devNr, float value)
   bmsData.bmsBalancingCurrent[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
+void setBmsBalancingCurrentI16(uint8_t devNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsBalancingCurrent[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr)

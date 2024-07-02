@@ -36,7 +36,13 @@ namespace modbusrtu
         uint16_t getU16Value(uint16_t address);
         int16_t  getI16Value(uint16_t address);
 
+        uint8_t  getU8ValueByOffset(uint16_t offset);
+        int8_t   getI8ValueByOffset(uint16_t offset);
         uint16_t getU16ValueByOffset(uint16_t offset);
+        int16_t  getI16ValueByOffset(uint16_t offset);
+        uint32_t getU32ValueByOffset(uint16_t offset);
+        int32_t  getI32ValueByOffset(uint16_t offset);
+
 
     private:
         Stream *mPort;
