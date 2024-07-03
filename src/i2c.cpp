@@ -222,6 +222,10 @@ void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data
   i2cSendData(inverter, i2cAdr, data1, data2, data3, data.c_str(), dataLen);
 }
 
+void i2cSendDataU8(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, uint8_t data)
+{
+  i2cSendData(inverter, i2cAdr, data1, data2, data3, &data, 1);
+}
 
 void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, int16_t data)
 {
