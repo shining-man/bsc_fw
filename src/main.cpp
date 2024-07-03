@@ -787,6 +787,7 @@ void task_i2c(void *param)
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
       else ipAddr = WiFi.localIP().toString();
       i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      i2cSendDataU8(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_WLAN_MODE, 0, (uint8_t)WiFi.getMode());
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
