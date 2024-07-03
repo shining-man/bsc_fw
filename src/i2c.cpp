@@ -401,7 +401,7 @@ void i2cSendDataToMaster()
  ******************************************************/
 void displaySendData_bms(Inverter &inverter)
 {
-  for(uint8_t i=0;i<BT_DEVICES_COUNT-2;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
+  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++) //ToDo: Erweitern auf 7 Devices. Dazu muss aber auch das Display angepasst werden
   {
     i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[i], 48);
     i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[i], 2);
@@ -420,7 +420,7 @@ void displaySendData_bms(Inverter &inverter)
   }
 
   uint i=5;
-  for(uint8_t n=BT_DEVICES_COUNT;n<(BT_DEVICES_COUNT+3);n++)
+  for(uint8_t n=BT_DEVICES_COUNT;n<(BT_DEVICES_COUNT+11);n++)
   {
     i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_CELL_VOLTAGE, i, &p_lBmsData->bmsCellVoltage[n], 48);
     i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BMS_DATA, BMS_TOTAL_VOLTAGE, i, &p_lBmsData->bmsTotalVoltage[n], 2);
