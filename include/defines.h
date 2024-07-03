@@ -512,6 +512,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_IP_ADDR                       0x02
 #define BSC_RELAIS                        0x03
 #define BSC_DISPLAY_TIMEOUT               0x04
+#define BSC_WLAN_MODE                     0x05
+#define BSC_FW_VERSION                    0x06
 
 //BSC_GET_SLAVE_DATA 0x0A
 //#define BMS_GET_ALL_DATA                  0x01
