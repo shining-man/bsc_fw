@@ -191,31 +191,62 @@ void i2cCyclicRun(Inverter &inverter)
 }
 
 
-void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
+typedef void (*SemaphoreTakeFunction)();
+typedef void (*SemaphoreGiveFunction)();
+
+void i2CSendData_common(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen, std::function<void()> takeSemaphore, std::function<void()> giveSemaphore)
 {
-  uint8_t   txBuf[104];
-  txBuf[0]=data1;
-  txBuf[1]=data2;
-  txBuf[2]=data3; //z.B. Nr. des BMS
-  txBuf[3]=0x00;  //Reserve (evtl. CRC8)
+    uint8_t txBuf[104];
+    txBuf[0] = data1;
+    txBuf[1] = data2;
+    txBuf[2] = data3; // z.B. Nr. des BMS
+    txBuf[3] = 0x00;  // Reserve (evtl. CRC8)
 
-  if(data1==BMS_DATA){bmsDataSemaphoreTake();}
-  else if(data1==INVERTER_DATA){inverter.inverterDataSemaphoreTake();}
+    if (takeSemaphore != nullptr) takeSemaphore();
 
-  if(dataLen>0) memcpy(&txBuf[TXBUFF_OFFSET], dataAdr, dataLen);
+    if (dataLen > 0) memcpy(&txBuf[TXBUFF_OFFSET], dataAdr, dataLen);
 
-  if(data1==BMS_DATA){bmsDataSemaphoreGive();}
-  else if(data1==INVERTER_DATA){inverter.inverterDataSemaphoreGive();}
+    if (giveSemaphore != nullptr) giveSemaphore();
 
   xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(i2cAdr);
-  uint8_t quant = Wire.write(txBuf,TXBUFF_OFFSET+dataLen);
+    uint8_t quant = Wire.write(txBuf, TXBUFF_OFFSET + dataLen);
   uint8_t error = Wire.endTransmission();
   xSemaphoreGive(mutexI2cRx);
-
-  //vTaskDelay(pdMS_TO_TICKS(10));
 }
 
+void i2cSendData(uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
+{
+    std::function<void()> takeSemaphore = nullptr;
+    std::function<void()> giveSemaphore = nullptr;
+
+    if (data1 == BMS_DATA)
+    {
+        takeSemaphore = bmsDataSemaphoreTake;
+        giveSemaphore = bmsDataSemaphoreGive;
+    }
+
+    i2CSendData_common(i2cAdr, data1, data2, data3, dataAdr, dataLen, takeSemaphore, giveSemaphore);
+}
+
+void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen)
+{
+    std::function<void()> takeSemaphore = nullptr;
+    std::function<void()> giveSemaphore = nullptr;
+
+    if (data1 == BMS_DATA)
+    {
+        takeSemaphore = bmsDataSemaphoreTake;
+        giveSemaphore = bmsDataSemaphoreGive;
+    }
+    else if (data1 == INVERTER_DATA)
+    {
+        takeSemaphore = [&inverter]() { inverter.inverterDataSemaphoreTake(); };
+        giveSemaphore = [&inverter]() { inverter.inverterDataSemaphoreGive(); };
+    }
+
+    i2CSendData_common(i2cAdr, data1, data2, data3, dataAdr, dataLen, takeSemaphore, giveSemaphore);
+}
 
 void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, String data, uint8_t dataLen)
 {
