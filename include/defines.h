@@ -9,7 +9,13 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.6.0"
+
+#define FW_T1 0
+#define FW_T2 6
+#define FW_T3 1
+
+#define BSC_SW_VERSION TOSTRING(V##FW_T1.FW_T2.FW_T3)
+
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -714,3 +720,6 @@ static const char* mqttTopics[] = {"", // 0
 
 #define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
 #define ROUND(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
