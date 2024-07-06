@@ -102,6 +102,14 @@ void i2cInit()
       BSC_LOGD(TAG,"Slave: Adr=%i",u8_mMasterSlaveId);
     }
   }*/
+
+
+  // Wenn Display verbunden
+  if(bo_mDisplayEnabled)
+  {
+    uint8_t fwVersion[3] = {FW_T1, FW_T2, FW_T3};
+    i2cSendData(I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_FW_VERSION, 0, fwVersion, 3);
+  }
 }
 
 void isI2CdeviceConn()
