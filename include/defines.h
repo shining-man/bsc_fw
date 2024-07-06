@@ -10,10 +10,12 @@
 #include "bscTime.h"
 
 
+// Hinter den FW-Version defines dürfen keine Kommentare stehen!
 #define FW_MAJOR 0
 #define FW_MINOR 6
 #define FW_PATCH 1
-#define FW_ADDITION "" // z.B.: _T1
+// FW_ADDITION z.B.: _T1
+#define FW_ADDITION ""
 
 #define BSC_SW_VERSION TOSTRING(V##FW_MAJOR.FW_MINOR.FW_PATCH##FW_ADDITION)
 
