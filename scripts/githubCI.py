@@ -31,8 +31,8 @@ for zeile in datei:
 
             if(defName == "FW_ADDITION"):
                 defValue = "v" + fwMajor + "." + fwMinor + "." + fwPatch + defValue.lower()
-                print(defName + "=" + defValue)
+                print("BSC_SW_VERSION=" + defValue)
                 with open(env_file, "a") as myfile:
-                    myfile.write(defName + "=" + defValue)
+                    myfile.write("BSC_SW_VERSION=" + defValue)
 
 datei.close()
