@@ -10,11 +10,12 @@
 #include "bscTime.h"
 
 
-#define FW_T1 0
-#define FW_T2 6
-#define FW_T3 1
+#define FW_MAJOR 0
+#define FW_MINOR 6
+#define FW_PATCH 1
+#define FW_ADDITION "" // z.B.: _T1
 
-#define BSC_SW_VERSION TOSTRING(V##FW_T1.FW_T2.FW_T3)
+#define BSC_SW_VERSION TOSTRING(V##FW_MAJOR.FW_MINOR.FW_PATCH##FW_ADDITION)
 
 
 static const char COMPILE_DATE_TIME[] = "";
