@@ -1022,7 +1022,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
       "],"
     "'default':7,"
     "'dt':"+String(PARAM_DT_U8)+","
-    "'dependence':{'depId':"+String(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC)+",'depDt':1,'depGte':[3],'getSte':[3]},"
+//    "'dependence':{'depId':"+String(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC)+",'depDt':1,'depGte':[3],'getSte':[3]},"
     "'help':'Hierfür muss bei SoC BMS ausgewählt sein'"
   "},"
 
