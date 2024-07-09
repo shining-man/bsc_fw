@@ -4,19 +4,21 @@
 <p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
 
 <p align="center"><strong>Energie-Pionier</strong></p><p align="center">
-  <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a> 
+  <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Solarfackel</strong></p><p align="center">
-  <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a> 
-  <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a> 
-  <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a> 
-  <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a> 
-  <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a> 
+  <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a>
+  <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a>
+  <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a>
+  <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a>
+  <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
-  <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a> 
+  <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a>
+  <a href="https://github.com/Ingog79" target=_blank><img src="https://avatars.githubusercontent.com/u/128917948?v=4" height="58"/></a>
+  <a href="https://github.com/Rindi66" target=_blank><img src="https://avatars.githubusercontent.com/u/106440831?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
@@ -32,7 +34,7 @@ The BSC consists of two components. The BSC hardware and the corresponding softw
 
 2. The BSC software, which makes the Battery Safety Controller hardware a freely configurable controller that can be used for a wide range of control and monitoring tasks in DIY battery systems.
 
-The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. In this case, for example, the NEEY balancer data can be transmitted to MQTT.  
+The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. In this case, for example, the NEEY balancer data can be transmitted to MQTT.
 
 The BSC display can also be used for visualization.
 
@@ -94,7 +96,7 @@ As an example a part of the Inverter Settings:<br>
 ## Features der BSC-Hardware
 * 6x Relay outputs
 * 4x Digital inputs (isolated)
-* 3x Serial interface (isolated) [3] 
+* 3x Serial interface (isolated) [3]
 * Onewire (64x DS18B20)
 * CAN (isolated)
 * Bluetooth
@@ -116,7 +118,7 @@ Interface | RX | TX
 
 ## More information
 * [Discord Forum](https://discord.gg/WRUhegRPQn)
-(The Discord is in German, but you can also write in English. 
+(The Discord is in German, but you can also write in English.
 We are also happy to welcome members from other countries.)
 * [Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
 * [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
