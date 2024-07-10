@@ -3,6 +3,10 @@
 <!-- SPONSORS_START -->
 <p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
 
+<p align="center">
+  <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/shining-man/bsc_fw/assets/109786660/a70c59b9-5cd5-43b9-a5fd-0684b6a912f9" height="58"/></a>
+</p>
+
 <p align="center"><strong>Energie-Pionier</strong></p><p align="center">
   <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a>
 </p>
