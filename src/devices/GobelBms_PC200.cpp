@@ -190,7 +190,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   u8_lData[3] = function;     // CID2 (0x42)
   u8_lData[4] = (lenid >> 8); // LCHKSUM (0xE0)
   u8_lData[5] = (lenid >> 0); // LENGTH (0x02)
-  u8_lData[6] = 0xFF;         // INFO
+  u8_lData[6] = address + 1; //0xFF;         // INFO
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
