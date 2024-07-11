@@ -449,7 +449,7 @@ Byte | Data
 
   setBmsChargePercentage(BT_DEVICES_COUNT + address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
   #ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Capacity: %f, %f, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(BT_DEVICES_COUNT + address));
+  BSC_LOGD(TAG, "Capacity: %i, %i, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(BT_DEVICES_COUNT + address));
   #endif
   u16_lBalanceCapacity /= 100;
   u16_lFullCapacity /= 100;
