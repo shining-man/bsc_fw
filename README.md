@@ -4,7 +4,7 @@
 <p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
 
 <p align="center">
-  <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/shining-man/bsc_fw/assets/109786660/a70c59b9-5cd5-43b9-a5fd-0684b6a912f9" height="58"/></a>
+  <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/user-attachments/assets/2a044a67-b0f3-4285-8d8b-3e64ffd7539f" height="68"/></a>
 </p>
 
 <p align="center"><strong>Energie-Pionier</strong></p><p align="center">
@@ -136,7 +136,7 @@ To show the status of the BSC and the connected BMSes there is a status display 
 More details are in the Github project of the display.
 [GitHub project Display](https://github.com/shining-man/bsc_display)
 
-![Picture_BSC_Display_Home](https://github.com/shining-man/bsc_display/blob/main/img/Disp_Home.jpg?raw=true)
+<img src="https://github.com/user-attachments/assets/8db86295-1d72-4389-9650-80bd504366ac" height="400"/>
 
 # VenusOS dbus driver
 To display more data in VenusOS (Victron) like the cell voltages of the connected BMS or the temperatures of the OneWire sensors, there is a dbus driver. Here the data is not transmitted via WLAN to the VenusOS, but via the CAN bus. <br>
