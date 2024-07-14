@@ -28,6 +28,7 @@
   <a href="https://github.com/geolin" target=_blank><img src="https://avatars.githubusercontent.com/u/6317255?v=4" height="58"/></a>
   <a href="https://github.com/Ben33142" target=_blank><img src="https://avatars.githubusercontent.com/u/103312565?v=4" height="58"/></a>
   <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?v=4" height="58"/></a>
+  <a href="https://github.com/jgatringer" target=_blank><img src="https://avatars.githubusercontent.com/u/14805417?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
