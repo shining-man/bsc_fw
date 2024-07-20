@@ -13,6 +13,7 @@ static const char *TAG = "SMARTSHUNT";
 
 static Stream *mPort;
 static uint8_t u8_mDevNr;
+static uint8_t mDataMappingNr;
 
 enum States {
   IDLE,
@@ -64,7 +65,7 @@ void newLabelRecv(char * mName, char * mValue)
     i16_tVolt=val/10;
     rxValues|=RX_VAL_U;
 
-    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, i16_tVolt);
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, i16_tVolt);
     //BSC_LOGI(TAG,"U=%i, rxValues=%i",i16_tVolt,rxValues);
   }
   else if(strcmp_P(mName, "I") == 0)
@@ -73,7 +74,7 @@ void newLabelRecv(char * mName, char * mValue)
     i16_tCurr=val/10;
     rxValues|=RX_VAL_I;
     
-    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, i16_tCurr);
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, i16_tCurr);
     //(TAG,"I=%i, rxValues=%i",i16_tCurr,rxValues);
   }
 
@@ -81,67 +82,67 @@ void newLabelRecv(char * mName, char * mValue)
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); // W
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_POWER, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_POWER, -1, val);
   }
   else if(strcmp_P(mName, "TTG") == 0) // Time to Go/Restlaufzeit
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); // Minuten
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_TO_GO, -1, val);;
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TIME_TO_GO, -1, val);;
   }
   else if(strcmp_P(mName, "H4") == 0) // Anzahl der Ladezyklen
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); // Cycle
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_CYCLE, -1, val);
   }
   else if(strcmp_P(mName, "H7") == 0) // Minimum Batteriespannung
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, val);
   }
   else if(strcmp_P(mName, "H8") == 0) // Maximum Batteriespannung
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, val);
   }
   else if(strcmp_P(mName, "H9") == 0) // Zeit seit Letztenmal Batterie Voll
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, val);
   }
   else if(strcmp_P(mName, "H10") == 0) // Anzahl der Automatischen Synchros
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, val);
   }
   else if(strcmp_P(mName, "H11") == 0) // Anzahl Batterie Unterspannungen Alarme
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, val);
   }
   else if(strcmp_P(mName, "H12") == 0) // Anzahl Batterie Überspannungen Alarme
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, val);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, val);
   }
   else if(strcmp_P(mName, "H17") == 0) //Menge Entladende Energie in kwh
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, val/100);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, val/100);
   }
   else if(strcmp_P(mName, "H18") == 0) // Menge Geladene Energie in kwH
   {
     //if(!mDevData->bo_sendMqttMsg) return;
     sscanf(mValue, "%ld", &val); 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, val/100);
+    mqttPublish(MQTT_TOPIC_BMS_BT, mDataMappingNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, val/100);
   }
 
   //BSC_LOGI(TAG,"newLabelRecv rxValues=%i",rxValues);
@@ -151,9 +152,9 @@ void frameEnd()
 {
   //BSC_LOGI(TAG,"save values");
 
-  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, u8_tSoc);
-  setBmsTotalVoltage_int(BT_DEVICES_COUNT+u8_mDevNr, i16_tVolt);
-  setBmsTotalCurrent_int(BT_DEVICES_COUNT+u8_mDevNr, i16_tCurr);
+  setBmsChargePercentage(mDataMappingNr, u8_tSoc);
+  setBmsTotalVoltage_int(mDataMappingNr, i16_tVolt);
+  setBmsTotalCurrent_int(mDataMappingNr, i16_tCurr);
 
   //ToDo: insert MQTT
   //CE, TTG, AR, H4, H7, H8, H11, H12, H17, H18
@@ -178,8 +179,10 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   uint8_t inbyte=0;
   uint8_t inbyteOrg=0;
   uint16_t	mChecksum; 
-  uint32_t u32_lStartTime=millis();
+  uint32_t u32_lStartTime = millis();
   rxValues=0;
+
+  mDataMappingNr = devData->dataMappingNr;
 
   callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 

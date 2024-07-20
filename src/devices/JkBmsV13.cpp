@@ -26,7 +26,7 @@ enum SM_readDataV13 {SEARCH_START_BYTE1, SEARCH_START_BYTE2, SLAVE_ADDR, CMD_COD
 
 void      JkBmsV13_sendMessage(uint8_t *sendMsg, uint32_t size);
 bool      JkBmsV13_recvAnswer(uint8_t * t_outMessage);
-void      JkBmsV13_parseData(uint8_t * t_message);
+void      JkBmsV13_parseData(uint8_t * t_message, uint8_t dataMappingNr);
 
 
 bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
@@ -39,6 +39,8 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   uint8_t getDataMsgV13[] = { 0x55, 0xAA, 0x00, 0xFF, 0x00, 0x00, 0xFE };
 
   uint8_t response[JKBMSV13_MAX_ANSWER_LEN];
+
+  uint8_t dataMappingNr = devData->dataMappingNr;
 
   getDataMsgV13[2] = JK_V13_SLAVE_ADDR;
 
@@ -56,10 +58,10 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
 
   if(JkBmsV13_recvAnswer(response))
   {
-    JkBmsV13_parseData(response);
+    JkBmsV13_parseData(response, dataMappingNr);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNrJkV13, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13));
+    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
   }
   else bo_lRet=false;
 
@@ -153,7 +155,7 @@ bool JkBmsV13_recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-void JkBmsV13_parseData(uint8_t * t_message)
+void JkBmsV13_parseData(uint8_t * t_message, uint8_t dataMappingNr)
 {
   uint32_t u32_lBalanceCapacity=0;
   uint16_t u16_lCycle=0;
@@ -177,38 +179,38 @@ void JkBmsV13_parseData(uint8_t * t_message)
 
 
   u32_lZellVoltage = ((t_message[4-headerLen]<<8) | t_message[5]);
-  //setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u32_lZellVoltage/100.0);
+  //setBmsTotalVoltage(dataMappingNr, u32_lZellVoltage/100.0);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"Vstack=%i", u32_lZellVoltage);
   #endif
 
 
   u16_lAVGZellVoltage = ((t_message[6-headerLen]<<8) | t_message[7-headerLen]);
-  setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lAVGZellVoltage/100.0);
+  setBmsAvgVoltage(dataMappingNr, u16_lAVGZellVoltage/100.0);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"Vavgcell=%i", u16_lAVGZellVoltage);
   #endif
 
   u8_error = (t_message[12-headerLen]);
-  setBmsErrors(BT_DEVICES_COUNT+u8_mDevNrJkV13, u8_error);
+  setBmsErrors(dataMappingNr, u8_error);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"BMSerror=%i", u8_error);
   #endif
 
   u16_lZellDifferenceVoltage = ((t_message[6-headerLen]<<8) | t_message[7-headerLen]);
-  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lZellDifferenceVoltage/100.0);
+  setBmsMaxCellDifferenceVoltage(dataMappingNr, u16_lZellDifferenceVoltage/100.0);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"Vcdiff=%i", u16_lZellDifferenceVoltage);
   #endif
 
   u32_lBalanceCurrent = ((t_message[15-headerLen]<<8) | t_message[16-headerLen]);
-  setBmsBalancingCurrent(BT_DEVICES_COUNT+u8_mDevNrJkV13, u32_lBalanceCurrent*0.001f);
+  setBmsBalancingCurrent(dataMappingNr, u32_lBalanceCurrent*0.001f);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"VbalC=%i", u32_lBalanceCurrent);
   #endif
 
   u8_isBalanceActive = t_message[21-headerLen];
-  setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNrJkV13, u8_isBalanceActive);
+  setBmsIsBalancingActive(dataMappingNr, u8_isBalanceActive);
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"VbalA=%i", u8_isBalanceActive);
   #endif
@@ -224,7 +226,7 @@ void JkBmsV13_parseData(uint8_t * t_message)
   {
     u16_lZellVoltage = ((t_message[23-headerLen+(n*2)]<<8) | t_message[24-headerLen+(n*2)]);
     sum += u16_lZellVoltage;
-    setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13,n, u16_lZellVoltage);
+    setBmsCellVoltage(dataMappingNr,n, u16_lZellVoltage);
 
     if(u16_lZellVoltage <= u16_lZellMinVoltage){
       u16_lZellMinVoltage = u16_lZellVoltage;
@@ -238,38 +240,38 @@ void JkBmsV13_parseData(uint8_t * t_message)
 
   }
 
-  setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, sum/1000.0);
-  setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lZellMaxVoltage);
-  setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lZellMinVoltage);
-  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lCellHigh+1);
-  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNrJkV13, u16_lCellLow+1);
+  setBmsTotalVoltage(dataMappingNr, sum/1000.0);
+  setBmsMaxCellVoltage(dataMappingNr, u16_lZellMaxVoltage);
+  setBmsMinCellVoltage(dataMappingNr, u16_lZellMinVoltage);
+  setBmsMaxVoltageCellNumber(dataMappingNr, u16_lCellHigh+1);
+  setBmsMinVoltageCellNumber(dataMappingNr, u16_lCellLow+1);
 
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"TotalV=%i, MaxV=%i, MinV=%i", sum, u16_lZellMaxVoltage, u16_lZellMinVoltage);
   #endif
 
   //Rufe SOC funktion auf ... dummy 0, sollte anhand einstellungen berechnet werden
-  setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNrJkV13, 0);
+  setBmsChargePercentage(dataMappingNr, 0);
 
   //#ifdef JKV13_DEBUG
   //BSC_LOGD(TAG_V13,"SOC=%i, SumV=%i", soc,sum);
   //#endif
 
   i16_temperature = ((t_message[71-headerLen]<<8) | t_message[72-headerLen]);
-  setBmsTempature(BT_DEVICES_COUNT+u8_mDevNrJkV13, 0, i16_temperature);
+  setBmsTempature(dataMappingNr, 0, i16_temperature);
 
   #ifdef JKV13_DEBUG
   BSC_LOGD(TAG_V13,"BMStemp=%i", i16_temperature);
   #endif
 
 
-  setBmsLastDataMillis(BT_DEVICES_COUNT+u8_mDevNrJkV13,millis());
+  setBmsLastDataMillis(dataMappingNr,millis());
 
   /*if(millis()>(mqttSendeTimer_jk_v13+10000))
   {
     //Nachrichten senden
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNrJkV13)+"/BalanceCapacity", u32_lBalanceCapacity);
-    mqttPublish("bms/"+String(BT_DEVICES_COUNT+u8_mDevNrJkV13)+"/Cycle", u16_lCycle);
+    mqttPublish("bms/"+String(dataMappingNr)+"/BalanceCapacity", u32_lBalanceCapacity);
+    mqttPublish("bms/"+String(dataMappingNr)+"/Cycle", u16_lCycle);
 
     mqttSendeTimer_jk_v13=millis();
   }*/

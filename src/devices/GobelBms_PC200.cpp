@@ -134,15 +134,14 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   mPort = port;
   u8_mDevNr = devNr;
   callbackSetTxRxEn = callback;
-  u8_mCountOfPacks = devData->u8_NumberOfDevices;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
-  uint8_t u8_lGobelAdr = devData->u8_deviceNr;
-  uint8_t u8_lGobelAdrBmsData = devData->u8_BmsDataAdr;
-  if(u8_mCountOfPacks > 1) u8_lGobelAdr += 1;
-  
+  uint8_t u8_lGobelAdr = devData->bmsAdresse;
+  uint8_t u8_lGobelAdrBmsData = devData->dataMappingNr;
+
+
   #ifdef GOBELPC200_DEBUG
-  BSC_LOGI(TAG, "GobelBms_readBmsData() devNr=%i, firstAdr=%i, CountOfPacks=%i, Packs=%i", devNr, u8_lGobelAdr, u8_mCountOfPacks, devData->u8_NumberOfDevices);
+  BSC_LOGI(TAG, "GobelBms_readBmsData() devNr=%i, firstAdr=%i, CountOfPacks=%i", devNr, u8_lGobelAdr, u8_mCountOfPacks);
   #endif
 
   #ifdef GOBELPC200_DEBUG
@@ -154,8 +153,8 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     parseMessage(response, u8_lGobelAdrBmsData);
 
     // mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT + u8_lGobelAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT + u8_lGobelAdrBmsData));
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lGobelAdrBmsData));
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lGobelAdrBmsData));
   }
   else ret = false;
   
@@ -378,7 +377,7 @@ Byte | Data
   for (uint8_t i = 0; i < u8_lNumOfCells; i++)
   {
     u16_lZellVoltage = get16bitFromMsg(u8_lMsgoffset);
-    setBmsCellVoltage(BT_DEVICES_COUNT + address, i, (float)(u16_lZellVoltage));
+    setBmsCellVoltage(address, i, (float)(u16_lZellVoltage));
     u8_lMsgoffset += 2;
 
     u16_lCellSum += u16_lZellVoltage;
@@ -399,12 +398,12 @@ Byte | Data
     u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow;
   }
 
-  setBmsMaxCellVoltage(BT_DEVICES_COUNT + address, u16_lCellHigh);
-  setBmsMinCellVoltage(BT_DEVICES_COUNT + address, u16_lCellLow);
-  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT + address, u8_lZellNumberMaxVoltage);
-  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT + address, u8_lZellNumberMinVoltage);
-  setBmsAvgVoltage(BT_DEVICES_COUNT + address, (float)(u16_lCellSum / u8_lNumOfCells));
-  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT + address, (float)(u16_lZellDifferenceVoltage));
+  setBmsMaxCellVoltage(address, u16_lCellHigh);
+  setBmsMinCellVoltage(address, u16_lCellLow);
+  setBmsMaxVoltageCellNumber(address, u8_lZellNumberMaxVoltage);
+  setBmsMinVoltageCellNumber(address, u8_lZellNumberMinVoltage);
+  setBmsAvgVoltage(address, (float)(u16_lCellSum / u8_lNumOfCells));
+  setBmsMaxCellDifferenceVoltage(address, (float)(u16_lZellDifferenceVoltage));
 
   // 41 | 30 36（temperature number N，06H，has 6 temperatures
   uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
@@ -424,18 +423,18 @@ Byte | Data
     fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset) - 0xAAB) * 0.1;
     u8_lMsgoffset += 2;
     if (i < 3)
-      setBmsTempature(BT_DEVICES_COUNT + address, i, fl_lBmsTemps[2]);
+      setBmsTempature(address, i, fl_lBmsTemps[2]);
     else if (i >= 3 && i < 5)
       fl_lBmsTemps[i - 3] = fl_lBmsTemps[2];
   }
 
   // 54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-  setBmsTotalCurrent_int(BT_DEVICES_COUNT + address, ((int16_t)get16bitFromMsg(u8_lMsgoffset)*10));
+  setBmsTotalCurrent_int(address, ((int16_t)get16bitFromMsg(u8_lMsgoffset)*10));
   u8_lMsgoffset += 2;
 
   // 56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
   float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset) * 0.001f;
-  setBmsTotalVoltage(BT_DEVICES_COUNT + address, f_lTotalVoltage);
+  setBmsTotalVoltage(address, f_lTotalVoltage);
   u8_lMsgoffset += 2;
 
   // 58 | 31 32 38 45（PACK remain capacity，128EH, that’s 47.50AH）
@@ -447,9 +446,9 @@ Byte | Data
   uint16_t u16_lFullCapacity = get16bitFromMsg(u8_lMsgoffset);
   u8_lMsgoffset += 2;
 
-  setBmsChargePercentage(BT_DEVICES_COUNT + address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  setBmsChargePercentage(address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
   #ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Capacity: %f, %f, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(BT_DEVICES_COUNT + address));
+  BSC_LOGD(TAG, "Capacity: %f, %f, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(address));
   #endif
   u16_lBalanceCapacity /= 100;
   u16_lFullCapacity /= 100;
@@ -463,13 +462,13 @@ Byte | Data
   if (mDevData->bo_sendMqttMsg)
   {
     // Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
   }
 }
 
@@ -691,7 +690,7 @@ Char A.25 Warn state2 explanation
   if (warnstate2 & (1<<3))
       u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
 
-  setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
+  setBmsErrors(address, u32_alarm);
 }
 
 uint8_t convertAsciiHexToByte(char a, char b)

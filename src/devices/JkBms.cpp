@@ -22,7 +22,7 @@ static uint8_t getDataMsg[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0
 //
 static void sendMessage(uint8_t *sendMsg);
 static bool recvAnswer(uint8_t * t_outMessage);
-static void parseData(uint8_t * t_message);
+static void parseData(uint8_t * t_message, uint8_t dataMappingNr);
 
 static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 static serialDevData_s *mDevData;
@@ -37,17 +37,19 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
   callbackSetTxRxEn=callback;
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
+  uint8_t dataMappingNr = devData->dataMappingNr;
+
   #ifdef JK_DEBUG
   BSC_LOGD(TAG,"Serial %i send",u8_mDevNr);
   #endif
   sendMessage(getDataMsg);
   if(recvAnswer(response))
   {
-    parseData(response);
+    parseData(response, dataMappingNr);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
   }
   else bo_lRet=false;
 
@@ -165,7 +167,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 }
 
 
-void parseData(uint8_t * t_message)
+void parseData(uint8_t * t_message, uint8_t dataMappingNr)
 {
   int16_t  i16_lTmpValue;
   uint16_t u16_lTmpValue;
@@ -205,7 +207,7 @@ void parseData(uint8_t * t_message)
             break;
           }
           u16_lZellVoltage = ((t_message[i+1]<<8) | t_message[i+2]);
-          setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr,n, u16_lZellVoltage);
+          setBmsCellVoltage(dataMappingNr,n, u16_lZellVoltage);
           i+=3;
 
           u16_lCellSum += u16_lZellVoltage;
@@ -230,17 +232,17 @@ void parseData(uint8_t * t_message)
           #endif
         }
 
-        setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellHigh);
-        setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lCellLow);
-        setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMaxVoltage);
-        setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, u8_lZellNumberMinVoltage);
-        setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(u16_lCellSum/u8_lNumOfCells));
-        setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr,(float)(u16_lZellDifferenceVoltage));
+        setBmsMaxCellVoltage(dataMappingNr, u16_lCellHigh);
+        setBmsMinCellVoltage(dataMappingNr, u16_lCellLow);
+        setBmsMaxVoltageCellNumber(dataMappingNr, u8_lZellNumberMaxVoltage);
+        setBmsMinVoltageCellNumber(dataMappingNr, u8_lZellNumberMinVoltage);
+        setBmsAvgVoltage(dataMappingNr, (float)(u16_lCellSum/u8_lNumOfCells));
+        setBmsMaxCellDifferenceVoltage(dataMappingNr,(float)(u16_lZellDifferenceVoltage));
 
         break;
 
       case 0x80: // Read tube temp.
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(dataMappingNr, 0, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x80=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -248,7 +250,7 @@ void parseData(uint8_t * t_message)
         break;
 
       case 0x81: // Battery inside temp
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(dataMappingNr, 1, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x81=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -256,7 +258,7 @@ void parseData(uint8_t * t_message)
         break;
 
       case 0x82: // Battery temp
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
+        setBmsTempature(dataMappingNr, 2, ((uint16_t)t_message[i+1] << 8 | t_message[i+2]) );
         #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x82=%i",((uint16_t)t_message[i+1] << 8 | t_message[i+2]));
         #endif
@@ -264,7 +266,7 @@ void parseData(uint8_t * t_message)
         break;
 
       case 0x83: // Total Batery Voltage
-        setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
+        setBmsTotalVoltage(dataMappingNr, (float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x83=%f",(float)(((uint16_t)t_message[i+1] << 8 | t_message[i+2])*0.01));
         #endif
@@ -276,7 +278,7 @@ void parseData(uint8_t * t_message)
         if (i16_lTmpValue & 0x8000){i16_lTmpValue = (i16_lTmpValue & 0x7fff);}
         else {i16_lTmpValue *= -1;} // Wenn negativ
 
-        setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, (float)i16_lTmpValue*0.01);
+        setBmsTotalCurrent(dataMappingNr, (float)i16_lTmpValue*0.01);
         #ifdef JK_DEBUG
         BSC_LOGD(TAG,"0x84:%i, %i, %f",t_message[i+1], t_message[i+2], (float)i16_lTmpValue*0.01);
         #endif
@@ -284,7 +286,7 @@ void parseData(uint8_t * t_message)
         break;
 
       case 0x85: // Remaining Battery Capazity
-        setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, t_message[i+1]); //in %
+        setBmsChargePercentage(dataMappingNr, t_message[i+1]); //in %
         i+=2;
         break;
 
@@ -303,7 +305,7 @@ void parseData(uint8_t * t_message)
         const jkbms::JkBmsWarnMsg bmsWarnMsg = jkbms::JkBmsWarnMsg::from_int<uint16_t>(((static_cast<uint16_t>(t_message[i+1]) << 8) | t_message[i+2]));
         const BmsErrorStatus bmsErrorStat = bmsErrorFromMessage(bmsWarnMsg);
         //BSC_LOGI(TAG,"0x8b=%i, bmsErrorsBsc=%i",bmsWarnMsg.to_int<uint16_t>(), bmsErrorStat.to_int<uint32_t>());
-        setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, bmsErrorStat);
+        setBmsErrors(dataMappingNr, bmsErrorStat);
         i+=3;
       } break;
 
@@ -311,22 +313,22 @@ void parseData(uint8_t * t_message)
         u16_lTmpValue = ((uint16_t)t_message[i+1] << 8 | t_message[i+2]);
         if((u16_lTmpValue>>3)&0x01)
         {
-          setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
-          setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+          setBmsStateFETsCharge(dataMappingNr,false);
+          setBmsStateFETsDischarge(dataMappingNr,false);
         }
         else
         {
           //Bit 0: charging on
-          if(u16_lTmpValue&0x01) setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,true);
-          else setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+          if(u16_lTmpValue&0x01) setBmsStateFETsCharge(dataMappingNr,true);
+          else setBmsStateFETsCharge(dataMappingNr,false);
 
           //Bit 1: discharge on
-          if((u16_lTmpValue>>1)&0x01) setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,true);
-          else setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+          if((u16_lTmpValue>>1)&0x01) setBmsStateFETsDischarge(dataMappingNr,true);
+          else setBmsStateFETsDischarge(dataMappingNr,false);
 
           //Bit 2: equilization on
-          if((u16_lTmpValue>>2)&0x01) setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,true);
-          else setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr,false);
+          if((u16_lTmpValue>>2)&0x01) setBmsIsBalancingActive(dataMappingNr,true);
+          else setBmsIsBalancingActive(dataMappingNr,false);
         }
         i+=3;
         break;
@@ -414,8 +416,8 @@ void parseData(uint8_t * t_message)
   if(mDevData->bo_sendMqttMsg)
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
   }
 
 }

@@ -39,22 +39,18 @@ static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
 static serialDevData_s *mDevData;
 
 
+// devNr=serialPortNumber
 bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
 {
   bool ret = true;
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
-  u8_mCountOfPacks = devData->u8_NumberOfDevices;
+  callbackSetTxRxEn = callback;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
-  uint8_t u8_lSeplosAdr=devData->u8_deviceNr;
-  uint8_t u8_lSeplosAdrBmsData=devData->u8_BmsDataAdr;
-  if(u8_mCountOfPacks>1)
-  {
-    u8_lSeplosAdr+=1;
-  }
+  uint8_t u8_lSeplosAdr = devData->bmsAdresse;
+  uint8_t u8_lSeplosAdrBmsData = devData->dataMappingNr;
 
   #ifdef SEPLOS_DEBUG
   BSC_LOGI(TAG,"SeplosBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i",u8_mDevNr,u8_lSeplosAdr,u8_lSeplosAdrBmsData,u8_mCountOfPacks);
@@ -66,8 +62,8 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     parseMessage(response, u8_lSeplosAdrBmsData);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_lSeplosAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
   }
   else
   {
@@ -330,7 +326,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     for (uint8_t i=0; i<u8_lNumOfCells; i++)
     {
       u16_lZellVoltage = get16bitFromMsg(9+(i*2));
-      setBmsCellVoltage(BT_DEVICES_COUNT+address,i, (float)(u16_lZellVoltage));
+      setBmsCellVoltage(address,i, (float)(u16_lZellVoltage));
 
       u16_lCellSum+=u16_lZellVoltage;
 
@@ -350,12 +346,12 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
       u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow;
     }
 
-    setBmsMaxCellVoltage(BT_DEVICES_COUNT+address, u16_lCellHigh);
-    setBmsMinCellVoltage(BT_DEVICES_COUNT+address, u16_lCellLow);
-    setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMaxVoltage);
-    setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMinVoltage);
-    setBmsAvgVoltage(BT_DEVICES_COUNT+address, (float)(u16_lCellSum/u8_lNumOfCells));
-    setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+address,(float)(u16_lZellDifferenceVoltage));
+    setBmsMaxCellVoltage(address, u16_lCellHigh);
+    setBmsMinCellVoltage(address, u16_lCellLow);
+    setBmsMaxVoltageCellNumber(address, u8_lZellNumberMaxVoltage);
+    setBmsMinVoltageCellNumber(address, u8_lZellNumberMinVoltage);
+    setBmsAvgVoltage(address, (float)(u16_lCellSum/u8_lNumOfCells));
+    setBmsMaxCellDifferenceVoltage(address,(float)(u16_lZellDifferenceVoltage));
 
 
     u8_lMsgoffset = 9+(u8_lNumOfCells*2);
@@ -376,7 +372,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     for (uint8_t i=0; i<u8_lCntTempSensors; i++)
     {
       fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset+1+(i*2))-0xAAB)*0.1;
-      if(i<3) setBmsTempature(BT_DEVICES_COUNT+address,i,fl_lBmsTemps[2]);
+      if(i<3) setBmsTempature(address,i,fl_lBmsTemps[2]);
       else if(i>=3 && i<5)fl_lBmsTemps[i-3]=fl_lBmsTemps[2];
     }
 
@@ -384,11 +380,11 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
 
     //   54     0xFD 0x5C      Charge/discharge current         signed int?                   A
     float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset))*0.01f;
-    setBmsTotalCurrent(BT_DEVICES_COUNT+address,f_lTotalCurrent);
+    setBmsTotalCurrent(address,f_lTotalCurrent);
 
     //   56     0x14 0xA0      Total battery voltage            5280 * 0.01f = 52.80          V
     float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset+2)*0.01f;
-    setBmsTotalVoltage(BT_DEVICES_COUNT+address, f_lTotalVoltage);
+    setBmsTotalVoltage(address, f_lTotalVoltage);
 
     //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90         Ah
     uint16_t u16_lBalanceCapacity=get16bitFromMsg(u8_lMsgoffset+4)/100;
@@ -401,7 +397,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     //   63     0x03 0x13      Stage of charge                  787 * 0.1f = 78.7             %
     #ifdef SEPLOS_DEBUG
     uint8_t u8_lSoc = get16bitFromMsg(u8_lMsgoffset+9)/10;
-    uint8_t u8_lSocOld = getBmsChargePercentage(BT_DEVICES_COUNT+address);
+    uint8_t u8_lSocOld = getBmsChargePercentage(address);
     uint8_t u8_lSocOld5Percent = u8_lSocOld/100*5;
     if(u8_lSoc<u8_lSocOld-u8_lSocOld5Percent || u8_lSoc>u8_lSocOld+u8_lSocOld5Percent)
     {
@@ -410,7 +406,7 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
       message2Log(t_message, address);
     }
     #endif
-    setBmsChargePercentage(BT_DEVICES_COUNT+address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
+    setBmsChargePercentage(address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
 
     //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
     //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
@@ -432,19 +428,19 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     if(mDevData->bo_sendMqttMsg)
     {
       //Nachrichten senden
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
 
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
+      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
+      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
 
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
+      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
+      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
     }
   }
   catch (const std::exception &e)
@@ -771,12 +767,12 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         // 0 Discharge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x1) == 0x1) bo_lValue=true;
-        setBmsStateFETsDischarge(BT_DEVICES_COUNT+address,bo_lValue);
+        setBmsStateFETsDischarge(address,bo_lValue);
 
         // 1 Charge switch state
         bo_lValue=false;
         if ((u8_lByte & 0x2) == 0x2) bo_lValue=true;
-        setBmsStateFETsCharge(BT_DEVICES_COUNT+address,bo_lValue);
+        setBmsStateFETsCharge(address,bo_lValue);
         break;
 
       //  42    Equilibrium state 1
@@ -784,14 +780,14 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
       case 84:
         uint8_t u8_lByte2 = convertAsciiHexToByte(t_message[i+2], t_message[i+3]); // 86
 
-        if(u8_lByte > 0 || u8_lByte2 > 0) setBmsIsBalancingActive(BT_DEVICES_COUNT+address, true);
-        else setBmsIsBalancingActive(BT_DEVICES_COUNT+address, false);
+        if(u8_lByte > 0 || u8_lByte2 > 0) setBmsIsBalancingActive(address, true);
+        else setBmsIsBalancingActive(address, false);
         break;
     }
   }
 
-  setBmsErrors(BT_DEVICES_COUNT+address, u32_alarm);
-  setBmsWarnings(BT_DEVICES_COUNT+address, u32_warnings);
+  setBmsErrors(address, u32_alarm);
+  setBmsWarnings(address, u32_warnings);
 }
 
 
