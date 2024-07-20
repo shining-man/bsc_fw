@@ -375,13 +375,13 @@ void BscSerial::cyclicRun()
 {
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   bool bo_lMqttSendMsg=false;
-  uint8_t u8_lNumberOfSeplosBms = 0;
+  /*uint8_t u8_lNumberOfSeplosBms = 0;
   uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
   if(isMultiple485bms(u8_lBmsOnSerial2))
   {
     if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
     else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
-  }
+  }*/
 
 
   if((millis()-serialMqttSendeTimer) > (WebSettings::getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000))
@@ -390,26 +390,37 @@ void BscSerial::cyclicRun()
     bo_lMqttSendMsg=true;
   }
 
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  for(uint8_t i = 0; i < DATA_DEVICES_COUNT; i++)
   {
-    if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
+    // 
+    uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,0,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+    uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,0,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
+    
+    uint8_t u8_serDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
+
+    // Wenn BT-Device eingestellt ist
+    if(dataDeviceSchnittstelle < BT_DEVICES_COUNT) continue;
+      
+    
+
+    /*if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
     {
       if(u8_lNumberOfSeplosBms==0 || i<2 || i>(u8_lNumberOfSeplosBms+1))
       {
         continue;
       }
-    }
+    }*/
 
     //Abbruch, wenn auf Serial 3 oder höher etwas parametriert ist, aber keine serial extension angeschlossen ist
-    if(i>2 && !isSerialExtEnabled() && serialDeviceData[i].readBms!=0)
+    /*if(i>2 && !isSerialExtEnabled() && serialDeviceData[i].readBms!=0)
     {
       BSC_LOGE(TAG,"No serial extension but device ist set! serial=%i",i);
       continue;
-    }
+    }*/
 
-    bool    bo_lBmsReadOk=false;
-    uint8_t u8_lReason=1;
-    uint8_t u8_serDeviceNr=i;
+    bool    bo_lBmsReadOk = false;
+    uint8_t u8_lReason = 1;
+    //uint8_t u8_serDeviceNr=i;
 
     //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
     //Unklar wo das Verhalten herkommt.
@@ -428,12 +439,11 @@ void BscSerial::cyclicRun()
     *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
     #ifndef UTEST_BMS_FILTER
     serialDevData_s devData;
-    devData.u8_NumberOfDevices=1;
-    devData.u8_deviceNr=0;
-    devData.u8_BmsDataAdr=i;
-    devData.bo_writeData=false;
-    devData.rwDataLen=0;
-    devData.bo_sendMqttMsg=bo_lMqttSendMsg;
+    devData.bmsAdresse = dataDeviceAdresse;
+    devData.dataMappingNr = i;
+    devData.bo_writeData = false;
+    devData.rwDataLen = 0;
+    devData.bo_sendMqttMsg = bo_lMqttSendMsg;
 
     //Überprüfen ob Daten an das BMS gesendet werden sollen
     bmsDataSemaphoreTake();
@@ -452,13 +462,13 @@ void BscSerial::cyclicRun()
     bmsDataSemaphoreGive();
 
     //Wenn Spelos (o.ä.) an Serial 2 verbunden
-    if(i>=2 && u8_lNumberOfSeplosBms>0)
+    /*if(i>=2 && u8_lNumberOfSeplosBms>0)
     {
       u8_serDeviceNr=2;
       devData.u8_BmsDataAdr=i;
       devData.u8_NumberOfDevices=u8_lNumberOfSeplosBms;
       devData.u8_deviceNr=i-2;
-    }
+    }*/
 
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
     if(serialDeviceData[u8_serDeviceNr].readBms!=NULL)

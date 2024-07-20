@@ -191,6 +191,8 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
 //BMS Data
+#define DATA_DEVICES_COUNT          18
+
 #define SERIAL_BMS_EXT_COUNT        8
 
 #define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
@@ -340,7 +342,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_NEEY_BUZZER                     106 //not use
 #define ID_PARAM_NEEY_BALANCER_ON                107
 
-#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108
+//#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108 // not use
 
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER     109
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME        110
@@ -427,6 +429,9 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME 162
 
+#define ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE      163
+#define ID_PARAM_DEVICE_MAPPING_ADRESSE            164
+#define ID_PARAM_DEVICE_MAPPING_NAME               165
 
 
 
