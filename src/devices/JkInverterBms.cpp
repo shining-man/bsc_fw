@@ -11,7 +11,8 @@
 
 static const char *TAG = "JK_INV_BMS";
 
-static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
 
 //static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
@@ -26,7 +27,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   uint8_t jkInvBmsAdr = devData->u8_deviceNr;
   uint8_t jkInvBmsAdrBmsData = devData->u8_BmsDataAdr + BT_DEVICES_COUNT;
 
-  if(u8_mCountOfPacks>1) jkInvBmsAdr += 1;
+  /*if(u8_mCountOfPacks>1)*/ jkInvBmsAdr += 1;
   
   #ifdef JK_INV_DEBUG
   BSC_LOGI(TAG,"JkInverterBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i",u8_mDevNr,jkInvBmsAdr,jkInvBmsAdrBmsData,u8_mCountOfPacks);
@@ -34,10 +35,28 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
 
   modbusrtu::ModbusRTU modbus(port,callback,devNr);
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 268, response))
+  /* Es können nicht alle 268 Bytes gleichzeitig gelesen werden.
+   * Es kann z.B. in folgenden Teilen gelsensen werden.
+   * 0x1000: 123 Register
+   * 0x1200: 123 Register
+   * 0x127C:  84 Register
+   * 0x12DA:  42 Register
+   * 0x12FA:  21 Register
+   */
+
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 74, response))
   {
     //message2Log(response, 36, 0);
-    parsePackInfo(&modbus, jkInvBmsAdrBmsData);
+    parsePackInfoA(&modbus, jkInvBmsAdrBmsData);
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
+  else return false;
+
+
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 50, response))
+  {
+    //message2Log(response, 36, 0);
+    parsePackInfoB(&modbus, jkInvBmsAdrBmsData);
 
     // MQTT
     mqttPublish(MQTT_TOPIC_BMS_BT, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(jkInvBmsAdrBmsData));
@@ -52,7 +71,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
 }
 
 
-static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
 {
   // Cellvoltage
   for(uint8_t i;i<24;i++) setBmsCellVoltage(devNr, i, modbus->getU16ValueByOffset(i*2));
@@ -70,31 +89,43 @@ static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   // Min. Cellvoltage 
   setBmsMinVoltageCellNumber(devNr, modbus->getU8ValueByOffset(73));
   setBmsMinCellVoltage(devNr, getBmsCellVoltage(devNr, modbus->getU8ValueByOffset(73)));
+}
+
+
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+{
+  uint8_t byteOffset = 0x90;
 
   // Total Voltage
-  setBmsTotalVoltage_int(devNr, modbus->getU32ValueByOffset(144)/10);
+  setBmsTotalVoltage_int(devNr, modbus->getU32ValueByOffset(144 - byteOffset) / 10);
 
   // Total Current
-  setBmsTotalCurrent_int(devNr, modbus->getI32ValueByOffset(152)/10);
+  setBmsTotalCurrent_int(devNr, modbus->getI32ValueByOffset(152 - byteOffset) / 10);
 
   // Temperature
-  setBmsTempatureI16(devNr, 0, modbus->getI16ValueByOffset(156)*10);
-  setBmsTempatureI16(devNr, 1, modbus->getI16ValueByOffset(158)*10);
+  setBmsTempatureI16(devNr, 0, modbus->getI16ValueByOffset(156 - byteOffset) * 10);
+  setBmsTempatureI16(devNr, 1, modbus->getI16ValueByOffset(158 - byteOffset) * 10);
 
   // Alarm
   // ToDo
 
   // Bal. Current
-  setBmsBalancingCurrentI16(devNr, modbus->getI16ValueByOffset(164)/10);
+  setBmsBalancingCurrentI16(devNr, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
 
   // Bal. State
-  setBmsIsBalancingActive(devNr, modbus->getU8ValueByOffset(166));
+  setBmsIsBalancingActive(devNr, modbus->getU8ValueByOffset(166 - byteOffset));
 
   // SoC
-  setBmsChargePercentage(devNr, modbus->getU8ValueByOffset(167));
+  setBmsChargePercentage(devNr, modbus->getU8ValueByOffset(167 - byteOffset));
 
+  // FET state charge
+  if(modbus->getU8ValueByOffset(192 - byteOffset) > 0) setBmsStateFETsCharge(devNr, true);
+  else setBmsStateFETsCharge(devNr, false);
+
+  // FET state discharge
+  if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(devNr, true);
+  else setBmsStateFETsDischarge(devNr, false);
 }
-
 
 
 
