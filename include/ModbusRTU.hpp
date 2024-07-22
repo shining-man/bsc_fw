@@ -61,6 +61,7 @@ namespace modbusrtu
 
         void buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len);
         bool readSerialData();
+        void errorNoData(uint16_t offset);
     };
 
 } // namespace modbusrtu
