@@ -44,16 +44,20 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
    * 0x12FA:  21 Register
    */
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 74, response))
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 37, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoA(&modbus, jkInvBmsAdrBmsData);
     vTaskDelay(pdMS_TO_TICKS(50));
   }
-  else return false;
+  else 
+  {
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1200");
+    return false;
+  }
 
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 50, response))
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 25, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoB(&modbus, jkInvBmsAdrBmsData);
@@ -64,7 +68,11 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
 
     vTaskDelay(pdMS_TO_TICKS(25));
   }
-  else return false;
+  else 
+  {
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1290");
+    return false;
+  }
 
 
   return true;
