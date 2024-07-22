@@ -165,7 +165,7 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     getDataFromBms(u8_lGobelAdr, 0x44); // Alarms
     if (recvAnswer(response))
     {
-      //parseMessage_Alarms(response, u8_lGobelAdrBmsData);
+      parseMessage_Alarms(response, u8_lGobelAdrBmsData);
     }
     else ret = false;
   }
@@ -606,6 +606,7 @@ Char A.25 Warn state2 explanation
   uint32_t u32_alarm = 0;
   boolean bo_lValue = false;
 
+#if 0
   uint8_t u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
 #ifdef GOBELPC200_DEBUG
   BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
@@ -692,6 +693,17 @@ Char A.25 Warn state2 explanation
       u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
 
   setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
+  #endif
+
+
+  // FET state
+  uint8_t FETstate = convertAsciiHexToByte(t_message, 37);
+  if(isBitSet(FETstate,1)) setBmsStateFETsCharge(BT_DEVICES_COUNT + address, true);
+  else setBmsStateFETsCharge(BT_DEVICES_COUNT + address, false); 
+  
+  if(isBitSet(FETstate,2)) setBmsStateFETsDischarge(BT_DEVICES_COUNT + address, true);
+  else setBmsStateFETsDischarge(BT_DEVICES_COUNT + address, false); 
+
 }
 
 uint8_t convertAsciiHexToByte(char a, char b)
