@@ -260,6 +260,16 @@ int32_t ModbusRTU::getI32ValueByOffset(uint16_t offset)
   return (int32_t)getU32ValueByOffset(offset);
 }
 
+bool ModbusRTU::getBitValueByOffset(uint16_t offset, uint8_t b)
+{
+  if(offset > retDataLen)
+  {
+    errorNoData(offset);
+    return 0;
+  }
+
+  return isBitSet(mRetData[offset],b);
+}
 
 void ModbusRTU::errorNoData(uint16_t offset)
 {
