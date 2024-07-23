@@ -27,7 +27,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   uint8_t jkInvBmsAdr = devData->u8_deviceNr;
   uint8_t jkInvBmsAdrBmsData = devData->u8_BmsDataAdr + BT_DEVICES_COUNT;
 
-  /*if(u8_mCountOfPacks>1)*/ jkInvBmsAdr += 1;
+  jkInvBmsAdr += 1;
   
   #ifdef JK_INV_DEBUG
   BSC_LOGI(TAG,"JkInverterBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i",u8_mDevNr,jkInvBmsAdr,jkInvBmsAdrBmsData,u8_mCountOfPacks);
@@ -115,7 +115,34 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   setBmsTempatureI16(devNr, 1, modbus->getI16ValueByOffset(158 - byteOffset) * 10);
 
   // Alarm
-  // ToDo
+  uint32_t alarms = 0;
+  if(modbus->getBitValueByOffset(160 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  0  AlarmWireRes
+  if(modbus->getBitValueByOffset(160 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  1  AlarmMosOTP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  2  AlarmCellQuantity
+  if(modbus->getBitValueByOffset(160 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  3  AlarmCurSensorErr
+  if(modbus->getBitValueByOffset(160 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_CELL_OVP;    // Bit  4  AlarmCellOVP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_BATTERY_OVP; // Bit  5  AlarmBatOVP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  6  AlarmChOCP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  7  AlarmChSCP (ShortCurrentProtection)
+
+  if(modbus->getBitValueByOffset(161 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit  8  AlarmChOTP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_CHG_UTP;     // Bit  9  AlarmChUTP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 10  AlarmCPUAuxCommuErr
+  if(modbus->getBitValueByOffset(161 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_CELL_UVP;    // Bit 11  AlarmCellUVP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_BATTERY_UVP; // Bit 12  AlarmBatUVP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 13  AlarmDchOCP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 14  AlarmDchSCP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_DSG_OTP;     // Bit 15  AlarmDchOTP
+
+  if(modbus->getBitValueByOffset(162 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 16  AlarmChargeMOS
+  if(modbus->getBitValueByOffset(162 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 17  AlarmDischargeMOS
+  if(modbus->getBitValueByOffset(162 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 18  GPSDisconneted
+  //                                                                                            Bit 19  Modify PWD. in time
+  if(modbus->getBitValueByOffset(162 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 20  Discharge On Failed
+  if(modbus->getBitValueByOffset(162 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit 21  Battery Over Temp Alarm
+
+  setBmsErrors(devNr, alarms);
+
 
   // Bal. Current
   setBmsBalancingCurrentI16(devNr, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
@@ -134,27 +161,3 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(devNr, true);
   else setBmsStateFETsDischarge(devNr, false);
 }
-
-
-
-/*static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address)
-{
-  String recvBytes="";
-  uint8_t u8_logByteCount=0;
-  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, len);
-  for(uint8_t x=0;x<len;x++)
-  {
-    u8_logByteCount++;
-    recvBytes+="0x";
-    recvBytes+=String(t_message[x],16);
-    recvBytes+=" ";
-    if(u8_logByteCount==20)
-    {
-      BSC_LOGI(TAG,"%s",recvBytes.c_str());
-      recvBytes="";
-      u8_logByteCount=0;
-    }
-  }
-  BSC_LOGI(TAG,"%s",recvBytes.c_str());
-  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
-}*/
