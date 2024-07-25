@@ -52,7 +52,9 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
   else 
   {
+    #ifdef JK_INV_DEBUG
     BSC_LOGE(TAG,"Fehler beim lesen von 0x1200");
+    #endif
     return false;
   }
 
@@ -70,7 +72,9 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
   else 
   {
+    #ifdef JK_INV_DEBUG
     BSC_LOGE(TAG,"Fehler beim lesen von 0x1290");
+    #endif
     return false;
   }
 
@@ -143,6 +147,10 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
 
   setBmsErrors(devNr, alarms);
 
+  #ifdef JK_INV_DEBUG
+  BSC_LOGI(TAG, "JK Alarms: %i, %i, %i, %i, Errors=%i", modbus->getU8ValueByOffset(160 - byteOffset), modbus->getU8ValueByOffset(161 - byteOffset), 
+    modbus->getU8ValueByOffset(162 - byteOffset), modbus->getU8ValueByOffset(163 - byteOffset), alarms );
+  #endif
 
   // Bal. Current
   setBmsBalancingCurrentI16(devNr, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
