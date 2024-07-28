@@ -25,22 +25,22 @@ namespace nsInverterBattery
 
   void InverterBattery::getBatteryVoltage(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
-    if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+    if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
     {
       inverter.inverterDataSemaphoreTake();
-      inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.u8_bmsDatasource)*100.0f);
+      inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(inverterData.bmsDatasource)*100.0f);
       inverter.inverterDataSemaphoreGive();
       return;
     }
     else //Wenn Masterquelle offline, dann nächstes BMS nehmen das online ist
     {
-      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
       {
         //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-        if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
+        if(((inverterData.bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(i))<CAN_BMS_COMMUNICATION_TIMEOUT))
         {
           inverter.inverterDataSemaphoreTake();
-          inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(BT_DEVICES_COUNT+i)*100.0f);
+          inverterData.batteryVoltage = (int16_t)(getBmsTotalVoltage(i)*100.0f);
           inverter.inverterDataSemaphoreGive();
           return;
         }
@@ -56,24 +56,24 @@ namespace nsInverterBattery
   void InverterBattery::getBatteryCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
     bool isOneBatteryPackOnline = false;
-    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.u8_bmsDatasource)*10.0f);
+    int16_t u16_lBatteryCurrent = (int16_t)(getBmsTotalCurrent(inverterData.bmsDatasource)*10.0f);
 
-    if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
+    if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT) isOneBatteryPackOnline=true;
     #ifdef CAN_DEBUG
     BSC_LOGI(TAG,"Battery current: u8_mBmsDatasource=%i, cur=%i, u8_mBmsDatasourceAdd=%i",u8_mBmsDatasource, msgData.current, u8_mBmsDatasourceAdd);
     #endif
 
     //Wenn zusätzliche Datenquellen angegeben sind:
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       #ifdef CAN_DEBUG
       long lTime = getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i);
       #endif
       //Wenn BMS ausgewählt und die letzten 5000ms Daten kamen
-      if(((inverterData.u16_bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT))
+      if(((inverterData.bmsDatasourceAdd>>i)&0x01) && ((millis()-getBmsLastDataMillis(i))<CAN_BMS_COMMUNICATION_TIMEOUT))
       {
         isOneBatteryPackOnline=true;
-        u16_lBatteryCurrent += (int16_t)(getBmsTotalCurrent(BT_DEVICES_COUNT+i)*10.0f);
+        u16_lBatteryCurrent += (int16_t)(getBmsTotalCurrent(i)*10.0f);
         #ifdef CAN_DEBUG
         BSC_LOGI(TAG,"Battery current (T): dev=%i, time=%i, cur=%i",i,millis()-lTime, msgData.current);
         #endif
@@ -101,11 +101,11 @@ namespace nsInverterBattery
     {
       if(u8_lBmsTempSensorNr<3)
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,u8_lBmsTempSensorNr));
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,u8_lBmsTempSensorNr));
       }
       else
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
       }
     }
     else if(u8_lBmsTempQuelle==2)
@@ -116,12 +116,12 @@ namespace nsInverterBattery
       }
       else
       {
-        return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
+        return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0)); //Im Fehlerfall immer Sensor 0 des BMS nehmen
       }
     }
     else
     {
-      return (int16_t)(getBmsTempature(inverterData.u8_bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
+      return (int16_t)(getBmsTempature(inverterData.bmsDatasource,0));  //Im Fehlerfall immer Sensor 0 des BMS nehmen
     }
   }
 
