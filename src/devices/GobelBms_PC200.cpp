@@ -164,7 +164,7 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     getDataFromBms(u8_lGobelAdr, 0x44); // Alarms
     if (recvAnswer(response))
     {
-      //parseMessage_Alarms(response, u8_lGobelAdrBmsData);
+      parseMessage_Alarms(response, u8_lGobelAdrBmsData);
     }
     else ret = false;
   }
@@ -189,7 +189,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   u8_lData[3] = function;     // CID2 (0x42)
   u8_lData[4] = (lenid >> 8); // LCHKSUM (0xE0)
   u8_lData[5] = (lenid >> 0); // LENGTH (0x02)
-  u8_lData[6] = 0xFF;         // INFO
+  u8_lData[6] = address + 1; //0xFF;         // INFO
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
@@ -448,7 +448,7 @@ Byte | Data
 
   setBmsChargePercentage(address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
   #ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Capacity: %f, %f, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(address));
+  BSC_LOGD(TAG, "Capacity: %i %i, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(address));
   #endif
   u16_lBalanceCapacity /= 100;
   u16_lFullCapacity /= 100;
@@ -605,6 +605,7 @@ Char A.25 Warn state2 explanation
   uint32_t u32_alarm = 0;
   boolean bo_lValue = false;
 
+#if 0
   uint8_t u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
 #ifdef GOBELPC200_DEBUG
   BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
@@ -690,7 +691,18 @@ Char A.25 Warn state2 explanation
   if (warnstate2 & (1<<3))
       u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
 
-  setBmsErrors(address, u32_alarm);
+  setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
+  #endif
+
+
+  // FET state
+  uint8_t FETstate = convertAsciiHexToByte(t_message, 37);
+  if(isBitSet(FETstate,1)) setBmsStateFETsCharge(address, true);
+  else setBmsStateFETsCharge(address, false); 
+  
+  if(isBitSet(FETstate,2)) setBmsStateFETsDischarge(address, true);
+  else setBmsStateFETsDischarge(address, false); 
+
 }
 
 uint8_t convertAsciiHexToByte(char a, char b)

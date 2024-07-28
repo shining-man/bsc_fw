@@ -64,7 +64,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
           case ID_BT_DEVICE_JKBMS_JK02_32S:
-            pClient->updateConnParams(120,120,0,60);
+            pClient->updateConnParams(20,20,0,60);
             jkBmsBtDevInit(i);
             break;
         }
