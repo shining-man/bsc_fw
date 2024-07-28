@@ -131,7 +131,7 @@ static const char COMPILE_DATE_TIME[] = "";
 #define BT_NEEY_POLL_INTERVAL       725 //800 // x1,25ms
 
 //Serial
-#define SERIAL_BMS_DEVICES_COUNT      3+8
+#define SERIAL_BMS_DEVICES_COUNT      11
 #define SERIAL_BMS_SEPLOS_COUNT       2
 #define SERIAL_BMS_SYLCIN_COUNT       2
 enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
@@ -190,19 +190,10 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define TCAN485_RS485_SE_PIN 19
 
 
-//BMS Data
-#define DATA_DEVICES_COUNT          18
+//BMS Data (mapping)
+#define MUBER_OF_DATA_DEVICES       18
 
 #define SERIAL_BMS_EXT_COUNT        8
-
-#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
-#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1
-#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1
-#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1
-#define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
-
-
-#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT //+SERIAL_BMS_EXT_COUNT
 
 
 //Alarmrules
