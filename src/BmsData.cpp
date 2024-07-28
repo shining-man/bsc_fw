@@ -18,9 +18,9 @@ struct bmsFilterData_s bmsFilterData;
 
 static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
 
-static bool bo_SOC100CellvolHasBeenReached[BMSDATA_NUMBER_ALLDEVICES];
+static bool bo_SOC100CellvolHasBeenReached[MUBER_OF_DATA_DEVICES];
 
-uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
+uint8_t u8_mBmsFilterErrorCounter[MUBER_OF_DATA_DEVICES];
 
 
 // Write serial data
@@ -41,7 +41,7 @@ void bmsDataInit()
   mBmsDataMutex = xSemaphoreCreateMutex();
   mBmsDataReadMutex = xSemaphoreCreateMutex();
 
-  for(uint8_t i=0;i<BMSDATA_NUMBER_ALLDEVICES;i++)
+  for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
   {
     for(uint8_t n=0;n<24;n++)
     {
@@ -338,12 +338,12 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
 }
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
-  if(devNr>=BT_DEVICES_COUNT)
+  if(devNr <= MUBER_OF_DATA_DEVICES)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
 
-    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
 
 
     if(u16_CellvoltSoc100 > 0 && ( bmsData.bmsMaxCellVoltage[devNr] >= u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
@@ -352,7 +352,7 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       value=100;
     }
     else if((u16_CellvoltSoc0 > 0) &&
-            (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
+      (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
     {
       //Berechne SOC Linear
       const int32_t hi = bmsData.bmsMaxCellVoltage[devNr];
@@ -668,25 +668,10 @@ bool haveAllBmsFirstData()
   uint8_t i = 0;
   bool allBmsHaveData = true;
 
-  // Bluetooth
-  for(i = 0; i < BT_DEVICES_COUNT; i++)
+  // 
+  for(i = MUBER_OF_DATA_DEVICES; i < MUBER_OF_DATA_DEVICES; i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
-    {
-      if(bmsData.bmsLastDataMillis[i] == 0) 
-      {
-        allBmsHaveData = false;
-        // BSC_LOGI(TAG,"Keine Daten: BT %i", i);
-      } 
-    }
-  }
-
-  // Serial
-  for(i = BMSDATA_FIRST_DEV_SERIAL; i < BMSDATA_LAST_DEV_SERIAL; i++)
-  {
-    if(i >= BMSDATA_NUMBER_ALLDEVICES) break;
-
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
+    if((uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE) <= MUBER_OF_DATA_DEVICES)
     {
       if(bmsData.bmsLastDataMillis[i] == 0) 
       { 
