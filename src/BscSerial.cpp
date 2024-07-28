@@ -26,6 +26,7 @@
 #include "devices/GobelBms_PC200.h"
 #include "devices/SeplosBmsV3.h"
 #include "devices/NeeySerial.h"
+#include "devices/JkInverterBms.h"
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
@@ -295,7 +296,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
     case ID_SERIAL_DEVICE_JKINVERTERBMS:
       BSC_LOGI(TAG,"setReadBmsFunktion JK Inverter");
       setSerialBaudrate(u8_devNr, 115200);
-      serialDeviceData[u8_devNr].readBms = &SeplosBmsV3_readBmsData;
+      serialDeviceData[u8_devNr].readBms = &JkInverterBms_readBmsData;
       break;
 
     case ID_SERIAL_DEVICE_PYLONTECH:

@@ -42,6 +42,7 @@ namespace modbusrtu
         int16_t  getI16ValueByOffset(uint16_t offset);
         uint32_t getU32ValueByOffset(uint16_t offset);
         int32_t  getI32ValueByOffset(uint16_t offset);
+        bool     getBitValueByOffset(uint16_t offset, uint8_t b);
 
 
     private:
@@ -61,6 +62,7 @@ namespace modbusrtu
 
         void buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len);
         bool readSerialData();
+        void errorNoData(uint16_t offset);
     };
 
 } // namespace modbusrtu

@@ -11,7 +11,8 @@
 
 static const char *TAG = "JK_INV_BMS";
 
-static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 
 //static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
@@ -32,10 +33,34 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
 
   modbusrtu::ModbusRTU modbus(port,callback,devNr);
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 268, response))
+  /* Es können nicht alle 268 Bytes gleichzeitig gelesen werden.
+   * Es kann z.B. in folgenden Teilen gelsensen werden.
+   * 0x1000: 123 Register
+   * 0x1200: 123 Register
+   * 0x127C:  84 Register
+   * 0x12DA:  42 Register
+   * 0x12FA:  21 Register
+   */
+
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 37, response))
   {
     //message2Log(response, 36, 0);
-    parsePackInfo(&modbus, jkInvBmsAdrBmsData);
+    parsePackInfoA(&modbus, jkInvBmsAdrBmsData);
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
+  else 
+  {
+    #ifdef JK_INV_DEBUG
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1200");
+    #endif
+    return false;
+  }
+
+
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 25, response))
+  {
+    //message2Log(response, 36, 0);
+    parsePackInfoB(&modbus, jkInvBmsAdrBmsData);
 
     // MQTT
     mqttPublish(MQTT_TOPIC_BMS_BT, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(jkInvBmsAdrBmsData));
@@ -43,14 +68,20 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
 
     vTaskDelay(pdMS_TO_TICKS(25));
   }
-  else return false;
+  else 
+  {
+    #ifdef JK_INV_DEBUG
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1290");
+    #endif
+    return false;
+  }
 
 
   return true;
 }
 
 
-static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
   // Cellvoltage
   for(uint8_t i;i<24;i++) setBmsCellVoltage(dataMappingNr, i, modbus->getU16ValueByOffset(i*2));
@@ -68,52 +99,71 @@ static void parsePackInfo(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   // Min. Cellvoltage 
   setBmsMinVoltageCellNumber(dataMappingNr, modbus->getU8ValueByOffset(73));
   setBmsMinCellVoltage(dataMappingNr, getBmsCellVoltage(dataMappingNr, modbus->getU8ValueByOffset(73)));
-
-  // Total Voltage
-  setBmsTotalVoltage_int(dataMappingNr, modbus->getU32ValueByOffset(144)/10);
-
-  // Total Current
-  setBmsTotalCurrent_int(dataMappingNr, modbus->getI32ValueByOffset(152)/10);
-
-  // Temperature
-  setBmsTempatureI16(dataMappingNr, 0, modbus->getI16ValueByOffset(156)*10);
-  setBmsTempatureI16(dataMappingNr, 1, modbus->getI16ValueByOffset(158)*10);
-
-  // Alarm
-  // ToDo
-
-  // Bal. Current
-  setBmsBalancingCurrentI16(dataMappingNr, modbus->getI16ValueByOffset(164)/10);
-
-  // Bal. State
-  setBmsIsBalancingActive(dataMappingNr, modbus->getU8ValueByOffset(166));
-
-  // SoC
-  setBmsChargePercentage(dataMappingNr, modbus->getU8ValueByOffset(167));
-
 }
 
 
-
-
-/*static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address)
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
-  String recvBytes="";
-  uint8_t u8_logByteCount=0;
-  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, len);
-  for(uint8_t x=0;x<len;x++)
-  {
-    u8_logByteCount++;
-    recvBytes+="0x";
-    recvBytes+=String(t_message[x],16);
-    recvBytes+=" ";
-    if(u8_logByteCount==20)
-    {
-      BSC_LOGI(TAG,"%s",recvBytes.c_str());
-      recvBytes="";
-      u8_logByteCount=0;
-    }
-  }
-  BSC_LOGI(TAG,"%s",recvBytes.c_str());
-  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
-}*/
+  uint8_t byteOffset = 0x90;
+
+  // Total Voltage
+  setBmsTotalVoltage_int(dataMappingNr, modbus->getU32ValueByOffset(144 - byteOffset)/10);
+
+  // Total Current
+  setBmsTotalCurrent_int(dataMappingNr, modbus->getI32ValueByOffset(152 - byteOffset)/10);
+
+  // Temperature
+  setBmsTempatureI16(dataMappingNr, 0, modbus->getI16ValueByOffset(156 - byteOffset)*10);
+  setBmsTempatureI16(dataMappingNr, 1, modbus->getI16ValueByOffset(158 - byteOffset)*10);
+
+  // Alarm
+  uint32_t alarms = 0;
+  if(modbus->getBitValueByOffset(160 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  0  AlarmWireRes
+  if(modbus->getBitValueByOffset(160 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  1  AlarmMosOTP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  2  AlarmCellQuantity
+  if(modbus->getBitValueByOffset(160 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  3  AlarmCurSensorErr
+  if(modbus->getBitValueByOffset(160 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_CELL_OVP;    // Bit  4  AlarmCellOVP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_BATTERY_OVP; // Bit  5  AlarmBatOVP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  6  AlarmChOCP
+  if(modbus->getBitValueByOffset(160 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  7  AlarmChSCP (ShortCurrentProtection)
+
+  if(modbus->getBitValueByOffset(161 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit  8  AlarmChOTP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_CHG_UTP;     // Bit  9  AlarmChUTP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 10  AlarmCPUAuxCommuErr
+  if(modbus->getBitValueByOffset(161 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_CELL_UVP;    // Bit 11  AlarmCellUVP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_BATTERY_UVP; // Bit 12  AlarmBatUVP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 13  AlarmDchOCP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 14  AlarmDchSCP
+  if(modbus->getBitValueByOffset(161 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_DSG_OTP;     // Bit 15  AlarmDchOTP
+
+  if(modbus->getBitValueByOffset(162 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 16  AlarmChargeMOS
+  if(modbus->getBitValueByOffset(162 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 17  AlarmDischargeMOS
+  if(modbus->getBitValueByOffset(162 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 18  GPSDisconneted
+  //                                                                                            Bit 19  Modify PWD. in time
+  if(modbus->getBitValueByOffset(162 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 20  Discharge On Failed
+  if(modbus->getBitValueByOffset(162 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit 21  Battery Over Temp Alarm
+
+  setBmsErrors(byteOffset, alarms);
+
+  #ifdef JK_INV_DEBUG
+  BSC_LOGI(TAG, "JK Alarms: %i, %i, %i, %i, Errors=%i", modbus->getU8ValueByOffset(160 - byteOffset), modbus->getU8ValueByOffset(161 - byteOffset), 
+    modbus->getU8ValueByOffset(162 - byteOffset), modbus->getU8ValueByOffset(163 - byteOffset), alarms );
+  #endif
+
+  // Bal. Current
+  setBmsBalancingCurrentI16(byteOffset, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
+
+  // Bal. State
+  setBmsIsBalancingActive(byteOffset, modbus->getU8ValueByOffset(166 - byteOffset));
+
+  // SoC
+  setBmsChargePercentage(byteOffset, modbus->getU8ValueByOffset(167 - byteOffset));
+
+  // FET state charge
+  if(modbus->getU8ValueByOffset(192 - byteOffset) > 0) setBmsStateFETsCharge(byteOffset, true);
+  else setBmsStateFETsCharge(byteOffset, false);
+
+  // FET state discharge
+  if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(byteOffset, true);
+  else setBmsStateFETsDischarge(byteOffset, false);
+}

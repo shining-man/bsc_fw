@@ -28,6 +28,27 @@ ModbusRTU::~ModbusRTU()
   ;
 }
 
+/*static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address)
+{
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
+  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, len);
+  for(uint8_t x=0;x<len;x++)
+  {
+    u8_logByteCount++;
+    recvBytes+="0x";
+    recvBytes+=String(t_message[x],16);
+    recvBytes+=" ";
+    if(u8_logByteCount==20)
+    {
+      BSC_LOGI(TAG,"%s",recvBytes.c_str());
+      recvBytes="";
+      u8_logByteCount=0;
+    }
+  }
+  BSC_LOGI(TAG,"%s",recvBytes.c_str());
+  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
+}*/
 
 /*
  * Anfrage:
@@ -56,7 +77,7 @@ bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16
 
 void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
 {
-  uint8_t lSendData[20];
+  uint8_t lSendData[8];
 
   lSendData[0]=addr;                        // ADDR
   lSendData[1]=(uint8_t)cmd;                // CMD
@@ -69,6 +90,8 @@ void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, ui
   uint16_t u16_lCrc = crc16(lSendData, 6);
   lSendData[6]=(u16_lCrc&0xff);        // CRC
   lSendData[7]=((u16_lCrc>>8)&0xff);   // CRC
+
+  //message2Log(lSendData, 8, addr);
 
   // RX-Buffer leeren
   for(unsigned long clearRxBufTime = millis(); millis()-clearRxBufTime<100;)
@@ -194,6 +217,11 @@ int16_t ModbusRTU::getI16Value(uint16_t address)
 
 uint8_t ModbusRTU::getU8ValueByOffset(uint16_t offset)
 {
+  if(offset > retDataLen)
+  {
+    errorNoData(offset);
+    return 0;
+  }
   return mRetData[offset];
 }
 
@@ -204,6 +232,11 @@ int8_t ModbusRTU::getI8ValueByOffset(uint16_t offset)
 
 uint16_t ModbusRTU::getU16ValueByOffset(uint16_t offset)
 {
+  if(offset+1 > retDataLen)
+  {
+    errorNoData(offset+1);
+    return 0;
+  }
   return (mRetData[offset]<<8) | mRetData[offset+1];
 }
 
@@ -214,12 +247,33 @@ int16_t ModbusRTU::getI16ValueByOffset(uint16_t offset)
 
 uint32_t ModbusRTU::getU32ValueByOffset(uint16_t offset)
 {
+  if(offset+3 > retDataLen)
+  {
+    errorNoData(offset+3);
+    return 0;
+  }
   return (mRetData[offset]<<24) | (mRetData[offset+1]<<16) | (mRetData[offset+2]<<8) | mRetData[offset+3];
 }
 
 int32_t ModbusRTU::getI32ValueByOffset(uint16_t offset)
 {
   return (int32_t)getU32ValueByOffset(offset);
+}
+
+bool ModbusRTU::getBitValueByOffset(uint16_t offset, uint8_t b)
+{
+  if(offset > retDataLen)
+  {
+    errorNoData(offset);
+    return 0;
+  }
+
+  return isBitSet(mRetData[offset],b);
+}
+
+void ModbusRTU::errorNoData(uint16_t offset)
+{
+  BSC_LOGE(TAG,"Keine Daten! Lese Byte %i von %i",offset, retDataLen);
 }
 
 } // namespace modbusrtu
