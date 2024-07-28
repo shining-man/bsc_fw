@@ -561,7 +561,7 @@ void parseWarnData(uint8_t *t_message, uint8_t dataMappingNr)
       p.getuint16(); // Max Discharge current
       p.getuint32(); // CRC32, according to Gobel there is a problem. Ignore for now.
 
-      setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_alarm);
+      setBmsErrors(dataMappingNr, u32_alarm);
     }
   }
   catch (const std::exception &e)
