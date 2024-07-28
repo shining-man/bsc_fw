@@ -90,35 +90,27 @@ void Inverter::loadIverterSettings()
   uint16_t u16_bmsDatasourceAdd;
 
   inverterData.noBatteryPackOnline = true;
-  u8_bmsDatasource = WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
-  uint8_t u8_lNumberOfSerial2BMSs = WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
+  u8_bmsDatasource = (uint8_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE,0,DT_ID_PARAM_BMS_CAN_DATASOURCE);
 
   uint32_t bmsConnectFilter=0;
-  /*for(uint8_t i;i<BT_DEVICES_COUNT;i++)
+
+  for(uint8_t i; i<MUBER_OF_DATA_DEVICES; i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV)!=0)
+    if((uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE, i, DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE) < MUBER_OF_DATA_DEVICES)
     {
       bmsConnectFilter |= (1<<i);
     }
-  }*/
-  for(uint8_t i;i<SERIAL_BMS_DEVICES_COUNT;i++)
-  {
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0)
-    {
-      bmsConnectFilter |= (1<<i);
-    }
-    else if(i>=3 && u8_lNumberOfSerial2BMSs-i+2>0) bmsConnectFilter |= (1<<i); //Seplos BMS berücksichtigen
   }
 
-  u16_bmsDatasourceAdd=(((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
+  u16_bmsDatasourceAdd = (((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
 
   // In den zusätzlichen Datenquellen die Masterquelle entfernen
-  if(u8_bmsDatasource>=BT_DEVICES_COUNT) bitClear(u16_bmsDatasourceAdd,u8_bmsDatasource-BT_DEVICES_COUNT);
+  bitClear(u16_bmsDatasourceAdd, u8_bmsDatasource - BT_DEVICES_COUNT);
 
-  inverterData.u8_bmsDatasource = u8_bmsDatasource;
-  inverterData.u16_bmsDatasourceAdd = u16_bmsDatasourceAdd;
+  inverterData.bmsDatasource = u8_bmsDatasource;
+  inverterData.bmsDatasourceAdd = u16_bmsDatasourceAdd;
 
-  BSC_LOGI(TAG,"Load inverter settings(): dataSrc=%i, dataSrcAdd=%i",inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+  BSC_LOGI(TAG,"Load inverter settings(): dataSrc=%i, dataSrcAdd=%i",inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
   //BSC_LOGI(TAG,"loadIverterSettings(): dataSrcAdd=%i, u8_mBmsDatasource=%i, bmsConnectFilter=%i, u8_mBmsDatasourceAdd=%i",WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1),u8_bmsDatasource,bmsConnectFilter, u16_bmsDatasourceAdd);
 }
 
