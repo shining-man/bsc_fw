@@ -390,13 +390,16 @@ void BscSerial::cyclicRun()
     bo_lMqttSendMsg=true;
   }
 
-  for(uint8_t i = 0; i < DATA_DEVICES_COUNT; i++)
+  for(uint8_t i = 0; i < MUBER_OF_DATA_DEVICES; i++)
   {
     // 
-    uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,0,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
-    uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,0,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
+    uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+    uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,i,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
     
     uint8_t u8_serDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
+
+    // Wenn BT-Device eingestellt ist
+    if(dataDeviceSchnittstelle >= MUBER_OF_DATA_DEVICES) continue;
 
     // Wenn BT-Device eingestellt ist
     if(dataDeviceSchnittstelle < BT_DEVICES_COUNT) continue;
