@@ -37,30 +37,30 @@ namespace nsSocCtrl
       uint16_t u16_avgSoc = 0;
       u16_lNewSoc = 0;
 
-      if((millis()-getBmsLastDataMillis(inverterData.u8_bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+      if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
       {
-        u16_lNewSoc = u16_avgSoc = getBmsChargePercentage(inverterData.u8_bmsDatasource); // SOC, uint16 1 %
+        u16_lNewSoc = u16_avgSoc = getBmsChargePercentage(inverterData.bmsDatasource); // SOC, uint16 1 %
         u8_numberOfSocs++;
       }
 
       uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
 
-      if(inverterData.u16_bmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
+      if(inverterData.bmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
       {
-        for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+        for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
         {
-          if(isBitSet(inverterData.u16_bmsDatasourceAdd,i))
+          if(isBitSet(inverterData.bmsDatasourceAdd,i))
           {
-            if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+            if((millis()-getBmsLastDataMillis(i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
             {
               if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
               {
-                u16_avgSoc+=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+                u16_avgSoc+=getBmsChargePercentage(i);
                 u8_numberOfSocs++;
               }
               else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
               {
-                if(getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i)>u16_lNewSoc) u16_lNewSoc=getBmsChargePercentage(BMSDATA_FIRST_DEV_SERIAL+i);
+                if(getBmsChargePercentage(i)>u16_lNewSoc) u16_lNewSoc=getBmsChargePercentage(i);
               }
             }
           }
@@ -109,7 +109,7 @@ namespace nsSocCtrl
     {
       //Warte bis Zellspannung kleiner Mindestspannung
       case STATE_MINCELLSPG_SOC_WAIT_OF_MIN:
-        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
+        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd) <= WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG))
         {
           inverterData.u8_mSocZellspannungState=STATE_MINCELLSPG_SOC_BELOW_MIN;
         }
@@ -125,7 +125,7 @@ namespace nsSocCtrl
           u16_lZellspgChargeEnd=WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_SPG);
         }
 
-        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) > u16_lZellspgChargeEnd)
+        if(BmsDataUtils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd) > u16_lZellspgChargeEnd)
         {
           inverterData.u16_mSocZellspannungSperrzeitTimer = WebSettings::getInt(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME,0,DT_ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_TIME);
           inverterData.u8_mSocZellspannungState = STATE_MINCELLSPG_SOC_LOCKTIMER;

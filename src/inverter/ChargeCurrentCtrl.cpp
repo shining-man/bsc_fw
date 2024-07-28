@@ -95,15 +95,15 @@ namespace nsChargeCurrentCtrl
     //u8_mModulesCntCharge=1;
 
     //Maximalen Ladestrom aus den einzelnen Packs errechnen
-    if(inverterData.u16_bmsDatasourceAdd>0)
+    if(inverterData.bmsDatasourceAdd > 0)
     {
-      uint16_t u16_lMaxCurrent=0;
-      for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+      uint16_t u16_lMaxCurrent = 0;
+      for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
       {
-        if((inverterData.u8_bmsDatasource-BMSDATA_FIRST_DEV_SERIAL)==i || (inverterData.u16_bmsDatasourceAdd>>i)&0x01)
+        if((inverterData.bmsDatasource)==i || ((inverterData.bmsDatasourceAdd>>i)&0x01))
         {
-          if(getBmsErrors(BMSDATA_FIRST_DEV_SERIAL+i)==0 && (millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)<CAN_BMS_COMMUNICATION_TIMEOUT) &&
-            getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
+          if(getBmsErrors(i) == 0 && (millis()-getBmsLastDataMillis(i) < CAN_BMS_COMMUNICATION_TIMEOUT) &&
+            getBmsStateFETsCharge(i))
           {
             u16_lMaxCurrent+=WebSettings::getInt(ID_PARAM_BATTERY_PACK_CHARGE_CURRENT,i,DT_ID_PARAM_BATTERY_PACK_CHARGE_CURRENT);
             //u8_mModulesCntCharge++;
@@ -177,7 +177,7 @@ namespace nsChargeCurrentCtrl
     if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_EN,0)==true) //wenn enabled
     {
       //Maximale Zellspannung von den aktiven BMSen ermitteln
-      uint16_t u16_lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+      uint16_t u16_lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
       uint16_t u16_lStartSpg = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLSPG_STARTSPG);
 
       if(u16_lStartSpg<=u16_lAktuelleMaxZellspg)
@@ -237,13 +237,13 @@ namespace nsChargeCurrentCtrl
     if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_ZELLDRIFT_EN,0)==true) //wenn enabled
     {
       //Maximalen Ladestrom berechnen
-      uint16_t u32_lMaxCellDrift = BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+      uint16_t u32_lMaxCellDrift = BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
       uint16_t u16_lstartDrift = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTABWEICHUNG);
       if(u32_lMaxCellDrift>0)
       {
         if(u32_lMaxCellDrift>u16_lstartDrift) //Wenn Drift groß genug ist
         {
-          if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) >
+          if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd) >
             WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_STARTSPG_ZELLE)) //Wenn höchste Zellspannung groß genug ist
           {
             i16_lMaxChargeCurrent = i16_lMaxChargeCurrent - ((u32_lMaxCellDrift-u16_lstartDrift) *
@@ -372,7 +372,7 @@ namespace nsChargeCurrentCtrl
       //Timer hochzählen, wenn Strom kleiner
       if(lCutOffStartVoltage > 0) // Wenn eine Startvoltage eingestellt ist
       {
-        uint16_t lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+        uint16_t lAktuelleMaxZellspg = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
 
         // ToDo: Aktualwert, Mittelwert über Weboberfläche wählbar machen
 

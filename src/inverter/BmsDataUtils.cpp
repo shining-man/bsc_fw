@@ -23,7 +23,7 @@ uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint1
 
   if(u16_mBmsDatasourceAdd>0)
   {
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
@@ -41,11 +41,11 @@ uint8_t BmsDataUtils::getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource,
 
   if(u16_mBmsDatasourceAdd>0)
   {
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if(getBmsStateFETsCharge(BMSDATA_FIRST_DEV_SERIAL+i))
+        if(getBmsStateFETsCharge(i))
         {
           u8_lModules++;
         }
@@ -62,11 +62,11 @@ uint8_t BmsDataUtils::getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasour
 
   if(u16_mBmsDatasourceAdd>0)
   {
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if(getBmsStateFETsDischarge(BMSDATA_FIRST_DEV_SERIAL+i))
+        if(getBmsStateFETsDischarge(i))
         {
           u8_lModules++;
         }
@@ -97,18 +97,18 @@ uint16_t BmsDataUtils::getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
   if(u16_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMaxCellSpg=0;
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
-          u16_lMaxCellSpg=getBmsMaxCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
+          u16_lMaxCellSpg=getBmsMaxCellVoltage(i);
           if(u16_lMaxCellSpg>u16_lCellSpg)
           {
             u16_lCellSpg=u16_lMaxCellSpg;
-            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
-            u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i);
+            u8_lBmsNr=i;
+            u8_lCellNr=getBmsMaxVoltageCellNumber(i);
           }
         }
       }
@@ -153,18 +153,18 @@ uint16_t BmsDataUtils::getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint
   if(u16_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMinCellSpg=0;
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0; i < MUBER_OF_DATA_DEVICES; i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
-          u16_lMinCellSpg=getBmsMinCellVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
+          u16_lMinCellSpg=getBmsMinCellVoltage(i);
           if(u16_lMinCellSpg<u16_lCellSpg)
           {
             u16_lCellSpg=u16_lMinCellSpg;
-            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;
-            u8_lCellNr=getBmsMinVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i);
+            u8_lBmsNr=i;
+            u8_lCellNr=getBmsMinVoltageCellNumber(i);
           }
         }
       }
@@ -197,18 +197,18 @@ uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, ui
   if(u16_mBmsDatasourceAdd>0)
   {
     uint16_t u16_lMaxCellDiff=0;
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
-          u16_lMaxCellDiff=getBmsMaxCellDifferenceVoltage(BMSDATA_FIRST_DEV_SERIAL+i);
+          u16_lMaxCellDiff=getBmsMaxCellDifferenceVoltage(i);
           if(u16_lMaxCellDiff>u16_lCellDiff)
           {
             u16_lCellDiff=u16_lMaxCellDiff;
-            u8_lBmsNr=BMSDATA_FIRST_DEV_SERIAL+i;  //nur zum Debug
-            u8_lCellNr=getBmsMaxVoltageCellNumber(BMSDATA_FIRST_DEV_SERIAL+i); //nur zum Debug
+            u8_lBmsNr=i;  //nur zum Debug
+            u8_lCellNr=getBmsMaxVoltageCellNumber(i); //nur zum Debug
           }
         }
       }
@@ -231,32 +231,32 @@ uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, ui
 void BmsDataUtils::buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr)
 {
   memset(buffer, 0, 8); // Clear
-  if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
-  else snprintf(buffer, 8, "S%d C%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
+  if(batteryNr<MUBER_OF_DATA_DEVICES) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
+  else snprintf(buffer, 8, "S%d C%d", batteryNr, cellNr);
 }
 
 
 // Ermitteln des niedrigsten Ladestroms der BMSen
 float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
-  float u16_lMinCurrent=0xFFFF;
+  float u16_lMinCurrent = 0xFFFF;
 
   if((millis()-getBmsLastDataMillis(u8_mBmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
   {
     u16_lMinCurrent = getBmsTotalCurrent(u8_mBmsDatasource);
   }
 
-  if(u16_mBmsDatasourceAdd>0)
+  if(u16_mBmsDatasourceAdd > 0)
   {
-    float u16_lMinCurrentTmp=0;
-    for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+    float u16_lMinCurrentTmp = 0;
+    for(uint8_t i = 0; i < MUBER_OF_DATA_DEVICES; i++)
     {
       if((u16_mBmsDatasourceAdd>>i)&0x01)
       {
-        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
         {
-          u16_lMinCurrentTmp=getBmsTotalCurrent(BMSDATA_FIRST_DEV_SERIAL+i);
-          if(u16_lMinCurrentTmp<u16_lMinCurrent) u16_lMinCurrent=u16_lMinCurrentTmp;
+          u16_lMinCurrentTmp = getBmsTotalCurrent(i);
+          if(u16_lMinCurrentTmp < u16_lMinCurrent) u16_lMinCurrent = u16_lMinCurrentTmp;
         }
       }
     }
