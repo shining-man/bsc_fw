@@ -32,8 +32,8 @@ SemaphoreHandle_t mutexI2cRx = NULL;
 void isI2CdeviceConn();
 void displaySendData_bms(Inverter &inverter);
 void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
-void getBscSlaveData(uint8_t u8_slaveNr);
-void i2cSendDataToMaster();
+//void getBscSlaveData(uint8_t u8_slaveNr);
+//void i2cSendDataToMaster();
 void i2cInitExtSerial();
 void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn);
 
@@ -42,7 +42,7 @@ void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn);
  */
 void onRequest()
 {
-  i2cSendDataToMaster();
+  //i2cSendDataToMaster();
 }
 
 
@@ -183,10 +183,10 @@ void i2cCyclicRun(Inverter &inverter)
     }
 
     //Slaves
-    for(uint8_t i=0; i<I2C_CNT_SLAVES; i++)
+    /*for(uint8_t i=0; i<I2C_CNT_SLAVES; i++)
     {
       if(bo_mSlaveEnabled[i]) getBscSlaveData(i);
-    }
+    }*/
   }
 }
 
@@ -229,6 +229,7 @@ void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data
 }
 
 
+#if 0
 //Anfordern der Daten vom Slave
 void getBscSlaveData(uint8_t u8_slaveNr)
 {
@@ -323,12 +324,13 @@ void getBscSlaveData(uint8_t u8_slaveNr)
     }
   }
 }
-
+#endif
 
 
 /******************************************************
  * Slave
  ******************************************************/
+#if 0
 void i2cSendDataToMaster()
 {
   Wire.write(u8_mI2cRxBuf[1]);
@@ -393,7 +395,7 @@ void i2cSendDataToMaster()
     }
   }
 }
-
+#endif
 
 
 /******************************************************
