@@ -436,7 +436,7 @@ void mqttDataToTxBuffer()
           mqttPublish(MQTT_TOPIC_BMS_BT, sendBmsData_mqtt_sendeCounter, MQTT_TOPIC2_BMS_DATA_VALID, -1, 0); //invalid
         }
         sendBmsData_mqtt_sendeCounter++;
-        if(sendBmsData_mqtt_sendeCounter==BMSDATA_NUMBER_ALLDEVICES)bmsDataSendFinsh=true;
+        if(sendBmsData_mqtt_sendeCounter==MUBER_OF_DATA_DEVICES)bmsDataSendFinsh=true;
       }
     }
 
