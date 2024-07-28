@@ -3,20 +3,33 @@
 <!-- SPONSORS_START -->
 <p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
 
+<p align="center">
+  <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/user-attachments/assets/2a044a67-b0f3-4285-8d8b-3e64ffd7539f" height="68"/></a>
+</p>
+
 <p align="center"><strong>Energie-Pionier</strong></p><p align="center">
-  <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a> 
+  <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Solarfackel</strong></p><p align="center">
-  <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a> 
-  <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a> 
-  <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a> 
-  <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a> 
-  <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a> 
+  <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?v=4" height="58"/></a>
+  <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?v=4" height="58"/></a>
+  <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?v=4" height="58"/></a>
+  <a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?v=4" height="58"/></a>
+  <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a>
+  <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
-  <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a> 
+  <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a>
+  <a href="https://github.com/Ingog79" target=_blank><img src="https://avatars.githubusercontent.com/u/128917948?v=4" height="58"/></a>
+  <a href="https://github.com/Rindi66" target=_blank><img src="https://avatars.githubusercontent.com/u/106440831?v=4" height="58"/></a>
+  <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?v=4" height="58"/></a>
+  <a href="https://github.com/geolin" target=_blank><img src="https://avatars.githubusercontent.com/u/6317255?v=4" height="58"/></a>
+  <a href="https://github.com/Ben33142" target=_blank><img src="https://avatars.githubusercontent.com/u/103312565?v=4" height="58"/></a>
+  <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?v=4" height="58"/></a>
+  <a href="https://github.com/jgatringer" target=_blank><img src="https://avatars.githubusercontent.com/u/14805417?v=4" height="58"/></a>
+  <a href="https://github.com/GadingeL" target=_blank><img src="https://avatars.githubusercontent.com/u/46995271?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
@@ -32,7 +45,7 @@ The BSC consists of two components. The BSC hardware and the corresponding softw
 
 2. The BSC software, which makes the Battery Safety Controller hardware a freely configurable controller that can be used for a wide range of control and monitoring tasks in DIY battery systems.
 
-The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. In this case, for example, the NEEY balancer data can be transmitted to MQTT.  
+The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. In this case, for example, the NEEY balancer data can be transmitted to MQTT.
 
 The BSC display can also be used for visualization.
 
@@ -94,7 +107,7 @@ As an example a part of the Inverter Settings:<br>
 ## Features der BSC-Hardware
 * 6x Relay outputs
 * 4x Digital inputs (isolated)
-* 3x Serial interface (isolated) [3] 
+* 3x Serial interface (isolated) [3]
 * Onewire (64x DS18B20)
 * CAN (isolated)
 * Bluetooth
@@ -116,7 +129,7 @@ Interface | RX | TX
 
 ## More information
 * [Discord Forum](https://discord.gg/WRUhegRPQn)
-(The Discord is in German, but you can also write in English. 
+(The Discord is in German, but you can also write in English.
 We are also happy to welcome members from other countries.)
 * [Wiki - supported devices](https://github.com/shining-man/bsc_fw/wiki/Supported-devices)
 * [Wiki (German)](https://github.com/shining-man/bsc_fw/wiki)
@@ -130,7 +143,7 @@ To show the status of the BSC and the connected BMSes there is a status display 
 More details are in the Github project of the display.
 [GitHub project Display](https://github.com/shining-man/bsc_display)
 
-![Picture_BSC_Display_Home](https://github.com/shining-man/bsc_display/blob/main/img/Disp_Home.jpg?raw=true)
+<img src="https://github.com/user-attachments/assets/8db86295-1d72-4389-9650-80bd504366ac" height="400"/>
 
 # VenusOS dbus driver
 To display more data in VenusOS (Victron) like the cell voltages of the connected BMS or the temperatures of the OneWire sensors, there is a dbus driver. Here the data is not transmitted via WLAN to the VenusOS, but via the CAN bus. <br>
