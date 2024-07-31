@@ -227,7 +227,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingleNumber, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
