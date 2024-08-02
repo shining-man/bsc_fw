@@ -17,6 +17,7 @@ BmsDataUtils::~BmsDataUtils()
     // Dekonstruktor-Code
 }
 
+// Number of all Batteriemoduls (ok and not ok)
 uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lModules=1;
@@ -32,6 +33,29 @@ uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint1
     }
   }
   return u8_lModules;
+}
+
+void BmsDataUtils::getNumberOfBatteryModulesOnline(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+  uint16_t &moduleOnline, uint16_t &moduleOffline)
+{
+  moduleOnline = 0;
+  moduleOffline = 0;
+
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource)) < CAN_BMS_COMMUNICATION_TIMEOUT) moduleOnline = 1;
+  else moduleOffline = 1;
+
+  if(u16_mBmsDatasourceAdd > 0)
+  {
+    for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+    {
+      if((u16_mBmsDatasourceAdd>>i)&0x01)
+      {
+        //So lang die letzten 5000ms Daten kamen ist alles ok
+        if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL+i)) < CAN_BMS_COMMUNICATION_TIMEOUT) moduleOnline++;
+        else moduleOffline++;
+      }
+    }
+  }
 }
 
 uint8_t BmsDataUtils::getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
