@@ -764,19 +764,18 @@ namespace nsCanbus
   {
     data373 msgData;
 
+    // Min/Max Cellvoltage
     msgData.maxCellVoltage = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
     msgData.minCellColtage = BmsDataUtils::getMinCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
 
-    if(getBmsTempature(inverterData.u8_bmsDatasource,1)>getBmsTempature(inverterData.u8_bmsDatasource,2))
-    {
-        msgData.minCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,2);
-        msgData.maxCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,1);
-    }
-    else
-    {
-        msgData.minCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,1);
-        msgData.maxCellTemp = 273 + getBmsTempature(inverterData.u8_bmsDatasource,2);
-    }
+    // Min/Max Temp.
+    uint16_t tempHigh, tempLow;
+    BmsDataUtils::getMinMaxBatteryTemperature(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, tempHigh, tempLow);
+
+    // Offset für Victron addieren
+    msgData.minCellTemp = tempLow + 273;
+    msgData.maxCellTemp = tempHigh + 273;
+
 
     sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
 
