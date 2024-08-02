@@ -13,6 +13,7 @@ static const char *TAG = "JK_INV_BMS";
 
 static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
 static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
 
 //static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
@@ -79,6 +80,22 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
 
 
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x12F8, 3, response))
+  {
+    //message2Log(response, 36, 0);
+    parsePackInfoC(&modbus, jkInvBmsAdrBmsData);
+
+    vTaskDelay(pdMS_TO_TICKS(25));
+  }
+  else 
+  {
+    #ifdef JK_INV_DEBUG
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1290");
+    #endif
+    return false;
+  }
+
+
   return true;
 }
 
@@ -117,6 +134,10 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   // Temperature
   setBmsTempatureI16(devNr, 0, modbus->getI16ValueByOffset(156 - byteOffset) * 10);
   setBmsTempatureI16(devNr, 1, modbus->getI16ValueByOffset(158 - byteOffset) * 10);
+
+  //int16_t t0 = modbus->getI16ValueByOffset(156 - byteOffset) * 10;
+  //int16_t t1 = modbus->getI16ValueByOffset(158 - byteOffset) * 10;
+  //BSC_LOGI(TAG, "t0=%i, t1=%i", t0, t1);
 
   // Alarm
   uint32_t alarms = 0;
@@ -172,4 +193,30 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   // FET state discharge
   if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(devNr, true);
   else setBmsStateFETsDischarge(devNr, false);
+}
+
+
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+{
+  uint8_t byteOffset = 0xF8;
+
+  /* Temperature
+   * BSC -> BMS
+   * t0  -> T1
+   * t1  -> T2
+   * t2  -> MOS TEMP
+   * t3  -> T4
+   * t4  -> T5
+  */
+
+  //int16_t t2 = modbus->getI16ValueByOffset(248 - byteOffset) * 10; //MOS
+  int16_t t3 = modbus->getI16ValueByOffset(250 - byteOffset) * 10;
+  int16_t t4 = modbus->getI16ValueByOffset(252 - byteOffset) * 10;
+
+  if(t3 > t4) setBmsTempatureI16(devNr, 2, t3);
+  else setBmsTempatureI16(devNr, 2, t4);
+
+  #ifdef JK_INV_DEBUG
+  BSC_LOGI(TAG, "t2=%i, t3=%i, t4=%i", t2, t3, t4);
+  #endif
 }
