@@ -744,18 +744,19 @@ namespace nsCanbus
   {
     struct data372
     {
-        uint16_t numberofmodulesok;
+        uint16_t numberOfModulesOnline;
         uint16_t numberofmodulesblockingcharge;
         uint16_t numberofmodulesblockingdischarge;
-        // uint16_t numberofmodulesoffline;
+        uint16_t numberOfModulesOffline;
     };
     data372 msgData;
 
-    msgData.numberofmodulesok = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+    BmsDataUtils::getNumberOfBatteryModulesOnline(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, 
+      msgData.numberOfModulesOnline, msgData.numberOfModulesOffline);
+
     msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
     msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
-    //msgData.numberofmodulesoffline = 0;
-
+    
     sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
   }
 

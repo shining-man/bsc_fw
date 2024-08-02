@@ -14,6 +14,8 @@ public:
     ~BmsDataUtils(); // Dekonstruktor
 
     static uint8_t getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
+    static void    getNumberOfBatteryModulesOnline(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+      uint16_t &moduleOnline, uint16_t &moduleOffline);
     static uint8_t getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
     static uint8_t getNumberOfBatteryModulesDischarge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
     static uint16_t getMaxCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
