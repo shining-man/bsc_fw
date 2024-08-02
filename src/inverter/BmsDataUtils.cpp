@@ -264,3 +264,36 @@ float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16
 
   return u16_lMinCurrent;
 }
+
+
+void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+  uint16_t &tempHigh, uint16_t &tempLow)
+{
+  uint16_t temp;
+  tempHigh = 0;
+  tempLow = 0xFFFF;
+
+  for(uint8_t t=0; t<3; t++)
+  {
+    temp = getBmsTempature(u8_mBmsDatasource, t);
+    if(temp > tempHigh) tempHigh = temp;
+    else if(temp < tempLow) tempLow = temp;
+  }
+
+  
+  if(u16_mBmsDatasourceAdd > 0)
+  {
+    for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+    {
+      if((u16_mBmsDatasourceAdd>>i)&0x01)
+      {
+        for(uint8_t t=0; t<3; t++)
+        {
+          temp = getBmsTempature(BMSDATA_FIRST_DEV_SERIAL+i, t);
+          if(temp > tempHigh) tempHigh = temp;
+          else if(temp < tempLow) tempLow = temp;
+        }
+      }
+    }
+  }
+}
