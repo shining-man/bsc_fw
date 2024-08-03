@@ -13,6 +13,7 @@ static const char *TAG = "JK_INV_BMS";
 
 static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 
 //static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
@@ -77,6 +78,22 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
 
 
+  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x12F8, 3, response))
+  {
+    //message2Log(response, 36, 0);
+    parsePackInfoC(&modbus, jkInvBmsAdrBmsData);
+
+    vTaskDelay(pdMS_TO_TICKS(25));
+  }
+  else 
+  {
+    #ifdef JK_INV_DEBUG
+    BSC_LOGE(TAG,"Fehler beim lesen von 0x1290");
+    #endif
+    return false;
+  }
+
+
   return true;
 }
 
@@ -113,41 +130,49 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   setBmsTotalCurrent_int(dataMappingNr, modbus->getI32ValueByOffset(152 - byteOffset)/10);
 
   // Temperature
-  setBmsTempatureI16(dataMappingNr, 0, modbus->getI16ValueByOffset(156 - byteOffset)*10);
-  setBmsTempatureI16(dataMappingNr, 1, modbus->getI16ValueByOffset(158 - byteOffset)*10);
+  setBmsTempatureI16(dataMappingNr, 0, modbus->getI16ValueByOffset(156 - byteOffset) * 10);
+  setBmsTempatureI16(dataMappingNr, 1, modbus->getI16ValueByOffset(158 - byteOffset) * 10);
+
+  //int16_t t0 = modbus->getI16ValueByOffset(156 - byteOffset) * 10;
+  //int16_t t1 = modbus->getI16ValueByOffset(158 - byteOffset) * 10;
+  //BSC_LOGI(TAG, "t0=%i, t1=%i", t0, t1);
 
   // Alarm
   uint32_t alarms = 0;
-  if(modbus->getBitValueByOffset(160 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  0  AlarmWireRes
-  if(modbus->getBitValueByOffset(160 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  1  AlarmMosOTP
-  if(modbus->getBitValueByOffset(160 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  2  AlarmCellQuantity
-  if(modbus->getBitValueByOffset(160 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  3  AlarmCurSensorErr
-  if(modbus->getBitValueByOffset(160 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_CELL_OVP;    // Bit  4  AlarmCellOVP
-  if(modbus->getBitValueByOffset(160 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_BATTERY_OVP; // Bit  5  AlarmBatOVP
-  if(modbus->getBitValueByOffset(160 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  6  AlarmChOCP
-  if(modbus->getBitValueByOffset(160 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  7  AlarmChSCP (ShortCurrentProtection)
-
-  if(modbus->getBitValueByOffset(161 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit  8  AlarmChOTP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_CHG_UTP;     // Bit  9  AlarmChUTP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 10  AlarmCPUAuxCommuErr
-  if(modbus->getBitValueByOffset(161 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_CELL_UVP;    // Bit 11  AlarmCellUVP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_BATTERY_UVP; // Bit 12  AlarmBatUVP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 13  AlarmDchOCP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 14  AlarmDchSCP
-  if(modbus->getBitValueByOffset(161 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_DSG_OTP;     // Bit 15  AlarmDchOTP
-
+  /*
   if(modbus->getBitValueByOffset(162 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 16  AlarmChargeMOS
   if(modbus->getBitValueByOffset(162 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 17  AlarmDischargeMOS
   if(modbus->getBitValueByOffset(162 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 18  GPSDisconneted
   //                                                                                            Bit 19  Modify PWD. in time
   if(modbus->getBitValueByOffset(162 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 20  Discharge On Failed
-  if(modbus->getBitValueByOffset(162 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit 21  Battery Over Temp Alarm
+  if(modbus->getBitValueByOffset(162 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit 21  Battery Over Temp Alarm*/
+
+
+  if(modbus->getBitValueByOffset(162 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_CHG_OTP;     // Bit  8  AlarmChOTP; Charge Overtemp
+  if(modbus->getBitValueByOffset(162 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_CHG_UTP;     // Bit  9  AlarmChUTP; Under Temperature
+  if(modbus->getBitValueByOffset(162 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit 10  AlarmCPUAuxCommuErr; ?
+  if(modbus->getBitValueByOffset(162 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_CELL_UVP;    // Bit 11  AlarmCellUVP; Cell Untervoltage Protection
+  if(modbus->getBitValueByOffset(162 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_BATTERY_UVP; // Bit 12  AlarmBatUVP; ?
+  if(modbus->getBitValueByOffset(162 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 13  AlarmDchOCP; Discharge overcurrent protection
+  if(modbus->getBitValueByOffset(162 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_DSG_OCP;     // Bit 14  AlarmDchSCP; ?
+  if(modbus->getBitValueByOffset(162 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_DSG_OTP;     // Bit 15  AlarmDchOTP; Discharge Overtemp
+
+
+  if(modbus->getBitValueByOffset(163 - byteOffset, 0)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  0  AlarmWireRes; ?
+  if(modbus->getBitValueByOffset(163 - byteOffset, 1)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  1  AlarmMosOTP; ?
+  if(modbus->getBitValueByOffset(163 - byteOffset, 2)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  2  AlarmCellQuantity; ?
+  if(modbus->getBitValueByOffset(163 - byteOffset, 3)) alarms |= BMS_ERR_STATUS_AFE_ERROR;   // Bit  3  AlarmCurSensorErr; ?
+  if(modbus->getBitValueByOffset(163 - byteOffset, 4)) alarms |= BMS_ERR_STATUS_CELL_OVP;    // Bit  4  AlarmCellOVP; Cell OVP 
+  if(modbus->getBitValueByOffset(163 - byteOffset, 5)) alarms |= BMS_ERR_STATUS_BATTERY_OVP; // Bit  5  AlarmBatOVP; ?
+  if(modbus->getBitValueByOffset(163 - byteOffset, 6)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  6  AlarmChOCP; Protection chare overcurrent
+  if(modbus->getBitValueByOffset(163 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  7  AlarmChSCP (ShortCurrentProtection); ?
+
 
   setBmsErrors(byteOffset, alarms);
 
   #ifdef JK_INV_DEBUG
-  BSC_LOGI(TAG, "JK Alarms: %i, %i, %i, %i, Errors=%i", modbus->getU8ValueByOffset(160 - byteOffset), modbus->getU8ValueByOffset(161 - byteOffset), 
-    modbus->getU8ValueByOffset(162 - byteOffset), modbus->getU8ValueByOffset(163 - byteOffset), alarms );
+  BSC_LOGI(TAG, "JK Alarms: %i, %i, %i, %i, %i, %i, Errors=%i", modbus->getU8ValueByOffset(160 - byteOffset), modbus->getU8ValueByOffset(161 - byteOffset), 
+    modbus->getU8ValueByOffset(162 - byteOffset), modbus->getU8ValueByOffset(163 - byteOffset), modbus->getU8ValueByOffset(164 - byteOffset), modbus->getU8ValueByOffset(165 - byteOffset), alarms );
   #endif
 
   // Bal. Current
@@ -166,4 +191,30 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   // FET state discharge
   if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(byteOffset, true);
   else setBmsStateFETsDischarge(byteOffset, false);
+}
+
+
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
+{
+  uint8_t byteOffset = 0xF8;
+
+  /* Temperature
+   * BSC -> BMS
+   * t0  -> T1
+   * t1  -> T2
+   * t2  -> MOS TEMP
+   * t3  -> T4
+   * t4  -> T5
+  */
+
+  //int16_t t2 = modbus->getI16ValueByOffset(248 - byteOffset) * 10; //MOS
+  int16_t t3 = modbus->getI16ValueByOffset(250 - byteOffset) * 10;
+  int16_t t4 = modbus->getI16ValueByOffset(252 - byteOffset) * 10;
+
+  if(t3 > t4) setBmsTempatureI16(dataMappingNr, 2, t3);
+  else setBmsTempatureI16(dataMappingNr, 2, t4);
+
+  #ifdef JK_INV_DEBUG
+  BSC_LOGI(TAG, "t2=%i, t3=%i, t4=%i", t2, t3, t4);
+  #endif
 }

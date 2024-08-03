@@ -79,6 +79,9 @@ namespace nsCanbus
         sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData, canDevice);
         sendCanMsg_min_max_values_373_376_377(inverterData);
 
+        sendCanMsg_minCellVoltage_text_374(inverterData);
+        sendCanMsg_maxCellVoltage_text_375(inverterData);
+
         //Send extended data
         if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
         {
@@ -746,18 +749,21 @@ namespace nsCanbus
   {
     struct data372
     {
-        uint16_t numberofmodulesok;
+        uint16_t numberOfModulesOnline;
         uint16_t numberofmodulesblockingcharge;
         uint16_t numberofmodulesblockingdischarge;
-        // uint16_t numberofmodulesoffline;
+        uint16_t numberOfModulesOffline;
     };
     data372 msgData;
 
-    msgData.numberofmodulesok = BmsDataUtils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
-    msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
-    msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
-    //msgData.numberofmodulesoffline = 0;
+    BmsDataUtils::getNumberOfBatteryModulesOnline(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, 
+      msgData.numberOfModulesOnline, msgData.numberOfModulesOffline);
 
+    msgData.numberofmodulesblockingcharge = BmsDataUtils::getNumberOfBatteryModules(inverterData.bmsDatasource, 
+      inverterData.bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesCharge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
+    msgData.numberofmodulesblockingdischarge = BmsDataUtils::getNumberOfBatteryModules(inverterData.bmsDatasource, 
+      inverterData.bmsDatasourceAdd)-BmsDataUtils::getNumberOfBatteryModulesDischarge(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
+    
     sendCanMsg(0x372, (uint8_t *)&msgData, sizeof(data372));
   }
 
@@ -766,19 +772,18 @@ namespace nsCanbus
   {
     data373 msgData;
 
+    // Min/Max Cellvoltage
     msgData.maxCellVoltage = BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
     msgData.minCellColtage = BmsDataUtils::getMinCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
 
-    if(getBmsTempature(inverterData.bmsDatasource,1)>getBmsTempature(inverterData.bmsDatasource,2))
-    {
-        msgData.minCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,2);
-        msgData.maxCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,1);
-    }
-    else
-    {
-        msgData.minCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,1);
-        msgData.maxCellTemp = 273 + getBmsTempature(inverterData.bmsDatasource,2);
-    }
+    // Min/Max Temp.
+    uint16_t tempHigh, tempLow;
+    BmsDataUtils::getMinMaxBatteryTemperature(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, tempHigh, tempLow);
+
+    // Offset für Victron addieren
+    msgData.minCellTemp = tempLow + 273;
+    msgData.maxCellTemp = tempHigh + 273;
+
 
     sendCanMsg(0x373, (uint8_t *)&msgData, sizeof(data373));
 
@@ -787,7 +792,7 @@ namespace nsCanbus
   }
 
 
-  // Min. Zellspannung
+  // Min. Zellspannung (Text)
   void Canbus::sendCanMsg_minCellVoltage_text_374(Inverter::inverterData_s &inverterData)
   {
     uint8_t BmsNr, CellNr;
@@ -799,8 +804,8 @@ namespace nsCanbus
     }
 
 
-    // Max. Zellspannung (Text)
-    void Canbus::sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData)
+  // Max. Zellspannung (Text)
+  void Canbus::sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData)
     {
     uint8_t BmsNr, CellNr;
     BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, BmsNr, CellNr);
