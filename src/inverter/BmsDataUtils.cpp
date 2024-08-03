@@ -17,6 +17,7 @@ BmsDataUtils::~BmsDataUtils()
     // Dekonstruktor-Code
 }
 
+// Number of all Batteriemoduls (ok and not ok)
 uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
   uint8_t u8_lModules=1;
@@ -32,6 +33,29 @@ uint8_t BmsDataUtils::getNumberOfBatteryModules(uint8_t u8_mBmsDatasource, uint1
     }
   }
   return u8_lModules;
+}
+
+void BmsDataUtils::getNumberOfBatteryModulesOnline(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+  uint16_t &moduleOnline, uint16_t &moduleOffline)
+{
+  moduleOnline = 0;
+  moduleOffline = 0;
+
+  if((millis()-getBmsLastDataMillis(u8_mBmsDatasource)) < CAN_BMS_COMMUNICATION_TIMEOUT) moduleOnline = 1;
+  else moduleOffline = 1;
+
+  if(u16_mBmsDatasourceAdd > 0)
+  {
+    for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+    {
+      if((u16_mBmsDatasourceAdd>>i)&0x01)
+      {
+        //So lang die letzten 5000ms Daten kamen ist alles ok
+        if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) moduleOnline++;
+        else moduleOffline++;
+      }
+    }
+  }
 }
 
 uint8_t BmsDataUtils::getNumberOfBatteryModulesCharge(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
@@ -228,7 +252,7 @@ uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, ui
 }
 
 
-void BmsDataUtils::buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr)
+void BmsDataUtils::buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr)
 {
   memset(buffer, 0, 8); // Clear
   if(batteryNr<MUBER_OF_DATA_DEVICES) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);
@@ -263,4 +287,37 @@ float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16
   }
 
   return u16_lMinCurrent;
+}
+
+
+void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+  uint16_t &tempHigh, uint16_t &tempLow)
+{
+  uint16_t temp;
+  tempHigh = 0;
+  tempLow = 0xFFFF;
+
+  for(uint8_t t=0; t<3; t++)
+  {
+    temp = getBmsTempature(u8_mBmsDatasource, t);
+    if(temp > tempHigh) tempHigh = temp;
+    else if(temp < tempLow) tempLow = temp;
+  }
+
+  
+  if(u16_mBmsDatasourceAdd > 0)
+  {
+    for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+    {
+      if((u16_mBmsDatasourceAdd>>i)&0x01)
+      {
+        for(uint8_t t=0; t<3; t++)
+        {
+          temp = getBmsTempature(i, t);
+          if(temp > tempHigh) tempHigh = temp;
+          else if(temp < tempLow) tempLow = temp;
+        }
+      }
+    }
+  }
 }
