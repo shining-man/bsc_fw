@@ -26,7 +26,7 @@ public:
     static float getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
     static void  getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint16_t &tempHigh, uint16_t &tempLow);
 
-    static void buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr);
+    static void buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr);
 
 private:
 
