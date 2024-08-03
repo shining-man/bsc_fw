@@ -252,7 +252,7 @@ uint16_t BmsDataUtils::getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, ui
 }
 
 
-void BmsDataUtils::buildBatteryCellText(char *buffer, uint8_t batteryNr, uint8_t cellNr)
+void BmsDataUtils::buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr)
 {
   memset(buffer, 0, 8); // Clear
   if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d C%d", batteryNr, cellNr);

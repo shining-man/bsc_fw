@@ -79,6 +79,9 @@ namespace nsCanbus
         sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData, canDevice);
         sendCanMsg_min_max_values_373_376_377(inverterData);
 
+        sendCanMsg_minCellVoltage_text_374(inverterData);
+        sendCanMsg_maxCellVoltage_text_375(inverterData);
+
         //Send extended data
         if(WebSettings::getBool(ID_PARAM_BMS_CAN_EXTENDED_DATA_ENABLE,0)==true)
         {
@@ -785,7 +788,7 @@ namespace nsCanbus
   }
 
 
-  // Min. Zellspannung
+  // Min. Zellspannung (Text)
   void Canbus::sendCanMsg_minCellVoltage_text_374(Inverter::inverterData_s &inverterData)
   {
     uint8_t BmsNr, CellNr;
@@ -797,8 +800,8 @@ namespace nsCanbus
     }
 
 
-    // Max. Zellspannung (Text)
-    void Canbus::sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData)
+  // Max. Zellspannung (Text)
+  void Canbus::sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData)
     {
     uint8_t BmsNr, CellNr;
     BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, BmsNr, CellNr);
