@@ -96,6 +96,7 @@ void setBmsBalancingCurrent(uint8_t devNr, float value);
 void setBmsBalancingCurrentI16(uint8_t devNr, int16_t value);
 
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr);
+int   getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr);
 void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value);
 void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value);
 

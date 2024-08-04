@@ -260,6 +260,14 @@ void BmsDataUtils::buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, ui
 }
 
 
+void BmsDataUtils::buildBatteryTempText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr)
+{
+  memset(buffer, 0, 8); // Clear
+  if(batteryNr<BMSDATA_FIRST_DEV_SERIAL) snprintf(buffer, 8, "B%d S%d", batteryNr, cellNr);
+  else snprintf(buffer, 8, "S%d S%d", batteryNr-BMSDATA_FIRST_DEV_SERIAL, cellNr);
+}
+
+
 // Ermitteln des niedrigsten Ladestroms der BMSen
 float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd)
 {
@@ -291,17 +299,27 @@ float BmsDataUtils::getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16
 
 
 void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
-  uint16_t &tempHigh, uint16_t &tempLow)
+  int16_t &tempHigh, int16_t &tempLow, uint8_t &tempLowSensor, uint8_t &tempLowPack, uint8_t &tempHighSensor, uint8_t &tempHighPack)
 {
-  uint16_t temp;
+  int16_t temp;
   tempHigh = 0;
   tempLow = 0xFFFF;
 
   for(uint8_t t=0; t<3; t++)
   {
-    temp = getBmsTempature(u8_mBmsDatasource, t);
-    if(temp > tempHigh) tempHigh = temp;
-    else if(temp < tempLow) tempLow = temp;
+    temp = getBmsTempatureI16(u8_mBmsDatasource, t);
+    if(temp > tempHigh)
+    {
+      tempHigh = temp;
+      tempHighSensor = t;
+      tempHighPack = u8_mBmsDatasource;
+    }
+    else if(temp < tempLow) 
+    {
+      tempLow = temp;
+      tempLowSensor = t;
+      tempLowPack = u8_mBmsDatasource;
+    }
   }
 
   
@@ -314,10 +332,23 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16
         for(uint8_t t=0; t<3; t++)
         {
           temp = getBmsTempature(BMSDATA_FIRST_DEV_SERIAL+i, t);
-          if(temp > tempHigh) tempHigh = temp;
-          else if(temp < tempLow) tempLow = temp;
+          if(temp > tempHigh)
+          {
+            tempHigh = temp;
+            tempHighSensor = t;
+            tempHighPack = i + BMSDATA_FIRST_DEV_SERIAL;
+          }
+          else if(temp < tempLow) 
+          {
+            tempLow = temp;
+            tempLowSensor = t;
+            tempLowPack = i + BMSDATA_FIRST_DEV_SERIAL;
+          }
         }
       }
     }
   }
+
+  tempHigh = ROUND(tempHigh, 100);
+  tempLow  = ROUND(tempLow, 100);
 }
