@@ -24,9 +24,11 @@ public:
     static uint16_t getMinCellSpannungFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint8_t &BmsNr,uint8_t &CellNr);
     static uint16_t getMaxCellDifferenceFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
     static float getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd);
-    static void  getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, uint16_t &tempHigh, uint16_t &tempLow);
+    static void  getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16_t u16_mBmsDatasourceAdd, 
+      int16_t &tempHigh, int16_t &tempLow, uint8_t &tempLowSensor, uint8_t &tempLowPack, uint8_t &tempHighSensor, uint8_t &tempHighPack);
 
     static void buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr);
+    static void buildBatteryTempText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr);
 
 private:
 
