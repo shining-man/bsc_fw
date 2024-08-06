@@ -183,12 +183,21 @@ void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* p
   std::string notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
   //BSC_LOGI(TAG,"neey_cb mac=%s, len=%i",notifyMacAdr.c_str(),length);
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i = 0; i < BT_DEVICES_COUNT; i++)
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
-      //Daten kopieren
-      NeeyBalancer::neeyBalancerCopyData(i, pData, length);
+      for(uint8_t n = 0; n < MUBER_OF_DATA_DEVICES; n++)
+      {
+        uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,n,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+        if(dataDeviceSchnittstelle == i)
+        {
+          BSC_LOGI(TAG,"Dev found %i, %i", i, n);
+          //Daten kopieren
+          NeeyBalancer::neeyBalancerCopyData(n, pData, length);
+          return;
+        }
+      }
     }
   }
 }
@@ -220,7 +229,17 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
           break;
       }
 
-      jkBmsBtCopyData(i, u8_frameVersion, pData, length);
+      for(uint8_t n = 0; n < MUBER_OF_DATA_DEVICES; n++)
+      {
+        uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,n,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+        if(dataDeviceSchnittstelle == i)
+        {
+          BSC_LOGI(TAG,"Dev found %i, %i", i, n);
+          //Daten kopieren
+          jkBmsBtCopyData(i, u8_frameVersion, pData, length);
+          return;
+        }
+      }
 
       bleDevices[i].sendDataStep=0;
     }
