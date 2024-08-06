@@ -315,7 +315,7 @@ float getBmsTempature(uint8_t devNr, uint8_t sensorNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
-int getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr)
+int16_t getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   int16_t ret = bmsData.bmsTempature[devNr][sensorNr];

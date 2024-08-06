@@ -331,7 +331,7 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16
       {
         for(uint8_t t=0; t<3; t++)
         {
-          temp = getBmsTempature(BMSDATA_FIRST_DEV_SERIAL+i, t);
+          temp = getBmsTempatureI16(BMSDATA_FIRST_DEV_SERIAL+i, t);
           if(temp > tempHigh)
           {
             tempHigh = temp;

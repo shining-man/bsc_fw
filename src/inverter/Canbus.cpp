@@ -774,7 +774,7 @@ namespace nsCanbus
 
     // Min/Max Temp.
     int16_t tempHigh, tempLow;
-    uint8_t  tempLowSensor, tempLowPack, tempHighSensor, tempHighPack;
+    uint8_t tempLowSensor, tempLowPack, tempHighSensor, tempHighPack;
     BmsDataUtils::getMinMaxBatteryTemperature(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd,
       tempHigh, tempLow, tempLowSensor, tempLowPack, tempHighSensor, tempHighPack);
 
