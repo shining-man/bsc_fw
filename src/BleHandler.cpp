@@ -192,7 +192,6 @@ void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* p
         uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,n,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
         if(dataDeviceSchnittstelle == i)
         {
-          BSC_LOGI(TAG,"Dev found %i, %i", i, n);
           //Daten kopieren
           NeeyBalancer::neeyBalancerCopyData(n, pData, length);
           return;
@@ -234,7 +233,6 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
         uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,n,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
         if(dataDeviceSchnittstelle == i)
         {
-          BSC_LOGI(TAG,"Dev found %i, %i", i, n);
           //Daten kopieren
           jkBmsBtCopyData(i, u8_frameVersion, pData, length);
           return;
