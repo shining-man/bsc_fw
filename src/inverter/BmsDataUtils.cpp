@@ -303,7 +303,12 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint16
 {
   int16_t temp;
   tempHigh = 0;
-  tempLow = 0xFFFF;
+  tempLow = 0x7FFF;
+
+  tempHighSensor = 0;
+  tempHighPack = 0;
+  tempLowSensor = 0;
+  tempLowPack = 0;
 
   for(uint8_t t=0; t<3; t++)
   {
