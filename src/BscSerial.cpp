@@ -508,7 +508,7 @@ void BscSerial::cyclicRun()
     //xSemaphoreGive(mSerialMutex);
     if(bo_lBmsReadOk)
     {
-      setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      setBmsLastDataMillis(i,millis());
     }
     else
     {
@@ -519,7 +519,7 @@ void BscSerial::cyclicRun()
       };
       BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
       //#else
-      //setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      //setBmsLastDataMillis(i,millis());
       //#endif
     }
 
@@ -533,11 +533,11 @@ void BscSerial::cyclicRun()
     {
       bmsDataSemaphoreTake();
       struct  bmsData_s *p_lBmsData = getBmsData();
-      uint16_t crcNeu = crc16((uint8_t*)&p_lBmsData->bmsCellVoltage[BT_DEVICES_COUNT+i][0],24*2);
-      uint8_t crcErrorCounter = p_lBmsData->bmsLastChangeCellVoltageCrc[BT_DEVICES_COUNT+i];
+      uint16_t crcNeu = crc16((uint8_t*)&p_lBmsData->bmsCellVoltage[i][0],24*2);
+      uint8_t crcErrorCounter = p_lBmsData->bmsLastChangeCellVoltageCrc[i];
       bmsDataSemaphoreGive();
 
-      uint16_t crcOld = getBmsCellVoltageCrc(BT_DEVICES_COUNT+i);
+      uint16_t crcOld = getBmsCellVoltageCrc(i);
       //BSC_LOGI(TAG,"crcNeu=%i, crcOld=%i, crcErrorCounter=%i",crcNeu,crcOld,crcErrorCounter);
       if(crcNeu==crcOld)
       {
@@ -550,13 +550,13 @@ void BscSerial::cyclicRun()
           }
         }
         crcErrorCounter++;
-        if(crcErrorCounter<0xFE)setBmsLastChangeCellVoltageCrc(BT_DEVICES_COUNT+i,crcErrorCounter);
+        if(crcErrorCounter<0xFE)setBmsLastChangeCellVoltageCrc(i,crcErrorCounter);
       }
       else
       {
-        if(crcErrorCounter!=0) setBmsLastChangeCellVoltageCrc(BT_DEVICES_COUNT+i,0);
+        if(crcErrorCounter!=0) setBmsLastChangeCellVoltageCrc(i,0);
         if(crcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) BSC_LOGI(TAG,"OK: device=%i, Change in cell voltage",i);
-        setBmsCellVoltageCrc(BT_DEVICES_COUNT+i,crcNeu);
+        setBmsCellVoltageCrc(i,crcNeu);
       }
     }
 
