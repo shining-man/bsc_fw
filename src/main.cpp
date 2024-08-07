@@ -87,6 +87,7 @@ WebSettings webSettingsOnewire;
 WebSettings webSettingsOnewire2;
 WebSettings webSettingsBmsToInverter;
 WebSettings webSettingsInverterCharge;
+WebSettings webSettingsDataDeviceMapping;
 WebSettings webSettingsInverterDischarge;
 WebSettings webSettingsDeviceNeeyBalancer;
 WebSettings webSettingsDeviceJbdBms;
@@ -979,6 +980,11 @@ void handle_paramSystem()
   }*/
 }
 
+void handle_paramDeviceMapping()
+{
+  webSettingsDataDeviceMapping.handleHtmlFormRequest(&server);
+}
+
 void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);}
 void handle_getNeeySettingsReadback()
 {
@@ -1261,6 +1267,7 @@ void setup()
   webSettingsInverterCharge.initWebSettings(paramInverterCharge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsInverterDischarge.initWebSettings(paramInverterDischarge, "Wechselrichter & Laderegelung", "/WebSettings.conf");
   webSettingsBmsToInverter.initWebSettings(paramBmsToInverter, "Wechselrichter & Laderegelung", "/WebSettings.conf");
+  webSettingsDataDeviceMapping.initWebSettings(paramDataDeviceMapping, "Device mapping", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.initWebSettings(paramDeviceNeeyBalancer, "NEEY Balancer", "/WebSettings.conf");
   webSettingsDeviceNeeyBalancer.setTimerHandlerName("getNeeySettingsReadback",2000);
   webSettingsDeviceJbdBms.initWebSettings(paramDeviceJbdBms, "JBD BMS", "/WebSettings.conf");
@@ -1357,6 +1364,7 @@ void setup()
   server.on("/settings/schnittstellen/serial/",handle_paramSerial);
   server.on("/settings/schnittstellen/ow/",handle_paramOnewireAdr);
   server.on("/settings/schnittstellen/ow2/",handle_paramOnewire2);
+  server.on("/settings/schnittstellen/deviceMapping/",handle_paramDeviceMapping);
 
   server.on("/settings/devices/neeyBalancer/",handle_paramDevicesNeeyBalancer);
   server.on("/settings/devices/neeyBalancer/getNeeySettingsReadback",handle_getNeeySettingsReadback);
