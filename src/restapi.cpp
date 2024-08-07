@@ -217,6 +217,8 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     {
       u8_device = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE, bmsDevNr, DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
 
+      genJsonEntryArray(entrySingle, F("name"), WebSettings::getString(ID_PARAM_DEVICE_MAPPING_NAME, bmsDevNr), str_htmlOut, false);
+
       if(u8_device < MUBER_OF_DATA_DEVICES) genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
       else genJsonEntryArray(entrySingleNumber, F("en"), 0, str_htmlOut, false);
 
