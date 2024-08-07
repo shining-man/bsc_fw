@@ -58,8 +58,8 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
     parseBasicMessage(response, dataMappingNr);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
   }
   else bo_lRet=false;
 
@@ -259,13 +259,13 @@ static void parseBasicMessage(uint8_t * t_message, uint8_t dataMappingNr)
     //JBD_BYTE_SOFTWARE_VERSION
 
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
   }
 
 }

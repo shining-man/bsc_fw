@@ -62,8 +62,8 @@ bool SeplosBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     parseMessage(response, u8_lSeplosAdrBmsData);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
   }
   else
   {
@@ -428,19 +428,19 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     if(mDevData->bo_sendMqttMsg)
     {
       //Nachrichten senden
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
 
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
-      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
+      //mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
+      //mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
 
-      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
+      //mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
+      //mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
     }
   }
   catch (const std::exception &e)

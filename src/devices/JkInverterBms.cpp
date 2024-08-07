@@ -64,8 +64,8 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     parsePackInfoB(&modbus, jkInvBmsAdrBmsData);
 
     // MQTT
-    mqttPublish(MQTT_TOPIC_BMS_BT, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(jkInvBmsAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(jkInvBmsAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(jkInvBmsAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, jkInvBmsAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(jkInvBmsAdrBmsData));
 
     vTaskDelay(pdMS_TO_TICKS(25));
   }

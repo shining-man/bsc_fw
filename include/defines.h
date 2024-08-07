@@ -521,12 +521,12 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 /*********************************************
  * MQTT
  *********************************************/
-#define MQTT_TOPIC_BMS_BT                        1
+#define MQTT_TOPIC_DATA_DEVICE                        1
 #define MQTT_TOPIC_TEMPERATUR                    2
 #define MQTT_TOPIC_ALARM                         3
 #define MQTT_TOPIC_INVERTER                      4
 #define MQTT_TOPIC_SYS                           5
-#define MQTT_TOPIC_BMS_SERIAL                    6
+//#define MQTT_TOPIC_BMS_SERIAL                    6
 
 #define MQTT_TOPIC2_CELL_VOLTAGE                11
 #define MQTT_TOPIC2_CELL_VOLTAGE_MAX            12
@@ -579,12 +579,12 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 
 static const char* mqttTopics[] = {"", // 0
-  "bms/bt",        // 1
+  "DataDevice",    // 1
   "temperatur",    // 2
   "trigger",       // 3
   "inverter",      // 4
   "sys",           // 5
-  "bms/serial",    // 6
+  "",              // 6
   "", // 7
   "", // 8
   "", // 9
