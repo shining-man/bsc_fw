@@ -15,6 +15,7 @@
 static const char *TAG = "BLE_HANDLER";
 
 bool bleNeeyBalancerConnect(uint8_t deviceNr);
+uint8_t getDataDeviceNrFromBtDevice(uint8_t btDeviceNr);
 
 static bleDevice bleDevices[BT_DEVICES_COUNT];
 NimBLEScan* pBLEScan;
@@ -72,7 +73,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
         bleDevices[i].balancerOn=e_BalancerWaitForCmd;
         bleDevices[i].isConnect = true;
         bleDevices[i].doConnect = btDoConnectionWaitStart;
-        setBmsLastDataMillis(i,millis());
+        setBmsLastDataMillis(getDataDeviceNrFromBtDevice(i), millis());
       }
     }
 
@@ -174,7 +175,18 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
 
 
 
-
+uint8_t getDataDeviceNrFromBtDevice(uint8_t btDeviceNr)
+{
+  for(uint8_t n = 0; n < MUBER_OF_DATA_DEVICES; n++)
+  {
+    uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,n,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+    if(dataDeviceSchnittstelle == btDeviceNr)
+    {
+      return n;
+    }
+  }
+  return 0;
+}
 
 
 // Notification / Indication receiving handler callback
@@ -540,7 +552,7 @@ void BleHandler::init()
     bleDevices[i].isConnect = false;
     bleDevices[i].macAdr = "";
     bleDevices[i].deviceTyp = ID_BT_DEVICE_NB;
-    setBmsLastDataMillis(i,0);
+    setBmsLastDataMillis(getDataDeviceNrFromBtDevice(i),0);
     bleDevices[i].sendDataStep=0;
     bleDevices[i].balancerOn=e_BalancerWaitForCmd;
 
@@ -858,7 +870,7 @@ bool BleHandler::handleConnectionToDevices()
                 uint8_t u8_lBtDevType, u8_devDeativateTriggerNr;
                 bool bo_devDeactivateTrigger=false;
 
-                if((millis()-getBmsLastDataMillis(i))>5000)
+                if((millis()-getBmsLastDataMillis(getDataDeviceNrFromBtDevice(i))) > 5000)
                 {
                   u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
                   u8_devDeativateTriggerNr = webSettings.getInt(ID_PARAM_BTDEV_DEACTIVATE,i,DT_ID_PARAM_BTDEV_DEACTIVATE);
