@@ -48,8 +48,8 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
     parseData(response, dataMappingNr);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
   }
   else bo_lRet=false;
 
@@ -416,8 +416,8 @@ void parseData(uint8_t * t_message, uint8_t dataMappingNr)
   if(mDevData->bo_sendMqttMsg)
   {
     //Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CYCLE_CAPACITY, -1, u32_lCycleCapacity);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
   }
 
 }

@@ -52,8 +52,8 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   {
     parseMessage(response, dataMappingNr);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
   }
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));

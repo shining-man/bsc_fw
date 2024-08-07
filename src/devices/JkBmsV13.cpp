@@ -61,7 +61,7 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
     JkBmsV13_parseData(response, dataMappingNr);
 
     //mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
   }
   else bo_lRet=false;
 

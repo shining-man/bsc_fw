@@ -184,8 +184,8 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
     parseData(response, dataMappingNr);
 
     // mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
 
     getWarnMsg[1] = u8_packAdr;
     sendMessage(getWarnMsg, ARRAY_SIZE(getWarnMsg));
@@ -453,13 +453,13 @@ void parseData(uint8_t *t_message, uint8_t dataMappingNr)
     if (mDevData->bo_sendMqttMsg)
     {
       // Nachrichten senden
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
     }
   }
   catch (const std::exception &e)
