@@ -602,7 +602,8 @@ Char A.25 Warn state2 explanation
 | 0 | above charge temperature warn       | 1: warn 0: normal
 */
 
-  uint8_t u8_lMsgoffset = 0;
+  //uint8_t u8_lMsgoffset = 0;
+  uint8_t u8_value = 0;
   uint32_t u32_alarm = 0;
   boolean bo_lValue = false;
 
@@ -703,6 +704,13 @@ Char A.25 Warn state2 explanation
   
   if(isBitSet(FETstate,2)) setBmsStateFETsDischarge(BT_DEVICES_COUNT + address, true);
   else setBmsStateFETsDischarge(BT_DEVICES_COUNT + address, false); 
+
+
+  u8_value = convertAsciiHexToByte(t_message, 38);
+
+  isBitSet(u8_value, 4) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+
+
 
 }
 
