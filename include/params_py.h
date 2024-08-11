@@ -97,7 +97,7 @@ const String paramSystem PROGMEM = "{'page':["
   "},"
 
   "{"
-    "'name':"+String(ID_PARAM_MQTT_DEVICE_NAME)+","
+    "'name':"+String(ID_PARAM_BSC_DEVICE_NAME)+","
     "'label':'Device Name',"
     "'type':"+String(HTML_INPUTTEXT)+","
     "'default':'bsc',"

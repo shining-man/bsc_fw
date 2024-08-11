@@ -405,7 +405,7 @@ boolean connectWiFi()
   {
     BSC_LOGI(TAG, "Verbindung zu %s",str_lWlanSsid.c_str());
     WiFi.scanDelete();
-    WiFi.setHostname(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str());
+    WiFi.setHostname(WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0).c_str());
     WiFi.mode(WIFI_STA);
     WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
     WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
@@ -454,7 +454,7 @@ boolean connectWiFi()
     BSC_LOGI(TAG, "Open Wifi AP");
     WlanStaApOk=WIFI_AP;
     WiFi.mode(WIFI_AP);
-    String str_lHostname = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+    String str_lHostname = WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0);
     str_lHostname += "_" + String((uint32_t)ESP.getEfuseMac());
     WiFi.softAP(str_lHostname.c_str(),"",1);
     changeWlanDataForI2C=true;
@@ -1058,7 +1058,7 @@ void handle_getDashboardData()
 
   //12. Hostname
   tmp += "|";
-  tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  tmp += WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0);
 
   server.send(200, "text/html", tmp.c_str());
 }
@@ -1278,7 +1278,7 @@ void setup()
   webSettingsDeviceJbdBms.registerOnButton1(&btnWriteJbdBmsData);
   free_dump();
 
-  BSC_LOGI(TAG,"Hostname: %s", WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()); //Der Hostname kann erst nach dem lesen der Parameter genutzt werden
+  BSC_LOGI(TAG,"Hostname: %s", WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0).c_str()); //Der Hostname kann erst nach dem lesen der Parameter genutzt werden
 
   //mqtt
   initMqtt();
@@ -1291,7 +1291,7 @@ void setup()
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
 
 
-  if (MDNS.begin(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
+  if (MDNS.begin(WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0).c_str()))
   {
     BSC_LOGI(TAG, "MDNS responder gestartet");
   }

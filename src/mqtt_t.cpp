@@ -233,7 +233,7 @@ bool mqttConnect()
     return false;
   }
 
-  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
+  str_mMqttDeviceName = WebSettings::getString(ID_PARAM_BSC_DEVICE_NAME,0);
   str_mMqttTopicName = WebSettings::getString(ID_PARAM_MQTT_TOPIC_NAME,0);
   String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0);
   String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0);
