@@ -661,7 +661,6 @@ const char htmlPageSupport[] PROGMEM = "<!DOCTYPE HTML>"
     "<p>Eure großzügige Unterstützung ermöglicht es mir, weiterhin neue Funktionen zu entwickeln und Bugs zu bekämpfen. Nur so kann das Projekt auch in der Zukunft erfolgreich sein.</p>"
     "<p>Vielen Dank im Voraus für eure Großzügigkeit und eure Unterstützung!</p>"
     "<p>Mit elektrischen Grüßen,<br>shiningman</p>"
-    "<p>Paypal: <a href=\"javascript:window.open('https://www.paypal.me/shiningman11');\">https://www.paypal.me/shiningman11</a></p>"
     "<p>GitHub Sponsor: <a href=\"javascript:window.open('https://github.com/sponsors/shining-man');\">https://github.com/sponsors/shining-man</a></p>"
 
     "<p>Mit elektrischen Grüßen,<br>shiningman</p>"
