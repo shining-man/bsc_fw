@@ -327,9 +327,10 @@ bool mqttPublishLoopFromTxBuffer()
 
         if(mqttEntry.t1 == MQTT_TOPIC_DATA_DEVICE)
         {
-          if(!WebSettings::getString(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2).equals(""))
+          // Wenn Name vorhanden, dann einfügen
+          if(!WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2).equals(""))
           {
-            topic += WebSettings::getString(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2);
+            topic += WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2);
           }
           else topic += String(mqttEntry.t2);
         }
