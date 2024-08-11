@@ -73,9 +73,12 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   uint32_t u32_lStartTime=millis();
   SMrecvState=SEARCH_START_BYTE1;
   u16_mLastRecvBytesCnt=0;
-  u16_lRecvDataLen=0xFFFF;
+  //u16_lRecvDataLen=0xFFFF;
+  u16_lRecvDataLen=JKBMS_MAX_ANSWER_LEN;
   u8_CyclesWithoutData=0;
-  uint16_t crc=0;
+  bool b_stopCRC=false;
+  uint16_t u16_crc=0;
+
 
   for(;;)
   {
@@ -94,7 +97,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     if (mPort->available() > 0)
     {
       u8_lRecvByte = mPort->read();
-      if(u16_mLastRecvBytesCnt<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
+      if(!b_stopCRC) { u16_crc += u8_lRecvByte; }
+      //if(u16_mLastRecvBytesCnt<u16_lRecvDataLen-4){u16_crc += u8_lRecvByte;}
 
       switch (SMrecvState)  {
         case SEARCH_START_BYTE1:
@@ -121,6 +125,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
         case SEARCH_END:
           p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
+          if (u8_lRecvByte == 0x68 && (u16_lRecvDataLen-5 == u16_mLastRecvBytesCnt)) { b_stopCRC=true;}
           u16_mLastRecvBytesCnt++;
           break;
 
@@ -134,7 +139,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     else // Wenn in diesem Zyklus keine Daten Empfangen wurden, dann setze den Task 1ms aus
     {
       u8_CyclesWithoutData++;
-    vTaskDelay(pdMS_TO_TICKS(1));
+      vTaskDelay(pdMS_TO_TICKS(1));
     }
 
     if(u16_mLastRecvBytesCnt==u16_lRecvDataLen) break; //Recv Pakage complete
@@ -153,8 +158,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   if(p_lRecvBytes[u16_mLastRecvBytesCnt-5]!=0x68) return false; //letztes Byte vor der crc muss 0x68 sein
 
   //Überprüfe Cheksum
-	uint8_t crcB3 = (crc >> 8) & 0xFF;  // Byte 3
-  uint8_t crcB4 = crc & 0xFF;         // Byte 4
+	uint8_t crcB3 = (u16_crc >> 8) & 0xFF;  // Byte 3
+  uint8_t crcB4 = u16_crc & 0xFF;         // Byte 4
 
   #ifdef JK_DEBUG
   BSC_LOGD(TAG,"crc=%i %i", crcB3, crcB4);
