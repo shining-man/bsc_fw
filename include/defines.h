@@ -204,7 +204,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
 //Alarmrules
-#define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
+#define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  15
 
 
 // Inverter
