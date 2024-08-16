@@ -708,7 +708,7 @@ Char A.25 Warn state2 explanation
 
   u8_value = convertAsciiHexToByte(t_message, 38);
 
-  isBitSet(u8_value, 4) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+  if(isBitSet(u8_value, 4)) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
 
 
 
