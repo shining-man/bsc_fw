@@ -7,6 +7,7 @@
 #define INC_MDOBUSRTU_H
 
 #include "Arduino.h"
+#include "BscSerial.h"
 
 namespace modbusrtu
 {
@@ -24,12 +25,12 @@ namespace modbusrtu
         };
 
         // Konstruktor
-        ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t devNr);
+        ModbusRTU(Stream *port, uint8_t devNr);
 
         // Destruktor
         ~ModbusRTU();
 
-        bool readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData);
+        bool readData(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData);
 
         bool     getBitValue(uint16_t address, uint8_t b);
         uint8_t  getU8Value(uint16_t address);
@@ -47,7 +48,6 @@ namespace modbusrtu
 
     private:
         Stream *mPort;
-        void (*mCallback)(uint8_t, uint8_t);
         uint8_t mSerialPortNr;
 
         uint16_t mStartRegAdr;
@@ -60,7 +60,7 @@ namespace modbusrtu
             RECV_DATA      = 0x1
         };
 
-        void buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len);
+        void buildSendMsg(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len);
         bool readSerialData();
         void errorNoData(uint16_t offset);
     };

@@ -25,21 +25,20 @@ static float    f_mTotalVoltageOld=0xFFFF;
 //static uint32_t mqttSendeTimer=0;
 
 //
-static void      getDataFromBms(uint8_t address, uint8_t function);
+static void      getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage, uint8_t packets);
 static void      parseMessage(uint8_t * t_message, uint8_t dataMappingNr);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
-bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool DalyBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_ret=true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
-  uint8_t response[DALY_FRAME_SIZE*16];
+    uint8_t response[DALY_FRAME_SIZE*16];
 
   uint8_t dataMappingNr = devData->dataMappingNr;
 
@@ -47,7 +46,7 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   BSC_LOGI(TAG,"DalyBms_readBmsData()");
   #endif
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
   if(recvAnswer(response, 1))
   {
     parseMessage(response, dataMappingNr);
@@ -58,7 +57,7 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE);
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
@@ -68,41 +67,41 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   //else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_MOS);
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); //Cellnumbers
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); //Cellnumbers
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE);
   if(recvAnswer(response,u8_mNumberOfCells/3+u8_mNumberOfCells%3)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE);
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER);
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE);
   if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_ret;
 }
 
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   uint8_t u8_lData[DALY_FRAME_SIZE];
   u8_lData[0] = DALAY_START_BYTE;   // Start
@@ -136,11 +135,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   }
 
   //TX
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(u8_lData, DALY_FRAME_SIZE);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, u8_lData, DALY_FRAME_SIZE);
 }
 
 

@@ -40,7 +40,7 @@ uint8_t rxValues=0;
 // Test
 static uint16_t errCntSmartShunt=0;
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 //https://www.victronenergy.com/live/vedirect_protocol:faq
@@ -167,14 +167,14 @@ bool hexRx(uint8_t inbyte)
 }
 
 
-bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_ret=true;
   bool bo_break=false;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
+  
 
   uint8_t inbyte=0;
   uint8_t inbyteOrg=0;
@@ -184,7 +184,7 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
 
   mDataMappingNr = devData->dataMappingNr;
 
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
+  bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxEn);
 
   uint16_t byteReadCntGes=0;
   uint16_t byteReadCnt=0;
@@ -325,7 +325,7 @@ bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   }
 
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr, serialRxTx_RxTxDisable);
   //BSC_LOGI(TAG,"ret=%d, rxVal=%i, delCnt=%i, readCntGes=%i, errCnt=%i",bo_ret, rxValues, byteDelCnt, byteReadCntGes, errCntSmartShunt);
   return bo_ret; 
 }

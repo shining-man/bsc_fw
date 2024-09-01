@@ -7,9 +7,10 @@
 #define NEEY_SERIAL_H
 
 #include "Arduino.h"
+#include "BscSerial.h"
 #include "defines.h"
 #include "devices/serialDevData.h"
 
-bool NeeySerial_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
+bool NeeySerial_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData);
 
 #endif

@@ -7,6 +7,7 @@
 #define SMARTSHUNT_H
 
 #include "Arduino.h"
+#include "BscSerial.h"
 #include "defines.h"
 #include "devices/serialDevData.h"
 
@@ -19,6 +20,6 @@
 
 
 
-bool SmartShunt_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
+bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData);
 
 #endif

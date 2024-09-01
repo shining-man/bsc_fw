@@ -22,7 +22,7 @@ static uint32_t u32_mChargeMAh=0;
 static uint32_t u32_mDischargeMAh=0;
 
 //
-static void      getDataFromBms(uint8_t address, uint8_t function);
+static void      getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage);
 static bool      parseMessage(uint8_t * t_message, uint8_t address);
 static bool      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
@@ -34,17 +34,17 @@ uint16_t        sylcinlCrc(const uint16_t len);
 static bool     checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 
-bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool SylcinBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool ret = true;
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
+  
   uint8_t response[SYLCINBMS_MAX_ANSWER_LEN];
 
   // Hinweis: Beim Sylcin BMS fängt die erste Adresse immer mit 1 an!
@@ -58,7 +58,7 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
   // Kleine Pause zwischen den Packs
   if(u8_lSylcinAdr>1)vTaskDelay(pdMS_TO_TICKS(50));
 
-  getDataFromBms(u8_lSylcinAdr, 0x42);
+  getDataFromBms(bscSerial, u8_lSylcinAdr, 0x42);
   if(recvAnswer(response))
   {
     if(parseMessage(response, u8_lSylcinAdrBmsData))
@@ -73,7 +73,7 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
 
   if(ret == true)
   {
-    getDataFromBms(u8_lSylcinAdr, 0x44); //Alarms
+    getDataFromBms(bscSerial, u8_lSylcinAdr, 0x44); //Alarms
     if(recvAnswer(response))
     {
       if(!parseMessage_Alarms(response, u8_lSylcinAdrBmsData)) ret = false;
@@ -81,11 +81,11 @@ bool SylcinBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
     else ret = false;
   }
 
-  if(u8_mDevNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+  if(u8_mDevNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return ret;
 }
 
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   /* Beispieldaten
    * ->: 7E 35 32 30 31 34 36 34 32 45 30 30 32 30 31 46 44 33 30 0D
@@ -133,11 +133,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 
 
   //TX
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(u8_lSendData, 20);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, u8_lSendData, 20);
 }
 
 

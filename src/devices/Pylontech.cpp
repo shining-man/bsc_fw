@@ -24,7 +24,7 @@ static uint32_t u32_mDischargeMAh=0;
 static uint16_t u16_mRecvBytesLastMsg=0; //for debug
 
 //
-static void      getDataFromBms(uint8_t address, uint8_t function);
+static void      getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage);
 static void      parseMessage(uint8_t * t_message, uint8_t address);
 static void      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
@@ -36,18 +36,18 @@ uint16_t        lCrc(const uint16_t len);
 static bool     checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 
-bool Pylontech_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool Pylontech_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool ret = true;
   #if 0
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
+  
   u8_mCountOfPacks = devData->u8_NumberOfDevices;
   uint8_t response[PYLONTECH_MAX_ANSWER_LEN];
 
@@ -96,7 +96,7 @@ bool Pylontech_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t
 }
 
 #if 0
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   /* Beispieldaten
    * ->: 7E 32 30 30 30 34 36 34 32 45 30 30 32 30 30 46 44 33 37 0D

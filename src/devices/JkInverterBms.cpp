@@ -19,7 +19,7 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 
 static serialDevData_s *mDevData;
 
-bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool JkInverterBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   mDevData = devData;
   uint8_t response[JK_INVERTER_BMS_MAX_ANSWER_LEN];
@@ -32,7 +32,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   BSC_LOGI(TAG,"JkInverterBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i",u8_mDevNr,jkInvBmsAdr,jkInvBmsAdrBmsData);
   #endif
 
-  modbusrtu::ModbusRTU modbus(port,callback,devNr);
+  modbusrtu::ModbusRTU modbus(port, devNr);
 
   /* Es können nicht alle 268 Bytes gleichzeitig gelesen werden.
    * Es kann z.B. in folgenden Teilen gelsensen werden.
@@ -43,7 +43,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
    * 0x12FA:  21 Register
    */
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 37, response))
+  if(modbus.readData(bscSerial, jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1200, 37, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoA(&modbus, jkInvBmsAdrBmsData);
@@ -58,7 +58,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
 
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 25, response))
+  if(modbus.readData(bscSerial, jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x1290, 25, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoB(&modbus, jkInvBmsAdrBmsData);
@@ -78,7 +78,7 @@ bool JkInverterBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   }
 
 
-  if(modbus.readData(jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x12F8, 3, response))
+  if(modbus.readData(bscSerial, jkInvBmsAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_JK, 0x12F8, 3, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoC(&modbus, jkInvBmsAdrBmsData);

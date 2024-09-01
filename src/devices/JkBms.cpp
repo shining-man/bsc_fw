@@ -20,21 +20,20 @@ enum SM_readData {SEARCH_START_BYTE1, SEARCH_START_BYTE2, LEN1, LEN2, SEARCH_END
 static uint8_t getDataMsg[] = {0x4E, 0x57, 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x68, 0x00, 0x00, 0x01, 0x29};
 
 //
-static void sendMessage(uint8_t *sendMsg);
 static bool recvAnswer(uint8_t * t_outMessage);
 static void parseData(uint8_t * t_message, uint8_t dataMappingNr);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 
-bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool JkBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_lRet=true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
+  
   uint8_t response[JKBMS_MAX_ANSWER_LEN];
 
   uint8_t dataMappingNr = devData->dataMappingNr;
@@ -42,7 +41,7 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
   #ifdef JK_DEBUG
   BSC_LOGD(TAG,"Serial %i send",u8_mDevNr);
   #endif
-  sendMessage(getDataMsg);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, getDataMsg, 21);
   if(recvAnswer(response))
   {
     parseData(response, dataMappingNr);
@@ -53,18 +52,8 @@ bool JkBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, ui
   }
   else bo_lRet=false;
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;
-}
-
-
-static void sendMessage(uint8_t *sendMsg)
-{
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(sendMsg, 21);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 
