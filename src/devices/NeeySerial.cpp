@@ -16,11 +16,10 @@ static uint8_t u8_mTxEnRS485pin, u8_mDevNr;
 
 
 //
-static void sendDataToBms(uint8_t *p_sendBytes, uint8_t len);
 static bool recvAnswer(uint8_t *p_lRecvBytes);
 static void message2Log(uint8_t * t_message, uint8_t address, uint8_t len);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 /*
@@ -40,13 +39,13 @@ uint8_t neeyCmd3[20] PROGMEM = {0xAA, 0x55, 0x11, 0x02, 0x00, 0x00, 0x14, 0x00, 
 
 uint8_t neeyCmd4[20] PROGMEM = {0xAA, 0x55, 0x11, 0x01, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x27, 0xFF};
 
-bool NeeySerial_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool NeeySerial_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool ret = true;
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
+  
 
 
   uint8_t response[300];
@@ -71,7 +70,7 @@ bool NeeySerial_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   /*sendDataToBms(neeyCmd3,20);
   vTaskDelay(pdMS_TO_TICKS(50));*/
 
-  sendDataToBms(neeyCmd4,20);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, neeyCmd4, 20);
   vTaskDelay(pdMS_TO_TICKS(50));
 
   //Auf antwort warten
@@ -83,16 +82,6 @@ bool NeeySerial_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_
   //sendDataToBms(neeyCmdDisconnect,15);
 
   return ret;
-}
-
-static void sendDataToBms(uint8_t *p_sendBytes, uint8_t len)
-{
-  //TX
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(p_sendBytes, len);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 

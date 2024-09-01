@@ -27,7 +27,6 @@ static uint32_t  u32_mDischargeMAh=0;
 
 //
 static void      buildMessage(uint8_t* frame, bool bo_write, uint8_t cmd, uint16_t value);
-static void      sendMessage(uint8_t *sendMsg, uint8_t len);
 static bool      recvAnswer(uint8_t * t_outMessage);
 static void      parseBasicMessage(uint8_t * t_message, uint8_t dataMappingNr);
 static void      parseCellVoltageMessage(uint8_t * t_message, uint8_t dataMappingNr);
@@ -38,21 +37,20 @@ static int16_t   convertToInt16(int highbyte, int lowbyte);
 static bool      checkCrc(uint8_t *recvMsg);
 static uint16_t  calcCrc(uint8_t *recvMsg);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
-bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool JbdBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_lRet = true;
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
-  uint8_t response[JBDBMS_MAX_ANSWER_LEN];
+    uint8_t response[JBDBMS_MAX_ANSWER_LEN];
 
   uint8_t dataMappingNr = devData->dataMappingNr;
 
-  sendMessage(basicMsg,7);
+  bscSerial->sendSerialData(mPort, u8_mDevNr ,basicMsg, 7);
   if(recvAnswer(response))
   {
     parseBasicMessage(response, dataMappingNr);
@@ -64,7 +62,7 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
   else bo_lRet=false;
 
   vTaskDelay(pdMS_TO_TICKS(40));
-  sendMessage(cellMsg,7);
+  bscSerial->sendSerialData(mPort, u8_mDevNr ,cellMsg, 7);
   if(recvAnswer(response)) parseCellVoltageMessage(response, dataMappingNr);
   else bo_lRet=false;
 
@@ -72,10 +70,10 @@ bool JbdBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, u
   {
     //response als buffer nehmen um zusätzlichen Speicher zu sparen
     buildMessage(response, true, JBDBMS_REG_CELLVOLTAGE_100, (uint16_t)WebSettings::getIntFlash(ID_PARAM_JBD_CELL_VOLTAGE_100, dataMappingNr, DT_ID_PARAM_JBD_CELL_VOLTAGE_100));
-    sendMessage(response, 9);
+    bscSerial->sendSerialData(mPort, u8_mDevNr ,response, 9);
   }
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
+  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 
@@ -113,16 +111,6 @@ static void buildMessage(uint8_t* frame, bool bo_write, uint8_t cmd, uint16_t va
     frame[6] = ((crc>>8)&0xff);  //Checksum
     frame[7] = (crc&0xff);  //Checksum
   }
-}
-
-
-static void sendMessage(uint8_t *sendMsg, uint8_t len)
-{
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(sendMsg, len);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
 }
 
 

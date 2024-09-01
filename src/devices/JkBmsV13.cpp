@@ -19,24 +19,22 @@ const char *TAG_V13 = "JK_BMS_V13";
 Stream *mPortJkV13;
 uint8_t u8_mDevNrJkV13;
 uint16_t u16_mLastRecvBytesCntJkV13;
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 enum SM_readDataV13 {SEARCH_START_BYTE1, SEARCH_START_BYTE2, SLAVE_ADDR, CMD_CODE, RECV_DATA};
 
-void      JkBmsV13_sendMessage(uint8_t *sendMsg, uint32_t size);
 bool      JkBmsV13_recvAnswer(uint8_t * t_outMessage);
 void      JkBmsV13_parseData(uint8_t * t_message, uint8_t dataMappingNr);
 
 
-bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool JkBmsV13_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_lRet=true;
   mDevData=devData;
   mPortJkV13 = port;
   u8_mDevNrJkV13 = devNr;
-  callbackSetTxRxEn = callback;
-  uint8_t getDataMsgV13[] = { 0x55, 0xAA, 0x00, 0xFF, 0x00, 0x00, 0xFE };
+    uint8_t getDataMsgV13[] = { 0x55, 0xAA, 0x00, 0xFF, 0x00, 0x00, 0xFE };
 
   uint8_t response[JKBMSV13_MAX_ANSWER_LEN];
 
@@ -54,7 +52,7 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   BSC_LOGD(TAG_V13,"Serial %i send: %.2X %.2X %.2X %.2X %.2X %.2X %.2X \n",u8_mDevNrJkV13, getDataMsgV13[0], getDataMsgV13[1], getDataMsgV13[2], getDataMsgV13[3], getDataMsgV13[4], getDataMsgV13[5], getDataMsgV13[6]);
   #endif
 
-  JkBmsV13_sendMessage(getDataMsgV13, sizeof(getDataMsgV13));
+  bscSerial->sendSerialData(mPortJkV13, u8_mDevNrJkV13, getDataMsgV13, sizeof(getDataMsgV13));
 
   if(JkBmsV13_recvAnswer(response))
   {
@@ -65,19 +63,8 @@ bool JkBmsV13_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   }
   else bo_lRet=false;
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNrJkV13,serialRxTx_RxTxDisable);
+  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNrJkV13,serialRxTx_RxTxDisable);
   return bo_lRet;
-}
-
-
-void JkBmsV13_sendMessage(uint8_t *sendMsg , uint32_t size)
-{
-  callbackSetTxRxEn(u8_mDevNrJkV13,serialRxTx_TxEn);
-  usleep(50);
-  mPortJkV13->write(sendMsg, size);
-  mPortJkV13->flush();
-  //usleep(1000);
-  callbackSetTxRxEn(u8_mDevNrJkV13,serialRxTx_RxEn);
 }
 
 

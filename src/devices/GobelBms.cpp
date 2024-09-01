@@ -148,24 +148,23 @@ enum SM_readData
   SEARCH_END
 };
 
-static uint8_t getDataMsg[] = {0x11, 0x01, 0x46, 0xB0, 0x00, 0x00};
-static uint8_t getWarnMsg[] = {0x11, 0x01, 0x46, 0xB1, 0x00, 0x00};
-static void sendMessage(uint8_t *sendMsg, size_t len);
+static uint8_t getDataMsg[] = {0x37, 0x45, 0x11, 0x01, 0x46, 0xB0, 0x00, 0x00, 0xFF, 0xFF, 0x0d}; //Cheksum nur über die Bytes 2 bis 7 berechnen
+static uint8_t getWarnMsg[] = {0x37, 0x45, 0x11, 0x01, 0x46, 0xB1, 0x00, 0x00, 0xFF, 0xFF, 0x0d};
+static void sendMessage(BscSerial *bscSerial, uint8_t *sendMsg, size_t len);
 static bool recvAnswer(uint8_t *t_outMessage);
 static void parseData(uint8_t *t_message, uint8_t dataMappingNr);
 static void parseWarnData(uint8_t *t_message, uint8_t dataMappingNr);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
-bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool GobelBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_lRet = true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
-  uint8_t u8_addr = 0;
+    uint8_t u8_addr = 0;
   uint8_t i;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
@@ -178,7 +177,7 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   #endif
 
   getDataMsg[1] = u8_packAdr;
-  sendMessage(getDataMsg, ARRAY_SIZE(getDataMsg));
+  sendMessage(bscSerial, getDataMsg, ARRAY_SIZE(getDataMsg));
   if (recvAnswer(response))
   {
     parseData(response, dataMappingNr);
@@ -188,7 +187,7 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
     mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
 
     getWarnMsg[1] = u8_packAdr;
-    sendMessage(getWarnMsg, ARRAY_SIZE(getWarnMsg));
+    sendMessage(bscSerial, getWarnMsg, ARRAY_SIZE(getWarnMsg));
     if (recvAnswer(response))
     {
       parseWarnData(response, dataMappingNr);
@@ -207,29 +206,21 @@ bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t,
   vTaskDelay(pdMS_TO_TICKS(25));
   
 
-  if (devNr >= 2) callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxTxDisable);
+  if (devNr >= 2) bscSerial->setRxTxEnable(u8_mDevNr, serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 
-static void sendMessage(uint8_t *sendMsg, size_t len)
+static void sendMessage(BscSerial *bscSerial, uint8_t *sendMsg, size_t len)
 {
+  //Cheksum nur über die Bytes 2 bis 7 berechnen
   uint16_t chksum = 0;
-  size_t i = 0;
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(0x37);
-  mPort->write(0x45);
-  mPort->write(sendMsg, len);
-  for (i = 0; i < len; i++)
-    chksum += sendMsg[i];
+  for (uint8_t i = 2; i < (len + 2); i++) chksum += sendMsg[i];
 
   chksum = 1 + ~chksum;
-  mPort->write(chksum >> 8);
-  mPort->write(chksum & 0xff);
+  sendMsg[8] = (chksum >> 8);
+  sendMsg[9] = (chksum & 0xff);
 
-  mPort->write(0x0d);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, sendMsg, len);
 }
 
 static bool recvAnswer(uint8_t *p_lRecvBytes)

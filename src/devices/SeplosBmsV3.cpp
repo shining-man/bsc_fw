@@ -20,7 +20,7 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 
 static serialDevData_s *mDevData;
 
-bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   mDevData = devData;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
@@ -33,10 +33,10 @@ bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8
   BSC_LOGI(TAG,"SeplosBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i",u8_mDevNr,u8_lSeplosAdr,u8_lSeplosAdrBmsData,u8_mCountOfPacks);
   #endif
 
-  modbusrtu::ModbusRTU modbus(port,callback,devNr);
+  modbusrtu::ModbusRTU modbus(port, devNr);
 
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_CMD_04,0x1000,18,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1000, 18, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoA(&modbus, u8_lSeplosAdrBmsData);
@@ -49,14 +49,14 @@ bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8
   }
   else return false;
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_CMD_04,0x1100,26,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1100, 26, response))
   {
     parsePackInfoB(&modbus, u8_lSeplosAdrBmsData);
     vTaskDelay(pdMS_TO_TICKS(25));
   }
   else return false;
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_COIL_01,0x1200,0x90,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_COIL_01, 0x1200, 0x90, response))
   {
     parsePackInfoC(&modbus, u8_lSeplosAdrBmsData);
   }

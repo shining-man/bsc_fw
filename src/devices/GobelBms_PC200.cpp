@@ -91,7 +91,7 @@ static Stream *mPort;
 static uint8_t u8_mDevNr, u8_mTxEnRS485pin, u8_mCountOfPacks;
 
 //
-static void getDataFromBms(uint8_t address, uint8_t function);
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool recvAnswer(uint8_t *t_outMessage);
 static void parseMessage(uint8_t *t_message, uint8_t address);
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address);
@@ -104,7 +104,7 @@ static uint16_t lCrc(const uint16_t len);
 static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 static void BSC_Dump_MSGD(const char * tag, const char * txt, const uint8_t* ptr, const size_t len)
@@ -127,13 +127,12 @@ static void BSC_Dump_MSGD(const char * tag, const char * txt, const uint8_t* ptr
   BSC_LOGD(tag, "%s%i: %s", txt, len, recvBytes.c_str());
 }
 
-bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool GobelBmsPC200_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool ret = true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
   uint8_t u8_lGobelAdr = devData->bmsAdresse;
@@ -147,7 +146,7 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   #ifdef GOBELPC200_DEBUG
   BSC_LOGI(TAG, "read data from pack %i", u8_lGobelAdr);
   #endif
-  getDataFromBms(u8_lGobelAdr, 0x42);
+  getDataFromBms(bscSerial, u8_lGobelAdr, 0x42);
   if (recvAnswer(response))
   {
     parseMessage(response, u8_lGobelAdrBmsData);
@@ -161,7 +160,7 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
   if (ret == true)
   {
     vTaskDelay(pdMS_TO_TICKS(25));
-    getDataFromBms(u8_lGobelAdr, 0x44); // Alarms
+    getDataFromBms(bscSerial, u8_lGobelAdr, 0x44); // Alarms
     if (recvAnswer(response))
     {
       parseMessage_Alarms(response, u8_lGobelAdrBmsData);
@@ -169,13 +168,13 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     else ret = false;
   }
 
-  if(devNr >= 2) callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxTxDisable);
+  if(devNr >= 2) bscSerial->setRxTxEnable(u8_mDevNr, serialRxTx_RxTxDisable);
   vTaskDelay(pdMS_TO_TICKS(25));
   return ret;
 }
 
 
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   uint16_t lenid = lCrc(2);
 
@@ -210,11 +209,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 #endif
 
   // TX
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(u8_lSendData, 20);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, u8_lSendData, 20);
 }
 
 

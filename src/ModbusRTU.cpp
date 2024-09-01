@@ -13,13 +13,12 @@ namespace modbusrtu
 
 static const char *TAG = "MODBUS";
 
-ModbusRTU::ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t serialPortNr)
+ModbusRTU::ModbusRTU(Stream *port, uint8_t serialPortNr)
 {
   mStartRegAdr=0;
   retDataLen=0;
 
   mPort = port;
-  mCallback = callback;
   mSerialPortNr = serialPortNr;
 }
 
@@ -59,13 +58,13 @@ ModbusRTU::~ModbusRTU()
  * Register number n           (2 Byte)
  * CRC                         (2 Byte)
 */
-bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData)
+bool ModbusRTU::readData(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData)
 {
   mStartRegAdr=startRegister;
   mRetData=retData;
 
   // send msg
-  buildSendMsg(addr, cmd, startRegister, len);
+  buildSendMsg(bscSerial, addr, cmd, startRegister, len);
 
   // wait
   vTaskDelay(25/portTICK_PERIOD_MS);
@@ -75,7 +74,7 @@ bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16
 }
 
 
-void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
+void ModbusRTU::buildSendMsg(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
 {
   uint8_t lSendData[8];
 
@@ -101,11 +100,7 @@ void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, ui
   }
 
   // send msg
-  mCallback(mSerialPortNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(lSendData, 8);
-  mPort->flush();
-  mCallback(mSerialPortNr,serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, mSerialPortNr, lSendData, 8);
 }
 
 
