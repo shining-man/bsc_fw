@@ -35,7 +35,6 @@ void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data
 //void getBscSlaveData(uint8_t u8_slaveNr);
 //void i2cSendDataToMaster();
 void i2cInitExtSerial();
-void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn);
 
 /*
  * Slave
@@ -60,9 +59,9 @@ void onReceive(int len)
 }
 
 
-void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data)
+void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data, bool takeSemaphore)
 {
-  xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
+  if(takeSemaphore) xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(u8_i2cDevAdr);
   Wire.write(u8_reg);
   Wire.write(u8_data);
@@ -103,6 +102,13 @@ void i2cInit()
     }
   }*/
 }
+
+
+void i2cTakeSemaphore()
+{
+  xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
+}
+
 
 void isI2CdeviceConn()
 {
@@ -477,15 +483,17 @@ void i2cInitExtSerial()
   1	  1	  1	  0x27 (39)
   */
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0, true);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0, true);
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0xAA);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0xAA);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0xAA, true);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0xAA, true);
 }
 
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
-void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn)
+
+
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn, bool takeSemaphore)
 {
   uint8_t valueA=0;
   uint8_t valueB=0;
@@ -499,24 +507,24 @@ void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn)
     {
       if(u8_serialDevNr<4)
       {
-        if(serialRxTxEn==serialRxTx_TxEn) valueA|=(RX_EN<<(u8_serialDevNr*2));
-        else if(serialRxTxEn==serialRxTx_RxEn) valueA|=(TX_EN<<(u8_serialDevNr*2));
-        else if(serialRxTxEn==serialRxTx_RxTxDisable) valueA|=(TXRX_DIS<<(u8_serialDevNr*2));
+        if(serialRxTxEn == serialRxTx_TxEn) valueA |= (RX_EN << (u8_serialDevNr*2));
+        else if(serialRxTxEn == serialRxTx_RxEn) valueA |= (TX_EN << (u8_serialDevNr*2));
+        else if(serialRxTxEn == serialRxTx_RxTxDisable) valueA |= (TXRX_DIS << (u8_serialDevNr*2));
       }
       else
       {
-        if(serialRxTxEn==serialRxTx_TxEn) valueB|=(RX_EN<<((u8_serialDevNr-4)*2));
-        else if(serialRxTxEn==serialRxTx_RxEn) valueB|=(TX_EN<<((u8_serialDevNr-4)*2));
-        else if(serialRxTxEn==serialRxTx_RxTxDisable) valueB|=(TXRX_DIS<<((u8_serialDevNr-4)*2));
+        if(serialRxTxEn == serialRxTx_TxEn) valueB |= (RX_EN << ((u8_serialDevNr-4)*2));
+        else if(serialRxTxEn == serialRxTx_RxEn) valueB |= (TX_EN << ((u8_serialDevNr-4)*2));
+        else if(serialRxTxEn == serialRxTx_RxTxDisable) valueB |= (TXRX_DIS << ((u8_serialDevNr-4)*2));
       }
     }
     else
     {
-      if(i<4) valueA|=(TXRX_DIS<<(i*2));
-      else valueB|=(TXRX_DIS<<((i-4)*2));
+      if(i < 4) valueA |= (TXRX_DIS << (i*2));
+      else valueB |= (TXRX_DIS << ((i-4)*2));
     }
   }
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA, takeSemaphore);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB, takeSemaphore);
 }

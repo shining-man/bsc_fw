@@ -317,7 +317,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
  * 
  */
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
-void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw)
+void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw, bool takeSemaphore)
 {
   #ifndef LILYGO_TCAN485
   if(u8_devNr==0)
@@ -366,19 +366,32 @@ void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw)
   }
   else if(u8_devNr>2 && u8_devNr<=10 && getHwVersion()>=2)
   {
-    i2cExtSerialSetEnable(u8_devNr-3, (serialRxTxEn_e)e_rw);
+    i2cExtSerialSetEnable(u8_devNr-3, (serialRxTxEn_e)e_rw, takeSemaphore);
   }
   #endif
 }
 
+void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw)
+{
+  setRxTxEnable(u8_devNr, e_rw, true);
+}
 
 void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, uint8_t txLen)
 {
   setRxTxEnable(devNr,serialRxTx_TxEn);
   usleep(20);
+
+  // Wenn der serialport auf der Extension ist, dann vorher den I2C Mutex holen
+  if(devNr>2 && devNr<=10 && getHwVersion()>=2) i2cTakeSemaphore();
+
+  portMUX_TYPE serialMutex = portMUX_INITIALIZER_UNLOCKED;
+  taskENTER_CRITICAL(&serialMutex);
+
   port->write(txBuffer, txLen);
   port->flush();
-  setRxTxEnable(devNr,serialRxTx_RxEn);
+  setRxTxEnable(devNr, serialRxTx_RxEn, false);
+
+  taskEXIT_CRITICAL(&serialMutex);
 }
 
 
