@@ -45,8 +45,6 @@ struct serialDeviceData_s
 };
 struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
 
-void setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw);
-
 #ifdef UTEST_BMS_FILTER
 bool readBmsTestData(uint8_t devNr);
 #endif
@@ -317,7 +315,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
  * 
  */
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
-void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw, bool takeSemaphore)
+void BscSerial::setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw)
 {
   #ifndef LILYGO_TCAN485
   if(u8_devNr==0)
@@ -366,14 +364,9 @@ void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw, bool takeSemaphore
   }
   else if(u8_devNr>2 && u8_devNr<=10 && getHwVersion()>=2)
   {
-    i2cExtSerialSetEnable(u8_devNr-3, (serialRxTxEn_e)e_rw, takeSemaphore);
+    i2cExtSerialSetEnable(u8_devNr-3, e_rw);
   }
   #endif
-}
-
-void BscSerial::setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw)
-{
-  setRxTxEnable(u8_devNr, e_rw, true);
 }
 
 void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, uint8_t txLen)
@@ -381,17 +374,13 @@ void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, u
   setRxTxEnable(devNr,serialRxTx_TxEn);
   usleep(20);
 
-  // Wenn der serialport auf der Extension ist, dann vorher den I2C Mutex holen
-  if(devNr>2 && devNr<=10 && getHwVersion()>=2) i2cTakeSemaphore();
-
-  portMUX_TYPE serialMutex = portMUX_INITIALIZER_UNLOCKED;
-  taskENTER_CRITICAL(&serialMutex);
-
+  vTaskPrioritySet(task_handle_bscSerial, configMAX_PRIORITIES);
+  
   port->write(txBuffer, txLen);
   port->flush();
-  setRxTxEnable(devNr, serialRxTx_RxEn, false);
+  setRxTxEnable(devNr, serialRxTx_RxEn);
 
-  taskEXIT_CRITICAL(&serialMutex);
+  vTaskPrioritySet(task_handle_bscSerial, TASK_PRIORITY_STD);
 }
 
 
@@ -414,7 +403,7 @@ void BscSerial::cyclicRun()
     
     uint8_t u8_serDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
 
-    // Wenn BT-Device eingestellt ist
+    // 
     if(dataDeviceSchnittstelle >= MUBER_OF_DATA_DEVICES) continue;
 
     // Wenn BT-Device eingestellt ist
@@ -465,8 +454,11 @@ void BscSerial::cyclicRun()
 
 
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
-    if(serialDeviceData[u8_serDeviceNr].readBms!=NULL)
-      bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(this, serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
+    if(serialDeviceData[u8_serDeviceNr].readBms != NULL)
+    {
+      bo_lBmsReadOk = serialDeviceData[u8_serDeviceNr].readBms(this, serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
+      if(u8_serDeviceNr >= 2) setRxTxEnable(u8_serDeviceNr, serialRxTx_RxTxDisable);
+    }
     else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",u8_serDeviceNr);
 
     if(devData.bo_writeData) free(lRwData);

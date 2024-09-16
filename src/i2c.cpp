@@ -59,14 +59,16 @@ void onReceive(int len)
 }
 
 
-void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data, bool takeSemaphore)
+/*
+ * Beim Nutzen der Funktion das mutexI2cRx nicht vergessen!
+ */
+void i2cWriteRegister(uint8_t u8_i2cDevAdr, uint8_t u8_reg, uint8_t u8_data)
 {
-  if(takeSemaphore) xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
+  //xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
   Wire.beginTransmission(u8_i2cDevAdr);
   Wire.write(u8_reg);
   Wire.write(u8_data);
   Wire.endTransmission();
-  xSemaphoreGive(mutexI2cRx);
 }
 
 
@@ -101,12 +103,6 @@ void i2cInit()
       BSC_LOGD(TAG,"Slave: Adr=%i",u8_mMasterSlaveId);
     }
   }*/
-}
-
-
-void i2cTakeSemaphore()
-{
-  xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
 }
 
 
@@ -483,23 +479,24 @@ void i2cInitExtSerial()
   1	  1	  1	  0x27 (39)
   */
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0, true);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0, true);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRA, 0x0);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_IODIRB, 0x0);
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0xAA, true);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0xAA, true);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, 0xAA);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, 0xAA);
 }
 
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
-void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn, bool takeSemaphore)
+void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn)
 {
   uint8_t valueA=0;
   uint8_t valueB=0;
   const char TX_EN = 0x00;
   const char RX_EN = 0x03;
   const char TXRX_DIS = 0x02;
+  static bool semaphoreState = false;
 
   for(uint8_t i=0;i<8;i++)
   {
@@ -525,6 +522,22 @@ void i2cExtSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serialRxTxEn, 
     }
   }
 
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA, takeSemaphore);
-  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB, takeSemaphore);
+
+  // Mögliche States
+  // enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
+
+  if(semaphoreState == false)
+  {
+    xSemaphoreTake(mutexI2cRx, portMAX_DELAY);
+    semaphoreState = true;
+  }
+
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOA, valueA);
+  i2cWriteRegister(I2C_DEV_ADDR_SERIAL_EXTENSION, MCP23017_GPIOB, valueB);
+
+  if(serialRxTxEn != serialRxTx_TxEn)
+  {
+    xSemaphoreGive(mutexI2cRx);
+    semaphoreState = false;
+  }
 }

@@ -97,7 +97,6 @@ bool DalyBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, seri
   else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_ret;
 }
 

@@ -63,7 +63,6 @@ bool JkBmsV13_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, ser
   }
   else bo_lRet=false;
 
-  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNrJkV13,serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 

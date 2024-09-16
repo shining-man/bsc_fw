@@ -82,7 +82,6 @@ bool SeplosBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, se
     }
   }
 
-  if(u8_mDevNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   vTaskDelay(pdMS_TO_TICKS(25));
   return ret;
 }
