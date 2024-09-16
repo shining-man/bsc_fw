@@ -1294,8 +1294,8 @@ void setup()
   BSC_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
   WiFi.setAutoReconnect(false);
-  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, 5, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
-  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, 1, &task_handle_wifiConn, 1);
+  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
+  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, TASK_PRIORITY_CONNECT_WIFI, &task_handle_wifiConn, 1);
 
 
   if (MDNS.begin(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
@@ -1413,15 +1413,15 @@ void setup()
   #endif
 
   //Erstelle Tasks
-  xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
-  xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, 5, &task_handle_bscSerial, 1);
-  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
-  xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
-  xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_onewire, 1);
+  xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_bscSerial, 1);
+  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, TASK_PRIORITY_ALARMRULES, &task_handle_alarmrules, 1);
+  xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, TASK_PRIORITY_STD, &task_handle_canbusTx, 1);
+  xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   #ifdef UTEST_FS
-  xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, 5, &task_handle_i2c, 1);
-  xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, 5, &task_handle_i2c, 1);
-  xTaskCreatePinnedToCore(task_fsTest3, "fstest3", 2500, nullptr, 5, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_fsTest3, "fstest3", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   #endif
 
   free_dump();
