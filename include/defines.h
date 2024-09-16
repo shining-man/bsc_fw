@@ -9,9 +9,18 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.6.1_dm5"
+#define BSC_SW_VERSION      "V0.6.1_dm8"
 
 static const char COMPILE_DATE_TIME[] = "";
+
+
+// TaskHandles
+extern TaskHandle_t task_handle_bscSerial;
+
+#define TASK_PRIORITY_STD 5
+#define TASK_PRIORITY_ALARMRULES (configMAX_PRIORITIES - 5)
+#define TASK_PRIORITY_CONNECT_WIFI 1
+
 
 //#define USE_LittleFS
 #define HTML_MINIFY
@@ -132,8 +141,8 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      11
-#define SERIAL_BMS_SEPLOS_COUNT       2
-#define SERIAL_BMS_SYLCIN_COUNT       2
+//#define SERIAL_BMS_SEPLOS_COUNT       2
+//#define SERIAL_BMS_SYLCIN_COUNT       2
 enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define SERIAL1_PIN_RX               16
