@@ -95,9 +95,6 @@ bool mqttLoop()
   //Is MQTT Enabled?
   if(mMqttEnable == MQTT_ENABLE_STATE_OFF)
   {
-    #ifdef MQTT_DEBUG
-    BSC_LOGD(TAG,"mqttLoop(): mMqttEnable=0, ret=1");
-    #endif
     return true;
   }
   else if(mMqttEnable == MQTT_ENABLE_STATE_EN)
