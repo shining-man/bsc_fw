@@ -204,9 +204,6 @@ bool GobelBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, ser
   if (bo_lRet == false) return bo_lRet;
 
   vTaskDelay(pdMS_TO_TICKS(25));
-  
-
-  if (devNr >= 2) bscSerial->setRxTxEnable(u8_mDevNr, serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 

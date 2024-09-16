@@ -81,7 +81,6 @@ bool SylcinBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, se
     else ret = false;
   }
 
-  if(u8_mDevNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return ret;
 }
 

@@ -73,7 +73,6 @@ bool JbdBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, seria
     bscSerial->sendSerialData(mPort, u8_mDevNr ,response, 9);
   }
 
-  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_lRet;
 }
 

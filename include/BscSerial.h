@@ -8,6 +8,7 @@
 #define BSCSERIAL_H
 
 #include "Arduino.h"
+#include "defines.h"
 #include <SoftwareSerial.h>
 
 class BscSerial {
@@ -23,8 +24,7 @@ public:
 
   void cyclicRun();
 
-  void setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw);
-  void setRxTxEnable(uint8_t u8_devNr, uint8_t e_rw, bool takeSemaphore);
+  void setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw);
   void sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, uint8_t txLen);
 
   void setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp);

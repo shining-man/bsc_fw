@@ -324,8 +324,6 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
     else break;
   }
 
-
-  if(devNr>=2) bscSerial->setRxTxEnable(u8_mDevNr, serialRxTx_RxTxDisable);
   //BSC_LOGI(TAG,"ret=%d, rxVal=%i, delCnt=%i, readCntGes=%i, errCnt=%i",bo_ret, rxValues, byteDelCnt, byteReadCntGes, errCntSmartShunt);
   return bo_ret; 
 }
