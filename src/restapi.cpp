@@ -203,7 +203,9 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
 
-    genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
+    genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, false);
+
+    genJsonEntryArray(entrySingleNumber, F("autobal_state"), inverter.getAutobalState(), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server.sendContent(str_htmlOut);
