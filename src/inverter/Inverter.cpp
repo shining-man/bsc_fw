@@ -208,3 +208,13 @@ void Inverter::sendMqttMsg()
     mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_TEMPERATURE, -1, (float)(i16_lBattTemp));
   }
 }
+
+
+uint8_t Inverter::getAutobalState()
+{
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  uint8_t stateAutobalance = inverterData.mStateAutobalance;
+  xSemaphoreGive(mInverterDataMutex);
+
+  return stateAutobalance;
+}
