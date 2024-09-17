@@ -473,229 +473,14 @@ Byte | Data
   }
 }
 
+
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address)
 {
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGI(TAG, "parseMessage_Alarms: serialDev=%i", address);
-#endif
-/*
-
-item content DATAI bytes Remark
-1 * PACKnumber M / COMMAND value 1
-2 PACK 1warn information See at chart A.18
-3 …… ……
-M + 1 PACK Mwarn information See at chart A.18
-
-Char A.18 One pack warn information and transmittion order
-1 Cell number M 1
-2 Cell voltage 1 warn 1
-3 Cell voltage 2 warn 1
-4 …… ……
-M + 1 Cell voltage M warn 1
-M + 2 Temperature number N 1
-M + 3 Temperature 1 warn 1
-M + 4 Temperature 2 warn 1
-M + 5 …… ……
-M + N + 2 Temperature N warn 1
-M + N + 3 PACK charge current warn 1
-M + N + 4 PACK total voltage warn 1
-M + N + 5 PACK discharge current warn 1
-M + N + 6 Protect state 1 1 See at chart A.19
-M + N + 7 Protect state 2 1 See at chart A.20
-M + N + 8 Instructions state 1 See at chart A.21
-M + N + 9 Control state 1 See at chart A.22
-M + N + 10 Fault state 1 See at chart A.23
-M + N + 11 Balance state1 1 Balance state for 1-8
-M + N + 12 Balance state2 1 Balance state for 9-16
-M + N + 13 Warn state1 1 See at chart A.24
-M + N + 14 Warn state2 1 See at chart A.25
-description:
-10
-—— 00H: normal
-—— 01H: below lower limit
-—— 02H: above upper limit
-—— 80H~EFH: user define
-—— F0H: other fault。
-
-Char A.19 Protect state1 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | Short circuit                       | 1: Short circuit protect 0: normal
-| 5 | Discharge current protect           | 1: Discharge current protect 0: normal
-| 4 | charge current protect              | 1: charge current protect 0: normal
-| 3 | Lower total voltage protect         | 1: Lower total voltage protect 0: normal
-| 2 | Above total voltage protect         | 1: Above total voltage protect 0: normal
-| 1 | Lower cell voltage protect          | 1: Above total voltage protect 0: normal
-| 0 | Above cell voltage protect          | 1: Above cell voltage protect 0: normal
-
-Char A.20 Protect state 2 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Fully                               | 1: Fully 0: normal
-| 6 | Lower Env temperature protect       | 1: Lower Env temperature protect 0:  normal
-| 5 | above Env temperature protect       | 1: above Env temperature protect 0:  normal
-| 4 | Above MOS temperature protect       | 1: Above MOS temperature protect 0:  normal
-| 3 | Lower discharge temperature protect | 1: Lower discharge temperature protect 0: normal
-| 2 | Lower charge temperature protect    | 1: Lower charge temperature protect 0:  normal
-| 1 | above discharge temperature protect | 1: above discharge temperature protect 0: normal
-| 0 | above charge temperature protect    | 1: above charge temperature protect 0:  normal
-
-Char A.21 Instructions state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Heart indicate                      | 1: ON 0: OFF
-| 6 | undefine                            |
-| 5 | ACin                                | 1: ON 0: normal
-| 4 | Reverse indicate                    | 1: ON 0: normal
-| 3 | Pack indicate                       | 1: Pack indicate 0: unuse
-| 2 | DFET indicate                       | 1: ON 0: OFF
-| 1 | * CFET indicate                     | 1: ON 0: OFF
-| 0 | Current limit indicate              | 1: ON 0: OFF
-
-Char A.22 Control state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Undefined                           |
-| 6 | Undefined                           |
-| 5 | LED warn functiuon                  | 1: unenable 0: enable
-| 4 | Current limit function              | 1: unenable 0: enable
-| 3 | Current limit gear                  | 1: low gear 0: high gear
-| 2 | undefine                            |
-| 1 | undefine                            |
-| 0 | Buzzer warn function                | 1: enable 0: unenable
-
-Char A.23 Fault state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | undefine                            |
-| 5 | Sample fault                        | 1: fault 0: normal
-| 4 | Cell fault                          | 1: fault 0: normal
-| 3 | Undefined
-| 2 | NTC fault (NTC)                     | 1: fault 0: normal
-| 1 | Discharge MOS fault                 | 1: fault 0: normal
-| 0 | Charge MOS fault                    | 1: fault 0: normal
-
-Char A.24 Warn state1 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | undefine                            |
-| 5 | Discharge current warn              | 1: warn 0: normal
-| 4 | charge current warn                 | 1: warn 0: normal
-| 3 | Lower tatal voltage warn            | 1: warn 0: normal
-| 2 | above tatal voltage warn            | 1: warn 0: normal
-| 1 | Lower cell voltage warn             | 1: warn 0: normal
-| 0 | above cell voltage warn             | 1: warn 0: normal
-
-Char A.25 Warn state2 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Low power warn                      | 1: warn 0: normal
-| 6 | High MOS temperature warn           | 1: warn 0: normal
-| 5 | low env temperature warn            | 1: warn 0: normal
-| 4 | high env temperature warn           | 1: warn 0: normal
-| 3 | low discharge temperature warn      | 1: warn 0: normal
-| 2 | low charge temperature warn         | 1: warn 0: normal
-| 1 | above discharge temperature warn    | 1: warn 0: normal
-| 0 | above charge temperature warn       | 1: warn 0: normal
-*/
-
-  //uint8_t u8_lMsgoffset = 0;
-  uint8_t u8_value = 0;
-  uint32_t u32_alarm = 0;
-  boolean bo_lValue = false;
-
-#if 0
-  uint8_t u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
-#endif
-
-  u8_lMsgoffset = 9;
-  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
-  {
-    uint8_t cellwarn = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-    if (cellwarn == 0x01)
-      u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
-    else if (cellwarn == 0x02)
-      u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
-  }
-
-  uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Number of temp sensors: %d", u8_lCntTempSensors);
-#endif
-  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
-  {
-    uint8_t tempwarn = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-    // TODO
-  }
-
-  u8_lMsgoffset+=10;
-  // M + N + 13 Warn state1 1 See at chart A.24
-  uint8_t warnstate1 = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-  /*Char A.24 Warn state1 explanation
-  |BIT| content                             | Remark
-  ----------------------------------------------------------------------------------
-  | 7 | undefine                            |
-  | 6 | undefine                            |
-  | 5 | Discharge current warn              | 1: warn 0: normal
-  | 4 | charge current warn                 | 1: warn 0: normal
-  | 3 | Lower tatal voltage warn            | 1: warn 0: normal
-  | 2 | above tatal voltage warn            | 1: warn 0: normal
-  | 1 | Lower cell voltage warn             | 1: warn 0: normal
-  | 0 | above cell voltage warn             | 1: warn 0: normal
-  */
-  if (warnstate1 & (1<<0))
-      u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
-
-  if (warnstate1 & (1<<1))
-      u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
-
-  if (warnstate1 & (1<<2))
-      u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
-
-  if (warnstate1 & (1<<3))
-      u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
-
-  if (warnstate1 & (1<<4))
-      u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
-
-  if (warnstate1 & (1<<5))
-      u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
-
-  // M + N + 14 Warn state2 1 See at chart A.25
-  uint8_t warnstate2 = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-  /*
-  Char A.25 Warn state2 explanation
-  |BIT| content                             | Remark
-  ----------------------------------------------------------------------------------
-  | 7 | Low power warn                      | 1: warn 0: normal
-  | 6 | High MOS temperature warn           | 1: warn 0: normal
-  | 5 | low env temperature warn            | 1: warn 0: normal
-  | 4 | high env temperature warn           | 1: warn 0: normal
-  | 3 | low discharge temperature warn      | 1: warn 0: normal
-  | 2 | low charge temperature warn         | 1: warn 0: normal
-  | 1 | above discharge temperature warn    | 1: warn 0: normal
-  | 0 | above charge temperature warn       | 1: warn 0: normal
-  */
-  if (warnstate2 & (1<<0))
-      u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
-
-  if (warnstate2 & (1<<1))
-      u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
-
-  if (warnstate2 & (1<<2))
-      u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
-
-  if (warnstate2 & (1<<3))
-      u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
-
-  setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
+  #ifdef GOBELPC200_DEBUG
+    BSC_LOGI(TAG, "parseMessage_Alarms: serialDev=%i", address);
   #endif
 
+  uint32_t u32_alarm = 0;
 
   // FET state
   uint8_t FETstate = convertAsciiHexToByte(t_message, 37);
@@ -706,12 +491,72 @@ Char A.25 Warn state2 explanation
   else setBmsStateFETsDischarge(BT_DEVICES_COUNT + address, false); 
 
 
-  u8_value = convertAsciiHexToByte(t_message, 38);
+  // BMS_ERR_STATUS_OK            
+  // BMS_ERR_STATUS_CELL_OVP       // x      1 - bit0 single cell overvoltage protection
+  // BMS_ERR_STATUS_CELL_UVP       // x      2 - bit1 single cell undervoltage protection
+  // BMS_ERR_STATUS_BATTERY_OVP    // x      4 - bit2  whole pack overvoltage protection
+  // BMS_ERR_STATUS_BATTERY_UVP    //        8 - bit3  Whole pack undervoltage protection
+  // BMS_ERR_STATUS_CHG_OTP        // x     16 - bit4  charging over temperature protection
+  // BMS_ERR_STATUS_CHG_UTP        // x     32 - bit5  charging low temperature protection
+  // BMS_ERR_STATUS_DSG_OTP        // x     64 - bit6  Discharge over temperature protection
+  // BMS_ERR_STATUS_DSG_UTP        // x    128 - bit7  discharge low temperature protection
+  // BMS_ERR_STATUS_CHG_OCP        //      256 - bit8  charging overcurrent protection
+  // BMS_ERR_STATUS_DSG_OCP        //      512 - bit9  Discharge overcurrent protection
+  // BMS_ERR_STATUS_SHORT_CIRCUIT  //     1024 - bit10 short circuit protection
+  // BMS_ERR_STATUS_AFE_ERROR      //     2048 - bit11 Front-end detection IC error
+  // BMS_ERR_STATUS_SOFT_LOCK      //     4096 - bit12 software lock MOS
+  // BMS_ERR_STATUS_RESERVED1      //     8192 - bit13 Reserved
+  // BMS_ERR_STATUS_RESERVED2      //    16384 - bit14 Reserved
+  // BMS_ERR_STATUS_RESERVED3      //    32768 - bit15 Reserved
 
-  if(isBitSet(u8_value, 4)) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+  // Cell OVP
+  for(uint16_t c = 0; c < 16; c++)
+  {
+    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+  }
+
+  // Cell UVP
+  for(uint16_t c = 0; c < 16; c++)
+  {
+    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 1)) u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
+  }
+
+  // Pack OVP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 1)) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+
+  // Pack OVP
+  // ToDo
+
+  // ChgOTP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 6))
+  {
+    for(uint16_t c = 0; c < 4; c++)
+    {
+      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
+    }
+  }
+
+  // ChgUTP + DsgUTP
+  for(uint16_t c = 0; c < 4; c++)
+  {
+    if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 1)) 
+    {
+      u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
+      u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
+    }
+  }
+
+  // DsgOTP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 5))
+  {
+    for(uint16_t c = 0; c < 4; c++)
+    {
+      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+    }
+  }
 
 
-
+  setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
 }
 
 uint8_t convertAsciiHexToByte(char a, char b)
