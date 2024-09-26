@@ -19,6 +19,7 @@
   <a href="https://github.com/asdt1803" target=_blank><img src="https://avatars.githubusercontent.com/u/61160231?v=4" height="58"/></a>
   <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?v=4" height="58"/></a>
   <a href="https://github.com/myhacsint" target=_blank><img src="https://avatars.githubusercontent.com/u/111045655?v=4" height="58"/></a>
+  <a href="https://github.com/Dunkhase" target=_blank><img src="https://avatars.githubusercontent.com/u/30649822?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
@@ -31,6 +32,8 @@
   <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?v=4" height="58"/></a>
   <a href="https://github.com/jgatringer" target=_blank><img src="https://avatars.githubusercontent.com/u/14805417?v=4" height="58"/></a>
   <a href="https://github.com/GadingeL" target=_blank><img src="https://avatars.githubusercontent.com/u/46995271?v=4" height="58"/></a>
+  <a href="https://github.com/Vitalic66" target=_blank><img src="https://avatars.githubusercontent.com/u/26961054?v=4" height="58"/></a>
+  <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 

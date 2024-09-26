@@ -1,0 +1,32 @@
+name: Create Project Item on Issue Creation
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  create_project_item:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Project Item
+        env:
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PROJECT_ID: "PVT_kwHOBos2JM4AlrcP"  # Projekt-ID
+        run: |
+          ISSUE_NODE_ID=$(gh api graphql -F issue_number=${{ github.event.issue.number }} -F owner="${{ github.repository_owner }}" -F name="${{ github.event.repository.name }}" -f query='
+            query($issue_number: Int!, $owner: String!, $name: String!) {
+              repository(owner: $owner, name: $name) {
+                issue(number: $issue_number) {
+                  id
+                }
+              }
+            }' --jq '.data.repository.issue.id')
+          
+          gh api graphql -F projectId="$PROJECT_ID" -F contentId="$ISSUE_NODE_ID" -f query='
+            mutation($projectId: ID!, $contentId: ID!) {
+              addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                item {
+                  id
+                }
+              }
+            }'
