@@ -66,8 +66,8 @@ const char HTML_START_2[] PROGMEM = R"rawliteral(
 </head>
 <body>
 <div class="topnav">
-  <span class='btnBack' onclick=location.href='../'>&#10094;</span>
   <span class='btnBack' onclick=location.href='/'>&#10094;&#10094;</span>
+  <span class='btnBack' onclick=location.href='../'>&#10094;</span>
   <span class='hl'>%s</span>
 </div>
 <div id='lc' class="loading-container"><div class="loading-spinner"></div></div>
