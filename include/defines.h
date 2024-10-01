@@ -274,7 +274,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_MQTT_SERVER_IP                     42
 #define ID_PARAM_MQTT_SERVER_PORT                   43
 #define ID_PARAM_MQTT_SERVER_ENABLE                 44
-#define ID_PARAM_MQTT_DEVICE_NAME                   45
+#define ID_PARAM_BSC_DEVICE_NAME                    45
 #define ID_PARAM_MQTT_TOPIC_NAME                    46
 
 #define ID_PARAM_ONWIRE_ENABLE                      50
