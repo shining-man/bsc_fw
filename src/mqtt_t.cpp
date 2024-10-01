@@ -62,7 +62,7 @@ bool mqttPublishLoopFromTxBuffer();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
-//void mqttPublishTrigger();
+void mqttPublishTrigger();
 void mqttCallback(char* topic, uint8_t* payload, unsigned int length);
 
 
@@ -419,6 +419,8 @@ void mqttDataToTxBuffer()
       sendBmsData_mqtt_sendeCounter=0;
       owDataSendFinsh=false;
       sendOwTemperatur_mqtt_sendeCounter=0;
+
+      mqttPublishTrigger();
     }
 
     if(millis()-sendeDelayTimer500ms>=500) //Sende alle 500ms eine Nachricht
@@ -536,7 +538,7 @@ void mqttPublishOwTemperatur(uint8_t i)
 }
 
 
-/*void mqttPublishTrigger()
+void mqttPublishTrigger()
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
@@ -544,7 +546,7 @@ void mqttPublishOwTemperatur(uint8_t i)
   {
     mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, getAlarm(i));
   }
-}*/
+}
 
 
 
