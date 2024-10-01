@@ -135,11 +135,11 @@ void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t le
     setBmsTempature(devNr,1,f_lTmpValue);
 
 
-    uint16_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
+    uint16_t f_lMaxZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
     uint16_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));
-    setBmsMaxCellDifferenceVoltage(devNr, f_lMacZellVoltage-f_lMinZellVoltage);
+    //setBmsMaxCellDifferenceVoltage(devNr, f_lMaxZellVoltage-f_lMinZellVoltage);
 
-    setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);
+    setBmsMaxCellVoltage(devNr, f_lMaxZellVoltage);
     setBmsMinCellVoltage(devNr, f_lMinZellVoltage);
 
     //BSC_LOGI(TAG,"setBmsLastDataMillis");
