@@ -374,7 +374,7 @@ void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, u
   setRxTxEnable(devNr,serialRxTx_TxEn);
   usleep(20);
 
-  vTaskPrioritySet(task_handle_bscSerial, configMAX_PRIORITIES);
+  vTaskPrioritySet(task_handle_bscSerial, TASK_PRIORITY_SERIAL_MAX);
   
   port->write(txBuffer, txLen);
   port->flush();

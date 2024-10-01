@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.6.1_dm8"
+#define BSC_SW_VERSION      "V0.6.1_dm9"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -18,8 +18,9 @@ static const char COMPILE_DATE_TIME[] = "";
 extern TaskHandle_t task_handle_bscSerial;
 
 #define TASK_PRIORITY_STD 5
-#define TASK_PRIORITY_ALARMRULES (configMAX_PRIORITIES - 5)
+#define TASK_PRIORITY_ALARMRULES (configMAX_PRIORITIES - 6)
 #define TASK_PRIORITY_CONNECT_WIFI 1
+#define TASK_PRIORITY_SERIAL_MAX (TASK_PRIORITY_ALARMRULES + 1)
 
 
 //#define USE_LittleFS
