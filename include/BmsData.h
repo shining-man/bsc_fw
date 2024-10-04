@@ -116,9 +116,9 @@ void setBmsWarnings(uint8_t devNr, uint32_t value);
 
 uint8_t getBmsStateFETs(uint8_t devNr);
 void    setBmsStateFETs(uint8_t devNr, uint8_t value);
-boolean getBmsStateFETsCharge(uint8_t devNr);
+bool    getBmsStateFETsCharge(uint8_t devNr);
 void    setBmsStateFETsCharge(uint8_t devNr, boolean value);
-boolean getBmsStateFETsDischarge(uint8_t devNr);
+bool    getBmsStateFETsDischarge(uint8_t devNr);
 void    setBmsStateFETsDischarge(uint8_t devNr, boolean value);
 
 uint16_t getBmsCellVoltageCrc(uint8_t devNr);
