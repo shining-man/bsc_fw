@@ -49,7 +49,7 @@ struct mqttEntry_s {
   int8_t t2;
   int8_t t3;
   int8_t t4;
-  String value;
+  std::string value;
 };
 std::deque<mqttEntry_s> txBuffer;
 
@@ -349,7 +349,7 @@ bool mqttPublishLoopFromTxBuffer()
 }
 
 
-void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
 {
   if(mMqttEnable <= MQTT_ENABLE_STATE_EN) return;
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
@@ -394,22 +394,22 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 
