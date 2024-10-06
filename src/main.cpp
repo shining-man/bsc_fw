@@ -1294,7 +1294,7 @@ void setup()
   BSC_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
   WiFi.setAutoReconnect(false);
-  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
+  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_SERIAL_MAX, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, TASK_PRIORITY_CONNECT_WIFI, &task_handle_wifiConn, 1);
 
 
