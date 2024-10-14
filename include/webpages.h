@@ -26,11 +26,7 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
 "</head>"
 "<body>"
   "<div class='topnav'>"
-<<<<<<< HEAD
-    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.6.1_T7</span>"
-=======
-    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.6.1</span>"
->>>>>>> main
+    "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;V0.7.0_T9</span>"
   "</div>"
   "<div style='background-color: #BFEFFF; padding: 10px; margin-top: 10px;'>Gefällt dir das Projekt? Zeige deine Wertschätzung doch einfach mit einer Spende! Weitere Infos unter "
     "<a href='./support/'>Unterst&uuml;tzung</a></div>"
