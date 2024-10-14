@@ -49,7 +49,7 @@ struct mqttEntry_s {
   int8_t t2;
   int8_t t3;
   int8_t t4;
-  String value;
+  std::string value;
 };
 std::deque<mqttEntry_s> txBuffer;
 
@@ -79,11 +79,16 @@ void initMqtt()
 
   if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
   {
+    wifiClient.setTimeout(1);
+    wifiClient.setClientSelectTimeout(900000, 1);
+
+    mqttClient.setKeepAlive(30);
+    mqttClient.setSocketTimeout(1);
+
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
     mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     mqttClient.setCallback(mqttCallback);
-    mqttClient.setKeepAlive(30);
   }
 }
 
@@ -95,9 +100,9 @@ bool mqttLoop()
   //Is MQTT Enabled?
   if(mMqttEnable == MQTT_ENABLE_STATE_OFF)
   {
-    #ifdef MQTT_DEBUG
+    /*#ifdef MQTT_DEBUG
     BSC_LOGD(TAG,"mqttLoop(): mMqttEnable=0, ret=1");
-    #endif
+    #endif*/
     return true;
   }
   else if(mMqttEnable == MQTT_ENABLE_STATE_EN)
@@ -324,7 +329,14 @@ bool mqttPublishLoopFromTxBuffer()
       if(mqttEntry.t3!=-1){topic+="/"; topic+=mqttTopics[mqttEntry.t3];}
       if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
 
-      mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
+      //uint32_t pubTime = millis();
+      if(mqttClient.publish(topic.c_str(), mqttEntry.value.c_str()) == false)
+      {
+        // Wenn die Nachricht nicht mehr versendet werden kann
+        BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout)");
+        //BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout: %i ms)", millis() - pubTime);
+        mqttDisconnect();
+      }
       txBuffer.pop_front();
     }
 
@@ -337,7 +349,7 @@ bool mqttPublishLoopFromTxBuffer()
 }
 
 
-void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
 {
   if(mMqttEnable <= MQTT_ENABLE_STATE_EN) return;
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
@@ -382,22 +394,22 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 
