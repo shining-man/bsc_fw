@@ -20,6 +20,7 @@
   <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?v=4" height="58"/></a>
   <a href="https://github.com/myhacsint" target=_blank><img src="https://avatars.githubusercontent.com/u/111045655?v=4" height="58"/></a>
   <a href="https://github.com/Dunkhase" target=_blank><img src="https://avatars.githubusercontent.com/u/30649822?v=4" height="58"/></a>
+  <a href="https://github.com/SlapJackNpNp" target=_blank><img src="https://avatars.githubusercontent.com/u/26175386?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
