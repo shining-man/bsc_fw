@@ -152,7 +152,7 @@ namespace nsInverterBattery
           totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
 
           //So lang die letzten 5000ms Daten kamen ist alles ok
-          if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL + i)) < CAN_BMS_COMMUNICATION_TIMEOUT) 
+          if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) 
           {
             onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
           }
