@@ -405,7 +405,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
   char buffer[20];
-  sprintf(buffer, "%.3f", value);
+  sprintf(buffer, "%.2f", value);
   std::string tmpStr(buffer);
 
   mqttPublish(t1, t2, t3, t4, tmpStr);
