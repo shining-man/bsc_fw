@@ -729,7 +729,7 @@ namespace nsCanbus
     uint16_t totalCapacity;
 
     nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
-    inverterBattery.getBatteryCapacity(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, 
+    inverterBattery.getBatteryCapacity(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, 
       msgData.Onlinecapacity, totalCapacity);
 
     if(canDevice == ID_CAN_DEVICE_BYD_PROTOCOL)
@@ -845,7 +845,7 @@ namespace nsCanbus
     
     uint16_t onlinecapacity;
     nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
-    inverterBattery.getBatteryCapacity(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, 
+    inverterBattery.getBatteryCapacity(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd, 
       onlinecapacity, msgData.installedCapacity);
 
     sendCanMsg(0x379, (uint8_t *)&msgData, sizeof(data379));
