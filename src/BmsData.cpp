@@ -440,7 +440,7 @@ void setBmsStateFETs(uint8_t devNr, uint8_t value)
   xSemaphoreGive(mBmsDataMutex);
 }
 
-boolean getBmsStateFETsCharge(uint8_t devNr)
+bool getBmsStateFETsCharge(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   boolean ret = ((bmsData.bmsStateFETs[devNr]&0x01)==0x01) ? true : false;
@@ -455,7 +455,7 @@ void setBmsStateFETsCharge(uint8_t devNr, boolean value)
   xSemaphoreGive(mBmsDataMutex);
 }
 
-boolean getBmsStateFETsDischarge(uint8_t devNr)
+bool getBmsStateFETsDischarge(uint8_t devNr)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   boolean ret = ((bmsData.bmsStateFETs[devNr]&0x02)==0x02) ? true : false;
@@ -681,11 +681,11 @@ bool haveAllBmsFirstData()
   {
     if((uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE) <= MUBER_OF_DATA_DEVICES)
     {
-      if(bmsData.bmsLastDataMillis[i] == 0) 
-      { 
+      if(bmsData.bmsLastDataMillis[i] == 0)
+      {
         allBmsHaveData = false;
         // BSC_LOGI(TAG,"Keine Daten: SER %i", i);
-      } 
+      }
     }
   }
 

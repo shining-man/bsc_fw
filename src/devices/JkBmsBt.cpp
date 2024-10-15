@@ -240,7 +240,11 @@ void jkBmsBtDecodeCellInfo_jk02(uint8_t devNr, uint8_t* pData, uint8_t frameNr, 
       setBmsCellVoltage(devNr,i,u16_lCellVoltage);
 
       float fl_lCellResistance = (float)getJk16bit(i*2+64+u8_lOffset)*0.001f;
-      mqttPublish(MQTT_TOPIC_DATA_DEVICE, devNr, MQTT_TOPIC2_CELL_RESISTANCE, i, String(fl_lCellResistance,3));
+
+      char buffer[20];
+      sprintf(buffer, "%.3f", fl_lCellResistance);
+      std::string tmpStr(buffer);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, devNr, MQTT_TOPIC2_CELL_RESISTANCE, i, tmpStr);
     }
     setBmsMinCellVoltage(devNr,u16_lMinCellVoltage);
     setBmsMaxCellVoltage(devNr,u16_lMaxCellVoltage);

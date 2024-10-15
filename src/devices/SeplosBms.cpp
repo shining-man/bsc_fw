@@ -26,7 +26,7 @@ static uint16_t u16_mRecvBytesLastMsg=0; //for debug
 //
 static void      getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage);
-static void      parseMessage(uint8_t * t_message, uint8_t address);
+static bool      parseMessage(uint8_t * t_message, uint8_t address);
 static void      parseMessage_Alarms(uint8_t * t_message, uint8_t address);
 
 uint8_t         convertAsciiHexToByte(char a, char b);
@@ -58,7 +58,7 @@ bool SeplosBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, se
   getDataFromBms(bscSerial, u8_lSeplosAdr, 0x42);
   if(recvAnswer(response))
   {
-    parseMessage(response, u8_lSeplosAdrBmsData);
+    ret = parseMessage(response, u8_lSeplosAdrBmsData);
 
     //mqtt
     mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
@@ -266,7 +266,7 @@ void message2Log(uint8_t * t_message, uint8_t address)
 }
 
 
-static void parseMessage(uint8_t * t_message, uint8_t address)
+static bool parseMessage(uint8_t * t_message, uint8_t address)
 {
   //lambda get16bitFromMsg(i)
 	auto get16bitFromMsg = [&](size_t i) -> uint16_t {
@@ -317,6 +317,12 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
     #endif
 
+    if(u8_lNumOfCells == 0)
+    {
+      BSC_LOGE(TAG, "Number of cells: %d", u8_lNumOfCells);
+      return false;
+    }
+
     for (uint8_t i=0; i<u8_lNumOfCells; i++)
     {
       u16_lZellVoltage = get16bitFromMsg(9+(i*2));
@@ -355,6 +361,11 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
     #ifdef SEPLOS_DEBUG
     BSC_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
     #endif
+    if(u8_lCntTempSensors == 0)
+    {
+      BSC_LOGE(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+      return false;
+    }
 
     //   42     0x0B 0xA6      Temperature sensor 1             (2982 - 2731) * 0.1f = 25.1          °C
     //   44     0x0B 0xA0      Temperature sensor 2             (2976 - 2731) * 0.1f = 24.5          °C
@@ -441,6 +452,8 @@ static void parseMessage(uint8_t * t_message, uint8_t address)
   {
     BSC_LOGI(TAG, "Parser error: %s", e.what());
   }
+
+  return true;
 }
 
 
@@ -735,13 +748,13 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
       //  39    Alarm event 5
       case 78:
         if ((u8_lByte & 0x1) == 0x1) u32_warnings |= BMS_ERR_STATUS_CHG_OCP;    // Warning
-        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP; 
+        if ((u8_lByte & 0x2) == 0x2) u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
         if ((u8_lByte & 0x4) == 0x4) u32_warnings |= BMS_ERR_STATUS_DSG_OCP;    // Warning
-        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP; 
-        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
-        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
-        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
-        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR; 
+        if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
+        if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
         break;
 
       //  40    Alarm event 6
@@ -772,9 +785,9 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
       //  42    Equilibrium state 1
       //  43    Equilibrium state 2
       case 84:
-        uint8_t u8_lByte2 = convertAsciiHexToByte(t_message[i+2], t_message[i+3]); // 86
+        u8_lByte = convertAsciiHexToByte(t_message[i+2], t_message[i+3]); // 86
 
-        if(u8_lByte > 0 || u8_lByte2 > 0) setBmsIsBalancingActive(address, true);
+        if(u8_lByte > 0) setBmsIsBalancingActive(address, true);
         else setBmsIsBalancingActive(address, false);
         break;
     }

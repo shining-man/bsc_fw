@@ -126,5 +126,40 @@ namespace nsInverterBattery
   }
 
 
+  void InverterBattery::getBatteryCapacity(uint8_t mBmsDatasource, uint16_t mBmsDatasourceAdd, 
+    uint16_t &onlineCapacity, uint16_t &totalCapacity)
+  {
+    onlineCapacity = 0;
+    totalCapacity = 0;
+    
+    if(mBmsDatasource >= BT_DEVICES_COUNT) 
+      totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+
+    // ID_PARAM_BATTERY_PACK_CAPACITY
+
+    if((millis()-getBmsLastDataMillis(mBmsDatasource)) < CAN_BMS_COMMUNICATION_TIMEOUT)
+    {
+      onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+    }
+
+
+    if(mBmsDatasourceAdd > 0)
+    {
+      for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+      {
+        if(isBitSet(mBmsDatasourceAdd, i))
+        {
+          totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+
+          //So lang die letzten 5000ms Daten kamen ist alles ok
+          if((millis()-getBmsLastDataMillis(BMSDATA_FIRST_DEV_SERIAL + i)) < CAN_BMS_COMMUNICATION_TIMEOUT) 
+          {
+            onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+          }
+        }
+      }
+    }
+  }
+
 
 }

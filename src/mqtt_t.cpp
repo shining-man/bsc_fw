@@ -49,7 +49,7 @@ struct mqttEntry_s {
   int8_t t2;
   int8_t t3;
   int8_t t4;
-  String value;
+  std::string value;
 };
 std::deque<mqttEntry_s> txBuffer;
 
@@ -62,7 +62,7 @@ bool mqttPublishLoopFromTxBuffer();
 void mqttDataToTxBuffer();
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
-//void mqttPublishTrigger();
+void mqttPublishTrigger();
 void mqttCallback(char* topic, uint8_t* payload, unsigned int length);
 
 
@@ -79,11 +79,16 @@ void initMqtt()
 
   if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
   {
+    wifiClient.setTimeout(1);
+    wifiClient.setClientSelectTimeout(900000, 1);
+
+    mqttClient.setKeepAlive(30);
+    mqttClient.setSocketTimeout(1);
+
     mqttIpAdr.fromString(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).c_str());
     mqttClient.setServer(mqttIpAdr, (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     BSC_LOGI(TAG,"MQTT: ip=%s, port=%i", mqttIpAdr.toString().c_str(), WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT));
     mqttClient.setCallback(mqttCallback);
-    mqttClient.setKeepAlive(30);
   }
 }
 
@@ -337,7 +342,14 @@ bool mqttPublishLoopFromTxBuffer()
       if(mqttEntry.t3 != -1){topic += "/"; topic += mqttTopics[mqttEntry.t3];}
       if(mqttEntry.t4 != -1){topic += "/"; topic += String(mqttEntry.t4);}
 
-      mqttClient.publish(topic.c_str(), mqttEntry.value.c_str());
+      //uint32_t pubTime = millis();
+      if(mqttClient.publish(topic.c_str(), mqttEntry.value.c_str()) == false)
+      {
+        // Wenn die Nachricht nicht mehr versendet werden kann
+        BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout)");
+        //BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout: %i ms)", millis() - pubTime);
+        mqttDisconnect();
+      }
       txBuffer.pop_front();
     }
 
@@ -350,7 +362,7 @@ bool mqttPublishLoopFromTxBuffer()
 }
 
 
-void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
 {
   if(mMqttEnable <= MQTT_ENABLE_STATE_EN) return;
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
@@ -386,22 +398,22 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, String value)
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 {
-  mqttPublish(t1, t2, t3, t4, String(value));
+  mqttPublish(t1, t2, t3, t4, std::to_string(value));
 }
 
 
@@ -423,6 +435,8 @@ void mqttDataToTxBuffer()
       sendBmsData_mqtt_sendeCounter=0;
       owDataSendFinsh=false;
       sendOwTemperatur_mqtt_sendeCounter=0;
+
+      mqttPublishTrigger();
     }
 
     if(millis()-sendeDelayTimer500ms>=500) //Sende alle 500ms eine Nachricht
@@ -473,9 +487,11 @@ void mqttPublishBmsData(uint8_t i)
 
   //Max. Cell Voltage
   mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_CELL_VOLTAGE_MAX, -1, getBmsMaxCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_CELL_VOLTAGE_MAX_NR, -1, getBmsMaxVoltageCellNumber(i));
 
   //Min. Cell Voltage
   mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN, -1, getBmsMinCellVoltage(i));
+  mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_CELL_VOLTAGE_MIN_NR, -1, getBmsMinVoltageCellNumber(i));
 
   //bmsTotalVoltage
   //Hier werden nur die Daten von den BT-Devices gesendet
@@ -538,7 +554,7 @@ void mqttPublishOwTemperatur(uint8_t i)
 }
 
 
-/*void mqttPublishTrigger()
+void mqttPublishTrigger()
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
@@ -546,7 +562,7 @@ void mqttPublishOwTemperatur(uint8_t i)
   {
     mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, getAlarm(i));
   }
-}*/
+}
 
 
 

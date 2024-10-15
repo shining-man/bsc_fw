@@ -84,6 +84,7 @@ public:
 
     uint16_t getAktualChargeCurrentSoll();
 
+    uint8_t getAutobalState();
 
 private:
     static const char *TAG;

@@ -73,11 +73,12 @@ namespace nsCanbus
         sendCanMsg_Alarm_35a(inverterData);
 
         sendCanMsg_battery_modules_372(inverterData);
-        sendCanMsg_version_35f(canDevice);
+        sendCanMsg_version_35f(inverterData, canDevice);
 
         sendCanMsg_soc_soh_355(inverterData, canDevice);
         sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData, canDevice);
         sendCanMsg_min_max_values_373_376_377(inverterData);
+        sendCanMsg_InstalledCapacity_379(inverterData);
 
         sendCanMsg_minCellVoltage_text_374(inverterData);
         sendCanMsg_maxCellVoltage_text_375(inverterData);
@@ -94,12 +95,11 @@ namespace nsCanbus
       case ID_CAN_DEVICE_BYD_PROTOCOL: //Anpassung SolarEdgeRWS
         sendCanMsg_hostname_35e_370_371();
         sendCanMsg_productinfo_382();//Anpassung SolaredgeRWS
-        sendCanMsg_version_35f(canDevice);//Anpassung SolaredgeRWS
+        sendCanMsg_version_35f(inverterData, canDevice);//Anpassung SolaredgeRWS
         sendCanMsg_Alarm_35a(inverterData);
         sendCanMsg_ChgVoltCur_DisChgCur_351(inverterData, canDevice);
         sendCanMsg_soc_soh_355(inverterData, canDevice);//Anpassung SolaredgeRWS
         sendCanMsg_Battery_Voltage_Current_Temp_356(inverterData, canDevice); //Anpassung SolaredgeRWS
-        //sendCanMsg_372();
         sendCanMsg_min_max_values_373_376_377(inverterData);
         sendCanMsg_Alarm_359(inverterData);
 
@@ -715,7 +715,7 @@ namespace nsCanbus
   }
 
 
-  void Canbus::sendCanMsg_version_35f(uint8_t canDevice)
+  void Canbus::sendCanMsg_version_35f(Inverter::inverterData_s &inverterData, uint8_t canDevice)
   {
     struct data35f
     {
@@ -726,11 +726,16 @@ namespace nsCanbus
     };
     data35f msgData;
 
+    uint16_t totalCapacity;
+
+    nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+    inverterBattery.getBatteryCapacity(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, 
+      msgData.Onlinecapacity, totalCapacity);
+
     if(canDevice == ID_CAN_DEVICE_BYD_PROTOCOL)
     {
       msgData.BatteryModel = 0x694C;
       msgData.Firmwareversion = 0x1701;
-      msgData.Onlinecapacity = 0;
 
       sendCanMsg(0x35f, (uint8_t *)&msgData, 8);
     }
@@ -738,7 +743,6 @@ namespace nsCanbus
     { 
       msgData.BatteryModel = 0;
       msgData.Firmwareversion = 3;
-      msgData.Onlinecapacity = 0;
 
       sendCanMsg(0x35f, (uint8_t *)&msgData, 6);
     }
@@ -829,6 +833,23 @@ namespace nsCanbus
     sendCanMsg(0x382, (uint8_t *)&product_ident, 8);
   }
 
+
+  // InstalledCapacity
+  void Canbus::sendCanMsg_InstalledCapacity_379(Inverter::inverterData_s &inverterData)
+  {
+    struct data379
+    {
+        uint16_t installedCapacity;
+    };
+    data379 msgData;
+    
+    uint16_t onlinecapacity;
+    nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();
+    inverterBattery.getBatteryCapacity(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd, 
+      onlinecapacity, msgData.installedCapacity);
+
+    sendCanMsg(0x379, (uint8_t *)&msgData, sizeof(data379));
+  }
 
 
   void Canbus::sendExtendedCanMsgTemp()

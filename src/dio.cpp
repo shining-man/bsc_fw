@@ -5,6 +5,7 @@
 
 #include "dio.h"
 #include "defines.h"
+#include "WebSettings.h"
 
 
 RTC_DATA_ATTR uint8_t doOutData;
@@ -46,6 +47,21 @@ void setDoData(uint8_t data)
     doOutData = data;
 }
 
+uint8_t invertDoOutData(uint8_t data)
+{
+  uint8_t newData = data;
+
+  for(uint8_t i = 0; i < CNT_DIGITALOUT; i++)
+  {
+    if(WebSettings::getBool(ID_PARAM_REL_INVERTIERT, i) == true)
+    {
+      newData = newData ^ (1 << i); // Bit invertieren
+    }
+  }
+
+  return newData;
+}
+
 uint8_t getDoData()
 {
   return doOutData;
@@ -60,7 +76,7 @@ uint8_t dioRwInOut()
   digitalWrite(IO_DO_PL, LOW);
 
   //Ausgaänge ins HC595 schreiben
-  hspi->transfer(doOutData);
+  hspi->transfer(invertDoOutData(doOutData));
 
   // SPI Mode wechseln
   hspi->setDataMode(SPI_MODE2);
