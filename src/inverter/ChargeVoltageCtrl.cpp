@@ -88,8 +88,9 @@ namespace nsChargeVoltageCtrl
     uint32_t lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
     lTimeout = lTimeout * 60 * 1000;
     if(millis() - inverterData.autobalanceStartTime > lTimeout) // if timeout
-    {        
-      inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
+    {
+      inverterData.lastAutobalanceRun = millis();
+      inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_NEXT_DAY;
       inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
       return true;
     }
@@ -125,6 +126,16 @@ namespace nsChargeVoltageCtrl
       if(millis()-inverterData.lastAutobalanceRun > ((lStartInterval*86400000)-32400000)) // Tage: ((24h*60*60*1000) - 9h)
       #endif
       {
+        inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_START_VOLTAGE;
+      }
+    }
+
+    // Warte auf nächsten Tag; z.B. nach Timeout
+    if(inverterData.mStateAutobalance == STATE_AUTOBAL_WAIT_NEXT_DAY)
+    {
+      if(millis()-inverterData.lastAutobalanceRun > 43200000) // Tage: 12h*60*60*1000
+      {
+        inverterData.autobalanceVoltageErreichtTime = 0;
         inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_START_VOLTAGE;
       }
     }

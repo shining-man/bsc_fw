@@ -430,6 +430,10 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME 162
 
+#define ID_PARAM_BATTERY_PACK_CAPACITY 163
+
+#define ID_PARAM_REL_INVERTIERT 164
+
 #define ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE      163
 #define ID_PARAM_DEVICE_MAPPING_ADRESSE            164
 #define ID_PARAM_DEVICE_MAPPING_NAME               165
@@ -586,6 +590,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_CUTOFF_TIMER                56
 #define MQTT_TOPIC2_AUTOBAL_STATE               57
 #define MQTT_TOPIC2_WARNINGS                    58
+#define MQTT_TOPIC2_CELL_VOLTAGE_MAX_NR         59
+#define MQTT_TOPIC2_CELL_VOLTAGE_MIN_NR         60
 
 
 static const char* mqttTopics[] = {"", // 0
@@ -647,8 +653,11 @@ static const char* mqttTopics[] = {"", // 0
   "cutoffTimer",               // 56  Debug
   "autoBalState",              // 57  Debug
   "warnings",                  // 58
-  "",                          // 59
-  "",                          // 60
+  "maxCell",                   // 59
+  "minCell",                   // 60
+  "",                          // 61
+  "",                          // 62
+  "",                          // 63
   };
 
 

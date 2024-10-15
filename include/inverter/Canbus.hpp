@@ -73,11 +73,12 @@ namespace nsCanbus
     void sendCanMsg_Alarm_359(Inverter::inverterData_s &inverterData);
     void sendCanMsg_Alarm_35a(Inverter::inverterData_s &inverterData);
     void sendCanMsg_hostname_35e_370_371();
-    void sendCanMsg_version_35f(uint8_t canDevice);
+    void sendCanMsg_version_35f(Inverter::inverterData_s &inverterData, uint8_t canDevice);
     void sendCanMsg_battery_modules_372(Inverter::inverterData_s &inverterData);
     void sendCanMsg_min_max_values_373_376_377(Inverter::inverterData_s &inverterData);
     void sendCanMsg_minCellVoltage_text_374(Inverter::inverterData_s &inverterData);
     void sendCanMsg_maxCellVoltage_text_375(Inverter::inverterData_s &inverterData);
+    void sendCanMsg_InstalledCapacity_379(Inverter::inverterData_s &inverterData);
 
     void sendCanMsg(uint32_t identifier, uint8_t *buffer, uint8_t length);
     void sendExtendedCanMsgTemp();

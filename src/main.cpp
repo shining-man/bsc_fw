@@ -651,9 +651,9 @@ void task_ConnectWiFi(void *param)
     if((millis()-tConnWifiHelpTimer)>1000)
     {
       tConnWifiHelpTimer=millis();
-      #ifdef WLAN_DEBUG2
+      /*#ifdef WLAN_DEBUG2
       BSC_LOGD(TAG, "FreeHeap=%i, MinFreeHeap=%i, mqttTxBuffSize=%i, WlanStaApOk=%i", xPortGetFreeHeapSize(),xPortGetMinimumEverFreeHeapSize(),getTxBufferSize(),WlanStaApOk);
-      #endif
+      #endif*/
 
       if(xSemaphoreTake(mutexTaskRunTime_wifiConn, 100))
       {
