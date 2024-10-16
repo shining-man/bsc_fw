@@ -586,6 +586,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_WARNINGS                    58
 #define MQTT_TOPIC2_CELL_VOLTAGE_MAX_NR         59
 #define MQTT_TOPIC2_CELL_VOLTAGE_MIN_NR         60
+#define MQTT_TOPIC2_CHARGE_VOLTAGE_STATE        61
 
 
 static const char* mqttTopics[] = {"", // 0
@@ -649,7 +650,7 @@ static const char* mqttTopics[] = {"", // 0
   "warnings",                  // 58
   "maxCell",                   // 59
   "minCell",                   // 60
-  "",                          // 61
+  "cv_state",                  // 61
   "",                          // 62
   "",                          // 63
   };
