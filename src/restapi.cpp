@@ -193,6 +193,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("voltage"), inverterVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("soc"), inverterSoc, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cv_state"), (uint8_t)inverter.getChargeVoltageState(), str_htmlOut, false);
 
     genJsonEntryArray(entrySingleNumber, F("setpoint_cv"), inverterChargeVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
