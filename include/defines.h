@@ -191,6 +191,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
 //BMS Data
+#define NR_OF_BMS_TEMP_SENSORS      6
 #define SERIAL_BMS_EXT_COUNT        8
 
 #define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
