@@ -209,12 +209,9 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
    * t4  -> T5
   */
 
-  //int16_t t2 = modbus->getI16ValueByOffset(248 - byteOffset) * 10; //MOS
-  int16_t t3 = modbus->getI16ValueByOffset(250 - byteOffset) * 10;
-  int16_t t4 = modbus->getI16ValueByOffset(252 - byteOffset) * 10;
-
-  if(t3 > t4) setBmsTempatureI16(devNr, 2, t3);
-  else setBmsTempatureI16(devNr, 2, t4);
+  setBmsTempatureI16(devNr, 2, modbus->getI16ValueByOffset(248 - byteOffset) * 10); // MOS
+  setBmsTempatureI16(devNr, 3, modbus->getI16ValueByOffset(250 - byteOffset) * 10);
+  setBmsTempatureI16(devNr, 4, modbus->getI16ValueByOffset(252 - byteOffset) * 10);
 
   #ifdef JK_INV_DEBUG
   BSC_LOGI(TAG, "t2=%i, t3=%i, t4=%i", t2, t3, t4);
