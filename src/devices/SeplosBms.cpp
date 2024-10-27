@@ -303,164 +303,152 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
 
   uint8_t u8_lMsgoffset=0;
 
-  try
+
+  // 0x20 00 46 00 10 96 00 01 10 0C D7 0C E9 0C F4 0C D6 0C EF0CE50CE10CDC0CE90CF00CE80CEF0CEA0CDA0CDE0CD8060BA60BA00B970BA60BA50BA2FD5C14A0344E0A426803134650004603E8149F0000000000000000
+  //
+  // Byte   Address Content: Description                      Decoded content               Coeff./Unit
+  //   0    0x20             Protocol version      VER        2.0
+  //   1    0x00             Device address        ADR
+  //   2    0x46             Device type           CID1       Lithium iron phosphate battery BMS
+  //   3    0x00             Function code         CID2       0x00: Normal, 0x01 VER error, 0x02 Chksum error, ...
+  //   4    0x10             Data length checksum  LCHKSUM
+  //   5    0x96             Data length           LENID      150 / 2 = 75
+  //   6    0x00             Data flag
+  //   7    0x00             Command group (Nr. Batterygroup)
+  //   8    0x10             Number of cells                  16
+  //   9      0x0C 0xD7      Cell voltage 1                   3287 * 0.001f = 3.287         V
+  //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
+  //   ...    ...            ...
+  //   39     0x0C 0xD8      Cell voltage 16
+
+  u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
+  #ifdef SEPLOS_DEBUG
+  BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
+  #endif
+
+  if(u8_lNumOfCells == 0)
   {
-    // 0x20 00 46 00 10 96 00 01 10 0C D7 0C E9 0C F4 0C D6 0C EF0CE50CE10CDC0CE90CF00CE80CEF0CEA0CDA0CDE0CD8060BA60BA00B970BA60BA50BA2FD5C14A0344E0A426803134650004603E8149F0000000000000000
-    //
-    // Byte   Address Content: Description                      Decoded content               Coeff./Unit
-    //   0    0x20             Protocol version      VER        2.0
-    //   1    0x00             Device address        ADR
-    //   2    0x46             Device type           CID1       Lithium iron phosphate battery BMS
-    //   3    0x00             Function code         CID2       0x00: Normal, 0x01 VER error, 0x02 Chksum error, ...
-    //   4    0x10             Data length checksum  LCHKSUM
-    //   5    0x96             Data length           LENID      150 / 2 = 75
-    //   6    0x00             Data flag
-    //   7    0x00             Command group (Nr. Batterygroup)
-    //   8    0x10             Number of cells                  16
-    //   9      0x0C 0xD7      Cell voltage 1                   3287 * 0.001f = 3.287         V
-    //   11     0x0C 0xE9      Cell voltage 2                   3305 * 0.001f = 3.305         V
-    //   ...    ...            ...
-    //   39     0x0C 0xD8      Cell voltage 16
-
-    u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
-    #ifdef SEPLOS_DEBUG
-    BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
-    #endif
-
-    if(u8_lNumOfCells == 0)
-    {
-      BSC_LOGE(TAG, "Number of cells: %d", u8_lNumOfCells);
-      return false;
-    }
-
-    for (uint8_t i=0; i<u8_lNumOfCells; i++)
-    {
-      u16_lZellVoltage = get16bitFromMsg(9+(i*2));
-      setBmsCellVoltage(BT_DEVICES_COUNT+address,i, (float)(u16_lZellVoltage));
-
-      u16_lCellSum+=u16_lZellVoltage;
-
-      if(u16_lZellVoltage>u16_lCellHigh)
-      {
-        u16_lCellHigh=u16_lZellVoltage;
-        u8_lZellNumberMaxVoltage=i;
-      }
-      if(u16_lZellVoltage<u16_lCellLow)
-      {
-        u16_lCellLow=u16_lZellVoltage;
-        u8_lZellNumberMinVoltage=i;
-      }
-
-      u16_lZellMinVoltage=u16_lCellLow;
-      u16_lZellMaxVoltage=u16_lCellHigh;
-      u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow;
-    }
-
-    setBmsMaxCellVoltage(BT_DEVICES_COUNT+address, u16_lCellHigh);
-    setBmsMinCellVoltage(BT_DEVICES_COUNT+address, u16_lCellLow);
-    setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMaxVoltage);
-    setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMinVoltage);
-    setBmsAvgVoltage(BT_DEVICES_COUNT+address, (float)(u16_lCellSum/u8_lNumOfCells));
-    setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+address,(float)(u16_lZellDifferenceVoltage));
-
-
-    u8_lMsgoffset = 9+(u8_lNumOfCells*2);
-
-    //   41     0x06           Number of temperatures           6                                    V
-    uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
-    #ifdef SEPLOS_DEBUG
-    BSC_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
-    #endif
-    if(u8_lCntTempSensors == 0)
-    {
-      BSC_LOGE(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
-      return false;
-    }
-
-    //   42     0x0B 0xA6      Temperature sensor 1             (2982 - 2731) * 0.1f = 25.1          °C
-    //   44     0x0B 0xA0      Temperature sensor 2             (2976 - 2731) * 0.1f = 24.5          °C
-    //   46     0x0B 0x97      Temperature sensor 3             (2967 - 2731) * 0.1f = 23.6          °C
-    //   48     0x0B 0xA6      Temperature sensor 4             (2982 - 2731) * 0.1f = 25.1          °C
-    //   50     0x0B 0xA5      Environment temperature          (2981 - 2731) * 0.1f = 25.0          °C
-    //   52     0x0B 0xA2      Mosfet temperature               (2978 - 2731) * 0.1f = 24.7          °C
-    float fl_lBmsTemps[3]; //Hier werden die ketzten drei Temperaturen zwischengespeichert
-    for (uint8_t i=0; i<u8_lCntTempSensors; i++)
-    {
-      fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset+1+(i*2))-0xAAB)*0.1;
-      if(i<3) setBmsTempature(BT_DEVICES_COUNT+address,i,fl_lBmsTemps[2]);
-      else if(i>=3 && i<5)fl_lBmsTemps[i-3]=fl_lBmsTemps[2];
-    }
-
-    u8_lMsgoffset=u8_lMsgoffset+1+(u8_lCntTempSensors*2);
-
-    //   54     0xFD 0x5C      Charge/discharge current         signed int?                   A
-    float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset))*0.01f;
-    setBmsTotalCurrent(BT_DEVICES_COUNT+address,f_lTotalCurrent);
-
-    //   56     0x14 0xA0      Total battery voltage            5280 * 0.01f = 52.80          V
-    float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset+2)*0.01f;
-    setBmsTotalVoltage(BT_DEVICES_COUNT+address, f_lTotalVoltage);
-
-    //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90         Ah
-    uint16_t u16_lBalanceCapacity=get16bitFromMsg(u8_lMsgoffset+4)/100;
-
-    //   60     0x0A           Custom number                    10
-
-    //   61     0x42 0x68      Battery capacity                 17000 * 0.01f = 170.00        Ah
-    uint16_t u16_lFullCapacity=get16bitFromMsg(u8_lMsgoffset+7)/100;
-
-    //   63     0x03 0x13      Stage of charge                  787 * 0.1f = 78.7             %
-    #ifdef SEPLOS_DEBUG
-    uint8_t u8_lSoc = get16bitFromMsg(u8_lMsgoffset+9)/10;
-    uint8_t u8_lSocOld = getBmsChargePercentage(BT_DEVICES_COUNT+address);
-    uint8_t u8_lSocOld5Percent = u8_lSocOld/100*5;
-    if(u8_lSoc<u8_lSocOld-u8_lSocOld5Percent || u8_lSoc>u8_lSocOld+u8_lSocOld5Percent)
-    {
-      digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
-      BSC_LOGI(TAG, "SoC Abweichung > 5%; SoC_alt=%i, SoC_neu=%i",u8_lSocOld,u8_lSoc);
-      message2Log(t_message, address);
-    }
-    #endif
-    setBmsChargePercentage(BT_DEVICES_COUNT+address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
-
-    //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
-    //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
-
-    //   67     0x00 0x46      Number of cycles                 70
-    uint16_t u16_lCycle=get16bitFromMsg(u8_lMsgoffset + 13);
-
-    //   69     0x03 0xE8      State of health                  1000 * 0.1f = 100.0           %
-    //(float) get16bitFromMsg(u8_lMsgoffset + 15) * 0.1f);
-
-    //   71     0x14 0x9F      Port voltage                     5279 * 0.01f = 52.79          V
-    //(float) get16bitFromMsg(u8_lMsgoffset + 17) * 0.01f);
-
-    //   73     0x00 0x00      Reserved
-    //   75     0x00 0x00      Reserved
-    //   77     0x00 0x00      Reserved
-    //   79     0x00 0x00      Reserved
-
-    if(mDevData->bo_sendMqttMsg)
-    {
-      //Nachrichten senden
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
-
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
-
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
-
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
-      //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
-    }
+    BSC_LOGE(TAG, "Number of cells: %d", u8_lNumOfCells);
+    return false;
   }
-  catch (const std::exception &e)
+
+  for (uint8_t i=0; i<u8_lNumOfCells; i++)
   {
-    BSC_LOGI(TAG, "Parser error: %s", e.what());
+    u16_lZellVoltage = get16bitFromMsg(9+(i*2));
+    setBmsCellVoltage(BT_DEVICES_COUNT+address,i, (float)(u16_lZellVoltage));
+
+    u16_lCellSum+=u16_lZellVoltage;
+
+    if(u16_lZellVoltage>u16_lCellHigh)
+    {
+      u16_lCellHigh=u16_lZellVoltage;
+      u8_lZellNumberMaxVoltage=i;
+    }
+    if(u16_lZellVoltage<u16_lCellLow)
+    {
+      u16_lCellLow=u16_lZellVoltage;
+      u8_lZellNumberMinVoltage=i;
+    }
+
+    u16_lZellMinVoltage=u16_lCellLow;
+    u16_lZellMaxVoltage=u16_lCellHigh;
+    u16_lZellDifferenceVoltage=u16_lCellHigh-u16_lCellLow;
+  }
+
+  setBmsMaxCellVoltage(BT_DEVICES_COUNT+address, u16_lCellHigh);
+  setBmsMinCellVoltage(BT_DEVICES_COUNT+address, u16_lCellLow);
+  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMaxVoltage);
+  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+address, u8_lZellNumberMinVoltage);
+  setBmsAvgVoltage(BT_DEVICES_COUNT+address, (float)(u16_lCellSum/u8_lNumOfCells));
+  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+address,(float)(u16_lZellDifferenceVoltage));
+
+
+  u8_lMsgoffset = 9+(u8_lNumOfCells*2);
+
+  //   41     0x06           Number of temperatures           6                                    V
+  uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message[u8_lMsgoffset*2], t_message[u8_lMsgoffset*2+1]);
+  #ifdef SEPLOS_DEBUG
+  BSC_LOGD(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+  #endif
+  if(u8_lCntTempSensors == 0)
+  {
+    BSC_LOGE(TAG, "Number of temperature sensors: %d", u8_lCntTempSensors);
+    return false;
+  }
+
+  //   42     0x0B 0xA6      Temperature sensor 1             (2982 - 2731) * 0.1f = 25.1          °C
+  //   44     0x0B 0xA0      Temperature sensor 2             (2976 - 2731) * 0.1f = 24.5          °C
+  //   46     0x0B 0x97      Temperature sensor 3             (2967 - 2731) * 0.1f = 23.6          °C
+  //   48     0x0B 0xA6      Temperature sensor 4             (2982 - 2731) * 0.1f = 25.1          °C
+  //   50     0x0B 0xA5      Environment temperature          (2981 - 2731) * 0.1f = 25.0          °C
+  //   52     0x0B 0xA2      Mosfet temperature               (2978 - 2731) * 0.1f = 24.7          °C
+  for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
+  {
+    if(i >= NR_OF_BMS_TEMP_SENSORS) break;
+    setBmsTempature(BT_DEVICES_COUNT+address,i, (float)(get16bitFromMsg(u8_lMsgoffset+1+(i*2))-0xAAB)*0.1);
+  }
+
+  u8_lMsgoffset=u8_lMsgoffset+1+(u8_lCntTempSensors*2);
+
+  //   54     0xFD 0x5C      Charge/discharge current         signed int?                   A
+  float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset))*0.01f;
+  setBmsTotalCurrent(BT_DEVICES_COUNT+address,f_lTotalCurrent);
+
+  //   56     0x14 0xA0      Total battery voltage            5280 * 0.01f = 52.80          V
+  float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset+2)*0.01f;
+  setBmsTotalVoltage(BT_DEVICES_COUNT+address, f_lTotalVoltage);
+
+  //   58     0x34 0x4E      Restkapazität                   13390 * 0.01f = 133.90         Ah
+  uint16_t u16_lBalanceCapacity=get16bitFromMsg(u8_lMsgoffset+4)/100;
+
+  //   60     0x0A           Custom number                    10
+
+  //   61     0x42 0x68      Battery capacity                 17000 * 0.01f = 170.00        Ah
+  uint16_t u16_lFullCapacity=get16bitFromMsg(u8_lMsgoffset+7)/100;
+
+  //   63     0x03 0x13      Stage of charge                  787 * 0.1f = 78.7             %
+  #ifdef SEPLOS_DEBUG
+  uint8_t u8_lSoc = get16bitFromMsg(u8_lMsgoffset+9)/10;
+  uint8_t u8_lSocOld = getBmsChargePercentage(BT_DEVICES_COUNT+address);
+  uint8_t u8_lSocOld5Percent = u8_lSocOld/100*5;
+  if(u8_lSoc<u8_lSocOld-u8_lSocOld5Percent || u8_lSoc>u8_lSocOld+u8_lSocOld5Percent)
+  {
+    digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+    BSC_LOGI(TAG, "SoC Abweichung > 5%; SoC_alt=%i, SoC_neu=%i",u8_lSocOld,u8_lSoc);
+    message2Log(t_message, address);
+  }
+  #endif
+  setBmsChargePercentage(BT_DEVICES_COUNT+address, ROUND(get16bitFromMsg(u8_lMsgoffset+9), 10));
+
+  //   65     0x46 0x50      Rated capacity                   18000 * 0.01f = 180.00        Ah
+  //(float) get16bitFromMsg(u8_lMsgoffset + 11) * 0.01f);
+
+  //   67     0x00 0x46      Number of cycles                 70
+  uint16_t u16_lCycle=get16bitFromMsg(u8_lMsgoffset + 13);
+
+  //   69     0x03 0xE8      State of health                  1000 * 0.1f = 100.0           %
+  //(float) get16bitFromMsg(u8_lMsgoffset + 15) * 0.1f);
+
+  //   71     0x14 0x9F      Port voltage                     5279 * 0.01f = 52.79          V
+  //(float) get16bitFromMsg(u8_lMsgoffset + 17) * 0.01f);
+
+  //   73     0x00 0x00      Reserved
+  //   75     0x00 0x00      Reserved
+  //   77     0x00 0x00      Reserved
+  //   79     0x00 0x00      Reserved
+
+  if(mDevData->bo_sendMqttMsg)
+  {
+    //Nachrichten senden
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+
+    //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_BALANCE_STATUS, -1, u16_lBalanceStatus);
+    //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_FET_STATUS, -1, u16_lFetStatus);
+
+    //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_CHARGED_ENERGY, -1, u32_mChargeMAh);
+    //mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+address, MQTT_TOPIC2_DISCHARGED_ENERGY, -1, u32_mDischargeMAh);
   }
 
   return true;
