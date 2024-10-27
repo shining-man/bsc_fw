@@ -419,7 +419,7 @@ uint8_t NeeyBalancer::neeyBtCrc(uint8_t devTyp, uint8_t* data, uint16_t len)
     uint8_t crc = 0;
     for (uint16_t i = 0; i < len; i++)
     {
-        if(devTyp==ID_BT_DEVICE_NEEY4A) crc = crc ^ data[i];
+        if(devTyp==ID_BT_DEVICE_NEEY_GW_24S4EB) crc = crc ^ data[i];
         else crc = crc + data[i];
     }
     return crc;
@@ -498,7 +498,7 @@ void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t c
 void NeeyBalancer::sendNeeyConnectMsg(uint8_t devtyp, NimBLERemoteCharacteristic* pChr)
 {
   uint8_t  frame[20];
-  if(devtyp==ID_BT_DEVICE_NEEY8A)
+  if(devtyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
   {
     //byte NeeyBalancer_8A_getInfo1[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff}; // 0x26
     //byte NeeyBalancer_8A_getInfo2[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0xff}; // 0x29
@@ -748,7 +748,7 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
     devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
-    if(devTyp==ID_BT_DEVICE_NEEY4A || devTyp==ID_BT_DEVICE_NEEY8A)
+    if(devTyp==ID_BT_DEVICE_NEEY_GW_24S4EB || devTyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
     {
       value += "|";
 
