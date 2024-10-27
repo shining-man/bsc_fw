@@ -647,6 +647,7 @@ bool isMultiple485bms(uint8_t bms)
     case ID_SERIAL_DEVICE_BPN:
     case ID_SERIAL_DEVICE_GOBELBMS:
     case ID_SERIAL_DEVICE_GOBEL_PC200:
+    case ID_SERIAL_DEVICE_SEPLOSBMS_V3:
       return true;
       break;
 
