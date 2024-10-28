@@ -310,7 +310,7 @@ void setBmsBalancingCurrentI16(uint8_t devNr, int16_t value)
 
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr)
 {
-  if(sensorNr >= (NR_OF_BMS_TEMP_SENSORS - 1)) return 0;
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return 0;
 
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   float ret = (float)(bmsData.bmsTempature[devNr][sensorNr]/100.0);
@@ -319,7 +319,7 @@ float getBmsTempature(uint8_t devNr, uint8_t sensorNr)
 }
 int16_t getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr)
 {
-  if(sensorNr >= (NR_OF_BMS_TEMP_SENSORS - 1)) return 0;
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return 0;
 
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   int16_t ret = bmsData.bmsTempature[devNr][sensorNr];
@@ -328,7 +328,7 @@ int16_t getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr)
 }
 void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
 {
-  if(sensorNr >= (NR_OF_BMS_TEMP_SENSORS - 1)) return;
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return;
 
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTempature[devNr][sensorNr] = (int16_t)(value*100);
@@ -336,7 +336,7 @@ void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
 }
 void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value)
 {
-  if(sensorNr >= (NR_OF_BMS_TEMP_SENSORS - 1)) return;
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return;
 
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTempature[devNr][sensorNr] = value;
