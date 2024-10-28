@@ -149,16 +149,8 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   */
 
   /*
-  #define SEPLOS3_EQUALIZATION_08_01    0x1230
-  #define SEPLOS3_EQUALIZATION_16_09    0x1238
-
   0x1230 Cell 08-01 equalization event code 08-01
   0x1238 Cell 16-09 equalization event code 16-09 */
-  if(modbus->getU8Value(SEPLOS3_EQUALIZATION_08_01) > 0 
-    || modbus->getU8Value(SEPLOS3_EQUALIZATION_16_09) > 0) setBmsIsBalancingActive(devNr, 1); 
-  else setBmsIsBalancingActive(devNr, 0);
-
-
 
 
   /* 0x1248 Voltage event code (SEPLOS3_VOLATGE_EVENT, TB02)
@@ -270,17 +262,10 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   setBmsStateFETsCharge(devNr,modbus->getBitValue(SEPLOS3_FET_EVENT,1));
 
 
-  /* 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION, TB08)
-  INDEX Definition
-  Bit0  low Soc alarm
-  Bit1  Intermittent charge
-  Bit2  External switch control
-  Bit3  Static standby and sleep mode
-  Bit4  History data recording
-  Bit5  Under Soc protect
-  Bit6  Acktive-Limited Current
-  Bit7  Passive-Limited Current*/
-  
+  // 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION)
+  if(modbus->getU8Value(SEPLOS3_BATTERY_EQUALIZATION) > 0) setBmsIsBalancingActive(devNr, 1);
+  else setBmsIsBalancingActive(devNr, 0);
+
 
   /* 0x1240 System state code (SEPLOS3_SYSTEM_STATE, TB09)
   INDEX Definition
