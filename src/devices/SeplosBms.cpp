@@ -322,7 +322,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
     //   ...    ...            ...
     //   39     0x0C 0xD8      Cell voltage 16
 
-    u8_lNumOfCells = convertAsciiHexToByte(t_message[8], t_message[8+1]);  //Number of cells
+    u8_lNumOfCells = convertAsciiHexToByte(t_message[16], t_message[16+1]);  //Number of cells
     #ifdef SEPLOS_DEBUG
     BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
     #endif
