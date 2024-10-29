@@ -191,6 +191,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 
 //BMS Data
+#define NR_OF_BMS_TEMP_SENSORS      6
 #define SERIAL_BMS_EXT_COUNT        8
 
 #define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
@@ -435,11 +436,11 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 
 //Auswahl Bluetooth Geräte
-#define ID_BT_DEVICE_NB             0
-#define ID_BT_DEVICE_NEEY4A         1
-#define ID_BT_DEVICE_JKBMS_JK02     2
-#define ID_BT_DEVICE_JKBMS_JK02_32S 3
-#define ID_BT_DEVICE_NEEY8A         4
+#define ID_BT_DEVICE_NB              0
+#define ID_BT_DEVICE_NEEY_GW_24S4EB  1
+#define ID_BT_DEVICE_JKBMS_JK02      2
+#define ID_BT_DEVICE_JKBMS_JK02_32S  3
+#define ID_BT_DEVICE_NEEY_EK_24S4EB  4
 
 //Auswahl Serial Geräte
 #define ID_SERIAL_DEVICE_NB                   0
@@ -586,6 +587,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_WARNINGS                    58
 #define MQTT_TOPIC2_CELL_VOLTAGE_MAX_NR         59
 #define MQTT_TOPIC2_CELL_VOLTAGE_MIN_NR         60
+#define MQTT_TOPIC2_CHARGE_VOLTAGE_STATE        61
 
 
 static const char* mqttTopics[] = {"", // 0
@@ -649,7 +651,7 @@ static const char* mqttTopics[] = {"", // 0
   "warnings",                  // 58
   "maxCell",                   // 59
   "minCell",                   // 60
-  "",                          // 61
+  "cv_state",                  // 61
   "",                          // 62
   "",                          // 63
   };

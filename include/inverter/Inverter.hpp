@@ -85,6 +85,7 @@ public:
     uint16_t getAktualChargeCurrentSoll();
 
     uint8_t getAutobalState();
+    e_stateFloat getChargeVoltageState(); // Absorbtion, Floate
 
 private:
     static const char *TAG;

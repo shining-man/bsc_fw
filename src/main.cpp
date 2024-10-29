@@ -621,7 +621,7 @@ void task_ConnectWiFi(void *param)
         //Wenn MQTT Disconnected -> mConnectStateEnums=ConnState_connectMQTT
         else if(WlanStaApOk==WIFI_STA)
         {
-          if(!mqttLoop())
+          if(!mqttLoop(inverter))
           {
             mConnectStateEnums=ConnState_connectMQTTstart; //ConnState_connectMQTT;
             break;

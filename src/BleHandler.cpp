@@ -56,8 +56,8 @@ class ClientCallbacks : public NimBLEClientCallbacks
       {
         switch(bleDevices[i].deviceTyp)
         {
-          case ID_BT_DEVICE_NEEY4A:
-          case ID_BT_DEVICE_NEEY8A:
+          case ID_BT_DEVICE_NEEY_GW_24S4EB:
+          case ID_BT_DEVICE_NEEY_EK_24S4EB:
             // interval 1,25ms; timeout 10ms
             //pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
             pClient->updateConnParams(20,20,0,60);
@@ -251,8 +251,8 @@ bool btDeviceConnect()
 
   switch(bleDevices[devNr].deviceTyp)
   {
-    case ID_BT_DEVICE_NEEY4A:
-    case ID_BT_DEVICE_NEEY8A:
+    case ID_BT_DEVICE_NEEY_GW_24S4EB:
+    case ID_BT_DEVICE_NEEY_EK_24S4EB:
       serviceUUID=BtServiceUUID;
       charUUID=BtCharUUID;
       break;
@@ -369,8 +369,8 @@ bool btDeviceConnect()
         bool bo_lSubscribeRet=false;
         switch(bleDevices[devNr].deviceTyp)
         {
-          case ID_BT_DEVICE_NEEY4A:
-          case ID_BT_DEVICE_NEEY8A:
+          case ID_BT_DEVICE_NEEY_GW_24S4EB:
+          case ID_BT_DEVICE_NEEY_EK_24S4EB:
             bo_lSubscribeRet=bleDevices[devNr].pChr->subscribe(true, notifyCB_NEEY);
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
@@ -753,11 +753,11 @@ bool BleHandler::handleConnectionToDevices()
           BSC_LOGD(TAG,"BT write start (%i) typ=%i",i,bleDevices[i].deviceTyp);
           switch(bleDevices[i].deviceTyp)
           {
-            case ID_BT_DEVICE_NEEY4A:
+            case ID_BT_DEVICE_NEEY_GW_24S4EB:
               BSC_LOGD(TAG,"BT write dev=%i",i);
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo, 20);
               delay(200);
-              NeeyBalancer::neeyWriteMsg2(ID_BT_DEVICE_NEEY4A, bleDevices[i].pChr);
+              NeeyBalancer::neeyWriteMsg2(ID_BT_DEVICE_NEEY_GW_24S4EB, bleDevices[i].pChr);
               delay(200);
               bleDevices[i].pChr->writeValue(NeeyBalancer_getInfo3, 20);
 
@@ -765,9 +765,9 @@ bool BleHandler::handleConnectionToDevices()
               bleDevices[i].sendDataStep = 0;
               break;
 
-            case ID_BT_DEVICE_NEEY8A:
+            case ID_BT_DEVICE_NEEY_EK_24S4EB:
               BSC_LOGD(TAG,"BT write dev=%i",i);
-              NeeyBalancer::sendNeeyConnectMsg(ID_BT_DEVICE_NEEY8A, bleDevices[i].pChr);
+              NeeyBalancer::sendNeeyConnectMsg(ID_BT_DEVICE_NEEY_EK_24S4EB, bleDevices[i].pChr);
 
               bleDevices[i].doConnect = btDoConnectionIdle;
               bleDevices[i].sendDataStep = 0;
@@ -787,7 +787,7 @@ bool BleHandler::handleConnectionToDevices()
         }
         else if(bleDevices[i].doConnect==btDoConnectionIdle)
         {
-          if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY4A || bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY8A)
+          if(bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY_GW_24S4EB || bleDevices[i].deviceTyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
           {
             if(bleDevices[i].sendDataStep==0)
             {
@@ -849,7 +849,7 @@ bool BleHandler::handleConnectionToDevices()
                   if(u8_devDeativateTriggerNr>0) bo_devDeactivateTrigger=getAlarm(u8_devDeativateTriggerNr-1);
 
                   //Überprüfen ob BT-Devices verbunden sein sollte
-                  if((u8_lBtDevType==ID_BT_DEVICE_NEEY4A || u8_lBtDevType==ID_BT_DEVICE_NEEY8A)&& !bo_devDeactivateTrigger)
+                  if((u8_lBtDevType==ID_BT_DEVICE_NEEY_GW_24S4EB || u8_lBtDevType==ID_BT_DEVICE_NEEY_EK_24S4EB)&& !bo_devDeactivateTrigger)
                   {
                     BSC_LOGI(TAG,"No cyclical data from dev %i", i);
                     btDeviceDisconnectSingle(i);
