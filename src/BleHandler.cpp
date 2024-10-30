@@ -50,7 +50,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     String devMacAdr = pClient->getPeerAddress().toString().c_str();
     BSC_LOGI(TAG, "onConnect() %s", devMacAdr.c_str());
 
-    for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
     {
       if(bleDevices[i].macAdr.equals(devMacAdr))
       {
@@ -59,8 +59,8 @@ class ClientCallbacks : public NimBLEClientCallbacks
           case ID_BT_DEVICE_NEEY_GW_24S4EB:
           case ID_BT_DEVICE_NEEY_EK_24S4EB:
             // interval 1,25ms; timeout 10ms
-            //pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
-            pClient->updateConnParams(20,20,0,60);
+            pClient->updateConnParams(BT_NEEY_POLL_INTERVAL,BT_NEEY_POLL_INTERVAL,0,300); //timeout 1500
+            //pClient->updateConnParams(20,20,0,60);
             break;
           case ID_BT_DEVICE_JKBMS_JK02:
           case ID_BT_DEVICE_JKBMS_JK02_32S:
@@ -86,7 +86,7 @@ class ClientCallbacks : public NimBLEClientCallbacks
     BSC_LOGI(TAG, "onDisconnect() %s", devMacAdr.c_str());
     #endif
 
-    for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
     {
       if(bleDevices[i].macAdr.equals(devMacAdr.c_str()))
       {
@@ -145,7 +145,7 @@ class MyAdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks
     BSC_LOGI(TAG, "onResult() dev found: %s",devMacAdr.c_str());
     #endif
 
-    for(uint8_t i=0; i<BT_DEVICES_COUNT; i++)
+    for(uint8_t i=0; i<BT_INTERNAL_DEVICES_COUNT; i++)
     {
       #ifdef BT_DEBUG
       BSC_LOGD(TAG, "onResult() dev=%i, mac=%s", i, webSettings.getString(ID_PARAM_SS_BTDEVMAC,i).c_str());
@@ -183,7 +183,7 @@ void notifyCB_NEEY(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* p
   std::string notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
   //BSC_LOGI(TAG,"neey_cb mac=%s, len=%i",notifyMacAdr.c_str(),length);
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
@@ -198,7 +198,7 @@ void notifyCB_JKBMS(NimBLERemoteCharacteristic* pRemoteCharacteristic, uint8_t* 
 {
   std::string notifyMacAdr = pRemoteCharacteristic->getRemoteService()->getClient()->getPeerAddress().toString();
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     if(bleDevices[i].macAdr.equals(notifyMacAdr.c_str()))
     {
@@ -426,7 +426,7 @@ void btDeviceDisconnect(uint8_t devNr)
 
   NimBLEClient* pClient = nullptr;
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     if(NimBLEDevice::getClientListSize())
     {
@@ -452,7 +452,7 @@ void btDeviceDisconnectSingle(uint8_t devNr)
   //BSC_LOGI(TAG, "btDeviceDisconnectSingle() devNr=%i",devNr);
   //#endif
 
-  if(devNr>=0 && devNr<BT_DEVICES_COUNT)
+  if(devNr>=0 && devNr<BT_INTERNAL_DEVICES_COUNT)
   {
     NimBLEClient* pClient = nullptr;
     if(NimBLEDevice::getClientListSize())
@@ -517,7 +517,7 @@ void BleHandler::init()
   bo_mBtNotAllDeviceConnectedOrScanRunning=false;
   u8_mSendDataToNeey=0;
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     bleDevices[i].doConnect = btDoConnectionIdle;
     bleDevices[i].isConnect = false;
@@ -701,7 +701,7 @@ bool BleHandler::handleConnectionToDevices()
   if(!bo_mBtScanIsRunning)
   {
     //BT Devices verbinden
-    for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+    for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
     {
       uint8_t u8_lBtDevType = webSettings.getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
 
@@ -743,10 +743,10 @@ bool BleHandler::handleConnectionToDevices()
     #ifdef BT_DEBUG
     BSC_LOGI(TAG,"u8_lBtConnStatus=%i",u8_lBtConnStatus);
     #endif
-    if(u8_lBtConnStatus==0x7F)
+    if(u8_lBtConnStatus==0x7) // 0x7F
     {
       bool bo_lAllDevWrite=false;
-      for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+      for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
       {
         if(bleDevices[i].doConnect==btDoConnectionWaitStart)
         {
@@ -898,7 +898,7 @@ bool BleHandler::handleConnectionToDevices()
 
 void BleHandler::handleDisconnectionToDevices()
 {
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     if(bleDevices[i].isConnect)
     {

@@ -745,7 +745,7 @@ void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
     //Hier kein "|" anhängen, da dies im nächsten Schritte bei den BMS Daten erfolgt
   }
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  for(uint8_t i=0;i<BT_INTERNAL_DEVICES_COUNT;i++)
   {
     devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
     if(devTyp==ID_BT_DEVICE_NEEY_GW_24S4EB || devTyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
