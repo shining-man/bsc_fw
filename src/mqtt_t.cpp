@@ -50,7 +50,7 @@ struct mqttEntry_s {
   int8_t t2;
   int8_t t3;
   int8_t t4;
-  std::string value;
+  char value[10];
 };
 std::deque<mqttEntry_s> txBuffer;
 
@@ -331,7 +331,7 @@ bool mqttPublishLoopFromTxBuffer()
       if(mqttEntry.t4!=-1){topic+="/"; topic+=String(mqttEntry.t4);}
 
       //uint32_t pubTime = millis();
-      if(mqttClient.publish(topic.c_str(), mqttEntry.value.c_str()) == false)
+      if(mqttClient.publish(topic.c_str(), mqttEntry.value) == false)
       {
         // Wenn die Nachricht nicht mehr versendet werden kann
         BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout)");
@@ -384,8 +384,11 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
   mqttEntry.t1=t1;
   mqttEntry.t2=t2;
   mqttEntry.t3=t3;
-  mqttEntry.t4=t4;
-  mqttEntry.value=value;
+  mqttEntry.t4=t4;   
+  strncpy(mqttEntry.value, value.c_str(), sizeof(mqttEntry.value) - 1);
+  mqttEntry.value[sizeof(mqttEntry.value) - 1] = '\0'; 
+
+
 
   xSemaphoreTake(mMqttMutex, portMAX_DELAY);
   txBuffer.push_back(mqttEntry);
