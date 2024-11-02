@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.7.0_T10"
+#define BSC_SW_VERSION      "V0.7.0_T10b"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -59,7 +59,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define NEEY_WRITE_DATA_DEBUG
 //#define DALY_DEBUG
 //#define BT_DEBUG        //Bluetooth
-#define MQTT_DEBUG
+//#define MQTT_DEBUG
 //#define GOBEL_DEBUG
 #define GOBELPC200_DEBUG
 #define WLAN_DEBUG
