@@ -323,7 +323,7 @@ bool mqttPublishLoopFromTxBuffer()
 
     if(txBuffer.size()>0)
     {
-      struct mqttEntry_s mqttEntry = txBuffer.at(0);
+      const mqttEntry_s& mqttEntry = txBuffer.at(0);
 
       String topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
       if(mqttEntry.t2!=-1){topic+="/"; topic+=String(mqttEntry.t2);}
