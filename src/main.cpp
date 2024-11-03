@@ -54,7 +54,6 @@
 #include "webUtility.h"
 #include "bscTime.h"
 #include "restapi.h"
-#include "devices/NeeyBalancer.h"
 #ifdef BPN
 #include "devices/bpnWebHandler.h"
 #endif
@@ -475,7 +474,7 @@ boolean connectWiFi()
 void task_ConnectWiFi(void *param)
 {
   enum connectStateEnums {ConnState_wifiDisconnected, ConnState_noWifiConnection, ConnState_connectWifi, ConnState_wifiConnected,
-    ConnState_wlanApMode, ConnState_connectMQTTstart, ConnState_connectMQTT, ConnState_connectBT, ConnState_connectBT2, ConnState_idle};
+    ConnState_wlanApMode, ConnState_connectMQTTstart, ConnState_connectMQTT, ConnState_idle};
 
   connectStateEnums mConnectStateEnums=ConnState_noWifiConnection;
   connectStateEnums mConnectStateEnumsOld=ConnState_noWifiConnection;
@@ -497,7 +496,6 @@ void task_ConnectWiFi(void *param)
         WlanStaApOk=WIFI_OFF;
         mqttDisconnect();
         server.stop(); //Webserver beenden
-        bleHandler.stop();
         mConnectStateEnums=ConnState_noWifiConnection;
         break;
 
@@ -519,7 +517,7 @@ void task_ConnectWiFi(void *param)
           if(u8_mWaitConnCounter>5)
           {
             u8_mWaitConnCounter=0;
-            mConnectStateEnums=ConnState_connectBT;
+            mConnectStateEnums=ConnState_idle;
           }
           u8_mWaitConnCounter++;
         }
@@ -549,7 +547,7 @@ void task_ConnectWiFi(void *param)
 
       case ConnState_wlanApMode:
         server.begin(WEBSERVER_PORT);  //Webserver starten
-        mConnectStateEnums=ConnState_connectBT;
+        mConnectStateEnums=ConnState_idle;
         break;
 
 
@@ -566,7 +564,7 @@ void task_ConnectWiFi(void *param)
           BSC_LOGI(TAG,"No Mqtt connection!");
           #endif
           connectMqttTimer=millis();
-          mConnectStateEnums=ConnState_connectBT;
+          mConnectStateEnums=ConnState_idle;
           break;
         }
 
@@ -579,37 +577,12 @@ void task_ConnectWiFi(void *param)
 
         if(webSettingsSystem.getBool(ID_PARAM_MQTT_SERVER_ENABLE,0))
         {
-          if(mqttConnect()) mConnectStateEnums=ConnState_connectBT;
+          if(mqttConnect()) mConnectStateEnums=ConnState_idle;
         }
         else
         {
-          mConnectStateEnums=ConnState_connectBT;
+          mConnectStateEnums=ConnState_idle;
         }
-        break;
-
-      case ConnState_connectBT: //BT verbinden
-        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
-        {
-          wlanEventStaDisonnect=false;
-          mConnectStateEnums=ConnState_wifiDisconnected;
-          break;
-        }
-
-        bleHandler.start();
-        mConnectStateEnums=ConnState_connectBT2;
-        break;
-
-      case ConnState_connectBT2: //BT verbinden
-        //ToDo: Timeout einbauen
-
-        if(wlanEventStaDisonnect==true && WlanStaApOk!=WIFI_AP)
-        {
-          wlanEventStaDisonnect=false;
-          mConnectStateEnums=ConnState_wifiDisconnected;
-          break;
-        }
-
-        if(bleHandler.isNotAllDeviceConnectedOrScanRunning()==false)mConnectStateEnums=ConnState_idle;
         break;
 
       case ConnState_idle: //Idle; Wenn alle Verbindungen stehen
@@ -678,7 +651,7 @@ void task_ble(void *param)
 
   //init Bluetooth
   BSC_LOGI(TAG, "Init BLE...");
-  bleHandler.init();
+  //#### bleHandler.init();
   BSC_LOGI(TAG, "Init BLE...ok");
 
   for(;;)
@@ -693,7 +666,7 @@ void task_ble(void *param)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-    if(WlanStaApOk!=WIFI_OFF) bleHandler.run();
+    //#### if(WlanStaApOk!=WIFI_OFF) bleHandler.run();
 
     xSemaphoreTake(mutexTaskRunTime_ble, portMAX_DELAY);
     lastTaskRun_ble=millis();
@@ -989,7 +962,7 @@ void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlF
 void handle_getNeeySettingsReadback()
 {
   String value;
-  NeeyBalancer::getNeeyReadbackDataAsString(value);
+  //#### NeeyBalancer::getNeeyReadbackDataAsString(value);
   server.send(200, "text/html", value);
   value="";
 }
@@ -1028,10 +1001,10 @@ void handle_getDashboardData()
   tmp += "|";
   for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
   {
-    uint8_t u8_lBtDevConnState=bleHandler.bmsIsConnect(i);
-    if(u8_lBtDevConnState==0) tmp += "&ndash;";
-    else if(u8_lBtDevConnState==1) tmp += "n";
-    else if(u8_lBtDevConnState==2) tmp += "c";
+    //#### uint8_t u8_lBtDevConnState=bleHandler.bmsIsConnect(i);
+    //if(u8_lBtDevConnState==0) tmp += "&ndash;";
+    //else if(u8_lBtDevConnState==1) tmp += "n";
+    //else if(u8_lBtDevConnState==2) tmp += "c";
 
     if(i<BT_DEVICES_COUNT) tmp += "&nbsp;";
     if(i==4) tmp += "|";
@@ -1110,8 +1083,8 @@ void handle_getBscLiveData()
 void handle_getBtDevices()
 {
   if(!performAuthentication(server, webSettingsSystem)) return;
-  bleHandler.startScan(); //BT Scan starten
-  server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
+  //#### bleHandler.startScan(); //BT Scan starten
+  //#### server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
 }
 
 
@@ -1135,13 +1108,13 @@ void btnSystemDeleteLog()
 
 void btnWriteNeeyData()
 {
-  bleHandler.sendDataToNeey();
+  //#### bleHandler.sendDataToNeey();
 }
 
 void btnReadNeeyData()
 {
-  BSC_LOGI(TAG,"StartReadDataFromNeey");
-  bleHandler.readDataFromNeey();
+  BSC_LOGD(TAG,"StartReadDataFromNeey");
+  //#### bleHandler.readDataFromNeey();
 }
 
 
@@ -1294,7 +1267,7 @@ void setup()
   BSC_LOGI(TAG, "Init WLAN...");
   WiFi.onEvent(onWiFiEvent);
   WiFi.setAutoReconnect(false);
-  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_SERIAL_MAX, &task_handle_ble, CONFIG_BT_NIMBLE_PINNED_TO_CORE);
+  xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_SERIAL_MAX, &task_handle_ble, 1);
   xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, TASK_PRIORITY_CONNECT_WIFI, &task_handle_wifiConn, 1);
 
 
