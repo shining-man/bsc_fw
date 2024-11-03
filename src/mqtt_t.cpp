@@ -118,17 +118,6 @@ bool mqttLoop()
 
   bool ret=false;
 
-  //Running Bluetooth scan?
-  bool bo_lBTisScanRuning=BleHandler::isNotAllDeviceConnectedOrScanRunning();
-  #ifdef MQTT_DEBUG
-  if(bo_lBTisScanRuning!=bo_mBTisScanRuningOld)
-  {
-    BSC_LOGD(TAG,"mqttLoop(): BTscanRuning=%i", bo_lBTisScanRuning);
-    bo_mBTisScanRuningOld=bo_lBTisScanRuning;
-  }
-  #endif
-  if(bo_lBTisScanRuning) return true;
-
   //Mqtt connect SM
   switch(smMqttConnectState)
   {
@@ -144,20 +133,6 @@ bool mqttLoop()
         BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED: !mqttClient.connected(), ret=0");
         #endif
         ret=false;
-        break;
-      }
-
-      if(BleHandler::isNotAllDeviceConnectedOrScanRunning())
-      {
-        /*if(bo_mSendPrioMessages)
-        {
-          mqttClient.loop();
-          mqttPublishLoopFromTxBuffer();  //MQTT Messages zyklisch publishen
-        }*/
-        #ifdef MQTT_DEBUG
-        BSC_LOGD(TAG,"mqttLoop(): isNotAllDeviceConnectedOrScanRunning, ret=1");
-        #endif
-        ret=true;
         break;
       }
 
@@ -222,7 +197,6 @@ bool mqttConnect()
 
   //Nur wenn WLAN-Verbindung besteht
   if(WiFi.status() != WL_CONNECTED) bo_lBreak+=1;
-  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) bo_lBreak+=2;
 
   if(WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals("")) bo_lBreak+=4;
   if(WebSettings::getInt(ID_PARAM_MQTT_SERVER_PORT,0,DT_ID_PARAM_MQTT_SERVER_PORT)<=0) bo_lBreak+=8;
@@ -367,19 +341,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
   if(mMqttEnable <= MQTT_ENABLE_STATE_EN) return;
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
-  if(BleHandler::isNotAllDeviceConnectedOrScanRunning()) //Wenn nicht alle BT-Devices verbunden sind
-  {
-     /*if(t1==MQTT_TOPIC_ALARM)
-     {
-      //Trigger Meldungen mit Priorität abarbeiten
-      xSemaphoreTake(mMqttMutex, portMAX_DELAY);
-      txBuffer.clear();
-      xSemaphoreGive(mMqttMutex);
-      mqttPublishTrigger();
-      bo_mSendPrioMessages=true;
-     }*/
-     return;
-  }
+
   if(txBuffer.size()>300)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
 
