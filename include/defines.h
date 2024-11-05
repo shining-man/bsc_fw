@@ -180,6 +180,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_DEV_ADDR_SLAVE1           16
 #define I2C_DEV_ADDR_SLAVE2           17
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
+#define I2C_DEV_ADDR_BT_EXTENSION_1 0x60
 #define I2C_FREQUENCY           1000000U
 #define I2C_CNT_SLAVES                2
 
@@ -496,7 +497,9 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BMS_DATA                          0x01  //BMS-Daten
 #define INVERTER_DATA                     0x02  //Inverter-Daten
 #define BSC_DATA                          0x03  //
-#define BSC_GET_SLAVE_DATA                0x0A  //
+#define BSC_GET_BT_EXTENSION_DATA         0x0B  // Hole Daten von BT Extension
+#define BSC_GET_BT_EXTENSION_BMSDATA      0x0C  // Hole Daten von BT Extension
+#define BSC_SET_BT_EXTENSION_DATA         0x0D  // Sende Daten zur BT Extension
 
 //BMS_DATA 0x01
 #define BMS_CELL_VOLTAGE                  0x01
@@ -528,8 +531,11 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_RELAIS                        0x03
 #define BSC_DISPLAY_TIMEOUT               0x04
 
-//BSC_GET_SLAVE_DATA 0x0A
-//#define BMS_GET_ALL_DATA                  0x01
+// BSC_GET_BT_EXTENSION_DATA
+#define BSC_DISP_GET_FOUND_MAC            0x01
+
+// BSC_SET_BT_EXTENSION_DATA 
+#define BSC_BT_CONNECT_MACS               0x01 // Zu verbindende MACs
 
 
 /*********************************************

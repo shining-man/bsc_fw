@@ -50,7 +50,7 @@
 #include "BmsData.h"
 #include "mqtt_t.h"
 #include "log.h"
-#include "i2c.h"
+#include "extension/ExtManager.h"
 #include "webUtility.h"
 #include "bscTime.h"
 #include "restapi.h"
@@ -73,6 +73,7 @@ WebServer server;
 BleHandler bleHandler;
 BscSerial bscSerial;   // Serial
 Inverter inverter;
+ExtManager extManager;
 
 //Websettings
 WebSettings webSettingsSystem;
@@ -115,7 +116,7 @@ uint32_t lastTaskRun_alarmrules = 0;
 uint32_t lastTaskRun_onewire = 0;
 uint32_t lastTaskRuncanbusTx = 0;
 uint32_t lastTaskRun_bscSerial = 0;
-uint32_t lastTaskRun_i2c = 0;
+uint32_t lastTaskRun_extensions = 0;
 uint32_t lastTaskRun_wifiConn = 0;
 
 RTC_DATA_ATTR static uint8_t bootCounter = 0;
@@ -731,7 +732,7 @@ void task_bscSerial(void *param)
   BSC_LOGD(TAG, "-> 'task_bscSerial' runs on core %d", xPortGetCoreID());
 
   //init Serial
-  bscSerial.initSerial();
+  bscSerial.initSerial(extManager);
 
   for (;;)
   {
@@ -743,28 +744,28 @@ void task_bscSerial(void *param)
   }
 }
 
-void task_i2c(void *param)
+void task_extensions(void *param)
 {
-  BSC_LOGD(TAG, "-> 'task_i2c' runs on core %d", xPortGetCoreID());
+  BSC_LOGD(TAG, "-> 'task_extensions' runs on core %d", xPortGetCoreID());
 
-  i2cInit();
+  extManager.initialize();
 
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(2000));
-    i2cCyclicRun(inverter); //Sende Daten zum Display
+    extManager.cyclicRun(inverter);
 
     if(changeWlanDataForI2C)
     {
       changeWlanDataForI2C=false;
-      String ipAddr;
-      if(WiFi.getMode()==WIFI_MODE_AP) ipAddr="192.168.4.1";
-      else ipAddr = WiFi.localIP().toString();
-      i2cSendData(inverter, I2C_DEV_ADDR_DISPLAY, BSC_DATA, BSC_IP_ADDR, 0, ipAddr, 16);
+      std::string ipAddr;
+      if(WiFi.getMode()==WIFI_MODE_AP) ipAddr = "192.168.4.1";
+      else ipAddr = WiFi.localIP().toString().c_str();
+      extManager.getDisplay().sendDataStr(inverter, BSC_DATA, BSC_IP_ADDR, ipAddr, 16);
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
-    lastTaskRun_i2c=millis();
+    lastTaskRun_extensions = millis();
     xSemaphoreGive(mutexTaskRunTime_i2c);
   }
 }
@@ -1162,7 +1163,7 @@ uint8_t checkTaskRun()
 
   if(xSemaphoreTake( mutexTaskRunTime_i2c,(TickType_t)10)==pdTRUE)
   {
-    if(millis()-lastTaskRun_i2c>4000) ret+=32;
+    if(millis()-lastTaskRun_extensions>4000) ret+=32;
     xSemaphoreGive(mutexTaskRunTime_i2c);
   }
 
@@ -1390,7 +1391,7 @@ void setup()
   xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_bscSerial, 1);
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, TASK_PRIORITY_ALARMRULES, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, TASK_PRIORITY_STD, &task_handle_canbusTx, 1);
-  xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_extensions, "i2c", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   #ifdef UTEST_FS
   xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
