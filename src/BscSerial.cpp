@@ -10,7 +10,6 @@
 #include "BmsData.h"
 #include "log.h"
 #include "dio.h"
-#include "i2c.h"
 #include "crc.h"
 
 //include Devices
@@ -32,6 +31,8 @@
 #endif
 
 static const char *TAG = "BSC_SERIAL";
+
+ExtManager *mExtManager;
 
 uint32_t serialMqttSendeTimer;
 
@@ -55,9 +56,10 @@ BscSerial::BscSerial()
 
 }
 
-void BscSerial::initSerial()
+void BscSerial::initSerial(ExtManager &extManager)
 {
   mSerialMutex = xSemaphoreCreateMutex();
+  mExtManager = &extManager;
 
   #ifdef LILYGO_TCAN485
   pinMode(TCAN485_RS485_EN_PIN, OUTPUT);
@@ -140,7 +142,7 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
     serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
-  else if(u8_devNr>2 && isSerialExtEnabled()) // Hw Serial 0
+  else if(u8_devNr>2 && mExtManager->getSerial(0).isEnabled()) // Hw Serial 0
   {
     Serial2.end();
     //Serial2.setRxBufferSize(300);
@@ -364,7 +366,8 @@ void BscSerial::setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw)
   }
   else if(u8_devNr>2 && u8_devNr<=10 && getHwVersion()>=2)
   {
-    i2cExtSerialSetEnable(u8_devNr-3, e_rw);
+    if(mExtManager == nullptr) BSC_LOGE(TAG,"Fehler beim Zugriff auf die Serial Extension");
+    else mExtManager->getSerial(0).extSerialSetEnable(u8_devNr-3, e_rw);
   }
   #endif
 }
@@ -415,14 +418,14 @@ void BscSerial::cyclicRun()
 
     //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
     //Unklar wo das Verhalten herkommt.
-    if(i>2 && isSerialExtEnabled())
+    if(i>2 && mExtManager->getSerial(0).isEnabled())
     {
       setRxTxEnable(2,serialRxTx_RxEn);
       usleep(50);
       setRxTxEnable(2,serialRxTx_RxTxDisable);
     }
 
-    if(i>=2 && isSerialExtEnabled()) setSerialBaudrate(i); //Baudrate wechslen
+    if(i>=2 && mExtManager->getSerial(0).isEnabled()) setSerialBaudrate(i); //Baudrate wechslen
 
     uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+i);
 

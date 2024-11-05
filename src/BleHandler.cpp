@@ -20,6 +20,13 @@ BleHandler::~BleHandler() {
 
 }
 
+
+/*void BleHandler::startScan()
+{
+
+}*/
+
+
 void BleHandler::setBalancerState(uint8_t devNr, boolean Alarm)
 {
 
