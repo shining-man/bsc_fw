@@ -740,7 +740,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x8) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;       // Alarm
         if ((u8_lByte & 0x10) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;      // Alarm
         if ((u8_lByte & 0x20) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;   // Warning
-        if ((u8_lByte & 0x40) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;      // Alarm
+        if ((u8_lByte & 0x40) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;   // Warning
         break;
 
       //  39    Alarm event 5
@@ -751,8 +751,8 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x8) == 0x8) u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
         if ((u8_lByte & 0x10) == 0x10) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
         if ((u8_lByte & 0x20) == 0x20) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
+        if ((u8_lByte & 0x40) == 0x40) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;   // Alarm
+        if ((u8_lByte & 0x80) == 0x80) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;   // Alarm
         break;
 
       //  40    Alarm event 6
@@ -761,7 +761,7 @@ static void parseMessage_Alarms(uint8_t * t_message, uint8_t address)
         if ((u8_lByte & 0x2) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
         if ((u8_lByte & 0x4) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;    // Warning
         if ((u8_lByte & 0x8) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
-        if ((u8_lByte & 0x10) > 0) u32_warnings |= BMS_ERR_STATUS_AFE_ERROR;   // Warning
+        if ((u8_lByte & 0x10) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;      // Alarm
         if ((u8_lByte & 0x20) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
         if ((u8_lByte & 0x40) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
         //if ((u8_lByte & 0x80) > 0) u32_alarm |= BMS_ERR_STATUS_AFE_ERROR;
