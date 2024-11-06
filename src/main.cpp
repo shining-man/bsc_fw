@@ -1406,10 +1406,10 @@ void setup()
 
   //Erstelle Tasks
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, 5, &task_handle_onewire, 1);
-  xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, 5, &task_handle_bscSerial, 1);
-  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
-  xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, 5, &task_handle_canbusTx, 1);
-  xTaskCreatePinnedToCore(task_i2c, "i2c", 2500, nullptr, 5, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, 5, &task_handle_bscSerial, 1);
+  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 3000, nullptr, configMAX_PRIORITIES - 5, &task_handle_alarmrules, 1);
+  xTaskCreatePinnedToCore(task_canbusTx, "can", 3000, nullptr, 5, &task_handle_canbusTx, 1);
+  xTaskCreatePinnedToCore(task_i2c, "i2c", 3000, nullptr, 5, &task_handle_i2c, 1);
   #ifdef UTEST_FS
   xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, 5, &task_handle_i2c, 1);
   xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, 5, &task_handle_i2c, 1);
