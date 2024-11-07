@@ -20,6 +20,11 @@ public:
 
   void readBtData();
 
+  void sendDataAfterParameterChange();
+
+private:
+  void sendBtDeviceMACs();
+
 };
 
 #endif

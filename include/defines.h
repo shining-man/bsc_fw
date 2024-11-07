@@ -134,11 +134,7 @@ extern TaskHandle_t task_handle_bscSerial;
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
-#define BT_INTERNAL_DEVICES_COUNT     3
-#define BT_SCAN_RESULTS               5
-#define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
-
-#define BT_NEEY_POLL_INTERVAL       725 //800 // x1,25ms
+#define BT_EXT_DEVICES_COUNT          5
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      11

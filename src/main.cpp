@@ -879,6 +879,7 @@ void handle_paramBluetooth()
   if (server.hasArg("SAVE"))
   {
     changeAlarmSettings();
+    extManager.getBt().sendDataAfterParameterChange();
   }
 }
 
