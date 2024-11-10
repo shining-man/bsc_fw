@@ -4,12 +4,12 @@
 // https://opensource.org/licenses/MIT
 
 
-#include "extension/ExtDisplay.h"
+#include "extension/devices/ExtDisplay.h"
 #include "dio.h"
 
 static const char *TAG = "EXT_DISPLAY";
 
-ExtDisplay::ExtDisplay(uint8_t address) : ExtDeviceI2C(address) { }
+ExtDisplay::ExtDisplay(uint8_t address) : ExtInterface_I2C(address) { }
 
 ExtDisplay::~ExtDisplay() {}
 

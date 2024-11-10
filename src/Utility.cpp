@@ -47,3 +47,14 @@ std::string macAddressToString(const uint8_t* mac)
   }
   return ss.str();
 }
+
+
+std::string floatToString(float value, uint8_t decimalPlaces)
+{
+  char buffer[20];
+
+  std::string format = "%." + std::to_string(decimalPlaces) + "f";
+  snprintf(buffer, sizeof(buffer), format.c_str(), value);
+  std::string tmpStr(buffer);
+  return tmpStr;
+}

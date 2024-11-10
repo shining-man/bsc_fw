@@ -12,9 +12,9 @@
 
 #include "inverter/Inverter.hpp"
 
-class ExtDeviceI2C : public ExtPeripheral {
+class ExtInterface_I2C : public ExtPeripheral {
   private:
-    static ExtDeviceI2C* instance;
+    static ExtInterface_I2C* instance;
 
     SemaphoreHandle_t mutexI2cRx = NULL;
     uint8_t mI2cRxBuf[256];
@@ -36,6 +36,7 @@ class ExtDeviceI2C : public ExtPeripheral {
     void i2cWriteBytes(uint8_t devAdr, uint8_t *data, uint8_t dataLen);
     void i2cReadBytes(uint8_t *data, uint8_t dataLen);
     uint8_t i2cRequest(uint8_t devAdr, uint8_t dataLen);
+    bool getDataFromExtension(uint8_t i2cAdr, uint8_t data0, uint8_t data1, uint8_t bmsNr, uint8_t *rxData, uint8_t rxLen);
 
     void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
     void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, std::string data, uint8_t dataLen);
@@ -44,7 +45,7 @@ class ExtDeviceI2C : public ExtPeripheral {
     uint8_t isDeviceAvailable(uint8_t devAdresse);
 
   public:
-    ExtDeviceI2C(uint8_t address);
+    ExtInterface_I2C(uint8_t address);
 
 
   protected:

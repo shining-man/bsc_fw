@@ -7,18 +7,19 @@
 #ifndef EXTBLUETOOTH_H
 #define EXTBLUETOOTH_H
 
-#include "extension/ExtDeviceI2C.h"
+#include "extension/ExtInterface_I2C.h"
 #include "defines.h"
 
 
-class ExtBluetooth : public ExtDeviceI2C {
+class ExtBluetooth : public ExtInterface_I2C {
 public:
   ExtBluetooth(uint8_t address);
   ~ExtBluetooth();
 
   void initialize() override;
 
-  void readBtData();
+  void getBtBmsData();
+  void getNeeySettings();
 
   void sendDataAfterParameterChange();
 

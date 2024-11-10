@@ -4,12 +4,12 @@
 // https://opensource.org/licenses/MIT
 
 
-#include "extension/ExtSerial.h"
+#include "extension/devices/ExtSerial.h"
 #include "mcp23017.h"
 
 static const char *TAG = "EXT_SERIAL";
 
-ExtSerial::ExtSerial(uint8_t address) : ExtDeviceI2C(address) { }
+ExtSerial::ExtSerial(uint8_t address) : ExtInterface_I2C(address) { }
 
 ExtSerial::~ExtSerial() {}
 

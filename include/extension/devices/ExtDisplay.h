@@ -7,11 +7,11 @@
 #ifndef EXTDISPLAY_H
 #define EXTDISPLAY_H
 
-#include "extension/ExtDeviceI2C.h"
+#include "extension/ExtInterface_I2C.h"
 #include "defines.h"
 
 
-class ExtDisplay : public ExtDeviceI2C {
+class ExtDisplay : public ExtInterface_I2C {
   public:
     ExtDisplay(uint8_t address);
     ~ExtDisplay();

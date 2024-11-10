@@ -7,11 +7,11 @@
 #ifndef EXTSERIAL_H
 #define EXTSERIAL_H
 
-#include "extension/ExtDeviceI2C.h"
+#include "extension/ExtInterface_I2C.h"
 #include "defines.h"
 
 
-class ExtSerial : public ExtDeviceI2C {
+class ExtSerial : public ExtInterface_I2C {
   public:
     ExtSerial(uint8_t address);
     ~ExtSerial();

@@ -528,7 +528,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_DISPLAY_TIMEOUT               0x04
 
 // BSC_GET_BT_EXTENSION_DATA
-#define BSC_DISP_GET_FOUND_MAC            0x01
+#define BSC_BT_EXT_GET_FOUND_MAC          0x01
+#define BSC_BT_EXT_GET_SETTINGS           0x02
 
 // BSC_SET_BT_EXTENSION_DATA 
 #define BSC_BT_CONNECT_MACS               0x01 // Zu verbindende MACs
@@ -537,7 +538,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 /*********************************************
  * MQTT
  *********************************************/
-#define MQTT_TOPIC_DATA_DEVICE                        1
+#define MQTT_TOPIC_DATA_DEVICE                   1
 #define MQTT_TOPIC_TEMPERATUR                    2
 #define MQTT_TOPIC_ALARM                         3
 #define MQTT_TOPIC_INVERTER                      4
