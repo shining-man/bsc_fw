@@ -10,9 +10,9 @@
 #include <vector>
 #include <memory>
 #include "extension/ExtPeripheral.h"
-#include "extension/ExtSerial.h"
-#include "extension/ExtDisplay.h"
-#include "extension/ExtBluetooth.h"
+#include "extension/devices/ExtSerial.h"
+#include "extension/devices/ExtDisplay.h"
+#include "extension/devices/ExtBluetooth.h"
 
 
 class ExtManager {

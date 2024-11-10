@@ -58,6 +58,6 @@ void ExtManager::cyclicRun(Inverter &inverter)
   // BT Extension
   if(getBt().isEnabled())
   {
-    getBt().readBtData();
+    getBt().getBtBmsData();
   }
 }

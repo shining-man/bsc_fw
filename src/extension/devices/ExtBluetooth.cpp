@@ -4,13 +4,14 @@
 // https://opensource.org/licenses/MIT
 
 
-#include "extension/ExtBluetooth.h"
+#include "extension/devices/ExtBluetooth.h"
 #include "WebSettings.h"
 #include "Utility.h"
+#include "string.h"
 
 static const char *TAG = "EXT_BT";
 
-ExtBluetooth::ExtBluetooth(uint8_t address) : ExtDeviceI2C(address) { }
+ExtBluetooth::ExtBluetooth(uint8_t address) : ExtInterface_I2C(address) { }
 
 ExtBluetooth::~ExtBluetooth() {}
 
@@ -33,7 +34,7 @@ void ExtBluetooth::initialize()
 }
 
 
-void ExtBluetooth::readBtData()
+void ExtBluetooth::getBtBmsData()
 {
   uint8_t dataDeviceNr;
   uint8_t bytesReceived = 0;
@@ -47,18 +48,20 @@ void ExtBluetooth::readBtData()
     for(uint8_t bmsDataTyp = (uint8_t)BMS_CELL_VOLTAGE; bmsDataTyp < (uint8_t)BMS_LAST_DATA_MILLIS + 1; bmsDataTyp++)
     {
       //vTaskDelay(pdMS_TO_TICKS(10));
-      uint8_t data[] = {BSC_GET_BT_EXTENSION_BMSDATA, bmsDataTyp, bmsNr, 0};
-      i2cWriteBytes(deviceAddress, data, sizeof(data) / sizeof(data[0]));
+      //uint8_t data[] = {BSC_GET_BT_EXTENSION_BMSDATA, bmsDataTyp, bmsNr, 0};
+      //i2cWriteBytes(deviceAddress, data, sizeof(data) / sizeof(data[0]));
 
-      I2cRxSemaphoreTake();
-      bytesReceived = i2cRequest(deviceAddress, 50); //len: getBmsDataBytes(bmsDataTyp)+2
-      if(bytesReceived > 0)
+      //I2cRxSemaphoreTake();
+      //bytesReceived = i2cRequest(deviceAddress, 50); //len: getBmsDataBytes(bmsDataTyp)+2
+      //if(bytesReceived > 0)
+      //{
+        //uint8_t rxBuf[bytesReceived];
+        //i2cReadBytes(rxBuf, bytesReceived);
+        //I2cRxSemaphoreGive();
+
+      uint8_t rxBuf[50];
+      if(getDataFromExtension(deviceAddress, BSC_GET_BT_EXTENSION_BMSDATA, bmsDataTyp, bmsNr, rxBuf, 50))
       {
-        uint8_t rxBuf[bytesReceived];
-        i2cReadBytes(rxBuf, bytesReceived);
-        I2cRxSemaphoreGive();
-
-
         //dataDeviceNr = bmsNr; // zum Test
         // Suche Data-mapping Device
         dataDevFound = false;
@@ -125,6 +128,24 @@ void ExtBluetooth::readBtData()
         }
       }
       else I2cRxSemaphoreGive();
+    }
+  }
+}
+
+
+void ExtBluetooth::getNeeySettings()
+{
+  if(!isEnabled()) return;
+
+  for(uint8_t bmsNr = 0; bmsNr < BT_EXT_DEVICES_COUNT; bmsNr++)
+  {
+    // ToDo: Üperprüfen ob NEEY
+
+    uint8_t rxBuf[50];
+    if(getDataFromExtension(deviceAddress, BSC_GET_BT_EXTENSION_BMSDATA, BSC_BT_EXT_GET_SETTINGS, bmsNr, rxBuf, 50))
+    {
+      memcpy(getBmsSettingsReadback(bmsNr), &rxBuf[2], 32);
+      // ToDo: Daten an Ziel kopieren
     }
   }
 }

@@ -54,6 +54,7 @@
 #include "webUtility.h"
 #include "bscTime.h"
 #include "restapi.h"
+#include"devices/NeeyBalancer.h"
 #ifdef BPN
 #include "devices/bpnWebHandler.h"
 #endif
@@ -963,10 +964,10 @@ void handle_paramDeviceMapping()
 void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);}
 void handle_getNeeySettingsReadback()
 {
-  String value;
-  //#### NeeyBalancer::getNeeyReadbackDataAsString(value);
-  server.send(200, "text/html", value);
-  value="";
+  std::string value;
+  NeeyBalancer::getNeeyReadbackDataAsString(value);
+  server.send(200, "text/html", String(value.c_str()));
+  value = "";
 }
 
 void handle_paramDeviceJbdBms(){webSettingsDeviceJbdBms.handleHtmlFormRequest(&server);}
