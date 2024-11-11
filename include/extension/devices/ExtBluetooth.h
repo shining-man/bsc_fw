@@ -20,10 +20,22 @@ public:
 
   void getBtBmsData();
   void getNeeySettings();
+  void sendNeeySettings();
 
   void sendDataAfterParameterChange();
 
 private:
+  struct NeeySettings_s {
+      uint8_t balancerOn;
+      uint8_t cellCount;
+      uint8_t batteryType;
+      uint16_t batteryCapacity;
+      float startVoltage;
+      float maxBalanceCurrent;
+      float sleepVoltage;
+      float equalizationVoltage;
+  } __attribute__((packed));
+
   void sendBtDeviceMACs();
 
 };
