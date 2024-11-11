@@ -145,8 +145,38 @@ void ExtBluetooth::getNeeySettings()
     if(getDataFromExtension(deviceAddress, BSC_GET_BT_EXTENSION_BMSDATA, BSC_BT_EXT_GET_SETTINGS, bmsNr, rxBuf, 50))
     {
       memcpy(getBmsSettingsReadback(bmsNr), &rxBuf[2], 32);
-      // ToDo: Daten an Ziel kopieren
     }
+  }
+}
+
+
+void ExtBluetooth::sendNeeySettings()
+{
+  if(!isEnabled()) return;
+
+  NeeySettings_s settings;
+  uint8_t data[4 + sizeof(NeeySettings_s)];
+
+  for(uint8_t bmsNr = 0; bmsNr < BT_EXT_DEVICES_COUNT; bmsNr++)
+  {
+    // ToDo: Üperprüfen ob NEEY
+
+    settings.balancerOn = (uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON, bmsNr, DT_ID_PARAM_NEEY_BALANCER_ON);
+    settings.cellCount = (uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_CELLS, bmsNr, DT_ID_PARAM_NEEY_CELLS);
+    settings.batteryType = (uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_TYPE, bmsNr, DT_ID_PARAM_NEEY_BAT_TYPE);
+    settings.batteryCapacity = (uint16_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY, bmsNr, DT_ID_PARAM_NEEY_BAT_CAPACITY);
+    settings.startVoltage = WebSettings::getFloatFlash(ID_PARAM_NEEY_START_VOLTAGE, bmsNr);
+    settings.maxBalanceCurrent = WebSettings::getFloatFlash(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, bmsNr);
+    settings.sleepVoltage = WebSettings::getFloatFlash(ID_PARAM_NEEY_SLEEP_VOLTAGE, bmsNr);
+    settings.equalizationVoltage = WebSettings::getFloatFlash(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, bmsNr);
+
+    data[0] = BSC_SET_BT_EXTENSION_DATA;
+    data[1] = BSC_BT_CONNECT_MACS;
+    data[2] = bmsNr;
+    data[3] = 0;
+
+    memcpy(&data[4], &settings, sizeof(NeeySettings_s));
+    i2cWriteBytes(deviceAddress, data, sizeof(data) / sizeof(data[0]));
   }
 }
 

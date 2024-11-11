@@ -1111,7 +1111,7 @@ void btnSystemDeleteLog()
 
 void btnWriteNeeyData()
 {
-  //#### bleHandler.sendDataToNeey();
+  extManager.getBt().sendNeeySettings();
 }
 
 void btnReadNeeyData()
