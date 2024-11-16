@@ -67,8 +67,8 @@ uint32_t NeeyBalancer::neeyGetReadbackDataInt(uint8_t devNr, uint8_t dataType)
 
 constexpr const char* textNeeySet_displayFlex = "display;flex|";
 constexpr const char* textNeeySet_displayNone = "display;none|";
-constexpr const char* textNeeySet_btn0 = "display;none|";
-constexpr const char* textNeeySet_btn1 = "display;none|";
+constexpr const char* textNeeySet_btn0 = "btn1;0";
+constexpr const char* textNeeySet_btn1 = "btn1;1";
 
 constexpr const char* textNeeySet_NCM = "NCM";
 constexpr const char* textNeeySet_LFP = "LFP";
@@ -87,12 +87,12 @@ void NeeyBalancer::getNeeyReadbackDataAsString(std::string &value)
   //ID_PARAM_NEEY_BUZZER //not use
   //ID_PARAM_NEEY_BALANCER_ON
 
-  //if(u8_neeySendStep>0) //Write Data, please wait
-  //{
+  /*if(u8_neeySendStep>0) //Write Data, please wait
+  {
     value += textNeeySet_displayFlex;  //spinner visible on
-    value += textNeeySet_btn0;        //disable
+    value += textNeeySet_btn0;         //disable
     //Hier kein "|" anhängen, da dies im nächsten Schritte bei den BMS Daten erfolgt
-  /*}
+  }
   else
   {
     value += textNeeySet_displayNone;  //spinner visible off
@@ -100,7 +100,10 @@ void NeeyBalancer::getNeeyReadbackDataAsString(std::string &value)
     //Hier kein "|" anhängen, da dies im nächsten Schritte bei den BMS Daten erfolgt
   }*/
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  value += textNeeySet_displayNone;  //spinner visible off
+  value += textNeeySet_btn0;         //disable
+
+  for(uint8_t i=0;i<5;i++)
   {
     devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
     if(devTyp==ID_BT_DEVICE_NEEY4A || devTyp==ID_BT_DEVICE_NEEY8A)
