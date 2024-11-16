@@ -4,8 +4,21 @@
 // https://opensource.org/licenses/MIT
 
 #include "Utility.h"
+#include "defines.h"
 
 
+static const char *TAG = "UTILITY";
+
+// Private
+std::string toHexString(const uint8_t* number) 
+{
+  std::stringstream ss;
+  ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(*number);
+  return ss.str();
+}
+
+
+// Public
 bool parseMacAddress(const std::string& macStr, uint8_t* mac)
 {
   std::istringstream ss(macStr);
@@ -57,4 +70,27 @@ std::string floatToString(float value, uint8_t decimalPlaces)
   snprintf(buffer, sizeof(buffer), format.c_str(), value);
   std::string tmpStr(buffer);
   return tmpStr;
+}
+
+
+void buffer2Log(uint8_t *p_message, uint8_t len)
+{
+  std::string recvBytes = "";
+  uint8_t logByteCount = 0;
+  BSC_LOGI(TAG,"len=%i", len);
+  for(uint8_t x = 0; x < len; x++)
+  {
+    logByteCount++;
+    recvBytes += "0x";
+    recvBytes += toHexString(&p_message[x]);
+    //recvBytes += p_message[x];
+    recvBytes += " ";
+    if(logByteCount == 20)
+    {
+      BSC_LOGI(TAG, "%s", recvBytes.c_str());
+      recvBytes = "";
+      logByteCount = 0;
+    }
+  }
+  if(logByteCount > 0) BSC_LOGI(TAG, "%s", recvBytes.c_str());
 }
