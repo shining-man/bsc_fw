@@ -24,6 +24,8 @@ class ExtInterface_I2C : public ExtPeripheral {
     void onReceiveCb(int len);
     void onRequestCb();
 
+    void i2cWriteBytesUnsecure(uint8_t devAdr, uint8_t *data, uint8_t dataLen);
+
   protected:
     uint8_t deviceAddress;
 
@@ -37,6 +39,7 @@ class ExtInterface_I2C : public ExtPeripheral {
     void i2cReadBytes(uint8_t *data, uint8_t dataLen);
     uint8_t i2cRequest(uint8_t devAdr, uint8_t dataLen);
     bool getDataFromExtension(uint8_t i2cAdr, uint8_t data0, uint8_t data1, uint8_t bmsNr, uint8_t *rxData, uint8_t rxLen);
+    bool getDataFromExtensionDelay(uint8_t i2cAdr, uint8_t data0, uint8_t data1, uint8_t bmsNr, uint8_t *rxData, uint8_t rxLen, uint8_t delay);
 
     void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, const void *dataAdr, uint8_t dataLen);
     void i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t data1, uint8_t data2, uint8_t data3, std::string data, uint8_t dataLen);

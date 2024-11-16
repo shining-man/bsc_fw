@@ -105,6 +105,15 @@ void ExtInterface_I2C::i2cWriteBytes(uint8_t devAdr, uint8_t *data, uint8_t data
 }
 
 
+void ExtInterface_I2C::i2cWriteBytesUnsecure(uint8_t devAdr, uint8_t *data, uint8_t dataLen)
+{
+  Wire.beginTransmission(devAdr);
+  Wire.flush();
+  Wire.write(data, dataLen);
+  Wire.endTransmission();
+}
+
+
 void ExtInterface_I2C::i2cReadBytes(uint8_t *data, uint8_t dataLen)
 {
   Wire.readBytes(data, dataLen);
@@ -157,17 +166,24 @@ void ExtInterface_I2C::i2cSendData(Inverter &inverter, uint8_t i2cAdr, uint8_t d
 
 bool ExtInterface_I2C::getDataFromExtension(uint8_t i2cAdr, uint8_t data0, uint8_t data1, uint8_t bmsNr, uint8_t *rxData, uint8_t rxLen)
 {
-  uint8_t data[] = {data0, data1, bmsNr, 0};
-  i2cWriteBytes(i2cAdr, data, sizeof(data) / sizeof(data[0]));
+  return getDataFromExtensionDelay(i2cAdr, data0, data1, bmsNr, rxData, rxLen, 0);
+}
 
+
+bool ExtInterface_I2C::getDataFromExtensionDelay(uint8_t i2cAdr, uint8_t data0, uint8_t data1, uint8_t bmsNr, uint8_t *rxData, uint8_t rxLen, uint8_t delay)
+{
+  uint8_t data[] = {data0, data1, bmsNr, 0};
   I2cRxSemaphoreTake();
+  i2cWriteBytesUnsecure(i2cAdr, data, sizeof(data) / sizeof(data[0]));
+  if(delay > 0) vTaskDelay(pdMS_TO_TICKS(delay));
+
   uint8_t bytesReceived = i2cRequest(i2cAdr, rxLen);
   if(bytesReceived > 0)
   {
     if(bytesReceived > rxLen) bytesReceived = rxLen;
     i2cReadBytes(rxData, bytesReceived);
-    I2cRxSemaphoreGive();
 
+    I2cRxSemaphoreGive();
     return true;
   }
   else I2cRxSemaphoreGive();

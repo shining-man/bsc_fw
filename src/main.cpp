@@ -961,7 +961,11 @@ void handle_paramDeviceMapping()
   webSettingsDataDeviceMapping.handleHtmlFormRequest(&server);
 }
 
-void handle_paramDevicesNeeyBalancer(){webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);}
+void handle_paramDevicesNeeyBalancer()
+{
+  webSettingsDeviceNeeyBalancer.handleHtmlFormRequest(&server);
+  extManager.getBt().getNeeySettings(); 
+}
 void handle_getNeeySettingsReadback()
 {
   std::string value;
