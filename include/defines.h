@@ -535,6 +535,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_BT_CONNECT_MACS               0x01 // Zu verbindende MACs
 #define BSC_BT_NEEY_SETTINGS              0x02
 #define BSC_BT_NEEY_BALLANCER_STATE       0x03
+#define BSC_BT_START_SCAN                 0x04
 
 
 /*********************************************

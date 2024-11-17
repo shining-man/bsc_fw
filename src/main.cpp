@@ -882,6 +882,8 @@ void handle_paramBluetooth()
     changeAlarmSettings();
     extManager.getBt().sendDataAfterParameterChange();
   }
+
+  extManager.getBt().getScanBtMACs();
 }
 
 void handle_paramOnewire2(){webSettingsOnewire2.handleHtmlFormRequest(&server);}
@@ -1091,7 +1093,7 @@ void handle_getBtDevices()
 {
   if(!performAuthentication(server, webSettingsSystem)) return;
   //#### bleHandler.startScan(); //BT Scan starten
-  //#### server.send(200, "text/html", bleHandler.getBtScanResult().c_str());
+  server.send(200, "text/html", extManager.getBt().getBtScanResultAsHtmlTable().c_str());
 }
 
 

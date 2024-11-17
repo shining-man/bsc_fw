@@ -53,6 +53,12 @@ struct bmsFilterData_s
   uint8_t u8_mFilterBmsCellVoltagePercent;
 };
 
+struct btDevData_s
+{
+  uint8_t macAdresse[6];
+  char    devName[10];
+  uint8_t settingsReadback[32];
+};
 
 void bmsDataInit();
 void bmsDataSemaphoreTake();
@@ -145,6 +151,7 @@ void clearSerialBmsReadData(uint8_t devNr);
 uint8_t getBmsDataBytes(uint8_t dataType);
 
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr);
+struct btDevData_s *getBmsDeviceData(uint8_t bmsNr);
 
 bool isMultiple485bms(uint8_t bms);
 bool haveAllBmsFirstData();

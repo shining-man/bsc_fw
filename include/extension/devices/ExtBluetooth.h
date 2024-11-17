@@ -20,9 +20,12 @@ public:
 
   void getBtBmsData();
   void getNeeySettings();
-  void sendNeeySettings();
+  void getScanBtMACs();
 
+  void sendNeeySettings();
   void sendDataAfterParameterChange();
+
+  std::string getBtScanResultAsHtmlTable();
 
 private:
   struct NeeySettings_s {
@@ -37,6 +40,7 @@ private:
   } __attribute__((packed));
 
   void sendBtDeviceMACs();
+  void BtScanDevices2Log();
 
 };
 

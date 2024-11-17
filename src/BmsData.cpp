@@ -16,7 +16,7 @@ static SemaphoreHandle_t mBmsDataReadMutex = NULL;
 static struct bmsData_s bmsData;
 struct bmsFilterData_s bmsFilterData;
 
-static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
+static struct btDevData_s btDevData[BT_DEVICES_COUNT];
 
 static bool bo_SOC100CellvolHasBeenReached[MUBER_OF_DATA_DEVICES];
 
@@ -645,9 +645,14 @@ uint8_t getBmsDataBytes(uint8_t dataType)
 }
 
 
+struct btDevData_s *getBmsDeviceData(uint8_t bmsNr)
+{
+  return &btDevData[bmsNr];
+}
+
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr)
 {
-  return &bmsSettingsReadback[bmsNr][0];
+  return &btDevData[bmsNr].settingsReadback[0];
 }
 
 

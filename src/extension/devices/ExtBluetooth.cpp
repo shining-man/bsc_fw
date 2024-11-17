@@ -142,10 +142,35 @@ void ExtBluetooth::getNeeySettings()
 }
 
 
-/*void ExtBluetooth::getScanBtMACs()
+void ExtBluetooth::getScanBtMACs()
 {
+  if(!isEnabled()) return;
 
-}*/
+  //BSC_LOGI(TAG, "getScanBtMACs()");
+
+  for(uint8_t macNr = 0; macNr < 20; macNr++)
+  {
+    uint8_t rxBuf[25];
+    if(getDataFromExtension(deviceAddress, BSC_GET_BT_EXTENSION_DATA, BSC_BT_EXT_GET_FOUND_MAC, macNr, rxBuf, 25))
+    {
+      BSC_LOGI(TAG, "getScanBtMACs(); A dev=%i", macNr);
+      buffer2Log(rxBuf, 20);
+
+      if(rxBuf[2] == 0)
+      {
+        BSC_LOGI(TAG, "getScanBtMACs(); Keine weiteren Devices gefunden (dev=%i)", macNr);
+        memset(getBmsDeviceData(macNr)->macAdresse, 0, 6);
+      }
+      else
+      {
+        memcpy(getBmsDeviceData(macNr)->macAdresse, &rxBuf[3], 6);  // MAC
+        memcpy(getBmsDeviceData(macNr)->devName, &rxBuf[9], 10);    // Name
+      }
+    }
+  }
+  
+  BtScanDevices2Log();
+}
 
 
 void ExtBluetooth::sendNeeySettings()
@@ -214,5 +239,59 @@ void ExtBluetooth::sendDataAfterParameterChange()
 }
 
 
+/* 
+ * Ausgabe der gescannten BT-Geräte der BT-Extension
+ */
+void ExtBluetooth::BtScanDevices2Log()
+{
+  for (int i = 0; i < BT_DEVICES_COUNT; i++)
+  {
+    char macStr[18];
+    snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+              getBmsDeviceData(i)->macAdresse[0], getBmsDeviceData(i)->macAdresse[1],
+              getBmsDeviceData(i)->macAdresse[2], getBmsDeviceData(i)->macAdresse[3],
+              getBmsDeviceData(i)->macAdresse[4], getBmsDeviceData(i)->macAdresse[5]);
+
+    ESP_LOGI(TAG, "Device %d: MAC=%s, Name=%s", i, macStr, getBmsDeviceData(i)->devName);
+  }
+}
 
 
+std::string ExtBluetooth::getBtScanResultAsHtmlTable()
+{
+  std::string btDevScanResult = "<table>";
+
+  for (int i = 0; i < 20; i++)
+  {
+    if(getBmsDeviceData(i)->macAdresse[0] != 0)
+    {
+      char macStr[18];
+      snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+                getBmsDeviceData(i)->macAdresse[0], getBmsDeviceData(i)->macAdresse[1],
+                getBmsDeviceData(i)->macAdresse[2], getBmsDeviceData(i)->macAdresse[3],
+                getBmsDeviceData(i)->macAdresse[4], getBmsDeviceData(i)->macAdresse[5]);
+
+      btDevScanResult += "<tr>";
+
+      btDevScanResult += "<td>";
+      btDevScanResult += macStr;
+      btDevScanResult += "</td>";
+
+      btDevScanResult += "<td>";
+      btDevScanResult += getBmsDeviceData(i)->devName;
+      btDevScanResult += "</td>";
+
+      btDevScanResult += "<td>";
+      btDevScanResult += "<button onclick='copyStringToClipboard(\"";
+      btDevScanResult += macStr;
+      btDevScanResult += "\")'>Copy</button>";
+      btDevScanResult += "</td>";
+
+      btDevScanResult += "</tr>";
+    }
+  }
+
+  btDevScanResult += "<table>";
+
+  return btDevScanResult;
+}
