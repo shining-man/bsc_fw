@@ -66,6 +66,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   u16_lRecvDataLen=0xFFFF;
   u8_CyclesWithoutData=0;
   uint16_t crc=0;
+  bool stopCRC = false;
 
   for(;;)
   {
@@ -84,7 +85,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     if (mPort->available() > 0)
     {
       u8_lRecvByte = mPort->read();
-      if(u16_mLastRecvBytesCnt<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
+      //if(u16_mLastRecvBytesCnt<u16_lRecvDataLen-4){crc += u8_lRecvByte;}
+      if(!stopCRC) { crc += u8_lRecvByte; }
 
       switch (SMrecvState)  {
         case SEARCH_START_BYTE1:
@@ -111,6 +113,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
 
         case SEARCH_END:
           p_lRecvBytes[u16_mLastRecvBytesCnt]=u8_lRecvByte;
+          if (u8_lRecvByte == 0x68 && (u16_lRecvDataLen-5 == u16_mLastRecvBytesCnt)) { stopCRC = true;}
           u16_mLastRecvBytesCnt++;
           break;
 

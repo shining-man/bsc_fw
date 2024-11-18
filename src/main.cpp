@@ -597,7 +597,7 @@ void task_ConnectWiFi(void *param)
         //Wenn MQTT Disconnected -> mConnectStateEnums=ConnState_connectMQTT
         else if(WlanStaApOk==WIFI_STA)
         {
-          if(!mqttLoop())
+          if(!mqttLoop(inverter))
           {
             mConnectStateEnums=ConnState_connectMQTTstart; //ConnState_connectMQTT;
             break;
@@ -1398,10 +1398,10 @@ void setup()
 
   //Erstelle Tasks
   xTaskCreatePinnedToCore(task_onewire, "ow", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_onewire, 1);
-  xTaskCreatePinnedToCore(task_bscSerial, "serial", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_bscSerial, 1);
-  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 2500, nullptr, TASK_PRIORITY_ALARMRULES, &task_handle_alarmrules, 1);
-  xTaskCreatePinnedToCore(task_canbusTx, "can", 2700, nullptr, TASK_PRIORITY_STD, &task_handle_canbusTx, 1);
-  xTaskCreatePinnedToCore(task_extensions, "i2c", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
+  xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_bscSerial, 1);
+  xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 3000, nullptr, TASK_PRIORITY_ALARMRULES, &task_handle_alarmrules, 1);
+  xTaskCreatePinnedToCore(task_canbusTx, "can", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_canbusTx, 1);
+  xTaskCreatePinnedToCore(task_extensions, "i2c", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   #ifdef UTEST_FS
   xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);

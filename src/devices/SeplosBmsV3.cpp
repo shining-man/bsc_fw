@@ -109,8 +109,19 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   setBmsMaxVoltageCellNumber(dataMappingNr,maxCellVoltageNr);
   setBmsMinVoltageCellNumber(dataMappingNr,minCellVoltageNr);
 
-  // Temperature
-  for(uint8_t i=0;i<3;i++) setBmsTempatureI16(dataMappingNr, i, (int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_1+i));
+  // Temperature 1-4
+  for(uint8_t i=0; i < 4; i++) 
+  {
+    if(i >= NR_OF_BMS_TEMP_SENSORS) break;
+    setBmsTempatureI16(dataMappingNr, i, ((int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_1 + i) - 0xAAB) * 10);
+  }
+
+  // Temperature 5-6
+  for(uint8_t i=0; i < 2; i++) 
+  {
+    if(i >= (NR_OF_BMS_TEMP_SENSORS - 4)) break;
+    setBmsTempatureI16(dataMappingNr, i + 4, ((int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_5 + i) - 0xAAB) * 10);
+  }
 }
 
 
@@ -118,28 +129,21 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
   uint32_t errors = 0;
 
-  /* ToDo:
-  * bmsIsBalancingActive
-  * bmsErrors
+  /*
+  BMS_ERR_STATUS_CELL_OVP       // x     1 - bit0 single cell overvoltage protection
+  BMS_ERR_STATUS_CELL_UVP       // x     2 - bit1 single cell undervoltage protection
+  BMS_ERR_STATUS_BATTERY_OVP    // x     4 - bit2  whole pack overvoltage protection
+  BMS_ERR_STATUS_BATTERY_UVP    // x     8 - bit3  Whole pack undervoltage protection
+  BMS_ERR_STATUS_CHG_OTP        // x    16 - bit4  charging over temperature protection
+  BMS_ERR_STATUS_CHG_UTP        // x    32 - bit5  charging low temperature protection
+  BMS_ERR_STATUS_DSG_OTP        // x    64 - bit6  Discharge over temperature protection
+  BMS_ERR_STATUS_DSG_UTP        // x   128 - bit7  discharge low temperature protection
+  BMS_ERR_STATUS_CHG_OCP        // x   256 - bit8  charging overcurrent protection
+  BMS_ERR_STATUS_DSG_OCP        // x   512 - bit9  Discharge overcurrent protection
+  BMS_ERR_STATUS_SHORT_CIRCUIT  // x  1024 - bit10 short circuit protection
+  BMS_ERR_STATUS_AFE_ERROR      //   2048 - bit11 Front-end detection IC error
+  BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
   */
-
-
-
-/*
-BMS_ERR_STATUS_CELL_OVP       // x     1 - bit0 single cell overvoltage protection
-BMS_ERR_STATUS_CELL_UVP       // x     2 - bit1 single cell undervoltage protection
-BMS_ERR_STATUS_BATTERY_OVP    // x     4 - bit2  whole pack overvoltage protection
-BMS_ERR_STATUS_BATTERY_UVP    // x     8 - bit3  Whole pack undervoltage protection
-BMS_ERR_STATUS_CHG_OTP        // x    16 - bit4  charging over temperature protection
-BMS_ERR_STATUS_CHG_UTP        // x    32 - bit5  charging low temperature protection
-BMS_ERR_STATUS_DSG_OTP        // x    64 - bit6  Discharge over temperature protection
-BMS_ERR_STATUS_DSG_UTP        // x   128 - bit7  discharge low temperature protection
-BMS_ERR_STATUS_CHG_OCP        // x   256 - bit8  charging overcurrent protection
-BMS_ERR_STATUS_DSG_OCP        // x   512 - bit9  Discharge overcurrent protection
-BMS_ERR_STATUS_SHORT_CIRCUIT  // x  1024 - bit10 short circuit protection
-BMS_ERR_STATUS_AFE_ERROR      //   2048 - bit11 Front-end detection IC error
-BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
-*/
 
  /*
  #define SEPLOS3_EQUALIZATION_08_01    0x1230
@@ -259,21 +263,14 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Reservation
   Bit6  Reservation
   Bit7  Reservation*/
-  setBmsStateFETsDischarge(dataMappingNr,modbus->getBitValue(SEPLOS3_FET_EVENT,0));
-  setBmsStateFETsCharge(dataMappingNr,modbus->getBitValue(SEPLOS3_FET_EVENT,1));
+  setBmsStateFETsDischarge(dataMappingNr, modbus->getBitValue(SEPLOS3_FET_EVENT, 0));
+  setBmsStateFETsCharge(dataMappingNr, modbus->getBitValue(SEPLOS3_FET_EVENT, 1));
 
 
-  /* 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION, TB08)
-  INDEX Definition
-  Bit0  low Soc alarm
-  Bit1  Intermittent charge
-  Bit2  External switch control
-  Bit3  Static standby and sleep mode
-  Bit4  History data recording
-  Bit5  Under Soc protect
-  Bit6  Acktive-Limited Current
-  Bit7  Passive-Limited Current*/
-  
+  // 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION)
+  if(modbus->getU8Value(SEPLOS3_BATTERY_EQUALIZATION) > 0) setBmsIsBalancingActive(dataMappingNr, 1);
+  else setBmsIsBalancingActive(dataMappingNr, 0);
+
 
   /* 0x1240 System state code (SEPLOS3_SYSTEM_STATE, TB09)
   INDEX Definition

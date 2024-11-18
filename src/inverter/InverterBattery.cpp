@@ -126,6 +126,17 @@ namespace nsInverterBattery
   }
 
 
+  bool InverterBattery::isBatteryCapacityAvailable(uint8_t batteryNumber)
+  {
+    if((millis()-getBmsLastDataMillis(batteryNumber)) < CAN_BMS_COMMUNICATION_TIMEOUT)
+    {
+      if(getBmsStateFETsCharge(batteryNumber) && getBmsStateFETsDischarge(batteryNumber)) return true;
+      else return false;
+    }
+    else return false;
+  }
+
+
   void InverterBattery::getBatteryCapacity(uint8_t mBmsDatasource, uint16_t mBmsDatasourceAdd, 
     uint16_t &onlineCapacity, uint16_t &totalCapacity)
   {
@@ -133,13 +144,13 @@ namespace nsInverterBattery
     totalCapacity = 0;
     
     if(mBmsDatasource >= BT_DEVICES_COUNT) 
-      totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+      totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource - BT_DEVICES_COUNT, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
 
     // ID_PARAM_BATTERY_PACK_CAPACITY
 
-    if((millis()-getBmsLastDataMillis(mBmsDatasource)) < CAN_BMS_COMMUNICATION_TIMEOUT)
+    if(isBatteryCapacityAvailable(mBmsDatasource))
     {
-      onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+      onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource - BT_DEVICES_COUNT, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
     }
 
 
@@ -152,7 +163,7 @@ namespace nsInverterBattery
           totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
 
           //So lang die letzten 5000ms Daten kamen ist alles ok
-          if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) 
+          if(isBatteryCapacityAvailable(i)) 
           {
             onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, i, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
           }

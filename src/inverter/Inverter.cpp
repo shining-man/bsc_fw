@@ -210,3 +210,17 @@ uint8_t Inverter::getAutobalState()
 
   return stateAutobalance;
 }
+
+
+Inverter::e_stateFloat Inverter::getChargeVoltageState()
+{
+  e_stateFloat chargeVoltageState;
+
+  xSemaphoreTake(mInverterDataMutex, portMAX_DELAY);
+  chargeVoltageState = inverterData.floatState;
+  xSemaphoreGive(mInverterDataMutex);
+
+  if(chargeVoltageState == Inverter::e_stateFloat::ABSORPTION_VOLTAGE_AUTOBALANCER) return Inverter::e_stateFloat::ABSORPTION_VOLTAGE;
+
+  return chargeVoltageState;
+}

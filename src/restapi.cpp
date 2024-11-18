@@ -193,6 +193,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("voltage"), inverterVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("soc"), inverterSoc, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cv_state"), (uint8_t)inverter.getChargeVoltageState(), str_htmlOut, false);
 
     genJsonEntryArray(entrySingleNumber, F("setpoint_cv"), inverterChargeVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
@@ -243,6 +244,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingleNumber, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
 
+      // Cellvoltage
       genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
       uint16_t u16_lZellVoltage=0;
       for(uint8_t i=0;i<(u8_nrOfCells-1);i++)
@@ -256,10 +258,15 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingle2, "", u16_lZellVoltage, str_htmlOut, true);
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
 
+      // Temperatur
       genJsonEntryArray(arrStart2, F("temperature"), "", str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,0), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,1), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,2), str_htmlOut, true);
+      #if NR_OF_BMS_TEMP_SENSORS > 1 
+      for(uint8_t i=0; i < (NR_OF_BMS_TEMP_SENSORS-1); i++)
+        genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, i), str_htmlOut, false);
+      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, NR_OF_BMS_TEMP_SENSORS-1), str_htmlOut, true);
+      #else
+      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, 0), str_htmlOut, true);
+      #endif
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, true);
 
       if(bmsDevNr < MUBER_OF_DATA_DEVICES-1)
