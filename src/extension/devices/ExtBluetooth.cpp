@@ -142,6 +142,13 @@ void ExtBluetooth::getNeeySettings()
 }
 
 
+void ExtBluetooth::startBtScan()
+{
+  uint8_t data[] = {BSC_SET_BT_EXTENSION_DATA, BSC_BT_START_SCAN, 0, 0};
+  i2cWriteBytes(deviceAddress, data, sizeof(data) / sizeof(data[0]));
+}
+
+
 void ExtBluetooth::getScanBtMACs()
 {
   if(!isEnabled()) return;
@@ -153,12 +160,12 @@ void ExtBluetooth::getScanBtMACs()
     uint8_t rxBuf[25];
     if(getDataFromExtension(deviceAddress, BSC_GET_BT_EXTENSION_DATA, BSC_BT_EXT_GET_FOUND_MAC, macNr, rxBuf, 25))
     {
-      BSC_LOGI(TAG, "getScanBtMACs(); A dev=%i", macNr);
-      buffer2Log(rxBuf, 20);
+      //BSC_LOGI(TAG, "getScanBtMACs(); A dev=%i", macNr);
+      //buffer2Log(rxBuf, 20);
 
       if(rxBuf[2] == 0)
       {
-        BSC_LOGI(TAG, "getScanBtMACs(); Keine weiteren Devices gefunden (dev=%i)", macNr);
+        //BSC_LOGI(TAG, "getScanBtMACs(); Keine weiteren Devices gefunden (dev=%i)", macNr);
         memset(getBmsDeviceData(macNr)->macAdresse, 0, 6);
       }
       else
@@ -169,7 +176,7 @@ void ExtBluetooth::getScanBtMACs()
     }
   }
   
-  BtScanDevices2Log();
+  //BtScanDevices2Log();
 }
 
 
@@ -263,7 +270,7 @@ std::string ExtBluetooth::getBtScanResultAsHtmlTable()
 
   for (int i = 0; i < 20; i++)
   {
-    if(getBmsDeviceData(i)->macAdresse[0] != 0)
+    if(getBmsDeviceData(i)->macAdresse[0] != 0 || getBmsDeviceData(i)->macAdresse[1] != 0)
     {
       char macStr[18];
       snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
