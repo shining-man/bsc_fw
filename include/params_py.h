@@ -374,7 +374,7 @@ const String paramBluetooth PROGMEM = "{'page':["
   "}"
   "],"
   "'btn':[{'name':'save-btn','label':'Save'}],"
-  "'timer':[{'type':'text','interval':2000}]"
+  "'timer':[{'type':'text','interval':5000}]"
   "}";
 
 

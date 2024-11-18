@@ -21,6 +21,7 @@ public:
   void getBtBmsData();
   void getNeeySettings();
   void getScanBtMACs();
+  void startBtScan();
 
   void sendNeeySettings();
   void sendDataAfterParameterChange();

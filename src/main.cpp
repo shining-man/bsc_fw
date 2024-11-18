@@ -883,7 +883,7 @@ void handle_paramBluetooth()
     extManager.getBt().sendDataAfterParameterChange();
   }
 
-  extManager.getBt().getScanBtMACs();
+  extManager.getBt().startBtScan();
 }
 
 void handle_paramOnewire2(){webSettingsOnewire2.handleHtmlFormRequest(&server);}
@@ -1092,7 +1092,9 @@ void handle_getBscLiveData()
 void handle_getBtDevices()
 {
   if(!performAuthentication(server, webSettingsSystem)) return;
-  //#### bleHandler.startScan(); //BT Scan starten
+
+  extManager.getBt().startBtScan();
+  extManager.getBt().getScanBtMACs();
   server.send(200, "text/html", extManager.getBt().getBtScanResultAsHtmlTable().c_str());
 }
 
@@ -1237,7 +1239,7 @@ void setup()
   free_dump();
   webSettingsSystem.initWebSettings(paramSystem, "System", "/WebSettings.conf");
   webSettingsBluetooth.initWebSettings(paramBluetooth, "Bluetooth", "/WebSettings.conf");
-  webSettingsBluetooth.setTimerHandlerName("getBtDevices");
+  webSettingsBluetooth.setTimerHandlerName("getBtDevices", 5000);
   webSettingsSerial.initWebSettings(paramSerial, "Serial", "/WebSettings.conf");
   webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm BMS (BT + Serial)", "/WebSettings.conf");
   webSettingsAlarmTemp.initWebSettings(paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf");
