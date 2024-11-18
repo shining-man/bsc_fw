@@ -16,6 +16,7 @@
 #include "log.h"
 #include "BleHandler.h"
 #include "AlarmRules.h"
+#include "inverter/Inverter.hpp"
 
 
 static const char* TAG = "MQTT";
@@ -59,10 +60,10 @@ enum_smMqttConnectState smMqttConnectState;
 enum_smMqttConnectState smMqttConnectStateOld;
 
 bool mqttPublishLoopFromTxBuffer();
-void mqttDataToTxBuffer();
+void mqttDataToTxBuffer(Inverter &inverter);
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
-void mqttPublishTrigger();
+void mqttPublishBscData(Inverter &inverter);
 void mqttCallback(char* topic, uint8_t* payload, unsigned int length);
 
 
@@ -95,7 +96,7 @@ void initMqtt()
 #ifdef MQTT_DEBUG
 bool bo_mBTisScanRuningOld=false;
 #endif
-bool mqttLoop()
+bool mqttLoop(Inverter &inverter)
 {
   //Is MQTT Enabled?
   if(mMqttEnable == MQTT_ENABLE_STATE_OFF)
@@ -142,7 +143,7 @@ bool mqttLoop()
       mqttPublishLoopFromTxBuffer();
 
       //Sende Diverse MQTT Daten
-      mqttDataToTxBuffer();
+      mqttDataToTxBuffer(inverter);
 
       //#ifdef MQTT_DEBUG
       //BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED, ret=1");
@@ -293,7 +294,7 @@ bool mqttPublishLoopFromTxBuffer()
 
     if(txBuffer.size()>0)
     {
-      struct mqttEntry_s mqttEntry = txBuffer.at(0);
+      const mqttEntry_s& mqttEntry = txBuffer.at(0);
 
       String topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
  
@@ -370,7 +371,11 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  mqttPublish(t1, t2, t3, t4, std::to_string(value));
+  char buffer[20];
+  sprintf(buffer, "%.2f", value);
+  std::string tmpStr(buffer);
+
+  mqttPublish(t1, t2, t3, t4, tmpStr);
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
@@ -380,7 +385,7 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 
 
 //Nicht alle mqtt Nachrichten auf einmal senden um RAM zu sparen
-void mqttDataToTxBuffer()
+void mqttDataToTxBuffer(Inverter &inverter)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
@@ -398,7 +403,7 @@ void mqttDataToTxBuffer()
       owDataSendFinsh=false;
       sendOwTemperatur_mqtt_sendeCounter=0;
 
-      mqttPublishTrigger();
+      mqttPublishBscData(inverter);
     }
 
     if(millis()-sendeDelayTimer500ms>=500) //Sende alle 500ms eine Nachricht
@@ -473,9 +478,8 @@ void mqttPublishBmsData(uint8_t i)
   if(i<=4) mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_BALANCING_CURRENT, -1, getBmsBalancingCurrent(i));
 
   //tempature
-  mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_TEMPERATURE, 0, getBmsTempature(i,0));
-  mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_TEMPERATURE, 1, getBmsTempature(i,1));
-  mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_TEMPERATURE, 2, getBmsTempature(i,2));
+  for(uint8_t t=0; t < NR_OF_BMS_TEMP_SENSORS; t++)
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_TEMPERATURE, t, getBmsTempature(i, t));
 
   //chargePercent
   /*if(i>4)*/ mqttPublish(MQTT_TOPIC_DATA_DEVICE, i, MQTT_TOPIC2_CHARGE_PERCENT, -1, getBmsChargePercentage(i));
@@ -516,7 +520,7 @@ void mqttPublishOwTemperatur(uint8_t i)
 }
 
 
-void mqttPublishTrigger()
+void mqttPublishBscData(Inverter &inverter)
 {
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann zurück
 
@@ -524,6 +528,9 @@ void mqttPublishTrigger()
   {
     mqttPublish(MQTT_TOPIC_ALARM, i+1, -1, -1, getAlarm(i));
   }
+
+
+  mqttPublish(MQTT_TOPIC_INVERTER, -1, MQTT_TOPIC2_CHARGE_VOLTAGE_STATE, -1, (uint8_t)inverter.getChargeVoltageState());
 }
 
 

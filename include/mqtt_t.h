@@ -8,8 +8,10 @@
 
 #include <Arduino.h>
 
+class Inverter;
+
 void initMqtt();
-bool mqttLoop();
+bool mqttLoop(Inverter &inverter);
 
 bool mqttConnect();
 void mqttDisconnect();

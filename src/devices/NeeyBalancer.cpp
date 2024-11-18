@@ -106,7 +106,7 @@ void NeeyBalancer::getNeeyReadbackDataAsString(std::string &value)
   for(uint8_t i=0;i<5;i++)
   {
     devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
-    if(devTyp==ID_BT_DEVICE_NEEY4A || devTyp==ID_BT_DEVICE_NEEY8A)
+    if(devTyp==ID_BT_DEVICE_NEEY_GW_24S4EB || devTyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
     {
       value += "|";
 
