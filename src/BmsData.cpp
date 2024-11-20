@@ -406,15 +406,25 @@ uint32_t getBmsErrors(uint8_t devNr)
 void setBmsErrors(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsErrors[devNr] = value;
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != value) 
+  {
+    bmsData.bmsErrors[devNr] = value;
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Error Device: %i, Value: %i", devNr, value);
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
 void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != status.to_int<uint32_t>()) 
+  {
+    bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Error Device: %i, Value: %i", devNr, status.to_int<uint32_t>());
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
 
@@ -429,8 +439,13 @@ uint32_t getBmsWarnings(uint8_t devNr)
 void setBmsWarnings(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsWarnings[devNr] = value;
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != value) 
+  {
+    bmsData.bmsWarnings[devNr] = value;
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Warning Device: %i, Value: %i", devNr, value);
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
 
