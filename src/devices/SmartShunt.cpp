@@ -65,7 +65,7 @@ void newLabelRecv(char * mName, char * mValue)
     i16_tVolt=val/10;
     rxValues|=RX_VAL_U;
 
-    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, i16_tVolt);
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, i16_tVolt/100.0f);
     //BSC_LOGI(TAG,"U=%i, rxValues=%i",i16_tVolt,rxValues);
   }
   else if(strcmp_P(mName, "I") == 0)
@@ -74,7 +74,7 @@ void newLabelRecv(char * mName, char * mValue)
     i16_tCurr=val/10;
     rxValues|=RX_VAL_I;
     
-    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, i16_tCurr);
+    if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, i16_tCurr/100.0f);
     //(TAG,"I=%i, rxValues=%i",i16_tCurr,rxValues);
   }
 
