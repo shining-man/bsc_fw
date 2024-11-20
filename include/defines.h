@@ -480,6 +480,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define OPTION_MULTI_BMS_SOC_AVG                1
 #define OPTION_MULTI_BMS_SOC_MAX                2
 #define OPTION_MULTI_BMS_SOC_BMS                3
+#define OPTION_MULTI_BMS_SOC_MIN                4
 
 
 
