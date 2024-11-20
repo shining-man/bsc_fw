@@ -22,77 +22,87 @@ namespace nsSocCtrl
 
   void SocCtrl::calcSoc(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetSocToFull)
   {
-    uint16_t u16_lNewSoc=0;
+    uint16_t lNewSoc=0;
 
     if(alarmSetSocToFull)
     {
       #ifdef CAN_DEBUG
       BSC_LOGD(TAG,"SOC aufgrund von Alarm auf 100%");
       #endif
-      u16_lNewSoc = 100;
+      lNewSoc = 100;
     }
     else
     {
       uint8_t u8_numberOfSocs = 0;
-      uint16_t u16_avgSoc = 0;
-      u16_lNewSoc = 0;
+      uint16_t lAvgSoc = 0;
+      lNewSoc = 0;
 
-      if((millis()-getBmsLastDataMillis(inverterData.bmsDatasource))<CAN_BMS_COMMUNICATION_TIMEOUT)
+      if((millis() - getBmsLastDataMillis(inverterData.bmsDatasource)) < CAN_BMS_COMMUNICATION_TIMEOUT)
       {
-        u16_lNewSoc = u16_avgSoc = getBmsChargePercentage(inverterData.bmsDatasource); // SOC, uint16 1 %
+        lNewSoc = lAvgSoc = getBmsChargePercentage(inverterData.bmsDatasource); // SOC, uint16 1 %
         u8_numberOfSocs++;
       }
 
-      uint8_t u8_lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
+      uint8_t lMultiBmsSocHandling = WebSettings::getInt(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC,0,DT_ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC);
+      uint32_t socBms = (uint32_t)WebSettings::getInt(ID_PARAM_INVERTER_BMS_QUELLE_SOC,0,DT_ID_PARAM_INVERTER_BMS_QUELLE_SOC);
 
-      if(inverterData.bmsDatasourceAdd>0 && (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG || u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX))
+      if(socBms > 0 && (lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_AVG || lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_MAX || lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_MIN))
       {
-        for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
+        for(uint8_t i=0; i < MUBER_OF_DATA_DEVICES; i++)
         {
-          if(isBitSet(inverterData.bmsDatasourceAdd,i))
+          if(isBitSet(socBms, i))
           {
-            if((millis()-getBmsLastDataMillis(i))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+            if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
             {
-              if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG)
+              if(lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_AVG)
               {
-                u16_avgSoc+=getBmsChargePercentage(i);
+                lAvgSoc += getBmsChargePercentage(i);
                 u8_numberOfSocs++;
               }
-              else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_MAX)
+              else if(lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_MAX)
               {
-                if(getBmsChargePercentage(i)>u16_lNewSoc) u16_lNewSoc=getBmsChargePercentage(i);
+                if(getBmsChargePercentage(i) > lNewSoc) lNewSoc = getBmsChargePercentage(i);
+              }
+              else if(lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_MIN)
+              {
+                if(getBmsChargePercentage(i) < lNewSoc) lNewSoc = getBmsChargePercentage(i);
               }
             }
           }
         }
 
         if ((u8_numberOfSocs > 0) && // Prevents from divide-by-zero
-            (u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_AVG))
+            (lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_AVG))
         {
-          u16_lNewSoc = (u16_avgSoc / u8_numberOfSocs);
+          lNewSoc = (lAvgSoc / u8_numberOfSocs);
         }
       }
-      else if(u8_lMultiBmsSocHandling==OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
+      else if(socBms > 0 && lMultiBmsSocHandling == OPTION_MULTI_BMS_SOC_BMS) // Wenn SoC durch ein bestimmtes BMS geregelt werden soll
       {
-        uint8_t u8_lSocBmsNr = WebSettings::getInt(ID_PARAM_INVERTER_BMS_QUELLE_SOC,0,DT_ID_PARAM_INVERTER_BMS_QUELLE_SOC);
-
-        if((millis()-getBmsLastDataMillis(u8_lSocBmsNr))<CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+        for(uint8_t i=0; i < MUBER_OF_DATA_DEVICES; i++)
         {
-          u16_lNewSoc = getBmsChargePercentage(u8_lSocBmsNr);
+          if(isBitSet(socBms, i))
+          {
+            if((millis()-getBmsLastDataMillis(socBms)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+            {
+              lNewSoc = getBmsChargePercentage(socBms);
+            }
+            break;
+          }
         }
       }
 
       if(WebSettings::getBool(ID_PARAM_INVERTER_SOC_BELOW_ZELLSPANNUNG_EN,0)==true)
       {
         //Wenn Zellspannung unterschritten wird, dann SoC x an Inverter senden
-        u16_lNewSoc = getNewSocByMinCellVoltage(inverterData, u16_lNewSoc);
+        lNewSoc = getNewSocByMinCellVoltage(inverterData, lNewSoc);
       }
       else inverterData.u8_mSocZellspannungState = STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
     }
 
     inverter.inverterDataSemaphoreTake();
     //inverterData.inverterChargeCurrent = i16_mNewChargeCurrent;
-    inverterData.inverterSoc = u16_lNewSoc;
+    inverterData.inverterSoc = lNewSoc;
     inverter.inverterDataSemaphoreGive();
   }
 
