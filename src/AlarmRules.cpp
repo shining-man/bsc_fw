@@ -65,6 +65,7 @@ void rules_Temperatur();
 void rules_CanInverter(Inverter &inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
+bool temperatur_minWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
 bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
@@ -753,6 +754,10 @@ void rules_Temperatur()
           if(temperatur_DifferenzUeberwachung(i)){bo_lAlarm=true;}
           break;
 
+        case ID_TEMP_ALARM_FUNKTION_MINWERT:
+          if(temperatur_minWertUeberwachung(i)){bo_lAlarm=true;}
+          break;
+
         default:
           break;
       }
@@ -781,14 +786,14 @@ void rules_CanInverter(Inverter &inverter)
   else inverter.setSocToFull(false);
 }
 
-uint16_t u16_mMerkerTemperaturTrigger=0;
-void setMerker(uint8_t merkerNr, bool val)
+uint16_t u16_mMerkerTemperaturTrigger = 0;
+void setTemperaturMerker(uint8_t merkerNr, bool val)
 {
   if(val) u16_mMerkerTemperaturTrigger |= (1<<merkerNr);
   else u16_mMerkerTemperaturTrigger &= ~(1<<merkerNr); //bit loeschen
 }
 
-bool isMerker(uint8_t merkerNr)
+bool isTemperaturMerker(uint8_t merkerNr)
 {
   if((u16_mMerkerTemperaturTrigger>>merkerNr)&0x01) return true;
   else return false;
@@ -827,10 +832,10 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
   {
     if(getTemp_TempAlarmrule(i,n)>maxTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
-      setMerker(i,true);
+      setTemperaturMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>maxTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i,n)>maxTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -838,7 +843,38 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    return false;
+  }
+  else return true;
+}
+
+
+bool temperatur_minWertUeberwachung(uint8_t i)
+{
+  bool bo_lHystMerker = true;
+  float lTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
+  float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
+
+  if(lTemp <= 0) return false; //Wenn keine Max.Temp. angegeben ist
+
+  for(uint8_t n = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);
+    n < WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS) + 1; n++)
+  {
+    if(getTemp_TempAlarmrule(i, n) < lTemp && getTemp_TempAlarmrule(i,n) != TEMP_IF_SENSOR_READ_ERROR)
+    {
+      setTemperaturMerker(i, true);
+      return true;
+    }
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i, n) < lTemp + hysterese && getTemp_TempAlarmrule(i,n) != TEMP_IF_SENSOR_READ_ERROR)
+    {
+      bo_lHystMerker = false;
+    }
+  }
+
+  if(bo_lHystMerker)
+  {
+    setTemperaturMerker(i, false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
@@ -857,10 +893,10 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
   {
     if(getTemp_TempAlarmrule(i,n)>aktTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
-      setMerker(i,true);
+      setTemperaturMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>aktTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i,n)>aktTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -868,7 +904,7 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
@@ -892,17 +928,17 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
 
   if(f_lTempMax-f_lTempMin>=f_lMaxTempDiff)
   {
-    setMerker(i,true);
+    setTemperaturMerker(i,true);
     return true;
   }
-  else if(isMerker(i) && f_lTempMax-f_lTempMin>=f_lMaxTempDiff-hysterese)
+  else if(isTemperaturMerker(i) && f_lTempMax-f_lTempMin>=f_lMaxTempDiff-hysterese)
   {
     bo_lHystMerker=false;
   }
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
