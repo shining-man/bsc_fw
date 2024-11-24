@@ -1117,6 +1117,13 @@ void btnSystemDeleteLog()
 }
 
 
+void btnEnableChargingUndervoltage()
+{
+  BSC_LOGI(TAG, "Ignoriere temporär den Unterspannungsalarm!");
+  ignoreTemporarilyUndervoltageAlarm();
+}
+
+
 void btnWriteNeeyData()
 {
   extManager.getBt().sendNeeySettings();
@@ -1259,6 +1266,9 @@ void setup()
   //Buttons
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
+  webSettingsSystem.setButtons(BUTTON_2,"Erlaube Laden bei Unterspannung (60 Min.)");
+  webSettingsSystem.registerOnButton2(&btnEnableChargingUndervoltage);
+  
 
   webSettingsDeviceNeeyBalancer.setButtons(BUTTON_1,"Read data from NEEY");
   webSettingsDeviceNeeyBalancer.registerOnButton1(&btnReadNeeyData);
