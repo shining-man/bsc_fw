@@ -22,6 +22,7 @@ static bool bo_SOC100CellvolHasBeenReached[MUBER_OF_DATA_DEVICES];
 
 uint8_t u8_mBmsFilterErrorCounter[MUBER_OF_DATA_DEVICES];
 
+static uint32_t mIgnoreTemporarilyUndervoltageAlarm;
 
 // Write serial data
 uint32_t          u32_wDataSerialBmsEnable=0; //Hier bitseise die BMS-Adressen eintragen, an den die Daten gesendet werden sollen
@@ -397,9 +398,27 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 
 uint32_t getBmsErrors(uint8_t devNr)
 {
-  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  uint32_t ret = bmsData.bmsErrors[devNr];
-  xSemaphoreGive(mBmsDataMutex);
+  uint32_t ret;
+
+  if(mIgnoreTemporarilyUndervoltageAlarm != 0)
+  {
+    uint16_t alarmMask = 0xffff;
+
+    if((millis() - mIgnoreTemporarilyUndervoltageAlarm) > 3600000) 
+      mIgnoreTemporarilyUndervoltageAlarm = 0; // Timer zurücksetzen
+    else alarmMask = 0xfff5; // Low voltage ignorieren
+
+    xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+    ret = (bmsData.bmsErrors[devNr] & alarmMask);
+    xSemaphoreGive(mBmsDataMutex);
+  }
+  else
+  {
+    xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+    ret = (bmsData.bmsErrors[devNr]);
+    xSemaphoreGive(mBmsDataMutex);
+  }
+
   return ret;
 }
 
@@ -427,6 +446,11 @@ void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
   else xSemaphoreGive(mBmsDataMutex);
 }
 
+void ignoreTemporarilyUndervoltageAlarm()
+{
+  mIgnoreTemporarilyUndervoltageAlarm = millis();
+  if(mIgnoreTemporarilyUndervoltageAlarm == 0) mIgnoreTemporarilyUndervoltageAlarm = 1;
+}
 
 uint32_t getBmsWarnings(uint8_t devNr)
 {

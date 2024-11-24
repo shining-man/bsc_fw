@@ -119,6 +119,7 @@ void setBmsMinCellVoltage(uint8_t devNr, uint16_t value);
 uint32_t getBmsErrors(uint8_t devNr);
 void setBmsErrors(uint8_t devNr, uint32_t value);
 void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status);
+void ignoreTemporarilyUndervoltageAlarm();
 
 uint32_t getBmsWarnings(uint8_t devNr);
 void setBmsWarnings(uint8_t devNr, uint32_t value);
