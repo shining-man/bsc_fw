@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.7.0_dm11"
+#define BSC_SW_VERSION      "V0.7.0_T12"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -434,6 +434,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE      163
 #define ID_PARAM_DEVICE_MAPPING_ADRESSE            164
 #define ID_PARAM_DEVICE_MAPPING_NAME               165
+
+#define ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE   166
 
 
 
