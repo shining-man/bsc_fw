@@ -46,9 +46,10 @@ uint8_t u8_mTachoChannel;
 uint16_t vTrigger;
 
 //Hysterese
-uint32_t u32_hystereseTotalVoltageMin=0;
-uint32_t u32_hystereseTotalVoltageMax=0;
-uint8_t u8_merkerHysterese_TriggerAtSoc=0;
+uint32_t u32_hystereseTotalVoltageMin = 0;
+uint32_t u32_hystereseTotalVoltageMax = 0;
+uint8_t u8_merkerHysterese_TriggerAtSoc = 0;
+uint32_t mHystereseCellVoltage = 0;
 
 #ifndef LILYGO_TCAN485
 void runDigitalAusgaenge();
@@ -658,21 +659,73 @@ void rules_Bms()
     //Überwachung Zellspannung
     if(WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION)>0)
     {
-      for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
+      bool cellVoltAlarm = false;
+      bool CellVoltHyst = false;
+
+      uint16_t highestCellVoltage = 0;
+      uint8_t  highestCellVoltageNr = 0xFF;
+      uint16_t lowestCellVoltage = 0xFFFF;
+      uint8_t  lowestCellVoltageNr = 0xFF;
+
+      // Höchste und niedrigste Cellvoltage der überwachten Zellen ermitteln
+      for(uint8_t cc = 0; cc < WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
       {
-        if(getBmsCellVoltage(lAlarmruleDataDevice,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN)
-          || getBmsCellVoltage(lAlarmruleDataDevice,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
+        if(getBmsCellVoltage(lAlarmruleDataDevice, cc) > highestCellVoltage)
         {
-          //Alarm
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-          setAlarm(tmp, true, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + String(cc) + String(F(", ")) + String(getBmsCellVoltage(lAlarmruleDataDevice,cc)) + F(" mV"));
-          break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
+          highestCellVoltage = getBmsCellVoltage(lAlarmruleDataDevice,cc);
+          highestCellVoltageNr = cc;
         }
-        else
+
+        if(getBmsCellVoltage(lAlarmruleDataDevice, cc) < lowestCellVoltage)
         {
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-          setAlarm(tmp, false, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + String(cc) + String(F(", ")) + String(getBmsCellVoltage(lAlarmruleDataDevice,cc)) + F(" mV"));
+          lowestCellVoltage = getBmsCellVoltage(lAlarmruleDataDevice,cc);
+          lowestCellVoltageNr = cc;
         }
+      }
+
+      // Hysterese
+      uint16_t hystVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE); 
+
+      // Min. Cellvoltage
+      if(lowestCellVoltage < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN))
+      {
+        bitSet(mHystereseCellVoltage, i);
+        cellVoltAlarm = true;
+      }
+      else if(isBitSet(mHystereseCellVoltage, i) && 
+        lowestCellVoltage < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN) + hystVoltage)
+      {
+        CellVoltHyst = true;
+      }
+      
+      // Max. Cellvoltage
+      if(highestCellVoltage > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
+      {
+        bitSet(mHystereseCellVoltage, i);
+        cellVoltAlarm = true;
+      }
+      else if(isBitSet(mHystereseCellVoltage, i) && 
+        highestCellVoltage > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX) - hystVoltage)
+      {
+        CellVoltHyst = true;
+      }
+      
+      // Alarm auswerten
+      if(cellVoltAlarm || CellVoltHyst)
+      {
+        tmp = WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
+        setAlarm(tmp, true, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + 
+          String(lowestCellVoltageNr) + String(F("/")) + String(highestCellVoltageNr) + String(F(", ")) +
+          String(lowestCellVoltage) + String(F("/")) + String(highestCellVoltage) + F(" mV"));
+      }
+      else
+      {
+        bitClear(mHystereseCellVoltage, i);
+
+        tmp = WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
+        setAlarm(tmp, false, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + 
+          String(lowestCellVoltageNr) + String(F("/")) + String(highestCellVoltageNr) + String(F(", ")) +
+          String(lowestCellVoltage) + String(F("/")) + String(highestCellVoltage) + F(" mV"));
       }
     }
 
