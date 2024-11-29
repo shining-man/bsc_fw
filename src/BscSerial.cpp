@@ -404,7 +404,7 @@ void BscSerial::cyclicRun()
     uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
     uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,i,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
     
-    uint8_t u8_serDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
+    uint8_t serialDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
 
     // 
     if(dataDeviceSchnittstelle >= MUBER_OF_DATA_DEVICES) continue;
@@ -416,16 +416,19 @@ void BscSerial::cyclicRun()
     bool    bo_lBmsReadOk = false;
     uint8_t u8_lReason = 1;
 
-    //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
-    //Unklar wo das Verhalten herkommt.
-    if(i>2 && mExtManager->getSerial(0).isEnabled())
+    if(serialDeviceNr >= 2 && mExtManager->getSerial(0).isEnabled()) 
     {
-      setRxTxEnable(2,serialRxTx_RxEn);
-      usleep(50);
-      setRxTxEnable(2,serialRxTx_RxTxDisable);
-    }
+      //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
+      //Unklar wo das Verhalten herkommt.
+      if(serialDeviceNr > 2)
+      {
+        setRxTxEnable(2, serialRxTx_RxEn);
+        usleep(50);
+        setRxTxEnable(2, serialRxTx_RxTxDisable);
+      }
 
-    if(i>=2 && mExtManager->getSerial(0).isEnabled()) setSerialBaudrate(i); //Baudrate wechslen
+      setSerialBaudrate(serialDeviceNr); //Baudrate wechseln
+    }
 
     uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+i);
 
@@ -456,13 +459,13 @@ void BscSerial::cyclicRun()
     bmsDataSemaphoreGive();
 
 
-    //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
-    if(serialDeviceData[u8_serDeviceNr].readBms != NULL)
+    //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", serialDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
+    if(serialDeviceData[serialDeviceNr].readBms != NULL)
     {
-      bo_lBmsReadOk = serialDeviceData[u8_serDeviceNr].readBms(this, serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
-      if(u8_serDeviceNr >= 2) setRxTxEnable(u8_serDeviceNr, serialRxTx_RxTxDisable);
+      bo_lBmsReadOk = serialDeviceData[serialDeviceNr].readBms(this, serialDeviceData[serialDeviceNr].stream_mPort, serialDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
+      if(serialDeviceNr >= 2) setRxTxEnable(serialDeviceNr, serialRxTx_RxTxDisable);
     }
-    else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",u8_serDeviceNr);
+    else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",serialDeviceNr);
 
     if(devData.bo_writeData) free(lRwData);
     #else
