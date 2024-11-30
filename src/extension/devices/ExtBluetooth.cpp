@@ -114,7 +114,7 @@ void ExtBluetooth::getBtBmsData()
             break;
         }
       }
-      else I2cRxSemaphoreGive();
+      //else I2cRxSemaphoreGive();
     }
   }
 }
