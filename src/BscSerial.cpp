@@ -404,15 +404,13 @@ void BscSerial::cyclicRun()
     uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
     uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,i,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
     
-    uint8_t serialDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
-
     // 
     if(dataDeviceSchnittstelle >= MUBER_OF_DATA_DEVICES) continue;
 
     // Wenn BT-Device eingestellt ist
     if(dataDeviceSchnittstelle < BT_DEVICES_COUNT) continue;
       
- 
+    uint8_t serialDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
     bool    bo_lBmsReadOk = false;
     uint8_t u8_lReason = 1;
 
@@ -430,7 +428,7 @@ void BscSerial::cyclicRun()
       setSerialBaudrate(serialDeviceNr); //Baudrate wechseln
     }
 
-    uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+i);
+    uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(i);
 
     //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
     *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
