@@ -16,7 +16,7 @@ bool mqttLoop(Inverter &inverter);
 bool mqttConnect();
 void mqttDisconnect();
 bool mqttConnected();
-uint16_t getTxBufferSize();
+uint16_t getQueueSize();
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value);
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value);

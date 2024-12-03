@@ -21,8 +21,6 @@
 
 static const char* TAG = "MQTT";
 
-static SemaphoreHandle_t mMqttMutex = NULL;
-
 WiFiClient   wifiClient;
 PubSubClient mqttClient(wifiClient);
 IPAddress    mqttIpAdr;
@@ -43,16 +41,15 @@ bool     bmsDataSendFinsh=true;
 uint8_t  sendOwTemperatur_mqtt_sendeCounter=0;
 bool     owDataSendFinsh=true;
 
-//bool     bo_mSendPrioMessages=false;
+QueueHandle_t mqttQueue;
 
-struct mqttEntry_s {
+struct mqttMessage_s {
   int8_t t1;
   int8_t t2;
   int8_t t3;
   int8_t t4;
-  std::string value;
+  char value[10];
 };
-std::deque<mqttEntry_s> txBuffer;
 
 enum enum_smMqttEnableState {MQTT_ENABLE_STATE_OFF, MQTT_ENABLE_STATE_EN, MQTT_ENABLE_STATE_READY};
 enum enum_smMqttConnectState {SM_MQTT_WAIT_CONNECTION, SM_MQTT_CONNECTED, SM_MQTT_DISCONNECTED};
@@ -60,16 +57,18 @@ enum_smMqttConnectState smMqttConnectState;
 enum_smMqttConnectState smMqttConnectStateOld;
 
 bool mqttPublishLoopFromTxBuffer();
+bool mqttClientPublish(const String& topic, const std::string& payload);
 void mqttDataToTxBuffer(Inverter &inverter);
 void mqttPublishBmsData(uint8_t);
 void mqttPublishOwTemperatur(uint8_t);
 void mqttPublishBscData(Inverter &inverter);
 void mqttCallback(char* topic, uint8_t* payload, unsigned int length);
+void clearQueue();
 
 
 void initMqtt()
 {
-  mMqttMutex = xSemaphoreCreateMutex();
+  mqttQueue = xQueueCreate(300, sizeof(struct mqttMessage_s));
 
   smMqttConnectState=SM_MQTT_DISCONNECTED;
   smMqttConnectStateOld=SM_MQTT_DISCONNECTED;
@@ -108,9 +107,8 @@ bool mqttLoop(Inverter &inverter)
     if(haveAllBmsFirstData())
     {
       // Sendebuffer leeren da schon falsche Werte enthalten sein könnten
-      xSemaphoreTake(mMqttMutex, portMAX_DELAY);
-      txBuffer.clear();
-      xSemaphoreGive(mMqttMutex);
+      clearQueue();
+
       mMqttEnable = MQTT_ENABLE_STATE_READY;
       BSC_LOGI(TAG,"Daten von allen BMS's vorhanden. Das Senden kann starten.");
     }
@@ -145,9 +143,6 @@ bool mqttLoop(Inverter &inverter)
       //Sende Diverse MQTT Daten
       mqttDataToTxBuffer(inverter);
 
-      //#ifdef MQTT_DEBUG
-      //BSC_LOGD(TAG,"mqttLoop(): SM_MQTT_CONNECTED, ret=1");
-      //#endif
       ret=true;
       break;
 
@@ -177,9 +172,6 @@ bool mqttLoop(Inverter &inverter)
     smMqttConnectStateOld=smMqttConnectState;
   }
 
-  //#ifdef MQTT_DEBUG
-  //BSC_LOGD(TAG,"mqttLoop(): END: ret=%i",ret);
-  //#endif
   return ret;
 }
 
@@ -215,6 +207,9 @@ bool mqttConnect()
   String mqttUser = WebSettings::getString(ID_PARAM_MQTT_USERNAME,0);
   String mqttPwd = WebSettings::getString(ID_PARAM_MQTT_PWD,0);
 
+  // Sendebuffer leeren
+  clearQueue();
+
   if(!mqttClient.connected())
   {
     if(u8_mWaitConnectCounter==5)
@@ -242,7 +237,8 @@ bool mqttConnect()
       ret=mqttClient.connect(str_mMqttDeviceName.c_str(), mqttUser.c_str(), mqttPwd.c_str());
     }
   }
-  else
+  
+  if(mqttClient.connected())
   {
     u8_mWaitConnectCounter=0;
     smMqttConnectState=SM_MQTT_CONNECTED;
@@ -270,7 +266,7 @@ void mqttDisconnect()
     mqttClient.disconnect();
   }
 
-  txBuffer.clear();
+  clearQueue();
 }
 
 
@@ -280,9 +276,14 @@ bool mqttConnected()
   else return false;
 }
 
-uint16_t getTxBufferSize()
+uint16_t getQueueSize()
 {
-  return txBuffer.size();
+  return uxQueueMessagesWaiting(mqttQueue);
+}
+
+void clearQueue()
+{
+  xQueueReset(mqttQueue);
 }
 
 bool mqttPublishLoopFromTxBuffer()
@@ -290,97 +291,101 @@ bool mqttPublishLoopFromTxBuffer()
   if(millis()>(u32_mMqttPublishLoopTimmer+15))
   {
     if(smMqttConnectState==SM_MQTT_DISCONNECTED) return false;
-    xSemaphoreTake(mMqttMutex, portMAX_DELAY);
 
-    if(txBuffer.size()>0)
+    if(getQueueSize() == 0) return true;
+
+    mqttMessage_s mqttMessage;
+    if (xQueueReceive(mqttQueue, &mqttMessage,  pdMS_TO_TICKS(10)))
     {
-      const mqttEntry_s& mqttEntry = txBuffer.at(0);
-
-      String topic = str_mMqttTopicName + "/" + mqttTopics[mqttEntry.t1];
+      String topic = str_mMqttTopicName + "/" + mqttTopics[mqttMessage.t1];
  
-      if(mqttEntry.t2!=-1)
+      if(mqttMessage.t2!=-1)
       {
         topic += "/"; 
 
-        if(mqttEntry.t1 == MQTT_TOPIC_DATA_DEVICE)
+        if(mqttMessage.t1 == MQTT_TOPIC_DATA_DEVICE)
         {
           // Wenn Name vorhanden, dann einfügen
-          if(!WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2).equals(""))
+          if(!WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttMessage.t2).equals(""))
           {
-            topic += WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttEntry.t2);
+            topic += WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, mqttMessage.t2);
           }
-          else topic += String(mqttEntry.t2);
+          else topic += String(mqttMessage.t2);
         }
-        else topic += String(mqttEntry.t2);
+        else topic += String(mqttMessage.t2);
       }
 
-      if(mqttEntry.t3 != -1){topic += "/"; topic += mqttTopics[mqttEntry.t3];}
-      if(mqttEntry.t4 != -1){topic += "/"; topic += String(mqttEntry.t4);}
+      if(mqttMessage.t3 != -1){topic += "/"; topic += mqttTopics[mqttMessage.t3];}
+      if(mqttMessage.t4 != -1){topic += "/"; topic += String(mqttMessage.t4);}
 
       //uint32_t pubTime = millis();
-      if(mqttClient.publish(topic.c_str(), mqttEntry.value.c_str()) == false)
+      if(mqttClient.publish(topic.c_str(), mqttMessage.value) == false)
       {
         // Wenn die Nachricht nicht mehr versendet werden kann
         BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout)");
         //BSC_LOGI(TAG, "MQTT Broker nicht erreichbar (Timeout: %i ms)", millis() - pubTime);
         mqttDisconnect();
       }
-      txBuffer.pop_front();
+      //mqttClientPublish(topic, mqttEntry.value);
     }
 
-    //if(txBuffer.size()==0) bo_mSendPrioMessages=false;
-
-    xSemaphoreGive(mMqttMutex);
     u32_mMqttPublishLoopTimmer=millis();
   }
   return true;
 }
 
 
-void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, std::string value)
+void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, const char* val)
 {
   if(mMqttEnable <= MQTT_ENABLE_STATE_EN) return;
   if(smMqttConnectState==SM_MQTT_DISCONNECTED) return; //Wenn nicht verbunden, dann Nachricht nicht annehmen
   if(WiFi.status()!=WL_CONNECTED) return; //Wenn Wifi nicht verbunden
 
-  if(txBuffer.size()>300)return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
+  if(getQueueSize() > 300) return; //Wenn zu viele Nachrichten im Sendebuffer sind, neue Nachrichten ablehnen
 
 
-  struct mqttEntry_s mqttEntry;
-  mqttEntry.t1=t1;
-  mqttEntry.t2=t2;
-  mqttEntry.t3=t3;
-  mqttEntry.t4=t4;
-  mqttEntry.value=value;
+  struct mqttMessage_s mqttMessage;
+  mqttMessage.t1=t1;
+  mqttMessage.t2=t2;
+  mqttMessage.t3=t3;
+  mqttMessage.t4=t4;
+  
+  strncpy(mqttMessage.value, val, sizeof(mqttMessage.value) - 1); // Kopiere val
+  mqttMessage.value[sizeof(mqttMessage.value) - 1] = '\0'; // Null-Terminierung
 
-  xSemaphoreTake(mMqttMutex, portMAX_DELAY);
-  txBuffer.push_back(mqttEntry);
-  xSemaphoreGive(mMqttMutex);
+  if(xQueueSend(mqttQueue, &mqttMessage, 0) == errQUEUE_FULL) //pdMS_TO_TICKS(1)
+  {
+    BSC_LOGE(TAG, "MQTT Queue ist voll!"); // Nur fuer Debug
+  }
 }
 
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, uint32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, std::to_string(value));
+  char buffer[10];
+  snprintf(buffer, sizeof(buffer), "%d", value);
+  mqttPublish(t1, t2, t3, t4, buffer);
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, int32_t value)
 {
-  mqttPublish(t1, t2, t3, t4, std::to_string(value));
+  char buffer[10];
+  snprintf(buffer, sizeof(buffer), "%d", value);
+  mqttPublish(t1, t2, t3, t4, buffer);
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, float value)
 {
-  char buffer[20];
+  char buffer[10];
   sprintf(buffer, "%.2f", value);
-  std::string tmpStr(buffer);
-
-  mqttPublish(t1, t2, t3, t4, tmpStr);
+  mqttPublish(t1, t2, t3, t4, buffer);
 }
 
 void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, bool value)
 {
-  mqttPublish(t1, t2, t3, t4, std::to_string(value));
+  char buffer[10];
+  snprintf(buffer, sizeof(buffer), "%d", value);
+  mqttPublish(t1, t2, t3, t4, buffer);
 }
 
 
