@@ -168,7 +168,7 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   if(modbus->getBitValueByOffset(163 - byteOffset, 7)) alarms |= BMS_ERR_STATUS_CHG_OCP;     // Bit  7  AlarmChSCP (ShortCurrentProtection); ?
 
 
-  setBmsErrors(byteOffset, alarms);
+  setBmsErrors(dataMappingNr, alarms);
 
   #ifdef JK_INV_DEBUG
   BSC_LOGI(TAG, "JK Alarms: %i, %i, %i, %i, %i, %i, Errors=%i", modbus->getU8ValueByOffset(160 - byteOffset), modbus->getU8ValueByOffset(161 - byteOffset), 
@@ -176,21 +176,21 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   #endif
 
   // Bal. Current
-  setBmsBalancingCurrentI16(byteOffset, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
+  setBmsBalancingCurrentI16(dataMappingNr, modbus->getI16ValueByOffset(164 - byteOffset) / 10);
 
   // Bal. State
-  setBmsIsBalancingActive(byteOffset, modbus->getU8ValueByOffset(166 - byteOffset));
+  setBmsIsBalancingActive(dataMappingNr, modbus->getU8ValueByOffset(166 - byteOffset));
 
   // SoC
-  setBmsChargePercentage(byteOffset, modbus->getU8ValueByOffset(167 - byteOffset));
+  setBmsChargePercentage(dataMappingNr, modbus->getU8ValueByOffset(167 - byteOffset));
 
   // FET state charge
-  if(modbus->getU8ValueByOffset(192 - byteOffset) > 0) setBmsStateFETsCharge(byteOffset, true);
-  else setBmsStateFETsCharge(byteOffset, false);
+  if(modbus->getU8ValueByOffset(192 - byteOffset) > 0) setBmsStateFETsCharge(dataMappingNr, true);
+  else setBmsStateFETsCharge(dataMappingNr, false);
 
   // FET state discharge
-  if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(byteOffset, true);
-  else setBmsStateFETsDischarge(byteOffset, false);
+  if(modbus->getU8ValueByOffset(193 - byteOffset) > 0) setBmsStateFETsDischarge(dataMappingNr, true);
+  else setBmsStateFETsDischarge(dataMappingNr, false);
 }
 
 
