@@ -143,20 +143,19 @@ namespace nsInverterBattery
     onlineCapacity = 0;
     totalCapacity = 0;
     
-    if(mBmsDatasource >= BT_DEVICES_COUNT) 
-      totalCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource - BT_DEVICES_COUNT, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+    totalCapacity = (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
 
     // ID_PARAM_BATTERY_PACK_CAPACITY
 
     if(isBatteryCapacityAvailable(mBmsDatasource))
     {
-      onlineCapacity += (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource - BT_DEVICES_COUNT, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
+      onlineCapacity = (uint16_t)WebSettings::getInt(ID_PARAM_BATTERY_PACK_CAPACITY, mBmsDatasource, DT_ID_PARAM_BATTERY_PACK_CAPACITY);
     }
 
 
     if(mBmsDatasourceAdd > 0)
     {
-      for(uint8_t i=0; i < SERIAL_BMS_DEVICES_COUNT; i++)
+      for(uint8_t i=0; i < MUBER_OF_DATA_DEVICES; i++)
       {
         if(isBitSet(mBmsDatasourceAdd, i))
         {
