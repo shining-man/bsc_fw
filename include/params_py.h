@@ -1032,7 +1032,7 @@ const String paramBmsToInverter PROGMEM = "{'page':["
       +dataDevicesAll+
       "],"
     "'default':0,"
-    "'dt':"+String(PARAM_DT_U32)+","
+    "'dt':"+String(PARAM_DT_U32)+""
 //    "'dependence':{'depId':"+String(ID_PARAM_INVERTER_MULTI_BMS_VALUE_SOC)+",'depDt':1,'depGte':[3],'getSte':[3]},"
 //    "'help':'Hierfür muss bei SoC BMS ausgewählt sein'"
   "},"
