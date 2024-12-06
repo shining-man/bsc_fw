@@ -184,8 +184,8 @@ void handleLogTriggerHIGH(uint8_t triggerNr, uint8_t cause, String value)
   if(isBitSet(pAlarmCauseAktivLast[triggerNr], cause) == 0 &&
     isBitSet(alarmCauseAktiv[triggerNr], cause) == 1)
   {
-    if(value.length() > 0) BSC_LOGI(TAG,"Trigger %i HIGH, cause %i, value %s", triggerNr + 1, cause, value.c_str());
-    else BSC_LOGI(TAG,"Trigger %i HIGH, cause %i", triggerNr + 1, cause);
+    if(value.length() > 0) BSC_LOGI(TAG,"Trigger %i HIGH -> %s, value %s", triggerNr + 1, causeText, value.c_str());
+    else BSC_LOGI(TAG,"Trigger %i HIGH -> %s", triggerNr + 1, causeText);
     logTrigger(triggerNr, cause, true);
   }
 }
@@ -205,7 +205,9 @@ void handleLogTriggerLOW()
       if(isBitSet(pAlarmCauseAktivLast[triggerNr], cause)==1 &&
         isBitSet(alarmCauseAktiv[triggerNr], cause)==0)
       {
-        BSC_LOGI(TAG,"Trigger %i LOW, cause %i",triggerNr+1,cause);
+        String causeText = ALARM_CAUSE_TEXT[cause];
+        
+        BSC_LOGI(TAG,"Trigger %i LOW -> %s",triggerNr+1,causeText);
         logTrigger(triggerNr, cause, false);
         bitClear(alarmCauseAktiv[triggerNr],cause);
       }
