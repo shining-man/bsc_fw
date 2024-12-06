@@ -762,7 +762,8 @@ void task_extensions(void *param)
       std::string ipAddr;
       if(WiFi.getMode()==WIFI_MODE_AP) ipAddr = "192.168.4.1";
       else ipAddr = WiFi.localIP().toString().c_str();
-      extManager.getDisplay().sendDataStr(inverter, BSC_DATA, BSC_IP_ADDR, ipAddr, 16);
+      if(extManager.getDisplay().isEnabled()) 
+        extManager.getDisplay().sendDataStr(inverter, BSC_DATA, BSC_IP_ADDR, ipAddr, 16);
     }
 
     xSemaphoreTake(mutexTaskRunTime_i2c, portMAX_DELAY);
