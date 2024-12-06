@@ -169,6 +169,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     //Überprüfen ob Zeichen verfügbar
     if(mPort->available() > 0)
     {
+      u32_lStartTime = millis(); // Timer zurücksetzen
+
       u8_lRecvByte = mPort->read();
 
       switch (SMrecvState)
