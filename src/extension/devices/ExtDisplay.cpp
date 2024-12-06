@@ -24,7 +24,7 @@ void ExtDisplay::initialize()
   }
   else
   {
-    setEnabled(true);
+    setEnabled(false);
     BSC_LOGI(TAG,"Display not found (%i)",u8_lErr);
   }
 }
