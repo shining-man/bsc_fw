@@ -66,8 +66,8 @@ const char HTML_START_2[] PROGMEM = R"rawliteral(
 </head>
 <body>
 <div class="topnav">
-  <span class='btnBack' onclick=location.href='/'>&#10094;&#10094;</span>
-  <span class='btnBack' onclick=location.href='../'>&#10094;</span>
+  <span class='btnBack' onclick=location.href='/'><svg width="21" height="21" viewBox="0 0 21 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"> <g transform="matrix(1,0,0,1,-1.5,-0.5)"><path d="M12,2L2,12L5,12L5,20L10,20L10,14L14,14L14,20L19,20L19,12L22,12L12,2Z" style="fill-rule:nonzero; fill: white;"/></g></svg></span>
+  <span class='btnBack' onclick=location.href='../'><svg width="21" height="21" viewBox="0 0 21 21" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"><g transform="matrix(1.5,0,0,1.5,-7.0575,-7.5)"><path d="M15.41,7.41L14,6L8,12L14,18L15.41,16.59L10.83,12L15.41,7.41Z" style="fill-rule:nonzero; fill: white;"/></g></svg></span>
   <span class='hl'>%s</span>
 </div>
 <div id='lc' class="loading-container"><div class="loading-spinner"></div></div>
