@@ -25,10 +25,7 @@ const char *Inverter::TAG = "Inverter";
 nsCanbus::Canbus canbus;
 
 Inverter::Inverter() :
-u8_mMqttTxTimer(0),
-alarmSetChargeCurrentToZero(false),
-alarmSetDischargeCurrentToZero(false),
-alarmSetSocToFull(false)
+u8_mMqttTxTimer(0)
 {
 
 }
@@ -40,11 +37,6 @@ Inverter::~Inverter() {
 void Inverter::inverterInit()
 {
   mInverterDataMutex = xSemaphoreCreateMutex();
-
-  //u8_mBmsDatasource = 0;
-  alarmSetChargeCurrentToZero = false;
-  alarmSetDischargeCurrentToZero = false;
-  alarmSetSocToFull = false;
 
   inverterData.u16_mSocZellspannungSperrzeitTimer = 0;
   inverterData.u8_mSocZellspannungState = nsSocCtrl::SocCtrl::SM_SocZellspgStates::STATE_MINCELLSPG_SOC_WAIT_OF_MIN;
@@ -115,27 +107,6 @@ void Inverter::loadIverterSettings()
 }
 
 
-//Ladeleistung auf 0 einstellen
-void Inverter::setChargeCurrentToZero(bool val)
-{
-  alarmSetChargeCurrentToZero = val;
-}
-
-
-//Entladeleistung auf 0 einstellen
-void Inverter::setDischargeCurrentToZero(bool val)
-{
-  alarmSetDischargeCurrentToZero = val;
-}
-
-
-//SOC auf 100 einstellen
-void Inverter::setSocToFull(bool val)
-{
-  alarmSetSocToFull = val;
-}
-
-
 //Wird vom Task aus der main.c zyklisch aufgerufen
 void Inverter::cyclicRun()
 {
@@ -161,15 +132,15 @@ void Inverter::getInverterValues()
 
   // Ladestrom
   nsChargeCurrentCtrl::ChargeCurrentCtrl chargeCurrentCtl = nsChargeCurrentCtrl::ChargeCurrentCtrl();
-  chargeCurrentCtl.calcChargCurrent(*this, inverterData, alarmSetChargeCurrentToZero);
+  chargeCurrentCtl.calcChargCurrent(*this, inverterData);
 
   // Entladestrom
   nsDisChargeCurrentCtrl::DisChargeCurrentCtrl disChargeCurrentCtl = nsDisChargeCurrentCtrl::DisChargeCurrentCtrl();
-  disChargeCurrentCtl.calcDisChargCurrent(*this, inverterData, alarmSetDischargeCurrentToZero);
+  disChargeCurrentCtl.calcDisChargCurrent(*this, inverterData);
 
   // SoC
   nsSocCtrl::SocCtrl socCtrl = nsSocCtrl::SocCtrl();
-  socCtrl.calcSoc(*this, inverterData, alarmSetSocToFull);
+  socCtrl.calcSoc(*this, inverterData);
 
   // Batteriespannung
   nsInverterBattery::InverterBattery inverterBattery = nsInverterBattery::InverterBattery();

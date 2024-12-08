@@ -24,46 +24,40 @@ namespace nsChargeCurrentCtrl
     ;
   }
 
-  void ChargeCurrentCtrl::calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero)
+  void ChargeCurrentCtrl::calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
-    int16_t i16_lMaxChargeCurrentList[4] = {0};
+    int16_t i16_lMaxChargeCurrentList[5] = {0};
     int16_t i16_mNewChargeCurrent = 0;
+    int16_t i16_lMaxChargeCurrent = calcMaximalChargeCurrentProPack(inverterData);
 
-    if(alarmSetChargeCurrentToZero)
+    //ToDo: Ladeströme in der jeweiligen Funktion schon richtig liefern, damit es hier kein x10 mehr braucht
+    i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(inverterData, i16_lMaxChargeCurrent);
+    i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, (uint8_t)inverterData.inverterSoc);
+    i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(inverterData, i16_lMaxChargeCurrent);
+    //i16_lMaxChargeCurrentList[3] = calcChargecurrent_MaxCurrentPerPackToHigh(i16_lMaxChargeCurrent)*10; //ToDO: Ein/Aus
+    i16_lMaxChargeCurrentList[3] = calcChargeCurrentCutOff(inverterData, i16_lMaxChargeCurrent);
+    i16_lMaxChargeCurrentList[4] = calcChargeCurrentAlarm(i16_lMaxChargeCurrent);
+
+    #ifdef CAN_DEBUG
+    BSC_LOGD(TAG,"chargeCurrent Zellspg.:%i, SoC:%i, Zelldrift:%i",i16_lMaxChargeCurrentList[0],i16_lMaxChargeCurrentList[1],i16_lMaxChargeCurrentList[2]);
+    #endif
+
+    //Bestimmt kleinsten Ladestrom aller Optionen
+    for(uint8_t i=0;i<sizeof(i16_lMaxChargeCurrentList)/sizeof(i16_lMaxChargeCurrentList[0]);i++)
     {
-      i16_mNewChargeCurrent = 0;
-    }
-    else
-    {
-      int16_t i16_lMaxChargeCurrent = calcMaximalChargeCurrentProPack(inverterData);
-
-      //ToDo: Ladeströme in der jeweiligen Funktion schon richtig liefern, damit es hier kein x10 mehr braucht
-      i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(inverterData, i16_lMaxChargeCurrent);
-      i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, (uint8_t)inverterData.inverterSoc);
-      i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(inverterData, i16_lMaxChargeCurrent);
-      //i16_lMaxChargeCurrentList[3] = calcChargecurrent_MaxCurrentPerPackToHigh(i16_lMaxChargeCurrent)*10; //ToDO: Ein/Aus
-      i16_lMaxChargeCurrentList[3] = calcChargeCurrentCutOff(inverterData, i16_lMaxChargeCurrent);
-
-      #ifdef CAN_DEBUG
-      BSC_LOGD(TAG,"chargeCurrent Zellspg.:%i, SoC:%i, Zelldrift:%i",i16_lMaxChargeCurrentList[0],i16_lMaxChargeCurrentList[1],i16_lMaxChargeCurrentList[2]);
-      #endif
-
-      //Bestimmt kleinsten Ladestrom aller Optionen
-      for(uint8_t i=0;i<sizeof(i16_lMaxChargeCurrentList)/sizeof(i16_lMaxChargeCurrentList[0]);i++)
+      if(i16_lMaxChargeCurrentList[i] < i16_lMaxChargeCurrent)
       {
-        if(i16_lMaxChargeCurrentList[i] < i16_lMaxChargeCurrent)
-        {
-          i16_lMaxChargeCurrent = i16_lMaxChargeCurrentList[i];
-        }
+        i16_lMaxChargeCurrent = i16_lMaxChargeCurrentList[i];
       }
-
-      i16_mNewChargeCurrent = calcMaximalenLadestromSprung(i16_lMaxChargeCurrent, inverterData.inverterChargeCurrent); //calcMaximalenLadestromSprung
-
-      #ifdef CAN_DEBUG
-      BSC_LOGD(TAG, "Soll Ladestrom: %i, %i, %i",i16_lMaxChargeCurrentList[0], i16_lMaxChargeCurrentList[1], i16_lMaxChargeCurrentList[2]);
-      BSC_LOGI(TAG,"New charge current: %i, %i",i16_lMaxChargeCurrent,i16_mNewChargeCurrent);
-      #endif
     }
+
+    i16_mNewChargeCurrent = calcMaximalenLadestromSprung(i16_lMaxChargeCurrent, inverterData.inverterChargeCurrent); //calcMaximalenLadestromSprung
+
+    #ifdef CAN_DEBUG
+    BSC_LOGD(TAG, "Soll Ladestrom: %i, %i, %i",i16_lMaxChargeCurrentList[0], i16_lMaxChargeCurrentList[1], i16_lMaxChargeCurrentList[2]);
+    BSC_LOGI(TAG,"New charge current: %i, %i",i16_lMaxChargeCurrent,i16_mNewChargeCurrent);
+    #endif
+    
 
     inverter.inverterDataSemaphoreTake();
     inverterData.inverterChargeCurrent = i16_mNewChargeCurrent;
@@ -440,4 +434,14 @@ namespace nsChargeCurrentCtrl
   }
 
 
+   /********************************************************************************************
+   * Setze bei aktivem Trigger den Ladestrom auf 0
+   *
+   ********************************************************************************************/
+  int16_t ChargeCurrentCtrl::calcChargeCurrentAlarm(int16_t lChargeCurrent)
+  {
+    if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL, 0, DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) return 0;
+    return lChargeCurrent;
+  }
+  
 }

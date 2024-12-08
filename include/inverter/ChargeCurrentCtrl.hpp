@@ -15,7 +15,7 @@ namespace nsChargeCurrentCtrl {
         ChargeCurrentCtrl();
         ~ChargeCurrentCtrl();
 
-        void calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetChargeCurrentToZero);
+        void calcChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData);
 
         #ifdef PIO_UNIT_TESTING
         int16_t calcMaximalChargeCurrentProPack(Inverter::inverterData_s &inverterData);
@@ -27,6 +27,7 @@ namespace nsChargeCurrentCtrl {
         int16_t calcLadestromBeiZelldrift(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
         int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
         int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
+        int16_t calcChargeCurrentAlarm(int16_t lChargeCurrent);
         #endif
 
     private:
@@ -42,6 +43,7 @@ namespace nsChargeCurrentCtrl {
         int16_t calcLadestromBeiZelldrift(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
         int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
         int16_t calcChargecurrent_MaxCurrentPerPackToHigh(int16_t i16_pMaxChargeCurrent);
+        int16_t calcChargeCurrentAlarm(int16_t lChargeCurrent);
         #endif
     };
 }

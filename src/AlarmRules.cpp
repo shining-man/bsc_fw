@@ -63,7 +63,6 @@ void tachoSetMux(uint8_t channel);
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter(Inverter &inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
 bool temperatur_minWertUeberwachung(uint8_t);
@@ -291,9 +290,6 @@ void runAlarmRules(Inverter &inverter)
 
   //Plausibility ceck (Zellvoltage)
   rules_PlausibilityCeck();
-
-  //Inverter (CAN)
-  rules_CanInverter(inverter);
 
   //Digitaleingänge
   #ifndef LILYGO_TCAN485
@@ -823,22 +819,6 @@ void rules_Temperatur()
   }
 
   temperatur_senorsErrors();
-}
-
-
-void rules_CanInverter(Inverter &inverter)
-{
-  //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
-  else inverter.setChargeCurrentToZero(false);
-
-  //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) inverter.setDischargeCurrentToZero(true);
-  else inverter.setDischargeCurrentToZero(false);
-
-  //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) inverter.setSocToFull(true);
-  else inverter.setSocToFull(false);
 }
 
 uint16_t u16_mMerkerTemperaturTrigger = 0;

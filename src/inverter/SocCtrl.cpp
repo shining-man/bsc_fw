@@ -20,11 +20,11 @@ namespace nsSocCtrl
     ;
   }
 
-  void SocCtrl::calcSoc(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetSocToFull)
+  void SocCtrl::calcSoc(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
     uint16_t lNewSoc=0;
 
-    if(alarmSetSocToFull)
+    if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL))
     {
       #ifdef CAN_DEBUG
       BSC_LOGD(TAG,"SOC aufgrund von Alarm auf 100%");

@@ -20,33 +20,26 @@ namespace nsDisChargeCurrentCtrl
     ;
   }
 
-  void DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero)
+  void DisChargeCurrentCtrl::calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData)
   {
-    int16_t i16_lMaxDischargeCurrentList[1] = {0};
+    int16_t i16_lMaxDischargeCurrentList[2] = {0};
     int16_t i16_mNewDisChargeCurrent = 0;
+    int16_t i16_lMaxDischargeCurrent = calcMaxDischargeCurrentProPack(inverterData);
 
-    if(alarmSetDischargeCurrentToZero)
+    i16_lMaxDischargeCurrentList[0] = calcEntladestromZellspanung(inverterData, i16_lMaxDischargeCurrent);
+    i16_lMaxDischargeCurrentList[1] = calcDisChargeCurrentAlarm(i16_lMaxDischargeCurrent);
+
+    //Bestimmt kleinsten Entladestrom aller Optionen
+    for(uint8_t i=0;i<sizeof(i16_lMaxDischargeCurrentList)/sizeof(i16_lMaxDischargeCurrentList[0]);i++)
     {
-      i16_mNewDisChargeCurrent = 0;
-    }
-    else
-    {
-      int16_t i16_lMaxDischargeCurrent = calcMaxDischargeCurrentProPack(inverterData);
-
-
-      i16_lMaxDischargeCurrentList[0] = calcEntladestromZellspanung(inverterData, i16_lMaxDischargeCurrent);
-
-      //Bestimmt kleinsten Entladestrom aller Optionen
-      for(uint8_t i=0;i<sizeof(i16_lMaxDischargeCurrentList)/sizeof(i16_lMaxDischargeCurrentList[0]);i++)
+      if(i16_lMaxDischargeCurrentList[i] < i16_lMaxDischargeCurrent)
       {
-        if(i16_lMaxDischargeCurrentList[i] < i16_lMaxDischargeCurrent)
-        {
-          i16_lMaxDischargeCurrent = i16_lMaxDischargeCurrentList[i];
-        }
+        i16_lMaxDischargeCurrent = i16_lMaxDischargeCurrentList[i];
       }
-
-      i16_mNewDisChargeCurrent = i16_lMaxDischargeCurrent;
     }
+
+    i16_mNewDisChargeCurrent = i16_lMaxDischargeCurrent;
+    
 
     inverter.inverterDataSemaphoreTake();
     inverterData.inverterDischargeCurrent = i16_mNewDisChargeCurrent;
@@ -140,6 +133,17 @@ namespace nsDisChargeCurrentCtrl
       }
     }
     return i16_pMaxDischargeCurrent;
+  }
+
+
+   /********************************************************************************************
+   * Setze bei aktivem Trigger den Entladestrom auf 0
+   *
+   ********************************************************************************************/
+  int16_t DisChargeCurrentCtrl::calcDisChargeCurrentAlarm(int16_t lDisChargeCurrent)
+  {
+    if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL, 0, DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) return 0;
+    return lDisChargeCurrent;
   }
 
 }

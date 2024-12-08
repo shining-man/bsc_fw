@@ -17,7 +17,8 @@ namespace nsDisChargeCurrentCtrl
         DisChargeCurrentCtrl();
         ~DisChargeCurrentCtrl();
 
-        void calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData, bool alarmSetDischargeCurrentToZero);
+        void calcDisChargCurrent(Inverter &inverter, Inverter::inverterData_s &inverterData);
+        int16_t calcDisChargeCurrentAlarm(int16_t lDisChargeCurrent);
 
     private:
         int16_t calcMaxDischargeCurrentProPack(Inverter::inverterData_s &inverterData);

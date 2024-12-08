@@ -78,10 +78,6 @@ public:
     void inverterDataSemaphoreGive();
     struct inverterData_s *getInverterData();
 
-    void setChargeCurrentToZero(bool val);
-    void setDischargeCurrentToZero(bool val);
-    void setSocToFull(bool val);
-
     uint16_t getAktualChargeCurrentSoll();
 
     uint8_t getAutobalState();
@@ -90,16 +86,10 @@ public:
 private:
     static const char *TAG;
 
-
-
     SemaphoreHandle_t mInverterDataMutex;
     struct inverterData_s inverterData;
 
     uint8_t u8_mMqttTxTimer=0;
-
-    bool alarmSetChargeCurrentToZero;
-    bool alarmSetDischargeCurrentToZero;
-    bool alarmSetSocToFull;
 
     void getInverterValues();
     void sendMqttMsg();
