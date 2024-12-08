@@ -20,6 +20,7 @@
   <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?v=4" height="58"/></a>
   <a href="https://github.com/myhacsint" target=_blank><img src="https://avatars.githubusercontent.com/u/111045655?v=4" height="58"/></a>
   <a href="https://github.com/Dunkhase" target=_blank><img src="https://avatars.githubusercontent.com/u/30649822?v=4" height="58"/></a>
+  <a href="https://github.com/SlapJackNpNp" target=_blank><img src="https://avatars.githubusercontent.com/u/26175386?v=4" height="58"/></a>
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
@@ -130,6 +131,8 @@ Interface | RX | TX
 **Serial 1**   | GPIO 23   | GPIO 25
 **Serial 2**   | GPIO 35   | GPIO 33
 **CAN**   | GPIO 5   | GPIO 4
+
+Further description can be found [here](https://github.com/shining-man/bsc_fw/wiki/40-BSC%E2%80%90Test-ohne-orig.-Hardware).
 
 ## More information
 * [Discord Forum](https://discord.gg/WRUhegRPQn)
