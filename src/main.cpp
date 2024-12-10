@@ -1330,7 +1330,11 @@ void setup()
   server.on("/",handlePage_root);
   server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   #endif
+
+  // Bilder
   server.on("/favicon.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlFavicon);});
+  server.on("/home.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlPicHome);});
+  server.on("/back.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlPicBack);});
 
   //server.on("/login", HTTP_GET, []() {handleLogin(server);});
   //server.on("/login", HTTP_POST, []() {handleLogin(server);});
