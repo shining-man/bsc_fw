@@ -90,6 +90,9 @@ void ExtSerial::extSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serial
     semaphoreState = true;
   }
 
+  i2cWriteRegister(deviceAddress, MCP23017_IODIRA, 0x0);
+  i2cWriteRegister(deviceAddress, MCP23017_IODIRB, 0x0);
+  
   i2cWriteRegister(deviceAddress, MCP23017_GPIOA, valueA);
   i2cWriteRegister(deviceAddress, MCP23017_GPIOB, valueB);
 

@@ -127,7 +127,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      BSC_LOGE2(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
       /*for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
       {
         BSC_LOGD(TAG,"Byte=%i: %i",x, String(p_lRecvBytes[x]));

@@ -21,6 +21,8 @@
 
 static const char *TAG = "LOG";
 
+uint8_t bscLogLevel = 0;
+
 static SemaphoreHandle_t logMutex = NULL;
 static SemaphoreHandle_t deleteLogMutex = NULL;
 static SemaphoreHandle_t fsMutex = NULL;

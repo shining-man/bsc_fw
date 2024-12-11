@@ -83,7 +83,7 @@ bool JkBmsV13_recvAnswer(uint8_t *p_lRecvBytes)
     //Timeout
     if(millis()-u32_lStartTime > 500)
     {
-      BSC_LOGD(TAG_V13,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_mDevNrJkV13, u16_lRecvDataLen, u16_mLastRecvBytesCntJkV13);
+      BSC_LOGE2(TAG_V13,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i\n",u8_mDevNrJkV13, u16_lRecvDataLen, u16_mLastRecvBytesCntJkV13);
       //for(uint16_t x=0;x<u16_lRecvDataLen;x++)
       //{
       //  BSC_LOGD(TAG_V13,"%02x ",p_lRecvBytes[x]);

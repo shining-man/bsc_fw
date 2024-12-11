@@ -718,6 +718,9 @@ static const char* mqttTopics[] = {"", // 0
 #define BSC_LOGV ESP_LOGV
 */
 
+#define DISABLE_BSCx_LOG
+
+extern uint8_t bscLogLevel;
 
 #define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGW( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_WARN,    tag, format, ##__VA_ARGS__)
@@ -725,8 +728,27 @@ static const char* mqttTopics[] = {"", // 0
 #define BSC_LOGD( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_DEBUG,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGV( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 
+
+#ifdef DISABLE_BSCx_LOG
+#define BSC_LOGI1(tag, format, ...) do {} while (0)
+#define BSC_LOGI2(tag, format, ...) do {} while (0)
+
+#define BSC_LOGE1(tag, format, ...) do {} while (0)
+#define BSC_LOGE2(tag, format, ...) do {} while (0)
+#else
+#define BSC_LOGI1( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_INFO, 1, tag, format, ##__VA_ARGS__)
+#define BSC_LOGI2( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_INFO, 2, tag, format, ##__VA_ARGS__)
+
+#define BSC_LOGE1( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_ERROR, 1, tag, format, ##__VA_ARGS__)
+#define BSC_LOGE2( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_ERROR, 2, tag, format, ##__VA_ARGS__)
+#endif
+
 #define ESP_LOG_LEVEL_LOCAL_BSC(level, tag, format, ...) do {               \
-        if ( LOG_LOCAL_LEVEL_BSC >= level ) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
+        if ( LOG_LOCAL_LEVEL_BSC >= level) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
+    } while(0)
+
+#define ESP_LOG_LEVEL_LOCAL_BSC_2(level, level2, tag, format, ...) do {               \
+        if ( LOG_LOCAL_LEVEL_BSC >= level && level2 <= bscLogLevel) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
     } while(0)
 
 #define ESP_LOG_LEVEL_BSC(level, tag, format, ...) do {                     \

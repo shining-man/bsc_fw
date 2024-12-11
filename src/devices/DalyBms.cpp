@@ -153,7 +153,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
+      BSC_LOGE2(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
       #ifdef DALY_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)

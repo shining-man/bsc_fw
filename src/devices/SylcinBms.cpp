@@ -156,7 +156,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     // oder wenn es begonnen hat, dann 700ms
     if( ((millis()-u32_lStartTime)>500 && u8_lRecvBytesCnt==0) || ((millis()-u32_lStartTime)>700 && u8_lRecvBytesCnt>0))
     {
-        BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+        BSC_LOGE2(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
         #ifdef SYLCIN_DEBUG
         String recvBytes="";
         uint8_t u8_logByteCount=0;

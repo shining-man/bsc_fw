@@ -118,7 +118,7 @@ bool ModbusRTU::readSerialData()
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mSerialPortNr, retDataLen, mPort->available());
+      BSC_LOGE2(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mSerialPortNr, retDataLen, mPort->available());
       return false;
     }
 

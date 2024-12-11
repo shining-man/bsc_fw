@@ -499,11 +499,18 @@ void BscSerial::cyclicRun()
     else
     {
       //#ifndef UTEST_RESTAPI
-      auto GetReasonStr = [u8_lReason]()
+      if(u8_lReason == 1 && millis() - getBmsLastDataMillis(i) > 2000) {
+        BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,"Checksum wrong");
+      }
+      else if(u8_lReason == 2) {
+        BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,"Filter");
+      }
+
+      /*auto GetReasonStr = [u8_lReason]()
       {
         return (1==u8_lReason) ? "Checksum wrong" : "Filter";
       };
-      BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
+      BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());*/
       //#else
       //setBmsLastDataMillis(i,millis());
       //#endif

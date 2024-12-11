@@ -227,10 +227,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     // Timeout
     if ((millis() - u32_lStartTime) > 500)
     {
-      BSC_LOGE(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
-#ifdef GOBELPC200_DEBUG
-  BSC_Dump_MSGD(TAG, "Timeout: RecvBytes=", p_lRecvBytes, u8_lRecvBytesCnt);
-#endif
+      BSC_LOGE2(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      #ifdef GOBELPC200_DEBUG
+        BSC_Dump_MSGD(TAG, "Timeout: RecvBytes=", p_lRecvBytes, u8_lRecvBytesCnt);
+      #endif
       return false;
     }
 

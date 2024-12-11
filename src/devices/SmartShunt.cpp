@@ -193,7 +193,7 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
     //Timeout
     if((millis()-u32_lStartTime)>300) 
     {
-      BSC_LOGI(TAG,"Timeout: Serial=%i", u8_mDevNr);
+      BSC_LOGE2(TAG,"Timeout: Serial=%i", u8_mDevNr);
       bo_ret = false;
       bo_break = true;
     }
