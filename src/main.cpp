@@ -1028,24 +1028,14 @@ void handle_getDashboardData()
   tmp += "|";
   tmp += str_BootTimeStamp.c_str();
 
-  //9-11. BMS data (serial 0-2)
-  for(uint8_t i=0;i<3;i++)
-  {
-    tmp += "|";
-    if(millis()-getBmsLastDataMillis(BT_DEVICES_COUNT+i)<5000)
-    {
-      float fl_lBmsTotalVolage = getBmsTotalVoltage(BT_DEVICES_COUNT+i);
-      float fl_lBmsTotalCurrent = getBmsTotalCurrent(BT_DEVICES_COUNT+i);
-      uint8_t u8_lBmsSoc = getBmsChargePercentage(BT_DEVICES_COUNT+i);
-      tmp += String(fl_lBmsTotalVolage) + ";" + String(fl_lBmsTotalCurrent) + ";" + String(u8_lBmsSoc);
-    }
-    else
-    {
-      tmp += "--;--;--";
-    }
-  }
+  //9 Inverter
+  tmp += "|";
+  float lInvChgVolt = inverter.getInverterData()->inverterChargeVoltage / 10.0;
+  uint16_t lInvChgCur = inverter.getInverterData()->inverterChargeCurrent / 10;
+  uint16_t lInvDisChgCur = inverter.getInverterData()->inverterDischargeCurrent / 10;
+  tmp += String(lInvChgVolt) + ";" + String(lInvChgCur) + ";" + String(lInvDisChgCur);
 
-  //12. Hostname
+  //10. Hostname
   tmp += "|";
   tmp += WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0);
 
