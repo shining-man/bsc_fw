@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include "inverter/Inverter.hpp"
 
 class BmsDataUtils
 {
@@ -26,6 +27,7 @@ public:
     static float getMinCurrentFromBms(uint8_t u8_mBmsDatasource, uint32_t mBmsDatasourceAdd);
     static void  getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint32_t mBmsDatasourceAdd, 
       int16_t &tempHigh, int16_t &tempLow, uint8_t &tempLowSensor, uint8_t &tempLowPack, uint8_t &tempHighSensor, uint8_t &tempHighPack);
+    static bool isDataDeviceAvailable(Inverter::inverterData_s &inverterData, uint8_t deviceNr);
 
     static void buildBatteryCellText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr);
     static void buildBatteryTempText(char (&buffer)[8], uint8_t batteryNr, uint8_t cellNr);

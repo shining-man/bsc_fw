@@ -355,3 +355,19 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint32
   tempHigh = ROUND(tempHigh, 100);
   tempLow  = ROUND(tempLow, 100);
 }
+
+
+bool BmsDataUtils::isDataDeviceAvailable(Inverter::inverterData_s &inverterData, uint8_t deviceNr)
+{
+
+  if(inverterData.bmsDatasource == deviceNr || isBitSet(inverterData.bmsDatasourceAdd, deviceNr))
+  {
+    if(getBmsErrors(deviceNr) == 0 && (millis()-getBmsLastDataMillis(deviceNr) < 5000) &&
+      getBmsStateFETsCharge(deviceNr))
+    {
+      return true;
+    }
+  }
+  
+  return false;
+}
