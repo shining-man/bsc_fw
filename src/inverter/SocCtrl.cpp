@@ -83,9 +83,9 @@ namespace nsSocCtrl
         {
           if(isBitSet(socBms, i))
           {
-            if((millis()-getBmsLastDataMillis(socBms)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
+            if((millis()-getBmsLastDataMillis(i)) < CAN_BMS_COMMUNICATION_TIMEOUT) //So lang die letzten 5000ms Daten kamen ist alles gut
             {
-              lNewSoc = getBmsChargePercentage(socBms);
+              lNewSoc = getBmsChargePercentage(i);
             }
             break;
           }
