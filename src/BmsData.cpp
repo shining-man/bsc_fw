@@ -199,6 +199,13 @@ float getBmsTotalCurrent(uint8_t devNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+int16_t getBmsTotalCurrentI16(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  int16_t ret = bmsData.bmsTotalCurrent[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
 void setBmsTotalCurrent(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
