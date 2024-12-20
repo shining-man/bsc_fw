@@ -184,7 +184,7 @@ void handleLogTriggerHIGH(uint8_t triggerNr, uint8_t cause, String value)
     isBitSet(alarmCauseAktiv[triggerNr], cause) == 1)
   {
     if(value.length() > 0) BSC_LOGI(TAG,"Trigger %i HIGH -> %s, value %s", triggerNr + 1, causeText, value.c_str());
-    else BSC_LOGI(TAG,"Trigger %i HIGH -> %s", triggerNr + 1, causeText);
+    else BSC_LOGI(TAG,"Trigger %i HIGH -> %s", triggerNr + 1, causeText.c_str());
     logTrigger(triggerNr, cause, true);
   }
 }
@@ -206,7 +206,7 @@ void handleLogTriggerLOW()
       {
         String causeText = ALARM_CAUSE_TEXT[cause];
         
-        BSC_LOGI(TAG,"Trigger %i LOW -> %s",triggerNr+1,causeText);
+        BSC_LOGI(TAG,"Trigger %i LOW -> %s",triggerNr+1,causeText.c_str());
         logTrigger(triggerNr, cause, false);
         bitClear(alarmCauseAktiv[triggerNr],cause);
       }
@@ -274,9 +274,9 @@ void runAlarmRules(Inverter &inverter)
   else pixels.setPixelColor(0, pixels.Color(0, 150, 0));
   pixels.show();
 
-  #else
-  if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
-  else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+  //#else
+  //if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
+  //else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
   #endif
 
   //Merker vor jedem run auf false setzen
