@@ -274,9 +274,9 @@ void runAlarmRules(Inverter &inverter)
   else pixels.setPixelColor(0, pixels.Color(0, 150, 0));
   pixels.show();
 
-  //#else
-  //if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
-  //else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
+  #else
+  if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
+  else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
   #endif
 
   //Merker vor jedem run auf false setzen
