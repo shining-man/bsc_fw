@@ -97,7 +97,7 @@ void Inverter::loadIverterSettings()
   u16_bmsDatasourceAdd = (((uint32_t)WebSettings::getInt(ID_PARAM_BMS_CAN_DATASOURCE_SS1,0,DT_ID_PARAM_BMS_CAN_DATASOURCE_SS1))&bmsConnectFilter);
 
   // In den zusätzlichen Datenquellen die Masterquelle entfernen
-  bitClear(u16_bmsDatasourceAdd, u8_bmsDatasource - BT_DEVICES_COUNT);
+  bitClear(u16_bmsDatasourceAdd, u8_bmsDatasource);
 
   inverterData.bmsDatasource = u8_bmsDatasource;
   inverterData.bmsDatasourceAdd = u16_bmsDatasourceAdd;

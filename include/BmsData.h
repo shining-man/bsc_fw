@@ -86,6 +86,7 @@ uint16_t getBmsAvgVoltage(uint8_t devNr);
 void setBmsAvgVoltage(uint8_t devNr, uint16_t value);
 
 float getBmsTotalCurrent(uint8_t devNr);
+int16_t getBmsTotalCurrentI16(uint8_t devNr);
 void setBmsTotalCurrent(uint8_t devNr, float value);
 void setBmsTotalCurrent_int(uint8_t devNr, int16_t value);
 
