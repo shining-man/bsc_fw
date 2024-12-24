@@ -39,7 +39,6 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
   mDevData = devData;
   mPort = port;
   u8_mDevNr = devNr;
-  uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
   deviceUtils::DeviceUtils devUtils;
 
   mDataMappingNr = devData->dataMappingNr;
@@ -93,10 +92,8 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
     else if (u8_DataPointer==8)
   {
     getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_AMOUNT_CH_ENERGY);
-    u8_DataPointer=9;
+    u8_DataPointer=0;
   }
-
-  if(u8_DataPointer>8)u8_DataPointer=0;
 
   return ret;
 }
@@ -105,7 +102,6 @@ bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, u
 {
     uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
     uint8_t anzahl_wiederholungen;
-    bool ret = true;
 
     // Wenn beim ersten Telegramm (SOC) ein Fehler auftaucht, wird probiert dieses zu wiederholen. 
     // Grund: Der Smartshunt geht nach ca. 1s wieder in den Standartkommunikationsmodus zurück und
@@ -124,7 +120,7 @@ bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, u
       if(recvAnswer(devUtils, response, ID_Get))
       {
         parseMessage(devUtils, response);
-        break;
+        return true;
       }
       else
       {
@@ -136,11 +132,11 @@ bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, u
           #ifdef SMARTSHUNT_DEBUG
             BSC_LOGE(TAG,"Antwort nicht OK - ID Get %u",ID_Get);
           #endif
-          ret = false;
+          return false;
         }
       }
     }
-    return ret;
+    return false;
 }
 
 static void getDataFromBms(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get)
