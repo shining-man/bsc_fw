@@ -1326,6 +1326,19 @@ const String paramBmsToInverter PROGMEM = "{'page':["
 
 // Inverter Charge
 const String paramInverterCharge PROGMEM = "{'page':["
+  // Ladestrom begrenzen bei Überschreitung von Charge current per pack
+  "{"
+    "'label':'Ladestrom pro Pack zu groß',"
+    "'type':"+String(HTML_SEPARATION)+","
+    "'help':'Ladestrom drosseln wenn der Ladestrom eines Packs überschritten wird'"
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_BATTERYPACK)+","
+    "'label':'Ein/Aus',"
+    "'type':"+String(HTML_INPUTCHECKBOX)+","
+    "'default':'0',"
+    "'dt':"+String(PARAM_DT_BO)+""
+  "},"
 
   // Ladestrom Zell-Spannungsabhängig drosseln'
   "{"

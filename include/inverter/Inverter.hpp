@@ -47,6 +47,7 @@ public:
         int16_t  calcChargeCurrentSoc;
         int16_t  calcChargeCurrentCelldrift;
         int16_t  calcChargeCurrentCutOff;
+        int16_t  calcChargeCurrentPackToHigh;
 
         // Entladeströme von der Regelung
         int16_t  calcDischargeCurrentCellVoltage;
