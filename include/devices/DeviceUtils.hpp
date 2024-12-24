@@ -13,11 +13,12 @@ namespace deviceUtils {
     ~DeviceUtils(); // Destruktor-Deklaration
 
     char ByteToAsciiHex(uint8_t v);
-    void ByteToAsciiHex(uint8_t *dest, uint8_t *data, size_t length);
+    void ByteToAsciiHex(uint8_t *dest, const uint8_t *data, size_t length);
 
     uint8_t  AsciiHexToByte(char a, char b);
-    uint16_t AsciiHexToU16(uint8_t *t_message, uint8_t pos);
-    uint32_t AsciiHexToU32(uint8_t *t_message, uint8_t pos);
+    uint8_t  AsciiHexToNibble(char a);
+    uint16_t AsciiHexToU16(const uint8_t *t_message, uint8_t pos);
+    uint32_t AsciiHexToU32(const uint8_t *t_message, uint8_t pos);
 
   };
 }

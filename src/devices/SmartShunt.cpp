@@ -10,6 +10,7 @@
 #include "mqtt_t.h"
 #include "log.h"
 #include "WebSettings.h"
+#include "Utility.h"
 
 static const char *TAG = "SMARTSHUNT";
 
@@ -17,9 +18,10 @@ static Stream *mPort;
 static uint8_t u8_mDevNr;
 
 static void      getDataFromBms(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get);
-static bool      recvAnswer(uint8_t * t_outMessage, uint16_t ID_Get);
+static bool      recvAnswer(deviceUtils::DeviceUtils &devUtils, uint8_t * t_outMessage, uint16_t ID_Get);
 static void      parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message);
-static bool      hexIsValid(const uint8_t* buffer, int size);
+static bool      hexIsValid(deviceUtils::DeviceUtils &devUtils, const uint8_t* buffer, int size);
+static bool      getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get);
 
 enum SM_readData {SEARCH_START, SEARCH_END};
 
@@ -42,312 +44,104 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
 
   mDataMappingNr = devData->dataMappingNr;
 
-  for(uint8_t i=0;i<3;i++)
+// Nur die erste 4 Daten sind Relevant für die Ausgabe eines Fehlers
+  if (!getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_SOC)) ret = false; 
+  if (!getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_MAIN_VOLTAGE)) ret = false; 
+  if (!getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_CURRENT)) ret = false; 
+  if (!getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_POWER)) ret = false; 
+ 
+  if(mDevData->bo_sendMqttMsg)
   {
-    getDataFromBms(devUtils, bscSerial, smartshunt_id_SOC);
-    if(recvAnswer(response, smartshunt_id_SOC))
-    {
-      parseMessage(devUtils, response);
-      break;
-    }
-    else
-    {
-      #ifdef SMARTSHUNT_DEBUG
-      BSC_LOGE(TAG,"Antwort nicht OK - SOC - Versuch Nr. :%i",i);
-      #endif
-      if(i>=2)
-      {
-        BSC_LOGE(TAG,"Antwort nicht OK - SOC");
-        ret = false;
-      }
-    }
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_TIME_TO_GO);
+    u8_DataPointer=1;
+  }
+    else if (u8_DataPointer==1)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_CYCLE);
+    u8_DataPointer=2;
+  }
+    else if (u8_DataPointer==2)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_TOTAL_VOLT_MIN);
+    u8_DataPointer=3;
+  }
+    else if (u8_DataPointer==3)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_TOTAL_VOLT_MAX);
+    u8_DataPointer=4;
+  }
+    else if (u8_DataPointer==4)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_TIME_SINCE_FULL);
+    u8_DataPointer=5;
+  }
+    else if (u8_DataPointer==5)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_VOLT_MIN_COUNT);
+    u8_DataPointer=6;
+  }
+    else if (u8_DataPointer==6)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_TOTAL_VOLT_MAX_COUNT);
+    u8_DataPointer=7;
+  }
+    else if (u8_DataPointer==7)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_AMOUNT_DCH_ENERGY);
+    u8_DataPointer=8;
+  }
+    else if (u8_DataPointer==8)
+  {
+    getBMSTelegramm(devUtils, bscSerial, SMARTSHUNT_ID_AMOUNT_CH_ENERGY);
+    u8_DataPointer=9;
   }
 
-  for(uint8_t i=0;i<3;i++)
-  {
-    getDataFromBms(devUtils, bscSerial, smartshunt_id_main_voltage);
-    if(recvAnswer(response, smartshunt_id_main_voltage))
-    {
-      parseMessage(devUtils, response);
-      break;
-    }
-    else
-    {
-      #ifdef SMARTSHUNT_DEBUG
-      BSC_LOGE(TAG,"Antwort nicht OK - Main Voltage - Versuch Nr. :%i",i);
-      #endif
-      if(i>=2)
-      {
-        BSC_LOGE(TAG,"Antwort nicht OK - Main Voltage");
-        ret = false;
-      }
-    }
-  }
-
-  for(uint8_t i=0;i<3;i++)
-  {
-    getDataFromBms(devUtils, bscSerial, smartshunt_id_current);
-    if(recvAnswer(response, smartshunt_id_current))
-    {
-      parseMessage(devUtils, response);
-      break;
-    }
-    else
-    {
-      #ifdef SMARTSHUNT_DEBUG
-      BSC_LOGE(TAG,"Antwort nicht OK - current - Versuch Nr. :%i",i);
-      #endif
-      if(i>=2)
-      {
-        BSC_LOGE(TAG,"Antwort nicht OK - current");
-        ret = false;
-      }
-    }
-  }
-
-  for(uint8_t i=0;i<3;i++)
-  {
-    getDataFromBms(devUtils, bscSerial, smartshunt_id_power);
-    if(recvAnswer(response, smartshunt_id_power))
-    {
-      parseMessage(devUtils, response);
-      break;
-    }
-    else
-    {
-      #ifdef SMARTSHUNT_DEBUG
-      BSC_LOGE(TAG,"Antwort nicht OK - power - Versuch Nr. :%i",i);
-      #endif
-      if(i>=2)
-      {
-        BSC_LOGE(TAG,"Antwort nicht OK - power");
-        ret = false;
-      }
-    }
-  }
-
-  if(u8_DataPointer==1)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_TIME_TO_GO);
-      if(recvAnswer(response, smartshunt_id_TIME_TO_GO))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Time to Go - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Time to Go");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==2)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_CYCLE);
-      if(recvAnswer(response, smartshunt_id_CYCLE))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Cycle - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Cycle");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==3)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_TOTAL_VOLT_MIN);
-      if(recvAnswer(response, smartshunt_id_TOTAL_VOLT_MIN))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Total Voltage Minimum - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Total Voltage Minimum");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==4)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_TOTAL_VOLT_MAX);
-      if(recvAnswer(response, smartshunt_id_TOTAL_VOLT_MAX))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Total Voltage Maximum - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Total Voltage Maximum");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==5)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_TIME_SINCE_FULL);
-      if(recvAnswer(response, smartshunt_id_TIME_SINCE_FULL))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Time Since Full - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Time Since Full");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==6)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_VOLT_MIN_COUNT);
-      if(recvAnswer(response, smartshunt_id_VOLT_MIN_COUNT))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Alarm Voltage min Count - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Alarm Voltage min Count");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==7)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_TOTAL_VOLT_MAX_COUNT);
-      if(recvAnswer(response, smartshunt_id_TOTAL_VOLT_MAX_COUNT))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Alarm Voltage max Count - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Alarm Voltage max Count");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==8)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_AMOUNT_DCH_ENERGY);
-      if(recvAnswer(response, smartshunt_id_AMOUNT_DCH_ENERGY))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Summe Energie entladen - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Summe Energie entladen");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  if(u8_DataPointer==9)
-  {
-    for(uint8_t i=0;i<3;i++)
-    {
-      getDataFromBms(devUtils, bscSerial, smartshunt_id_AMOUNT_CH_ENERGY);
-      if(recvAnswer(response, smartshunt_id_AMOUNT_CH_ENERGY))
-      {
-        parseMessage(devUtils, response);
-        break;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-        BSC_LOGE(TAG,"Antwort nicht OK - Summe Energie geladen - Versuch Nr. :%i",i);
-        #endif
-        if(i>=2)
-        {
-          BSC_LOGE(TAG,"Antwort nicht OK - Summe Energie geladen");
-          ret = false;
-        }
-      }
-    }
-  }
-
-  u8_DataPointer+=1;
-  if(u8_DataPointer>10)u8_DataPointer=0;
+  if(u8_DataPointer>8)u8_DataPointer=0;
 
   return ret;
 }
 
+bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get)
+{
+    uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
+    uint8_t anzahl_wiederholungen;
+    bool ret = true;
+
+    // Wenn beim ersten Telegramm (SOC) ein Fehler auftaucht, wird probiert dieses zu wiederholen. 
+    // Grund: Der Smartshunt geht nach ca. 1s wieder in den Standartkommunikationsmodus zurück und
+    // mit diesem Telegramm kann / wird Kollision entstehen, deshalb warten wir nach einem Fehler 100ms.
+    // Danach ist der Shunt mit dem Telegram in jedem Fall fertig und ist wieder bereit für das
+    // HEX Protokoll.
+
+    if (ID_Get == SMARTSHUNT_ID_SOC)
+    { anzahl_wiederholungen = 2;}
+    else
+    { anzahl_wiederholungen = 1;}
+
+    for(uint8_t i=0;i<anzahl_wiederholungen;i++)
+    {
+      getDataFromBms(devUtils, bscSerial, ID_Get);
+      if(recvAnswer(devUtils, response, ID_Get))
+      {
+        parseMessage(devUtils, response);
+        break;
+      }
+      else
+      {
+        #ifdef SMARTSHUNT_DEBUG
+          BSC_LOGE(TAG,"Antwort nicht OK - ID Get %u - Versuch Nr. :%i",ID_Get,i);
+        #endif
+        if(i>=anzahl_wiederholungen)
+        {
+          #ifdef SMARTSHUNT_DEBUG
+            BSC_LOGE(TAG,"Antwort nicht OK - ID Get %u",ID_Get);
+          #endif
+          ret = false;
+        }
+      }
+    }
+    return ret;
+}
 
 static void getDataFromBms(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get)
 {
@@ -394,7 +188,7 @@ static void getDataFromBms(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSer
 /// @brief
 /// @param p_lRecvBytes
 /// @return
-static bool recvAnswer(uint8_t *p_lRecvBytes, uint16_t ID_Get)
+static bool recvAnswer(deviceUtils::DeviceUtils &devUtils, uint8_t *p_lRecvBytes, uint16_t ID_Get)
 {
   uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen;
   uint32_t u32_lStartTime=millis();
@@ -407,7 +201,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint16_t ID_Get)
   {
     //Timeout
     // wenn innerhalb von 50ms das Telegram noch nicht begonnen hat, dann Timeout
-    if( (((millis()-u32_lStartTime)>100) && ID_Get==smartshunt_id_SOC) || (((millis()-u32_lStartTime)>50) && !(ID_Get==smartshunt_id_SOC)) )
+    if( (((millis()-u32_lStartTime)>100) && ID_Get==SMARTSHUNT_ID_SOC) || (((millis()-u32_lStartTime)>50) && !(ID_Get==SMARTSHUNT_ID_SOC)) )
     {
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
@@ -456,26 +250,11 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint16_t ID_Get)
   }
 
   #ifdef SMARTSHUNT_DEBUG
-  String recvBytes="";
-  uint8_t u8_logByteCount=0;
-  for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
-  {
-    u8_logByteCount++;
-    recvBytes+="0x";
-    recvBytes+=String(p_lRecvBytes[x],16);
-    recvBytes+=" ";
-    if(u8_logByteCount==20)
-    {
-      BSC_LOGI(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
-      recvBytes="";
-      u8_logByteCount=0;
-    }
-  }
-  BSC_LOGI(TAG,"RecvBytes=%i: %s",u8_lRecvBytesCnt, recvBytes.c_str());
+  buffer2Log(p_lRecvBytes, u8_lRecvBytesCnt);
   #endif
 
   //Überprüfe Cheksum
-  if(!hexIsValid(p_lRecvBytes,u8_lRecvBytesCnt)) 
+  if(!hexIsValid(devUtils, p_lRecvBytes,u8_lRecvBytesCnt)) 
     {
       #ifdef SMARTSHUNT_DEBUG
       BSC_LOGI(TAG,"recvAnswer - Checksum falsch"); 
@@ -501,7 +280,7 @@ static void parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message
       BSC_LOGI(TAG,"Flag =%u",Smartshunt_Flag);
     #endif
 
-    if(Smartshunt_ID==smartshunt_id_main_voltage)
+    if(Smartshunt_ID==SMARTSHUNT_ID_MAIN_VOLTAGE)
     {
       float floatValue = (float)(static_cast<int16_t>(devUtils.AsciiHexToU16(t_message,7))) / 100; // 0,01V
       setBmsTotalVoltage(mDataMappingNr, floatValue);
@@ -510,7 +289,7 @@ static void parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message
         BSC_LOGI(TAG,"Voltage =%f",floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_current)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_CURRENT)
     {
       float floatValue = (float)(static_cast<int16_t>(devUtils.AsciiHexToU16(t_message,7))) / 10; // 0,1A
       setBmsTotalCurrent(mDataMappingNr, floatValue);
@@ -519,15 +298,15 @@ static void parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message
         BSC_LOGI(TAG,"Current =%f",floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_power)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_POWER)
     {
       int16_t i16_tValue = (int16_t)devUtils.AsciiHexToU16(t_message,7); // W
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_POWER, -1, i16_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_POWER, -1, i16_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Power =%i",i16_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_SOC)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_SOC)
     {
       float floatValue = (float)devUtils.AsciiHexToU16(t_message,7) / 100; // 0,01%
       setBmsChargePercentage(mDataMappingNr, (uint8_t)floatValue);
@@ -535,82 +314,82 @@ static void parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message
         BSC_LOGI(TAG,"SOC =%u",(uint8_t)floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_TIME_TO_GO)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_TIME_TO_GO)
     {
       uint16_t u16_tValue = devUtils.AsciiHexToU16(t_message,7); // 1 Minute
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TIME_TO_GO, -1, u16_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TIME_TO_GO, -1, u16_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"TTG =%u",u16_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_CYCLE)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_CYCLE)
     {
       uint32_t u32_tValue = devUtils.AsciiHexToU32(t_message,7); // 1 Cycle
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_CYCLE, -1, u32_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_CYCLE, -1, u32_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Cycle =%u",u32_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_TOTAL_VOLT_MIN)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_TOTAL_VOLT_MIN)
     {
       float floatValue = (float)devUtils.AsciiHexToU32(t_message,7) / 100; // 0,01V
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, floatValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN, -1, floatValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Total Volt Minimum =%f",floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_TOTAL_VOLT_MAX)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_TOTAL_VOLT_MAX)
     {
       float floatValue = (float)devUtils.AsciiHexToU32(t_message,7) / 100; // 0,01V
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, floatValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX, -1, floatValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Total Volt Maximum =%f",floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_TIME_SINCE_FULL)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_TIME_SINCE_FULL)
     {
       uint32_t u32_tValue = devUtils.AsciiHexToU32(t_message,7); // 1 Seconds
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, u32_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TIME_SINCE_FULL, -1, u32_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Second since last full =%u",u32_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_SOC_SYNC_COUNT)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_SOC_SYNC_COUNT)
     {
       uint32_t u32_tValue = devUtils.AsciiHexToU32(t_message,7); // 1 Seconds
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, u32_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_SOC_SYNC_COUNT, -1, u32_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Number of automatic synchronizations =%u",u32_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_VOLT_MIN_COUNT)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_VOLT_MIN_COUNT)
     {
       uint32_t u32_tValue = devUtils.AsciiHexToU32(t_message,7); // 1 Seconds
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, u32_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MIN_COUNT, -1, u32_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Number of Low Voltage Alarms =%u",u32_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_TOTAL_VOLT_MAX_COUNT)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_TOTAL_VOLT_MAX_COUNT)
     {
       uint32_t u32_tValue = devUtils.AsciiHexToU32(t_message,7); // 1 Seconds
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, u32_tValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_TOTAL_VOLT_MAX_COUNT, -1, u32_tValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Number of High Voltage Alarms =%u",u32_tValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_AMOUNT_DCH_ENERGY)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_AMOUNT_DCH_ENERGY)
     {
       float floatValue = (float)devUtils.AsciiHexToU32(t_message,7) / 100; // 1 0,01kWh
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, floatValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_AMOUNT_DCH_ENERGY, -1, floatValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Amount of discharged energy =%f",floatValue);
       #endif
     }
-    else if(Smartshunt_ID==smartshunt_id_AMOUNT_CH_ENERGY)
+    else if(Smartshunt_ID==SMARTSHUNT_ID_AMOUNT_CH_ENERGY)
     {
       float floatValue = (float)devUtils.AsciiHexToU32(t_message,7) / 100; // 1 0,01kWh
-      if(mDevData->bo_sendMqttMsg) mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, floatValue);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, mDataMappingNr, MQTT_TOPIC2_AMOUNT_CH_ENERGY, -1, floatValue);
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Amount of discharged energy =%f",floatValue);
       #endif
@@ -623,15 +402,13 @@ static void parseMessage(deviceUtils::DeviceUtils &devUtils, uint8_t * t_message
  *	hexIsValid
  *  This function compute checksum and validate hex frame
  */
-#define ascii2hex(v) (v-48-(v>='A'?7:0))
-#define hex2byte(b) (ascii2hex(*(b)))*16+((ascii2hex(*(b+1))))
 
-static bool hexIsValid(const uint8_t* buffer, int size)
+static bool hexIsValid(deviceUtils::DeviceUtils &devUtils, const uint8_t* buffer, int size)
 {
-  uint8_t checksum=0x55-ascii2hex(buffer[0]);
+  uint8_t checksum=0x55-devUtils.AsciiHexToNibble(buffer[0]);
   for (int i=1; i<size; i+=2)
   {
-  checksum -= hex2byte(buffer+i);
+  checksum -= devUtils.AsciiHexToByte(buffer[i],buffer[i+1]);
   }
   #ifdef SMARTSHUNT_DEBUG 
     if(!(checksum==0)) BSC_LOGE(TAG,"Checksum =%u",checksum);
