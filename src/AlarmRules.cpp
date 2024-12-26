@@ -73,15 +73,18 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
 void rules_soc(Inverter &inverter);
 void rules_vTrigger();
+void loadVirtualTrigger();
 
 
 void initAlarmRules(Inverter &inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
-  bo_mChangeAlarmSettings=false;
-  u8_merkerHysterese_TriggerAtSoc=false;
-  vTrigger=0;
+  bo_mChangeAlarmSettings = false;
+  u8_merkerHysterese_TriggerAtSoc = false;
+  vTrigger = 0;
+
+  loadVirtualTrigger();
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -245,12 +248,33 @@ void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
 
 bool setVirtualTrigger(uint8_t triggerNr, bool val)
 {
-  if(triggerNr==0 || triggerNr>10) return false;
+  if(triggerNr == 0 || triggerNr > 10) return false;
   triggerNr--;
 
-  if(val)bitSet(vTrigger,triggerNr);
-  else bitClear(vTrigger,triggerNr);
+  // Gibt es eine Änderung an dem Trigger
+  if((val && !isBitSet(vTrigger, triggerNr)) || (!val && isBitSet(vTrigger, triggerNr)))
+  {
+    if(val)bitSet(vTrigger, triggerNr);
+    else bitClear(vTrigger, triggerNr);
+
+    // Wenn der Trigger gespeichert werden soll
+    if(isBitSet((uint16_t)WebSettings::getInt(ID_PARAM_MQTT_VTRIGGER_REMANENT, 0, DT_ID_PARAM_MQTT_VTRIGGER_REMANENT), triggerNr))
+    {
+      WebSettings::setPreferencesU32("vtrigger", (uint32_t)vTrigger);
+    }
+  } 
+
   return true;
+}
+
+void loadVirtualTrigger()
+{
+  uint16_t vTriggerSave = (uint16_t)WebSettings::getPreferencesU32("vtrigger", 0);
+  uint16_t vTriggerRemanent = (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_VTRIGGER_REMANENT, 0, DT_ID_PARAM_MQTT_VTRIGGER_REMANENT);
+
+  vTrigger = (vTriggerSave&vTriggerRemanent);
+
+  BSC_LOGE(TAG, "vTrigger geladen: %i", vTrigger);
 }
 
 

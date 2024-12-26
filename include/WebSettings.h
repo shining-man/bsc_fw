@@ -94,6 +94,13 @@ public:
   static uint16_t getParmId(uint16_t id, uint8_t groupIdx);
   static void     getIdFromParamId(uint16_t paramId, uint16_t &id, uint8_t &groupIdx);
 
+
+
+  static uint32_t getPreferencesU32(const char* name, uint32_t defaultVal);
+  static void setPreferencesU32(const char* name, uint32_t val);
+
+
+
 private:
   const char *parameterFile;
   String   str_mConfName;

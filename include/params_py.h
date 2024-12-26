@@ -30,6 +30,20 @@ const String comboAlarms PROGMEM = ""
 //PY_VAR_END
 
 //PY_VAR_ANF
+const String comboVTrigger PROGMEM = ""
+  "{'v':'0','l':'vTrigger 1','d':7488},"
+  "{'v':'1','l':'vTrigger 2','d':7489},"
+  "{'v':'2','l':'vTrigger 3','d':7490},"
+  "{'v':'3','l':'vTrigger 4','d':7491},"
+  "{'v':'4','l':'vTrigger 5','d':7492},"
+  "{'v':'5','l':'vTrigger 6','d':7493},"
+  "{'v':'6','l':'vTrigger 7','d':7494},"
+  "{'v':'7','l':'vTrigger 8','d':7495},"
+  "{'v':'8','l':'vTrigger 9','d':7496},"
+  "{'v':'9','l':'vTrigger 10','d':7497}";
+//PY_VAR_END
+
+//PY_VAR_ANF
 const String bmsDeviceAll PROGMEM = ""
   "{'v':'0','l':'Bluetooth 0'},"
   "{'v':'1','l':'Bluetooth 1'},"
@@ -265,6 +279,17 @@ const String paramSystem PROGMEM = "{'page':["
     "'min':30,"
     "'max':120,"
     "'dt':"+String(PARAM_DT_U8)+""
+  "},"
+  "{"
+    "'name':"+String(ID_PARAM_MQTT_VTRIGGER_REMANENT)+","
+    "'label':'Remanenz vTrigger',"
+    "'type':"+String(HTML_INPUTMULTICHECK_COLLAPSIBLE)+","
+    "'options':["
+      +comboVTrigger+
+    "],"
+    "'default':0,"
+    "'dt':"+String(PARAM_DT_U32)+","
+    "'help':'V-Trigger behalten dadurch ihren Zustand, auch wenn Spannung unterbrochen wurde.'"
   "},"
 
   "{"

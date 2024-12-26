@@ -1761,6 +1761,16 @@ void WebSettings::registerOnButton3(void (*callback)())
 
 
 
+uint32_t WebSettings::getPreferencesU32(const char* name, uint32_t defaultVal)
+{
+  return prefs.getULong(name, defaultVal); 
+}
+
+void WebSettings::setPreferencesU32(const char* name, uint32_t val)
+{
+  prefs.putULong(name, val); 
+}
+
 
 
 
