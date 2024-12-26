@@ -100,12 +100,11 @@ inline BmsErrorStatus bmsErrorFromMessage(const jkbms::JkBmsWarnMsg& bmsMsg)
   if(bmsMsg.is_set(BatWarnMsgBits::CHG_OVERVOLTAGE_ALARM))      { bmsStat |= BmsErrorBits::BATTERY_OVP; } // Bit  2: Charge over voltage alarm                  -> ?
   if(bmsMsg.is_set(BatWarnMsgBits::CELL_OVERVOLTAGE))           { bmsStat |= BmsErrorBits::CELL_OVP; }    // Bit  3: cell over voltage                          -> x
   if(bmsMsg.is_set(BatWarnMsgBits::CELL_UNDERVOLTAGE))          { bmsStat |= BmsErrorBits::CELL_UVP; }    // Bit  4: cell under voltage                         -> x
-  if(bmsMsg.is_set(BatWarnMsgBits::CHG_OVERTEMP))               { bmsStat |= BmsErrorBits::CHG_OTP; }     // Bit  5: Charge over temperature                    -> x
+  if(bmsMsg.is_set(BatWarnMsgBits::CHG_OVERCURRENT))            { bmsStat |= BmsErrorBits::CHG_OCP; }     // Bit  5: Over current                               -> ?
   if(bmsMsg.is_set(BatWarnMsgBits::DCHG_OVERCURRENT_ALARM))     { bmsStat |= BmsErrorBits::DCHG_OCP; }    // Bit  6: discharge over current alarm               -> ?
   if(bmsMsg.is_set(BatWarnMsgBits::DCHG_OVERCURRENT))           { bmsStat |= BmsErrorBits::DCHG_OCP; }    // Bit  7: discharge overcurent                       -> x
   if(bmsMsg.is_set(BatWarnMsgBits::BATTERY_BOX_OVERTEMP_ALARM)) { bmsStat |= BmsErrorBits::CHG_OTP; }     // Bit  8: over temperature alarm in the battery box  -> ?
-  // TODO : Is it correct, that BATTERY_LOW_TEMPERATURE is mapped to CHG_OCP (was Bit 9:  Battery low temperature to BMS_ERR_STATUS_CHG_OCP)
-  if(bmsMsg.is_set(BatWarnMsgBits::BATTERY_LOW_TEMPERATURE))    { bmsStat |= BmsErrorBits::CHG_OCP; }     // Bit  9: Battery low temperature                    -> ?
+  if(bmsMsg.is_set(BatWarnMsgBits::BATTERY_LOW_TEMPERATURE))    { bmsStat |= BmsErrorBits::CHG_UTP; }     // Bit  9: Battery low temperature                    -> ?
   if(bmsMsg.is_set(BatWarnMsgBits::CHG_UNDER_TEMPERATURE))      { bmsStat |= BmsErrorBits::CHG_UTP; }     // Bit 10: Charge under temperature                   -> x
   if(bmsMsg.is_set(BatWarnMsgBits::UNKNOWN_BIT_11))             { bmsStat |= BmsErrorBits::SOFT_LOCK; }   // Bit 11:                                            -> ?
   if(bmsMsg.is_set(BatWarnMsgBits::PROTECTION_309A))            { bmsStat |= BmsErrorBits::SOFT_LOCK; }   // Bit 12: 309_A protection                           -> ?

@@ -27,7 +27,7 @@ enum class BatWarnMsgBits
   CHG_OVERVOLTAGE_ALARM,      //!< Bit 2:  Charge over voltage alarm                       -> ?
   CELL_OVERVOLTAGE,           //!< Bit 3:  cell over voltage                               -> x
   CELL_UNDERVOLTAGE,          //!< Bit 4:  cell under voltage                              -> x
-  CHG_OVERTEMP,               //!< Bit 5:  Charge over temperature                         -> x
+  CHG_OVERCURRENT,               //!< Bit 5:  Charge over temperature                         -> x
   DCHG_OVERCURRENT_ALARM,     //!< Bit 6:  discharge over current alarm                    -> ?
   DCHG_OVERCURRENT,           //!< Bit 7:  discharge overcurent                            -> x
   BATTERY_BOX_OVERTEMP_ALARM, //!< Bit 8:  over temperature alarm in the battery box       -> ?
