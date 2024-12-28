@@ -1257,7 +1257,7 @@ void setup()
   //Buttons
   webSettingsSystem.setButtons(BUTTON_1,"Delete Log");
   webSettingsSystem.registerOnButton1(&btnSystemDeleteLog);
-  webSettingsSystem.setButtons(BUTTON_2,"Erlaube Laden bei Unterspannung (60 Min.)");
+  webSettingsSystem.setButtons(BUTTON_2,"Allow charging at undervoltage (60 Min.)");
   webSettingsSystem.registerOnButton2(&btnEnableChargingUndervoltage);
   
 
