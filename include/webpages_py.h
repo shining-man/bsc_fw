@@ -78,7 +78,10 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
     "</div>"
   "</div>"
 
- "<div id='sponsors' padding: 10px; margin-top: 10px;'></div>"
+  "<div padding: 10px; margin-top: 10px;'>"
+  "<p lid='45' align='center'>Herzlichen Dank an alle, die das Projekt unterstützen!<br>Alle, die das Projekt monatlich über <a href='https://github.com/sponsors/shining-man' target=_blank>GitHub Sponsor</a> unterstützen, werden hier aufgeführt.</p>"
+  "<span id='sponsors'></span>"
+  "</div>"
 
 "</body>"
 "<script>"
