@@ -49,14 +49,15 @@ jobs:
         run: platformio test -e native_test
 
       - name: Build firmware
-        run: platformio run -e bsc -e bsc_hw_log
+        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US
 
       - name: Copy output
         run: |
-          cp .pio/build/bsc/firmware.bin ./output_fw/bsc/
+          cp .pio/build/bsc/firmware.bin ./output_fw/bsc/firmware_de_DE.bin
           cp .pio/build/bsc/firmware.elf ./output_fw/bsc/
           cp .pio/build/bsc/partitions.bin ./output_fw/bsc/
           cp .pio/build/bsc/bootloader.bin ./output_fw/bsc/
+          cp .pio/build/bsc_en_US/firmware.bin ./output_fw/bsc/firmware_en_US.bin
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin ./output_fw/bsc/
           cp .pio/build/bsc_hw_log/firmware.bin ./output_fw/bsc_serial_log/
           cp .pio/build/bsc_hw_log/firmware.elf ./output_fw/bsc_serial_log/
@@ -66,7 +67,8 @@ jobs:
 
       - name: ZIP output for release
         run: |
-          zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_de_DE.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_en_US.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/partitions.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/bootloader.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/boot_app0.bin
