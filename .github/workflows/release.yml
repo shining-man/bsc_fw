@@ -49,7 +49,7 @@ jobs:
         run: platformio test -e native_test
 
       - name: Build firmware
-        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US
+        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US -e bsc_nl_NL
 
       - name: Copy output
         run: |
@@ -58,6 +58,7 @@ jobs:
           cp .pio/build/bsc/partitions.bin ./output_fw/bsc/
           cp .pio/build/bsc/bootloader.bin ./output_fw/bsc/
           cp .pio/build/bsc_en_US/firmware.bin ./output_fw/bsc/firmware_en_US.bin
+          cp .pio/build/bsc_nl_NL/firmware.bin ./output_fw/bsc/firmware_nl_NL.bin
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin ./output_fw/bsc/
           cp .pio/build/bsc_hw_log/firmware.bin ./output_fw/bsc_serial_log/
           cp .pio/build/bsc_hw_log/firmware.elf ./output_fw/bsc_serial_log/
@@ -69,6 +70,7 @@ jobs:
         run: |
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_de_DE.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_en_US.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_nl_NL.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/partitions.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/bootloader.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/boot_app0.bin
@@ -113,7 +115,7 @@ jobs:
           asset_name: bsc_firmware.zip
           asset_content_type: application/zip
 
-      - name: upload firmware de_DE
+      - name: Upload firmware de_DE
         id: upload-release-bin-file
         uses: actions/upload-release-asset@v1
 #        if: github.ref == 'refs/heads/main'
@@ -125,7 +127,7 @@ jobs:
           asset_name: fw_bsc_ota.bin
           asset_content_type: application/octet-stream
 
-      - name: upload firmware en_US
+      - name: Upload firmware en_US
         id: upload-release-bin-file
         uses: actions/upload-release-asset@v1
         env:
@@ -133,5 +135,16 @@ jobs:
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ./output_fw/bsc/firmware_en_US.bin
+          asset_name: fw_bsc_ota.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload firmware nl_NL
+        id: upload-release-bin-file
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/bsc/firmware_nl_NL.bin
           asset_name: fw_bsc_ota.bin
           asset_content_type: application/octet-stream
