@@ -662,13 +662,18 @@ void rules_Bms()
     if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0)
     {
       //Alarm wenn keine Daten mehr vom BT-Device kommen
-      if((millis()-getBmsLastDataMillis(lAlarmruleDataDevice))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
+      uint32_t lastDataTime = getBmsLastDataMillis(lAlarmruleDataDevice);
+      if((millis() - lastDataTime) > 
+        ((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
       {
         //Alarm
         //debugPrintf("BT Alarm (%i)",lAlarmruleDataDevice);
         tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
         setAlarm(tmp,true,ALARM_CAUSE_BMS_NO_DATA);
-        //BSC_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
+
+        /*BSC_LOGI(TAG,"No data B: %i, dd=%i, m=%i, l=%i, t=%i", 
+          tmp, lAlarmruleDataDevice, lMillis, lastDataTime, 
+          (uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000);*/
       }
       else
       {
