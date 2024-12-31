@@ -1,3 +1,6 @@
+<h1>Version 0.7.1</h1>
+Fixed errors in serial communication.
+
 <h1>Version 0.7.0</h1>
 Look forward to a major development milestone!
 With this new version, we present more than just minor bug fixes or marginal additions. 
