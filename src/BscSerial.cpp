@@ -424,9 +424,11 @@ void BscSerial::cyclicRun()
         usleep(50);
         setRxTxEnable(2, serialRxTx_RxTxDisable);
       }
+      //Workaround ENDE
 
       setSerialBaudrate(serialDeviceNr); //Baudrate wechseln
     }
+    else continue;
 
     uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(i);
 
