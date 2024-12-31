@@ -121,7 +121,7 @@
       "label":"Data device mapping"
     },
     "41": {
-      "label":"OW Temperaturen"
+      "label":"OW Temperatures"
     },
     "42": {
       "label":"BMS"
@@ -219,7 +219,7 @@
         "unit": "s"
     },
     "25": {
-        "label": "Remanenz virtual-trigger",
+        "label": "Retain virtual-trigger",
         "help": "This means that virtual-triggers retain their status even if voltage is interrupted."
     },
     "26": {
@@ -227,7 +227,7 @@
         "help": "To adopt the settings, the BSC must be restarted!"
     },
     "27": {
-        "label": "NTP-server nae/ip"
+        "label": "NTP-server name/ip"
     },
     "28": {
         "label": "NTP-server Port"
@@ -277,7 +277,7 @@
         "label": "Serial"
     },
     "42": {
-        "label": "GEneral settings"
+        "label": "General settings"
     },
     "43": {
         "label": "Number of cells"
@@ -597,7 +597,7 @@
         "label": "Low Temperature"
     },
     "134": {
-        "label": "Batterie temperature"
+        "label": "Battery temperature"
     },
     "135": {
         "label": "Source for temperature"
@@ -719,7 +719,7 @@
         "unit": "T"
     },
     "167": {
-        "label": "Start cell voltgae",
+        "label": "Start cell voltage",
         "help": "Cell voltage to start autobalancing.",
         "unit": "mV"
     },
@@ -829,7 +829,7 @@
         "label": "Interface"
     },
     "194": {
-        "label": "Adress"
+        "label": "Address"
     },
     "195": {
         "label": "Name"
@@ -848,7 +848,7 @@
         "label": "Number of cells"
     },
     "200": {
-        "label": "Differenz Voltage",
+        "label": "Voltage difference",
         "unit": "V"
     },
     "201": {
@@ -1052,7 +1052,7 @@
         "label": "Permanent"
     },
     "262": {
-        "label": "Impuls"
+        "label": "Impulse"
     },
     "263": {
         "label": "not in use"
