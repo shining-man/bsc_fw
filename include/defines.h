@@ -9,9 +9,19 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.6.1"
+#define BSC_SW_VERSION      "V0.7.0"
 
 static const char COMPILE_DATE_TIME[] = "";
+
+
+// TaskHandles
+extern TaskHandle_t task_handle_bscSerial;
+
+#define TASK_PRIORITY_STD 5
+#define TASK_PRIORITY_ALARMRULES (configMAX_PRIORITIES - 6)
+#define TASK_PRIORITY_CONNECT_WIFI 1
+#define TASK_PRIORITY_SERIAL_MAX (TASK_PRIORITY_ALARMRULES + 1)
+
 
 //#define USE_LittleFS
 #define HTML_MINIFY
@@ -46,6 +56,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WEBSET_DEBUG
 //#define MAIN_DEBUG
 //#define LOG_BMS_DATA
+//#define JK_INV_DEBUG
 #endif
 
 #ifdef DEBUG_ON_HW_SERIAL
@@ -68,6 +79,7 @@ static const char COMPILE_DATE_TIME[] = "";
 //#define WEBSET_DEBUG
 #define MAIN_DEBUG
 //#define LOG_BMS_DATA
+//#define JK_INV_DEBUG
 #endif
 
 //Tests
@@ -122,15 +134,12 @@ static const char COMPILE_DATE_TIME[] = "";
 
 //Bluetooth
 #define BT_DEVICES_COUNT              7
-#define BT_SCAN_RESULTS               5
-#define BT_SCAN_AND_NOT_CONNECT_TIME 11 //secounds
-
-#define BT_NEEY_POLL_INTERVAL       725 //800 // x1,25ms
+#define BT_EXT_DEVICES_COUNT          5
 
 //Serial
-#define SERIAL_BMS_DEVICES_COUNT      3+8
-#define SERIAL_BMS_SEPLOS_COUNT       2
-#define SERIAL_BMS_SYLCIN_COUNT       2
+#define SERIAL_BMS_DEVICES_COUNT      11
+//#define SERIAL_BMS_SEPLOS_COUNT       2
+//#define SERIAL_BMS_SYLCIN_COUNT       2
 enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
 #define SERIAL1_PIN_RX               16
@@ -167,6 +176,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_DEV_ADDR_SLAVE1           16
 #define I2C_DEV_ADDR_SLAVE2           17
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
+#define I2C_DEV_ADDR_BT_EXTENSION_1 0x60
 #define I2C_FREQUENCY           1000000U
 #define I2C_CNT_SLAVES                2
 
@@ -187,21 +197,14 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define TCAN485_RS485_SE_PIN 19
 
 
-//BMS Data
+//BMS Data (mapping)
+#define MUBER_OF_DATA_DEVICES       18
+#define NR_OF_BMS_TEMP_SENSORS      6
 #define SERIAL_BMS_EXT_COUNT        8
-
-#define BMSDATA_LAST_DEV_BT         BT_DEVICES_COUNT-1
-#define BMSDATA_FIRST_DEV_SERIAL    BMSDATA_LAST_DEV_BT+1
-#define BMSDATA_LAST_DEV_SERIAL     BMSDATA_FIRST_DEV_SERIAL+SERIAL_BMS_DEVICES_COUNT-1
-#define BMSDATA_FIRST_DEV_EXT       BMSDATA_LAST_DEV_SERIAL+1
-#define BMSDATA_LAST_DEV_EXT        BMSDATA_FIRST_DEV_EXT+SERIAL_BMS_EXT_COUNT-1
-
-
-#define BMSDATA_NUMBER_ALLDEVICES BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT //+SERIAL_BMS_EXT_COUNT
 
 
 //Alarmrules
-#define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  5
+#define CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK  15
 
 
 // Inverter
@@ -337,7 +340,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_PARAM_NEEY_BUZZER                     106 //not use
 #define ID_PARAM_NEEY_BALANCER_ON                107
 
-#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108
+//#define ID_PARAM_SERIAL2_CONNECT_TO_ID           108 // not use
 
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TRIGGER     109
 #define ID_PARAM_TEMP_SENSOR_TIMEOUT_TIME        110
@@ -424,31 +427,47 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 
 #define ID_PARAM_INVERTER_AUTOBALANCE_MINDEST_TIME 162
 
+#define ID_PARAM_BATTERY_PACK_CAPACITY 163
+
+#define ID_PARAM_REL_INVERTIERT 164
+
+#define ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE      163
+#define ID_PARAM_DEVICE_MAPPING_ADRESSE            164
+#define ID_PARAM_DEVICE_MAPPING_NAME               165
+
+#define ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE   166
+
+#define ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_BATTERYPACK 167
+
+#define ID_PARAM_MQTT_VTRIGGER_REMANENT 168
+
 
 
 
 //Auswahl Bluetooth Geräte
-#define ID_BT_DEVICE_NB             0
-#define ID_BT_DEVICE_NEEY4A         1
-#define ID_BT_DEVICE_JKBMS_JK02     2
-#define ID_BT_DEVICE_JKBMS_JK02_32S 3
-#define ID_BT_DEVICE_NEEY8A         4
+#define ID_BT_DEVICE_NB              0
+#define ID_BT_DEVICE_NEEY_GW_24S4EB  1
+#define ID_BT_DEVICE_JKBMS_JK02      2
+#define ID_BT_DEVICE_JKBMS_JK02_32S  3
+#define ID_BT_DEVICE_NEEY_EK_24S4EB  4
 
 //Auswahl Serial Geräte
-#define ID_SERIAL_DEVICE_NB         0
-#define ID_SERIAL_DEVICE_JBDBMS     1
-#define ID_SERIAL_DEVICE_JKBMS      2
-#define ID_SERIAL_DEVICE_SEPLOSBMS  3
-#define ID_SERIAL_DEVICE_DALYBMS    4
-#define ID_SERIAL_DEVICE_SYLCINBMS  5
-#define ID_SERIAL_DEVICE_JKBMS_V13  6
-#define ID_SERIAL_DEVICE_GOBELBMS   7
-#define ID_SERIAL_DEVICE_JKBMS_CAN  8
-#define ID_SERIAL_DEVICE_BPN        9
+#define ID_SERIAL_DEVICE_NB                   0
+#define ID_SERIAL_DEVICE_JBDBMS               1
+#define ID_SERIAL_DEVICE_JKBMS                2
+#define ID_SERIAL_DEVICE_SEPLOSBMS            3
+#define ID_SERIAL_DEVICE_DALYBMS              4
+#define ID_SERIAL_DEVICE_SYLCINBMS            5
+#define ID_SERIAL_DEVICE_JKBMS_V13            6
+#define ID_SERIAL_DEVICE_GOBELBMS             7
+#define ID_SERIAL_DEVICE_JKBMS_CAN            8
+#define ID_SERIAL_DEVICE_BPN                  9
 #define ID_SERIAL_DEVICE_SMARTSHUNT_VEDIRECT 10
-#define ID_SERIAL_DEVICE_GOBEL_PC200  11
-#define ID_SERIAL_DEVICE_SEPLOSBMS_V3 12
-#define ID_SERIAL_DEVICE_NEEY_4A      13
+#define ID_SERIAL_DEVICE_GOBEL_PC200         11
+#define ID_SERIAL_DEVICE_SEPLOSBMS_V3        12
+#define ID_SERIAL_DEVICE_NEEY_4A             13
+#define ID_SERIAL_DEVICE_JKINVERTERBMS       14
+#define ID_SERIAL_DEVICE_PYLONTECH           15
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
@@ -463,11 +482,13 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT          1
 #define ID_TEMP_ALARM_FUNKTION_MAXWERT_REFERENZ 2
 #define ID_TEMP_ALARM_FUNKTION_DIFFERENZ        3
+#define ID_TEMP_ALARM_FUNKTION_MINWERT          4
 
 //Auswahl
 #define OPTION_MULTI_BMS_SOC_AVG                1
 #define OPTION_MULTI_BMS_SOC_MAX                2
 #define OPTION_MULTI_BMS_SOC_BMS                3
+#define OPTION_MULTI_BMS_SOC_MIN                4
 
 
 
@@ -481,7 +502,9 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BMS_DATA                          0x01  //BMS-Daten
 #define INVERTER_DATA                     0x02  //Inverter-Daten
 #define BSC_DATA                          0x03  //
-#define BSC_GET_SLAVE_DATA                0x0A  //
+#define BSC_GET_BT_EXTENSION_DATA         0x0B  // Hole Daten von BT Extension
+#define BSC_GET_BT_EXTENSION_BMSDATA      0x0C  // Hole Daten von BT Extension
+#define BSC_SET_BT_EXTENSION_DATA         0x0D  // Sende Daten zur BT Extension
 
 //BMS_DATA 0x01
 #define BMS_CELL_VOLTAGE                  0x01
@@ -513,19 +536,26 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define BSC_RELAIS                        0x03
 #define BSC_DISPLAY_TIMEOUT               0x04
 
-//BSC_GET_SLAVE_DATA 0x0A
-//#define BMS_GET_ALL_DATA                  0x01
+// BSC_GET_BT_EXTENSION_DATA
+#define BSC_BT_EXT_GET_FOUND_MAC          0x01
+#define BSC_BT_EXT_GET_SETTINGS           0x02
+
+// BSC_SET_BT_EXTENSION_DATA 
+#define BSC_BT_CONNECT_MACS               0x01 // Zu verbindende MACs
+#define BSC_BT_NEEY_SETTINGS              0x02
+#define BSC_BT_NEEY_BALLANCER_STATE       0x03
+#define BSC_BT_START_SCAN                 0x04
 
 
 /*********************************************
  * MQTT
  *********************************************/
-#define MQTT_TOPIC_BMS_BT                        1
+#define MQTT_TOPIC_DATA_DEVICE                   1
 #define MQTT_TOPIC_TEMPERATUR                    2
 #define MQTT_TOPIC_ALARM                         3
 #define MQTT_TOPIC_INVERTER                      4
 #define MQTT_TOPIC_SYS                           5
-#define MQTT_TOPIC_BMS_SERIAL                    6
+//#define MQTT_TOPIC_BMS_SERIAL                    6
 
 #define MQTT_TOPIC2_CELL_VOLTAGE                11
 #define MQTT_TOPIC2_CELL_VOLTAGE_MAX            12
@@ -575,15 +605,18 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define MQTT_TOPIC2_CUTOFF_TIMER                56
 #define MQTT_TOPIC2_AUTOBAL_STATE               57
 #define MQTT_TOPIC2_WARNINGS                    58
+#define MQTT_TOPIC2_CELL_VOLTAGE_MAX_NR         59
+#define MQTT_TOPIC2_CELL_VOLTAGE_MIN_NR         60
+#define MQTT_TOPIC2_CHARGE_VOLTAGE_STATE        61
 
 
 static const char* mqttTopics[] = {"", // 0
-  "bms/bt",        // 1
+  "DataDevice",    // 1
   "temperatur",    // 2
   "trigger",       // 3
   "inverter",      // 4
   "sys",           // 5
-  "bms/serial",    // 6
+  "",              // 6
   "", // 7
   "", // 8
   "", // 9
@@ -636,8 +669,11 @@ static const char* mqttTopics[] = {"", // 0
   "cutoffTimer",               // 56  Debug
   "autoBalState",              // 57  Debug
   "warnings",                  // 58
-  "",                          // 59
-  "",                          // 60
+  "maxCell",                   // 59
+  "minCell",                   // 60
+  "cv_state",                  // 61
+  "",                          // 62
+  "",                          // 63
   };
 
 
@@ -687,6 +723,9 @@ static const char* mqttTopics[] = {"", // 0
 #define BSC_LOGV ESP_LOGV
 */
 
+#define DISABLE_BSCx_LOG
+
+extern uint8_t bscLogLevel;
 
 #define BSC_LOGE( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_ERROR,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGW( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_WARN,    tag, format, ##__VA_ARGS__)
@@ -694,8 +733,27 @@ static const char* mqttTopics[] = {"", // 0
 #define BSC_LOGD( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_DEBUG,   tag, format, ##__VA_ARGS__)
 #define BSC_LOGV( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC(ESP_LOG_VERBOSE, tag, format, ##__VA_ARGS__)
 
+
+#ifdef DISABLE_BSCx_LOG
+#define BSC_LOGI1(tag, format, ...) do {} while (0)
+#define BSC_LOGI2(tag, format, ...) do {} while (0)
+
+#define BSC_LOGE1(tag, format, ...) do {} while (0)
+#define BSC_LOGE2(tag, format, ...) do {} while (0)
+#else
+#define BSC_LOGI1( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_INFO, 1, tag, format, ##__VA_ARGS__)
+#define BSC_LOGI2( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_INFO, 2, tag, format, ##__VA_ARGS__)
+
+#define BSC_LOGE1( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_ERROR, 1, tag, format, ##__VA_ARGS__)
+#define BSC_LOGE2( tag, format, ... ) ESP_LOG_LEVEL_LOCAL_BSC_2(ESP_LOG_ERROR, 2, tag, format, ##__VA_ARGS__)
+#endif
+
 #define ESP_LOG_LEVEL_LOCAL_BSC(level, tag, format, ...) do {               \
-        if ( LOG_LOCAL_LEVEL_BSC >= level ) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
+        if ( LOG_LOCAL_LEVEL_BSC >= level) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
+    } while(0)
+
+#define ESP_LOG_LEVEL_LOCAL_BSC_2(level, level2, tag, format, ...) do {               \
+        if ( LOG_LOCAL_LEVEL_BSC >= level && level2 <= bscLogLevel) ESP_LOG_LEVEL_BSC(level, tag, format, ##__VA_ARGS__); \
     } while(0)
 
 #define ESP_LOG_LEVEL_BSC(level, tag, format, ...) do {                     \

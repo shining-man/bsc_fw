@@ -38,7 +38,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
 
 <body>
   <div class="topnav">
-    <span class='btnBack' onclick='history.back()'>&#10094;</span>
+    <span class='btnBack' onclick='history.back()'><img src="/back.svg" alt="&#10094;" width="21" height="21"></span>
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">

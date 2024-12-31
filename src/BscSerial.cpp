@@ -10,7 +10,6 @@
 #include "BmsData.h"
 #include "log.h"
 #include "dio.h"
-#include "i2c.h"
 #include "crc.h"
 
 //include Devices
@@ -26,25 +25,26 @@
 #include "devices/GobelBms_PC200.h"
 #include "devices/SeplosBmsV3.h"
 #include "devices/NeeySerial.h"
+#include "devices/JkInverterBms.h"
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
 
 static const char *TAG = "BSC_SERIAL";
 
+ExtManager *mExtManager;
+
 uint32_t serialMqttSendeTimer;
 
 struct serialDeviceData_s
 {
-  bool (*readBms)(Stream*, uint8_t, void (*callback)(uint8_t, uint8_t), serialDevData_s*) = 0;
+  bool (*readBms)(BscSerial*, Stream*, uint8_t, serialDevData_s*) = 0;
   Stream * stream_mPort;
 
   uint32_t u32_baudrate;
   uint8_t u8_mFilterBmsCellVoltageMaxCount=0;
 };
 struct serialDeviceData_s serialDeviceData[SERIAL_BMS_DEVICES_COUNT];
-
-void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw);
 
 #ifdef UTEST_BMS_FILTER
 bool readBmsTestData(uint8_t devNr);
@@ -56,9 +56,10 @@ BscSerial::BscSerial()
 
 }
 
-void BscSerial::initSerial()
+void BscSerial::initSerial(ExtManager &extManager)
 {
   mSerialMutex = xSemaphoreCreateMutex();
+  mExtManager = &extManager;
 
   #ifdef LILYGO_TCAN485
   pinMode(TCAN485_RS485_EN_PIN, OUTPUT);
@@ -141,7 +142,7 @@ void BscSerial::setHwSerial(uint8_t u8_devNr, uint32_t baudrate)
     Serial2.begin(baudrate,SERIAL_8N1,SERIAL3_PIN_RX,SERIAL3_PIN_TX);
     serialDeviceData[u8_devNr].stream_mPort=&Serial2;
   }
-  else if(u8_devNr>2 && isSerialExtEnabled()) // Hw Serial 0
+  else if(u8_devNr>2 && mExtManager->getSerial(0).isEnabled()) // Hw Serial 0
   {
     Serial2.end();
     //Serial2.setRxBufferSize(300);
@@ -213,7 +214,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
   switch (funktionsTyp)
   {
     case ID_SERIAL_DEVICE_NB:
-      if(u8_devNr==2) cbSetRxTxEn(u8_devNr, serialRxTx_RxTxDisable);
+      if(u8_devNr==2) setRxTxEnable(u8_devNr, serialRxTx_RxTxDisable);
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = 0;
       break;
@@ -292,6 +293,18 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       serialDeviceData[u8_devNr].readBms = &NeeySerial_readBmsData;
       break;
 
+    case ID_SERIAL_DEVICE_JKINVERTERBMS:
+      BSC_LOGI(TAG,"setReadBmsFunktion JK Inverter");
+      setSerialBaudrate(u8_devNr, 115200);
+      serialDeviceData[u8_devNr].readBms = &JkInverterBms_readBmsData;
+      break;
+
+    case ID_SERIAL_DEVICE_PYLONTECH:
+      BSC_LOGI(TAG,"Set serial device %i: Pylontech",u8_devNr);
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &SeplosBms_readBmsData;
+      break;
+
     default:
       serialDeviceData[u8_devNr].readBms = 0;
   }
@@ -301,10 +314,10 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 
 
 /*
- * Callback
+ * 
  */
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
-void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
+void BscSerial::setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw)
 {
   #ifndef LILYGO_TCAN485
   if(u8_devNr==0)
@@ -353,9 +366,24 @@ void cbSetRxTxEn(uint8_t u8_devNr, uint8_t e_rw)
   }
   else if(u8_devNr>2 && u8_devNr<=10 && getHwVersion()>=2)
   {
-    i2cExtSerialSetEnable(u8_devNr-3, (serialRxTxEn_e)e_rw);
+    if(mExtManager == nullptr) BSC_LOGE(TAG,"Fehler beim Zugriff auf die Serial Extension");
+    else mExtManager->getSerial(0).extSerialSetEnable(u8_devNr-3, e_rw);
   }
   #endif
+}
+
+void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, uint8_t txLen)
+{
+  setRxTxEnable(devNr,serialRxTx_TxEn);
+  usleep(20);
+
+  vTaskPrioritySet(task_handle_bscSerial, TASK_PRIORITY_SERIAL_MAX);
+  
+  port->write(txBuffer, txLen);
+  port->flush();
+  setRxTxEnable(devNr, serialRxTx_RxEn);
+
+  vTaskPrioritySet(task_handle_bscSerial, TASK_PRIORITY_STD);
 }
 
 
@@ -363,14 +391,6 @@ void BscSerial::cyclicRun()
 {
   xSemaphoreTake(mSerialMutex, portMAX_DELAY);
   bool bo_lMqttSendMsg=false;
-  uint8_t u8_lNumberOfSeplosBms = 0;
-  uint8_t u8_lBmsOnSerial2 = (uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-  if(isMultiple485bms(u8_lBmsOnSerial2))
-  {
-    if(isSerialExtEnabled()) u8_lNumberOfSeplosBms=0;
-    else u8_lNumberOfSeplosBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
-  }
-
 
   if((millis()-serialMqttSendeTimer) > (WebSettings::getInt(ID_PARAM_MQTT_SEND_DELAY,0,DT_ID_PARAM_MQTT_SEND_DELAY)*1000))
   {
@@ -378,50 +398,49 @@ void BscSerial::cyclicRun()
     bo_lMqttSendMsg=true;
   }
 
-  for(uint8_t i=0;i<SERIAL_BMS_DEVICES_COUNT;i++)
+  for(uint8_t i = 0; i < MUBER_OF_DATA_DEVICES; i++)
   {
-    if(serialDeviceData[i].readBms==0) //Wenn nicht Initialisiert
+    // 
+    uint8_t dataDeviceSchnittstelle = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+    uint8_t dataDeviceAdresse = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_ADRESSE,i,DT_ID_PARAM_DEVICE_MAPPING_ADRESSE);
+    
+    // 
+    if(dataDeviceSchnittstelle >= MUBER_OF_DATA_DEVICES) continue;
+
+    // Wenn BT-Device eingestellt ist
+    if(dataDeviceSchnittstelle < BT_DEVICES_COUNT) continue;
+      
+    uint8_t serialDeviceNr = dataDeviceSchnittstelle - BT_DEVICES_COUNT;
+    bool    bo_lBmsReadOk = false;
+    uint8_t u8_lReason = 1;
+
+    if(serialDeviceNr >= 2 && mExtManager->getSerial(0).isEnabled()) 
     {
-      if(u8_lNumberOfSeplosBms==0 || i<2 || i>(u8_lNumberOfSeplosBms+1))
+      //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
+      //Unklar wo das Verhalten herkommt.
+      if(serialDeviceNr > 2)
       {
-        continue;
+        setRxTxEnable(2, serialRxTx_RxEn);
+        usleep(50);
+        setRxTxEnable(2, serialRxTx_RxTxDisable);
       }
+      //Workaround ENDE
+
+      setSerialBaudrate(serialDeviceNr); //Baudrate wechseln
     }
+    else continue;
 
-    //Abbruch, wenn auf Serial 3 oder höher etwas parametriert ist, aber keine serial extension angeschlossen ist
-    if(i>2 && !isSerialExtEnabled() && serialDeviceData[i].readBms!=0)
-    {
-      BSC_LOGE(TAG,"No serial extension but device ist set! serial=%i",i);
-      continue;
-    }
-
-    bool    bo_lBmsReadOk=false;
-    uint8_t u8_lReason=1;
-    uint8_t u8_serDeviceNr=i;
-
-    //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
-    //Unklar wo das Verhalten herkommt.
-    if(i>2 && isSerialExtEnabled())
-    {
-      cbSetRxTxEn(2,serialRxTx_RxEn);
-      usleep(50);
-      cbSetRxTxEn(2,serialRxTx_RxTxDisable);
-    }
-
-    if(i>=2 && isSerialExtEnabled()) setSerialBaudrate(i); //Baudrate wechslen
-
-    uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(BT_DEVICES_COUNT+i);
+    uint8_t *u8_pBmsFilterErrorCounter = getBmsFilterErrorCounter(i);
 
     //xSemaphoreTake(mSerialMutex, portMAX_DELAY);
     *u8_pBmsFilterErrorCounter &= ~(0x80); //Fehlermerker des aktuellen Durchgangs löschen (bit 0)
     #ifndef UTEST_BMS_FILTER
     serialDevData_s devData;
-    devData.u8_NumberOfDevices=1;
-    devData.u8_deviceNr=0;
-    devData.u8_BmsDataAdr=i;
-    devData.bo_writeData=false;
-    devData.rwDataLen=0;
-    devData.bo_sendMqttMsg=bo_lMqttSendMsg;
+    devData.bmsAdresse = dataDeviceAdresse;
+    devData.dataMappingNr = i;
+    devData.bo_writeData = false;
+    devData.rwDataLen = 0;
+    devData.bo_sendMqttMsg = bo_lMqttSendMsg;
 
     //Überprüfen ob Daten an das BMS gesendet werden sollen
     bmsDataSemaphoreTake();
@@ -439,19 +458,14 @@ void BscSerial::cyclicRun()
     }
     bmsDataSemaphoreGive();
 
-    //Wenn Spelos (o.ä.) an Serial 2 verbunden
-    if(i>=2 && u8_lNumberOfSeplosBms>0)
-    {
-      u8_serDeviceNr=2;
-      devData.u8_BmsDataAdr=i;
-      devData.u8_NumberOfDevices=u8_lNumberOfSeplosBms;
-      devData.u8_deviceNr=i-2;
-    }
 
-    //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", u8_serDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
-    if(serialDeviceData[u8_serDeviceNr].readBms!=NULL)
-      bo_lBmsReadOk=serialDeviceData[u8_serDeviceNr].readBms(serialDeviceData[u8_serDeviceNr].stream_mPort, u8_serDeviceNr, &cbSetRxTxEn, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
-    else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",u8_serDeviceNr);
+    //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", serialDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
+    if(serialDeviceData[serialDeviceNr].readBms != NULL)
+    {
+      bo_lBmsReadOk = serialDeviceData[serialDeviceNr].readBms(this, serialDeviceData[serialDeviceNr].stream_mPort, serialDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
+      if(serialDeviceNr >= 2) setRxTxEnable(serialDeviceNr, serialRxTx_RxTxDisable);
+    }
+    else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",serialDeviceNr);
 
     if(devData.bo_writeData) free(lRwData);
     #else
@@ -482,18 +496,25 @@ void BscSerial::cyclicRun()
     //xSemaphoreGive(mSerialMutex);
     if(bo_lBmsReadOk)
     {
-      setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      setBmsLastDataMillis(i,millis());
     }
     else
     {
       //#ifndef UTEST_RESTAPI
-      auto GetReasonStr = [u8_lReason]()
+      if(u8_lReason == 1 && millis() - getBmsLastDataMillis(i) > 2000) {
+        BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,"Checksum wrong");
+      }
+      else if(u8_lReason == 2) {
+        BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,"Filter");
+      }
+
+      /*auto GetReasonStr = [u8_lReason]()
       {
         return (1==u8_lReason) ? "Checksum wrong" : "Filter";
       };
-      BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());
+      BSC_LOGE(TAG,"ERROR: device=%i, reason=%s",i,GetReasonStr());*/
       //#else
-      //setBmsLastDataMillis(BT_DEVICES_COUNT+i,millis());
+      //setBmsLastDataMillis(i,millis());
       //#endif
     }
 
@@ -507,11 +528,11 @@ void BscSerial::cyclicRun()
     {
       bmsDataSemaphoreTake();
       struct  bmsData_s *p_lBmsData = getBmsData();
-      uint16_t crcNeu = crc16((uint8_t*)&p_lBmsData->bmsCellVoltage[BT_DEVICES_COUNT+i][0],24*2);
-      uint8_t crcErrorCounter = p_lBmsData->bmsLastChangeCellVoltageCrc[BT_DEVICES_COUNT+i];
+      uint16_t crcNeu = crc16((uint8_t*)&p_lBmsData->bmsCellVoltage[i][0],24*2);
+      uint8_t crcErrorCounter = p_lBmsData->bmsLastChangeCellVoltageCrc[i];
       bmsDataSemaphoreGive();
 
-      uint16_t crcOld = getBmsCellVoltageCrc(BT_DEVICES_COUNT+i);
+      uint16_t crcOld = getBmsCellVoltageCrc(i);
       //BSC_LOGI(TAG,"crcNeu=%i, crcOld=%i, crcErrorCounter=%i",crcNeu,crcOld,crcErrorCounter);
       if(crcNeu==crcOld)
       {
@@ -524,13 +545,13 @@ void BscSerial::cyclicRun()
           }
         }
         crcErrorCounter++;
-        if(crcErrorCounter<0xFE)setBmsLastChangeCellVoltageCrc(BT_DEVICES_COUNT+i,crcErrorCounter);
+        if(crcErrorCounter<0xFE)setBmsLastChangeCellVoltageCrc(i,crcErrorCounter);
       }
       else
       {
-        if(crcErrorCounter!=0) setBmsLastChangeCellVoltageCrc(BT_DEVICES_COUNT+i,0);
+        if(crcErrorCounter!=0) setBmsLastChangeCellVoltageCrc(i,0);
         if(crcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) BSC_LOGI(TAG,"OK: device=%i, Change in cell voltage",i);
-        setBmsCellVoltageCrc(BT_DEVICES_COUNT+i,crcNeu);
+        setBmsCellVoltageCrc(i,crcNeu);
       }
     }
 

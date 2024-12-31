@@ -7,423 +7,9 @@
 #include "devices/NeeyBalancer.h"
 #include "BmsData.h"
 #include "WebSettings.h"
+#include "Utility.h"
 
 static const char* TAG = "NEEY";
-
-byte NeeyBalancer_cmdBalanceOn[20] PROGMEM =  {0xaa, 0x55, 0x11, 0x00, 0x05, 0x0d, 0x14, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf3, 0xff};
-byte NeeyBalancer_cmdBalanceOff[20] PROGMEM = {0xaa, 0x55, 0x11, 0x00, 0x05, 0x0d, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf2, 0xff};
-
-
-static uint8_t u8_neeySendStep=0;
-
-NeeyBalancer::NeeyBalancer()
-{
-};
-
-void NeeyBalancer::init()
-{
-}
-
-void NeeyBalancer::neeyBalancerCopyData(uint8_t devNr, uint8_t* pData, size_t length)
-{
-    //BSC_LOGI(TAG,"RX devNr=%i, len=%i",devNr,length);
-
-    #ifdef NEEY_DEBUG
-    BSC_LOGD(TAG,"RX devNr=%i, len=%i",devNr,length);
-    //log_print_buf(pData, length);
-
-    String log="";
-    uint8_t logLenCnt=0;
-    for(uint8_t i=0;i<length;i++)
-    {
-      logLenCnt++;
-      log+=String(pData[i], HEX);
-      log+=" ";
-      if(logLenCnt==20)
-      {
-        logLenCnt=0;
-        BSC_LOGD(TAG,"RX: %s",log.c_str());
-        log="";
-      }
-    }
-    BSC_LOGD(TAG,"RX: %s",log.c_str());
-    log="";
-    #endif
-
-  if((pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x04 && pData[5]==0x00 && pData[6]==0x64))
-  {
-    //BSC_LOGI(TAG,"RX settings");
-
-    /*BSC_LOGI(TAG,"RX dev=%i, len=%i",devNr,length);
-    String log="";
-    uint8_t logLenCnt=0;
-    for(uint8_t i=0;i<length;i++)
-    {
-      logLenCnt++;
-      log+=String(pData[i], HEX);
-      log+=" ";
-      if(logLenCnt==20)
-      {
-        logLenCnt=0;
-        BSC_LOGI(TAG,"RX: %s",log.c_str());
-        log="";
-      }
-    }
-    BSC_LOGI(TAG,"RX: %s",log.c_str());
-    log="";*/
-
-    bmsDataSemaphoreTake();
-    memcpy(getBmsSettingsReadback(devNr), &pData[8], 32);
-    bmsDataSemaphoreGive();
-
-    return;
-  }
-
-  if(length==241)
-  {
-    // 0     2   0x55 0xAA              Header
-    // 2     1   0x11                   Device address
-    // 3     1   0x01                   Function (read)
-    // 4     2   0x02 0x00              Command (cell info)
-    if(!(pData[0]==0x55 && pData[1]==0xAA && pData[2]==0x11 && pData[3]==0x01 && pData[4]==0x02 && pData[5]==0x00)) return;
-    if((millis()-getBmsLastDataMillis(devNr))<500) return; //Nur alle 500ms eine neue Nachricht akzeptieren
-
-    float    f_lTmpValue;
-    uint32_t u32_lTmpValue;
-    //Cellspannung
-    for(uint8_t i=0;i<24;i++)
-    {
-      memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_CELVOLTAGE+(i*4), 4);
-      setBmsCellVoltage(devNr,i,(uint16_t)(f_lTmpValue*1000));
-    }
-
-    //Avg. Voltage
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_AVERAGEVOLTAGE, 4);
-    setBmsAvgVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
-
-    //Delta Cell Voltage
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_DELTACELLVOLTAGE, 4);
-    setBmsMaxCellDifferenceVoltage(devNr,(uint16_t)(f_lTmpValue*1000));
-
-    /*
-    Errors:
-    STATUS_OK                0
-    STATUS_CELL_OVP          1   //bit0 single cell overvoltage protection
-    STATUS_CELL_UVP          2   //bit1 single cell undervoltage protection
-    STATUS_PACK_OVP          4   //bit2 whole pack overvoltage protection
-    STATUS_PACK_UVP          8   //bit3 Whole pack undervoltage protection
-    STATUS_CHG_OTP          16   //bit4 charging over-temperature protection
-    STATUS_CHG_UTP          32   //bit5 charging low temperature protection
-    STATUS_DSG_OTP          64   //bit6 Discharge over temperature protection
-    STATUS_DSG_UTP         128   //bit7 discharge low temperature protection
-    STATUS_CHG_OCP         256   //bit8 charging overcurrent protection
-    STATUS_DSG_OCP         512   //bit9 Discharge overcurrent protection
-    STATUS_SHORT_CIRCUIT  1024   //bit10 short circuit protection
-    STATUS_AFE_ERROR      2048   //bit11 Front-end detection IC error
-    STATUS_SOFT_LOCK      4096   //bit12 software lock MOS
-    */
-    memcpy(&u32_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_ERRCELLOV, 4);
-    setBmsErrors(devNr, u32_lTmpValue);
-
-    struct bmsData_s *p_lBmsData = getBmsData();
-    bmsDataSemaphoreTake();
-    //memcpy(&p_lBmsData->bmsCellResistance[devNr][0], pData+OFFSET_NEEYBAL4A_DATA0x2_CELLRESISTANCE, 4*24);
-    memcpy(&p_lBmsData->bmsMaxVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MAXVOLTCELLNR, 1);
-    memcpy(&p_lBmsData->bmsMinVoltageCellNumber[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_MINVOLTCELLNR, 1);
-    memcpy(&p_lBmsData->bmsIsBalancingActive[devNr], pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCING, 1);
-    bmsDataSemaphoreGive();
-
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TOTALVOLTAGE, 4);
-    setBmsTotalVoltage(devNr,f_lTmpValue);
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_BALANCINGCUR, 4);
-    setBmsBalancingCurrent(devNr,f_lTmpValue);
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR, 4);
-    setBmsTempature(devNr,0,f_lTmpValue);
-    memcpy(&f_lTmpValue, pData+OFFSET_NEEYBAL4A_DATA0x2_TEMPERATUR+4, 4);
-    setBmsTempature(devNr,1,f_lTmpValue);
-
-
-    uint16_t f_lMacZellVoltage = getBmsCellVoltage(devNr,getBmsMaxVoltageCellNumber(devNr));
-    uint16_t f_lMinZellVoltage = getBmsCellVoltage(devNr,getBmsMinVoltageCellNumber(devNr));
-    setBmsMaxCellDifferenceVoltage(devNr, f_lMacZellVoltage-f_lMinZellVoltage);
-
-    setBmsMaxCellVoltage(devNr, f_lMacZellVoltage);
-    setBmsMinCellVoltage(devNr, f_lMinZellVoltage);
-
-    //BSC_LOGI(TAG,"setBmsLastDataMillis");
-    setBmsLastDataMillis(devNr,millis());
-  }
-  else if(length==59)
-  {
-
-  }
-  else
-  {
-    //String log="";
-    //for(uint8_t i=0;i<length;i++){log+=String(pData[i], HEX); log+=" ";}
-    //BSC_LOGI(TAG,"RX: %s",log.c_str()); log="";
-
-    //BSC_LOGI(TAG,"RX");
-    //log_print_buf(pData, length);
-  }
-
-}
-
-
-
-uint8_t NeeyBalancer::neeyBtCrc(uint8_t devTyp, uint8_t* data, uint16_t len)
-{
-    uint8_t crc = 0;
-    for (uint16_t i = 0; i < len; i++)
-    {
-        if(devTyp==ID_BT_DEVICE_NEEY4A) crc = crc ^ data[i];
-        else crc = crc + data[i];
-    }
-    return crc;
-}
-
-
-void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t byte3, uint8_t cmd, uint8_t func, uint32_t value)
-{
-    frame[0] = 0xAA;     // start sequence
-    frame[1] = 0x55;     // start sequence
-    frame[2] = 0x11;     // start sequence
-    frame[3] = byte3;    // start sequence
-    frame[4] = cmd;      //
-    frame[5] = func;     //
-    frame[6] = 0x14;     // length
-    frame[7] = 0x00;
-    frame[8] = value >> 0;
-    frame[9] = value >> 8;
-    frame[10] = value >> 16;
-    frame[11] = value >> 24;
-    frame[12] = 0x00;
-    frame[13] = 0x00;
-    frame[14] = 0x00;
-    frame[15] = 0x00;
-    frame[16] = 0x00;
-    frame[17] = 0x00;
-    frame[18] = neeyBtCrc(devTyp, frame, 18);
-    frame[19] = 0xFF;
-
-    #ifdef NEEY_WRITE_DATA_DEBUG
-    String log="";
-    for(uint8_t i=0;i<20;i++)
-    {
-      log+=String(frame[i], HEX);
-      log+=" ";
-    }
-    BSC_LOGI(TAG,"TX Frame: %s",log.c_str());
-    log="";
-
-    //BSC_LOGI(TAG,"TX");
-    //log_print_buf(frame, 20);
-    #endif
-}
-
-void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, uint32_t value)
-{
-    neeyBtBuildSendData(devTyp, frame, 0x0, cmd, func, value);
-}
-
-#if 0
-void NeeyBalancer::neeyWriteMsg1(NimBLERemoteCharacteristic* pChr)
-{
-  //{0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xfa, 0xff};
-  uint8_t  frame[20];
-  neeyBtBuildSendData(frame, 0x01, 0x01, 0x0, (uint32_t)0x0); //msg1
-  pChr->writeValue(frame, 20, true);
-}
-#endif
-
-void NeeyBalancer::neeyWriteMsg2(uint8_t devTyp, NimBLERemoteCharacteristic* pChr)
-{
-  uint8_t  frame[20];
-  neeyBtBuildSendData(devTyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
-  pChr->writeValue(frame, 20, true);
-}
-
-void NeeyBalancer::neeyBtBuildSendData(uint8_t devTyp, uint8_t* frame, uint8_t cmd, uint8_t func, float value)
-{
-  //{0xaa, 0x55, 0x11, 0x01, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff};
-  uint32_t ui32_lValue;
-  memcpy(&ui32_lValue, &value, 4);
-
-  neeyBtBuildSendData(devTyp, frame, 0x0, cmd, func, ui32_lValue);
-}
-
-void NeeyBalancer::sendNeeyConnectMsg(uint8_t devtyp, NimBLERemoteCharacteristic* pChr)
-{
-  uint8_t  frame[20];
-  if(devtyp==ID_BT_DEVICE_NEEY8A)
-  {
-    //byte NeeyBalancer_8A_getInfo1[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x01, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x26, 0xff}; // 0x26
-    //byte NeeyBalancer_8A_getInfo2[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x04, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0xff}; // 0x29
-    //byte NeeyBalancer_8A_getInfo3[20] PROGMEM = {0xaa, 0x55, 0x11, 0x01, 0x02, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x27, 0xff}; // 0x27
-
-    neeyBtBuildSendData(devtyp, frame, 0x01, 0x01, 0x0, (uint32_t)0x0);
-    frame[18]=0x26;
-    pChr->writeValue(frame, 20, true);
-    delay(200);
-
-    neeyBtBuildSendData(devtyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0);
-    frame[18]=0x29;
-    pChr->writeValue(frame, 20, true);
-    delay(200);
-
-    neeyBtBuildSendData(devtyp, frame, 0x01, 0x02, 0x0, (uint32_t)0x0);
-    frame[18]=0x27;
-    pChr->writeValue(frame, 20, true);
-  }
-}
-
-
-void NeeyBalancer::neeySetBalancerOnOff(NimBLERemoteCharacteristic* pChr, boolean u8_state)
-{
-  if(u8_state) pChr->writeValue(NeeyBalancer_cmdBalanceOn, 20);
-  else pChr->writeValue(NeeyBalancer_cmdBalanceOff, 20);
-}
-
-bool NeeyBalancer::neeyWriteData(uint8_t devtyp, uint8_t btDevNr, NimBLERemoteCharacteristic* pChr)
-{
-  bool ret=false;
-
-  uint8_t  frame[20];
-  uint8_t  u8_lValue;
-  uint16_t u16_lValue;
-  float    f_lValue;
-
-  //u8_neeySendStep++;
-
-  #ifdef NEEY_WRITE_DATA_DEBUG
-  BSC_LOGI(TAG,"neeyWriteData: dev=%i",btDevNr);
-  #endif
-
-  switch(u8_neeySendStep)
-  {
-    case 1:
-      neeyBtBuildSendData(devtyp, frame, 0x04, 0x0, (uint32_t)0x0);
-      pChr->writeValue(frame, 20, true);
-      break;
-
-    case 2:
-      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BALANCER_ON,btDevNr,DT_ID_PARAM_NEEY_BALANCER_ON);
-      if(u8_lValue==0) neeySetBalancerOnOff(pChr, false);
-      else if(u8_lValue==110) neeySetBalancerOnOff(pChr, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: BALANCER_ON val=%i",u8_lValue);
-      #endif
-      break;
-
-    case 3:
-      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_TYPE,btDevNr,DT_ID_PARAM_NEEY_BAT_TYPE);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_TYPE, (uint32_t)u8_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: BAT_TYPE val=%i",u8_lValue);
-      #endif
-      break;
-
-    case 4:
-      u8_lValue=(uint8_t)WebSettings::getIntFlash(ID_PARAM_NEEY_CELLS,btDevNr,DT_ID_PARAM_NEEY_CELLS);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_CELLS, (uint32_t)u8_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: CELLS val=%i",u8_lValue);
-      #endif
-      break;
-
-    case 5:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_START_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_START_VOL, f_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: START_VOL val=%f",f_lValue);
-      #endif
-      break;
-
-    case 6:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_MAX_BALANCE_CURRENT,btDevNr);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT, f_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: BAL_CUR val=%f",f_lValue);
-      #endif
-      break;
-
-    case 7:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE, f_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: EQL_VOL val=%f",f_lValue);
-      #endif
-      break;
-
-    case 8:
-      f_lValue=WebSettings::getFloatFlash(ID_PARAM_NEEY_SLEEP_VOLTAGE,btDevNr);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE, f_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: SLEEP_VOL val=%f",f_lValue);
-      #endif
-      break;
-
-    case 9:
-      u16_lValue=(uint16_t)WebSettings::getIntFlash(ID_PARAM_NEEY_BAT_CAPACITY,btDevNr,DT_ID_PARAM_NEEY_BAT_CAPACITY);
-      neeyBtBuildSendData(devtyp, frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BAT_CAP, (uint32_t)u16_lValue);
-      pChr->writeValue(frame, 20, true);
-      #ifdef NEEY_WRITE_DATA_DEBUG
-      BSC_LOGI(TAG,"neeyWriteData: BAT_CAP val=%f",f_lValue);
-      #endif
-      break;
-
-    case 10:
-      neeyBtBuildSendData(devtyp, frame, 0x01, 0x04, 0x0, (uint32_t)0x0); //msg2
-      pChr->writeValue(frame, 20, true);
-      break;
-
-    case 11:
-      neeyBtBuildSendData(devtyp, frame, 0x04, 0x0, (uint32_t)0x0);
-      pChr->writeValue(frame, 20, true);
-
-      //u8_neeySendStep=0;
-      ret=true;
-      break;
-  }
-
-  //NeeyBalancer::neeyBtBuildSendData(frame, NEEYBAL4A_CMD_WRITE, NEEYBAL4A_FUNC_SETTING_BUZZER_MODE, f_lTmpValue);
-
-  return ret;
-}
-
-/*
-Default startStep = 1
-*/
-void NeeyBalancer::neeyWriteData_GotoStartStep(uint8_t startStep)
-{
-  if(startStep==0) startStep=1;
-
-  u8_neeySendStep=startStep; //1
-  #ifdef NEEY_WRITE_DATA_DEBUG
-  BSC_LOGI(TAG,"neeyWriteData_GotoStartStep");
-  #endif
-}
-
-
-bool NeeyBalancer::neeyWriteData_GotoNextStep()
-{
-  if(u8_neeySendStep==11)
-  {
-    u8_neeySendStep=0;
-    return true;
-  }
-  else
-  {
-    u8_neeySendStep++;
-    return false;
-  }
-}
 
 
 float NeeyBalancer::neeyGetReadbackDataFloat(uint8_t devNr, uint8_t dataType)
@@ -479,69 +65,84 @@ uint32_t NeeyBalancer::neeyGetReadbackDataInt(uint8_t devNr, uint8_t dataType)
   return retValue;
 }
 
+constexpr const char* textNeeySet_displayFlex = "display;flex|";
+constexpr const char* textNeeySet_displayNone = "display;none|";
+constexpr const char* textNeeySet_btn0 = "btn1;0";
+constexpr const char* textNeeySet_btn1 = "btn1;1";
 
-void NeeyBalancer::getNeeyReadbackDataAsString(String &value)
+constexpr const char* textNeeySet_NCM = "NCM";
+constexpr const char* textNeeySet_LFP = "LFP";
+constexpr const char* textNeeySet_LTO = "LTO";
+constexpr const char* textNeeySet_PbAc = "PbAc";
+
+constexpr const char* textNeeySet_EIN = "EIN";
+constexpr const char* textNeeySet_AUS = "AUS";
+
+void NeeyBalancer::getNeeyReadbackDataAsString(std::string &value)
 {
-  String  str_lText="";
+  std::string  str_lText="";
   uint8_t u8_lValue=0;
   uint8_t devTyp;
 
   //ID_PARAM_NEEY_BUZZER //not use
   //ID_PARAM_NEEY_BALANCER_ON
 
-  if(u8_neeySendStep>0) //Write Data, please wait
+  /*if(u8_neeySendStep>0) //Write Data, please wait
   {
-    value += F("display;flex|");  //spinner visible on
-    value += F("btn1;0");        //disable
+    value += textNeeySet_displayFlex;  //spinner visible on
+    value += textNeeySet_btn0;         //disable
     //Hier kein "|" anhängen, da dies im nächsten Schritte bei den BMS Daten erfolgt
   }
   else
   {
-    value += F("display;none|");  //spinner visible off
-    value += F("btn1;1");        //enable
+    value += textNeeySet_displayNone;  //spinner visible off
+    value += textNeeySet_btn1);        //enable
     //Hier kein "|" anhängen, da dies im nächsten Schritte bei den BMS Daten erfolgt
-  }
+  }*/
 
-  for(uint8_t i=0;i<BT_DEVICES_COUNT;i++)
+  value += textNeeySet_displayNone;  //spinner visible off
+  value += textNeeySet_btn0;         //disable
+
+  for(uint8_t i=0;i<5;i++)
   {
     devTyp = WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV);
-    if(devTyp==ID_BT_DEVICE_NEEY4A || devTyp==ID_BT_DEVICE_NEEY8A)
+    if(devTyp==ID_BT_DEVICE_NEEY_GW_24S4EB || devTyp==ID_BT_DEVICE_NEEY_EK_24S4EB)
     {
       value += "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_START_VOLTAGE, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_START_VOL),3) + " V|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_START_VOLTAGE, i)) + ";";
+      value += floatToString(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_START_VOL),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT),3) + " A|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_MAX_BALANCE_CURRENT, i)) + ";";
+      value += floatToString(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_MAX_BAL_CURRENT),3) + " A|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_SLEEP_VOLTAGE, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE),3) + " V|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_SLEEP_VOLTAGE, i)) + ";";
+      value += floatToString(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_SLEEP_VOLTAGE),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE),3) + " V|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_EQUALIZATION_VOLTAGE, i)) + ";";
+      value += floatToString(NeeyBalancer::neeyGetReadbackDataFloat(i, NEEYBAL4A_FUNC_SETTING_EQUALIZATION_VOLTAGE),3) + " V|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_CELLS, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_CELLS)) + "|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_CELLS, i)) + ";";
+      value += std::to_string(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_CELLS)) + "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BAT_TYPE, i)) + ";";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_BAT_TYPE, i)) + ";";
       u8_lValue = NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_TYPE);
       str_lText="";
-      if(u8_lValue==1) str_lText=F("NCM");
-      else if(u8_lValue==2) str_lText=F("LFP");
-      else if(u8_lValue==3) str_lText=F("LTO");
-      else if(u8_lValue==4) str_lText=F("PbAc");
-      else String(u8_lValue);
+      if(u8_lValue==1) str_lText = textNeeySet_NCM;
+      else if(u8_lValue==2) str_lText = textNeeySet_LFP;
+      else if(u8_lValue==3) str_lText = textNeeySet_LTO;
+      else if(u8_lValue==4) str_lText = textNeeySet_PbAc;
+      else std::to_string(u8_lValue);
       value += str_lText + "|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BAT_CAPACITY, i)) + ";";
-      value += String(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_CAP)) + " Ah|";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_BAT_CAPACITY, i)) + ";";
+      value += std::to_string(NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BAT_CAP)) + " Ah|";
 
-      value += "s" + String(WebSettings::getParmId(ID_PARAM_NEEY_BALANCER_ON, i)) + ";";
+      value += "s" + std::to_string(WebSettings::getParmId(ID_PARAM_NEEY_BALANCER_ON, i)) + ";";
       u8_lValue = NeeyBalancer::neeyGetReadbackDataInt(i, NEEYBAL4A_FUNC_SETTING_BALLANCER_ON_OFF);
       str_lText="";
-      if(u8_lValue==0) str_lText=F("AUS");
-      else if(u8_lValue==1) str_lText=F("EIN");
+      if(u8_lValue==0) str_lText = textNeeySet_EIN;
+      else if(u8_lValue==1) str_lText = textNeeySet_AUS;
       value += str_lText;
 
     }

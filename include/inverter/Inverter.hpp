@@ -29,27 +29,28 @@ public:
     struct inverterData_s
     {
         // Ausgewählte BMS Quellen
-        uint8_t u8_bmsDatasource;
-        uint16_t u16_bmsDatasourceAdd;
+        uint8_t  bmsDatasource;
+        uint32_t bmsDatasourceAdd;
 
         // Wechselrichterdaten
-        bool       noBatteryPackOnline;
-        int16_t    batteryVoltage;           // Faktor: 100
-        int16_t    batteryCurrent;           // Faktor: 10
-        int16_t    batteryTemperatur;
-        uint16_t   inverterChargeVoltage;    // Faktor: 10
-        uint16_t   inverterSoc;
-        int16_t    inverterChargeCurrent;    // Faktor: 10
-        int16_t    inverterDischargeCurrent; // Faktor: 10
+        bool     noBatteryPackOnline;
+        int16_t  batteryVoltage;           // Faktor: 100
+        int16_t  batteryCurrent;           // Faktor: 10
+        int16_t  batteryTemperatur;
+        uint16_t inverterChargeVoltage;    // Faktor: 10
+        uint16_t inverterSoc;
+        int16_t  inverterChargeCurrent;    // Faktor: 10
+        int16_t  inverterDischargeCurrent; // Faktor: 10
 
         // Ströme von der Ladestromregelung
-        int16_t calcChargeCurrentCellVoltage;
-        int16_t calcChargeCurrentSoc;
-        int16_t calcChargeCurrentCelldrift;
-        int16_t calcChargeCurrentCutOff;
+        int16_t  calcChargeCurrentCellVoltage;
+        int16_t  calcChargeCurrentSoc;
+        int16_t  calcChargeCurrentCelldrift;
+        int16_t  calcChargeCurrentCutOff;
+        int16_t  calcChargeCurrentPackToHigh;
 
         // Entladeströme von der Regelung
-        int16_t calcDischargeCurrentCellVoltage;
+        int16_t  calcDischargeCurrentCellVoltage;
 
         // Charge current cut off
         uint16_t mChargeCurrentCutOfTimer;
@@ -61,7 +62,7 @@ public:
         uint16_t u16_mSocZellspannungSperrzeitTimer;
 
         // Autobalance
-        uint8_t mStateAutobalance;
+        uint8_t  mStateAutobalance;
         uint32_t lastAutobalanceRun;
         uint32_t autobalanceStartTime;
         uint32_t autobalanceVoltageErreichtTime;
@@ -78,26 +79,18 @@ public:
     void inverterDataSemaphoreGive();
     struct inverterData_s *getInverterData();
 
-    void setChargeCurrentToZero(bool val);
-    void setDischargeCurrentToZero(bool val);
-    void setSocToFull(bool val);
-
     uint16_t getAktualChargeCurrentSoll();
 
+    uint8_t getAutobalState();
+    e_stateFloat getChargeVoltageState(); // Absorbtion, Floate
 
 private:
     static const char *TAG;
-
-
 
     SemaphoreHandle_t mInverterDataMutex;
     struct inverterData_s inverterData;
 
     uint8_t u8_mMqttTxTimer=0;
-
-    bool alarmSetChargeCurrentToZero;
-    bool alarmSetDischargeCurrentToZero;
-    bool alarmSetSocToFull;
 
     void getInverterValues();
     void sendMqttMsg();

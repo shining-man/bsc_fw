@@ -13,13 +13,12 @@ namespace modbusrtu
 
 static const char *TAG = "MODBUS";
 
-ModbusRTU::ModbusRTU(Stream *port, void (*callback)(uint8_t, uint8_t), uint8_t serialPortNr)
+ModbusRTU::ModbusRTU(Stream *port, uint8_t serialPortNr)
 {
   mStartRegAdr=0;
   retDataLen=0;
 
   mPort = port;
-  mCallback = callback;
   mSerialPortNr = serialPortNr;
 }
 
@@ -28,6 +27,27 @@ ModbusRTU::~ModbusRTU()
   ;
 }
 
+/*static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address)
+{
+  String recvBytes="";
+  uint8_t u8_logByteCount=0;
+  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, len);
+  for(uint8_t x=0;x<len;x++)
+  {
+    u8_logByteCount++;
+    recvBytes+="0x";
+    recvBytes+=String(t_message[x],16);
+    recvBytes+=" ";
+    if(u8_logByteCount==20)
+    {
+      BSC_LOGI(TAG,"%s",recvBytes.c_str());
+      recvBytes="";
+      u8_logByteCount=0;
+    }
+  }
+  BSC_LOGI(TAG,"%s",recvBytes.c_str());
+  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
+}*/
 
 /*
  * Anfrage:
@@ -38,13 +58,13 @@ ModbusRTU::~ModbusRTU()
  * Register number n           (2 Byte)
  * CRC                         (2 Byte)
 */
-bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData)
+bool ModbusRTU::readData(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len, uint8_t *retData)
 {
   mStartRegAdr=startRegister;
   mRetData=retData;
 
   // send msg
-  buildSendMsg(addr, cmd, startRegister, len);
+  buildSendMsg(bscSerial, addr, cmd, startRegister, len);
 
   // wait
   vTaskDelay(25/portTICK_PERIOD_MS);
@@ -54,9 +74,9 @@ bool ModbusRTU::readData(uint8_t addr, fCode cmd, uint16_t startRegister, uint16
 }
 
 
-void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
+void ModbusRTU::buildSendMsg(BscSerial *bscSerial, uint8_t addr, fCode cmd, uint16_t startRegister, uint16_t len)
 {
-  uint8_t lSendData[20];
+  uint8_t lSendData[8];
 
   lSendData[0]=addr;                        // ADDR
   lSendData[1]=(uint8_t)cmd;                // CMD
@@ -70,6 +90,8 @@ void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, ui
   lSendData[6]=(u16_lCrc&0xff);        // CRC
   lSendData[7]=((u16_lCrc>>8)&0xff);   // CRC
 
+  //message2Log(lSendData, 8, addr);
+
   // RX-Buffer leeren
   for(unsigned long clearRxBufTime = millis(); millis()-clearRxBufTime<100;)
   {
@@ -78,11 +100,7 @@ void ModbusRTU::buildSendMsg(uint8_t addr, fCode cmd, uint16_t startRegister, ui
   }
 
   // send msg
-  mCallback(mSerialPortNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(lSendData, 8);
-  mPort->flush();
-  mCallback(mSerialPortNr,serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, mSerialPortNr, lSendData, 8);
 }
 
 
@@ -100,7 +118,7 @@ bool ModbusRTU::readSerialData()
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mSerialPortNr, retDataLen, mPort->available());
+      BSC_LOGE2(TAG,"Timeout: Serial=%i, dataLen=%i, available=%i", mSerialPortNr, retDataLen, mPort->available());
       return false;
     }
 
@@ -190,5 +208,67 @@ int16_t ModbusRTU::getI16Value(uint16_t address)
   return (int16_t)((mRetData[sb]<<8) | mRetData[sb+1]);
 }
 
+
+
+uint8_t ModbusRTU::getU8ValueByOffset(uint16_t offset)
+{
+  if(offset > retDataLen)
+  {
+    errorNoData(offset);
+    return 0;
+  }
+  return mRetData[offset];
+}
+
+int8_t ModbusRTU::getI8ValueByOffset(uint16_t offset)
+{
+  return (int8_t)getU8ValueByOffset(offset);
+}
+
+uint16_t ModbusRTU::getU16ValueByOffset(uint16_t offset)
+{
+  if(offset+1 > retDataLen)
+  {
+    errorNoData(offset+1);
+    return 0;
+  }
+  return (mRetData[offset]<<8) | mRetData[offset+1];
+}
+
+int16_t ModbusRTU::getI16ValueByOffset(uint16_t offset)
+{
+  return (int16_t)getU16ValueByOffset(offset);
+}
+
+uint32_t ModbusRTU::getU32ValueByOffset(uint16_t offset)
+{
+  if(offset+3 > retDataLen)
+  {
+    errorNoData(offset+3);
+    return 0;
+  }
+  return (mRetData[offset]<<24) | (mRetData[offset+1]<<16) | (mRetData[offset+2]<<8) | mRetData[offset+3];
+}
+
+int32_t ModbusRTU::getI32ValueByOffset(uint16_t offset)
+{
+  return (int32_t)getU32ValueByOffset(offset);
+}
+
+bool ModbusRTU::getBitValueByOffset(uint16_t offset, uint8_t b)
+{
+  if(offset > retDataLen)
+  {
+    errorNoData(offset);
+    return 0;
+  }
+
+  return isBitSet(mRetData[offset],b);
+}
+
+void ModbusRTU::errorNoData(uint16_t offset)
+{
+  BSC_LOGE(TAG,"Keine Daten! Lese Byte %i von %i",offset, retDataLen);
+}
 
 } // namespace modbusrtu

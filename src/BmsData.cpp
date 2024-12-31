@@ -16,12 +16,13 @@ static SemaphoreHandle_t mBmsDataReadMutex = NULL;
 static struct bmsData_s bmsData;
 struct bmsFilterData_s bmsFilterData;
 
-static uint8_t bmsSettingsReadback[BT_DEVICES_COUNT][32];
+static struct btDevData_s btDevData[BT_DEVICES_COUNT];
 
-static bool bo_SOC100CellvolHasBeenReached[BMSDATA_NUMBER_ALLDEVICES];
+static bool bo_SOC100CellvolHasBeenReached[MUBER_OF_DATA_DEVICES];
 
-uint8_t u8_mBmsFilterErrorCounter[BMSDATA_NUMBER_ALLDEVICES];
+uint8_t u8_mBmsFilterErrorCounter[MUBER_OF_DATA_DEVICES];
 
+static uint32_t mIgnoreTemporarilyUndervoltageAlarm;
 
 // Write serial data
 uint32_t          u32_wDataSerialBmsEnable=0; //Hier bitseise die BMS-Adressen eintragen, an den die Daten gesendet werden sollen
@@ -41,7 +42,7 @@ void bmsDataInit()
   mBmsDataMutex = xSemaphoreCreateMutex();
   mBmsDataReadMutex = xSemaphoreCreateMutex();
 
-  for(uint8_t i=0;i<BMSDATA_NUMBER_ALLDEVICES;i++)
+  for(uint8_t i=0;i<MUBER_OF_DATA_DEVICES;i++)
   {
     for(uint8_t n=0;n<24;n++)
     {
@@ -198,6 +199,13 @@ float getBmsTotalCurrent(uint8_t devNr)
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+int16_t getBmsTotalCurrentI16(uint8_t devNr)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  int16_t ret = bmsData.bmsTotalCurrent[devNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
 void setBmsTotalCurrent(uint8_t devNr, float value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
@@ -300,23 +308,44 @@ void setBmsBalancingCurrent(uint8_t devNr, float value)
   bmsData.bmsBalancingCurrent[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
+void setBmsBalancingCurrentI16(uint8_t devNr, int16_t value)
+{
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  bmsData.bmsBalancingCurrent[devNr] = value;
+  xSemaphoreGive(mBmsDataMutex);
+}
 
 
 float getBmsTempature(uint8_t devNr, uint8_t sensorNr)
 {
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return 0;
+
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   float ret = (float)(bmsData.bmsTempature[devNr][sensorNr]/100.0);
   xSemaphoreGive(mBmsDataMutex);
   return ret;
 }
+int16_t getBmsTempatureI16(uint8_t devNr, uint8_t sensorNr)
+{
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return 0;
+
+  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+  int16_t ret = bmsData.bmsTempature[devNr][sensorNr];
+  xSemaphoreGive(mBmsDataMutex);
+  return ret;
+}
 void setBmsTempature(uint8_t devNr, uint8_t sensorNr, float value)
 {
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return;
+
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTempature[devNr][sensorNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
 }
 void setBmsTempatureI16(uint8_t devNr, uint8_t sensorNr, int16_t value)
 {
+  if(sensorNr >= NR_OF_BMS_TEMP_SENSORS) return;
+
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTempature[devNr][sensorNr] = value;
   xSemaphoreGive(mBmsDataMutex);
@@ -332,12 +361,12 @@ uint8_t getBmsChargePercentage(uint8_t devNr)
 }
 void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 {
-  if(devNr>=BT_DEVICES_COUNT)
+  if(devNr <= MUBER_OF_DATA_DEVICES)
   {
     if(value<100) bo_SOC100CellvolHasBeenReached[devNr]=false;
 
-    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
-    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr-BT_DEVICES_COUNT,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc100 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE,devNr,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC100_CELL_VOLTAGE);
+    uint16_t u16_CellvoltSoc0 = (uint16_t)WebSettings::getInt(ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE,devNr,DT_ID_PARAM_BMS_BALUE_ADJUSTMENTS_SOC0_CELL_VOLTAGE);
 
 
     if(u16_CellvoltSoc100 > 0 && ( bmsData.bmsMaxCellVoltage[devNr] >= u16_CellvoltSoc100 || bo_SOC100CellvolHasBeenReached[devNr]) )
@@ -346,7 +375,7 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
       value=100;
     }
     else if((u16_CellvoltSoc0 > 0) &&
-            (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
+      (u16_CellvoltSoc100 > u16_CellvoltSoc0)) // Prevents from divide-by-zero and implict verifies (u16_CellvoltSoc100 > 0)
     {
       //Berechne SOC Linear
       const int32_t hi = bmsData.bmsMaxCellVoltage[devNr];
@@ -376,26 +405,59 @@ void setBmsChargePercentage(uint8_t devNr, uint8_t value)
 
 uint32_t getBmsErrors(uint8_t devNr)
 {
-  xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  uint32_t ret = bmsData.bmsErrors[devNr];
-  xSemaphoreGive(mBmsDataMutex);
+  uint32_t ret;
+
+  if(mIgnoreTemporarilyUndervoltageAlarm != 0)
+  {
+    uint16_t alarmMask = 0xffff;
+
+    if((millis() - mIgnoreTemporarilyUndervoltageAlarm) > 3600000) 
+      mIgnoreTemporarilyUndervoltageAlarm = 0; // Timer zurücksetzen
+    else alarmMask = 0xfff5; // Low voltage ignorieren
+
+    xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+    ret = (bmsData.bmsErrors[devNr] & alarmMask);
+    xSemaphoreGive(mBmsDataMutex);
+  }
+  else
+  {
+    xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
+    ret = (bmsData.bmsErrors[devNr]);
+    xSemaphoreGive(mBmsDataMutex);
+  }
+
   return ret;
 }
 
 void setBmsErrors(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsErrors[devNr] = value;
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != value) 
+  {
+    bmsData.bmsErrors[devNr] = value;
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Error Device: %i, Value: %i", devNr, value);
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
 void setBmsErrors(uint8_t devNr, const BmsErrorStatus& status)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != status.to_int<uint32_t>()) 
+  {
+    bmsData.bmsErrors[devNr] = status.to_int<uint32_t>();
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Error Device: %i, Value: %i", devNr, status.to_int<uint32_t>());
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
+void ignoreTemporarilyUndervoltageAlarm()
+{
+  mIgnoreTemporarilyUndervoltageAlarm = millis();
+  if(mIgnoreTemporarilyUndervoltageAlarm == 0) mIgnoreTemporarilyUndervoltageAlarm = 1;
+}
 
 uint32_t getBmsWarnings(uint8_t devNr)
 {
@@ -408,8 +470,13 @@ uint32_t getBmsWarnings(uint8_t devNr)
 void setBmsWarnings(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  bmsData.bmsWarnings[devNr] = value;
-  xSemaphoreGive(mBmsDataMutex);
+  if(bmsData.bmsErrors[devNr] != value) 
+  {
+    bmsData.bmsWarnings[devNr] = value;
+    xSemaphoreGive(mBmsDataMutex);
+    BSC_LOGI(TAG,"BMS Warning Device: %i, Value: %i", devNr, value);
+  }
+  else xSemaphoreGive(mBmsDataMutex);
 }
 
 
@@ -632,9 +699,14 @@ uint8_t getBmsDataBytes(uint8_t dataType)
 }
 
 
+struct btDevData_s *getBmsDeviceData(uint8_t bmsNr)
+{
+  return &btDevData[bmsNr];
+}
+
 uint8_t * getBmsSettingsReadback(uint8_t bmsNr)
 {
-  return &bmsSettingsReadback[bmsNr][0];
+  return &btDevData[bmsNr].settingsReadback[0];
 }
 
 
@@ -647,6 +719,7 @@ bool isMultiple485bms(uint8_t bms)
     case ID_SERIAL_DEVICE_BPN:
     case ID_SERIAL_DEVICE_GOBELBMS:
     case ID_SERIAL_DEVICE_GOBEL_PC200:
+    case ID_SERIAL_DEVICE_JKINVERTERBMS:
     case ID_SERIAL_DEVICE_SEPLOSBMS_V3:
       return true;
       break;
@@ -663,25 +736,10 @@ bool haveAllBmsFirstData()
   uint8_t i = 0;
   bool allBmsHaveData = true;
 
-  // Bluetooth
-  for(i = 0; i < BT_DEVICES_COUNT; i++)
+  // 
+  for(i = MUBER_OF_DATA_DEVICES; i < MUBER_OF_DATA_DEVICES; i++)
   {
-    if(WebSettings::getInt(ID_PARAM_SS_BTDEV,i,DT_ID_PARAM_SS_BTDEV) != ID_BT_DEVICE_NB)
-    {
-      if(bmsData.bmsLastDataMillis[i] == 0)
-      {
-        allBmsHaveData = false;
-        // BSC_LOGI(TAG,"Keine Daten: BT %i", i);
-      }
-    }
-  }
-
-  // Serial
-  for(i = BMSDATA_FIRST_DEV_SERIAL; i < BMSDATA_LAST_DEV_SERIAL; i++)
-  {
-    if(i >= BMSDATA_NUMBER_ALLDEVICES) break;
-
-    if(WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,i,DT_ID_PARAM_SERIAL_CONNECT_DEVICE) != ID_SERIAL_DEVICE_NB)
+    if((uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE,i,DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE) <= MUBER_OF_DATA_DEVICES)
     {
       if(bmsData.bmsLastDataMillis[i] == 0)
       {

@@ -1,0 +1,1088 @@
+{
+  "texts-menu": {
+    "1": {
+      "label":"Dashboard"
+    },
+    "2": {
+      "label":"Livedata"
+    },
+    "3": {
+      "label":"System"
+    },
+    "4": {
+      "label":"Inverter"
+    },
+    "5": {
+      "label":"General"
+    },
+    "6": {
+      "label":"Charge"
+    },
+    "7": {
+      "label":"Discharge"
+    },
+    "8": {
+      "label":"Interfaces"
+    },
+    "9": {
+      "label":"Bluetooth"
+    },
+    "10": {
+      "label":"Serial"
+    },
+    "11": {
+      "label":"Relay"
+    },
+    "12": {
+      "label":"Digital inputs"
+    },
+    "13": {
+      "label":"Onewire sensors"
+    },
+    "14": {
+      "label":"Onewire sensors 2"
+    },
+    "15": {
+      "label":"Alarmrules"
+    },
+    "16": {
+      "label":"BMS"
+    },
+    "17": {
+      "label":"Temperature"
+    },
+    "18": {
+      "label":"Devices"
+    },
+    "19": {
+      "label":"NEEY"
+    },
+    "20": {
+      "label":"System"
+    },
+    "21": {
+      "label":"Log"
+    },
+    "22": {
+      "label":"Export settings"
+    },
+    "23": {
+      "label":"Import settings"
+    },
+    "24": {
+      "label":"Update"
+    },
+    "25": {
+      "label":"Reboot"
+    },
+    "26": {
+      "label":"Github"
+    },
+    "27": {
+      "label":"Support"
+    },
+    "28": {
+      "label":"Do you like the project? Show your appreciation with a donation! Further information at "
+    },
+    "29": {
+      "label":"Import"
+    },
+    "30": {
+      "label":"Support"
+    },
+    "31": {
+      "label":"Settings"
+    },
+    "32": {
+      "label":"WiFi"
+    },
+    "33": {
+      "label":"BSC on GitHub"
+    },
+    "34": {
+      "label":"Boot Time"
+    },
+    "35": {
+      "label":"Inverter Charging Control"
+    },
+    "36": {
+      "label":"Settings - Inverter"
+    },
+    "37": {
+      "label":"Settings - Interfaces"
+    },
+    "38": {
+      "label":"Settings - Devices"
+    },
+    "39": {
+      "label":"Settings - Alarmrules"
+    },
+    "40": {
+      "label":"Data device mapping"
+    },
+    "41": {
+      "label":"OW Temperaturen"
+    },
+    "42": {
+      "label":"BMS"
+    },
+    "43": {
+      "label":"Data"
+    },
+    "44": {
+      "label":"<p>Have you ever thought about how many hours of passion and caffeine go into developing open source projects? Well, I can tell you, it's a lot!</p><p>But here's the thing: I love what I do. I love developing innovative solutions and I love making these solutions freely available to the world.</p><p>But I could use a little support to keep doing great work. If Battery Safety Controller helped you, I would like to ask you to consider making a donation.</p><p>Your generous support allows me to continue developing new features and fighting bugs. This is the only way the project can be successful in the future.</p><p>Thank you in advance for your generosity and support!</p><p>With electrical greetings,<br>shiningman</p>"
+    },
+    "45": {
+      "label":"Many thanks to everyone who supports the project!<br>All those who support the project monthly via <a href='https://github.com/sponsors/shining-man' target=_blank>GitHub Sponsor</a> will be listed here."
+    }
+  },
+  "texts-settings": {
+    "1": {
+        "label": "Master/Slave"
+    },
+    "2": {
+        "label": "Master/Slave"
+    },
+    "3": {
+        "label": "enable WebUI v2",
+        "help": "Do you want to support the project? For more infos, click <a href=\\\"../../support/\\\">here<a/>."
+    },
+    "4": {
+        "label": "BSC user"
+    },
+    "5": {
+        "label": "BSC password"
+    },
+    "6": {
+        "label": "Device Name",
+        "help": "Also used as MQTT device name"
+    },
+    "7": {
+        "label": "Display timeout",
+        "unit": "min"
+    },
+    "8": {
+        "label": "WIFI"
+    },
+    "9": {
+        "label": "WIFI SSID"
+    },
+    "10": {
+        "label": "WIFI password"
+    },
+    "11": {
+        "label": "WIFI connect Timeout",
+        "help": "The timeout specifies the time after which a connection attempt is aborted and an access point is created.\\n0 deactivates the timeout.",
+        "unit": "s"
+    },
+    "12": {
+        "label": "Static IP"
+    },
+    "13": {
+        "label": "IP address",
+        "help": "If the IP address is empty, then DHCP is active"
+    },
+    "14": {
+        "label": "Gateway"
+    },
+    "15": {
+        "label": "Subnet"
+    },
+    "16": {
+        "label": "DNS",
+        "help": "optional"
+    },
+    "17": {
+        "label": "MQTT",
+        "help": "To adopt the settings, the BSC must be restarted!"
+    },
+    "18": {
+        "label": "MQTT enable"
+    },
+    "19": {
+        "label": "MQTT Server IP"
+    },
+    "20": {
+        "label": "MQTT Server Port"
+    },
+    "21": {
+        "label": "MQTT user"
+    },
+    "22": {
+        "label": "MQTT password"
+    },
+    "23": {
+        "label": "MQTT topic"
+    },
+    "24": {
+        "label": "MQTT Send interval",
+        "unit": "s"
+    },
+    "25": {
+        "label": "Remanenz virtual-trigger",
+        "help": "This means that virtual-triggers retain their status even if voltage is interrupted."
+    },
+    "26": {
+        "label": "NTP",
+        "help": "To adopt the settings, the BSC must be restarted!"
+    },
+    "27": {
+        "label": "NTP-server nae/ip"
+    },
+    "28": {
+        "label": "NTP-server Port"
+    },
+    "29": {
+        "label": "Recording"
+    },
+    "30": {
+        "label": "Recording period"
+    },
+    "31": {
+        "label": "Trigger name"
+    },
+    "32": {
+        "label": "Trigger description",
+        "label_entry": "Trigger"
+    },
+    "33": {
+        "label": "Trigger"
+    },
+    "34": {
+        "label": "Save"
+    },
+    "35": {
+        "label": "Bluetooth",
+        "label_entry": "BT Device",
+        "help": "The MAC address must be written in lower case!"
+    },
+    "36": {
+        "label": "Bluetooth"
+    },
+    "37": {
+        "label": "MAC adress"
+    },
+    "38": {
+        "label": "Deactivate"
+    },
+    "39": {
+        "label": "Save"
+    },
+    "40": {
+        "label": "Serial interfaces",
+        "label_entry": "Serial",
+        "help": "<b>To use serial 3-11, the serial extension is required!</b>"
+    },
+    "41": {
+        "label": "Serial"
+    },
+    "42": {
+        "label": "GEneral settings"
+    },
+    "43": {
+        "label": "Number of cells"
+    },
+    "44": {
+        "label": "Filter"
+    },
+    "45": {
+        "label": "Number of RX errors",
+        "help": "Specifies after how many faulty packets it is considered an error."
+    },
+    "46": {
+        "label": "Cell voltage deviation",
+        "help": "0=Filter disabled",
+        "unit": "%"
+    },
+    "47": {
+        "label": "Plausibility check"
+    },
+    "48": {
+        "label": "Cellvoltage plausibility check"
+    },
+    "49": {
+        "label": "Value adjustments"
+    },
+    "50": {
+        "label": "Data devices",
+        "label_entry": "Device"
+    },
+    "51": {
+        "label": "Cellvoltage for SoC 100%"
+    },
+    "52": {
+        "label": "Cellvoltage for SoC 0%",
+        "help": "0=disabled",
+        "unit": "mV"
+    },
+    "53": {
+        "label": "Save"
+    },
+    "54": {
+        "label": "BMS alarm rules",
+        "label_entry": "Alarm rule"
+    },
+    "55": {
+        "label": "BMS to monitor"
+    },
+    "56": {
+        "label": "No data from BMS"
+    },
+    "57": {
+        "label": "Forward to"
+    },
+    "58": {
+        "label": "Trigger active after seconds withour data",
+        "unit": "s"
+    },
+    "59": {
+        "label": "Voltage monitoring cell min/max"
+    },
+    "60": {
+        "label": "Forward to"
+    },
+    "61": {
+        "label": "Number of cells monitoring"
+    },
+    "62": {
+        "label": "Cell voltage min",
+        "unit": "mV"
+    },
+    "63": {
+        "label": "Cell voltage max",
+        "unit": "mV"
+    },
+    "64": {
+        "label": "Hysteresis min/max",
+        "unit": "mV"
+    },
+    "65": {
+        "label": "Voltage monitoring battery pack min/max"
+    },
+    "66": {
+        "label": "Forward to"
+    },
+    "67": {
+        "label": "Voltage battery pack min",
+        "unit": "V"
+    },
+    "68": {
+        "label": "Voltage battery pack max",
+        "unit": "V"
+    },
+    "69": {
+        "label": "Hysteresis min/max",
+        "unit": "V"
+    },
+    "70": {
+        "label": "Save"
+    },
+    "71": {
+        "label": "Sensor error alarm"
+    },
+    "72": {
+        "label": "Forward to"
+    },
+    "73": {
+        "label": "Timeout",
+        "unit": "s"
+    },
+    "74": {
+        "label": "Temperature monitoring"
+    },
+    "75": {
+        "label": "Temperature monitoring",
+        "label_entry": "Monitoring"
+    },
+    "76": {
+        "label": "Source"
+    },
+    "77": {
+        "label": "BMS to be monitored (only if source BMS)"
+    },
+    "78": {
+        "label": "Sensornumber start",
+        "help": "Possible values:\\nBMS:0-5\\nOnewire:0-63"
+    },
+    "79": {
+        "label": "Sensornumber end",
+        "help": "Possible values:\\nBMS:0-5\\nOnewire:0-63"
+    },
+    "80": {
+        "label": "Monitoring",
+        "help": "Maximum value exceeded: Value 1=Maximum Temperature\\nMaximum value exceeded (reference): Value 1=Temperature Offset\\nDifference value monitoring: Value 1=Maximum allowed difference"
+    },
+    "81": {
+        "label": "Reference sensor"
+    },
+    "82": {
+        "label": "Value 1"
+    },
+    "83": {
+        "label": "Hysteresis"
+    },
+    "84": {
+        "label": "Forward to"
+    },
+    "85": {
+        "label": "Save"
+    },
+    "86": {
+        "label": "Relay outputs",
+        "label_entry": "Relay output"
+    },
+    "87": {
+        "label": "Trigger behavior"
+    },
+    "88": {
+        "label": "Pulse duration",
+        "unit": "ms"
+    },
+    "89": {
+        "label": "Delay",
+        "unit": "s"
+    },
+    "90": {
+        "label": "Invert"
+    },
+    "91": {
+        "label": "Triggered by"
+    },
+    "92": {
+        "label": "Save"
+    },
+    "93": {
+        "label": "Digital inputs",
+        "label_entry": "Digital input"
+    },
+    "94": {
+        "label": "Invert input"
+    },
+    "95": {
+        "label": "Forward to"
+    },
+    "96": {
+        "label": "Save"
+    },
+    "97": {
+        "label": "Onewire enable"
+    },
+    "98": {
+        "label": "OW Addresses",
+        "label_entry": "OW Adr."
+    },
+    "99": {
+        "label": "OW Adr."
+    },
+    "100": {
+        "label": "Save"
+    },
+    "101": {
+        "label": "Onewire sensors",
+        "label_entry": "sensors"
+    },
+    "102": {
+        "label": "Offset",
+        "unit": "&deg;C"
+    },
+    "103": {
+        "label": "Save"
+    },
+    "104": {
+        "label": "BMS Canbus enable"
+    },
+    "105": {
+        "label": "Canbus protocol"
+    },
+    "106": {
+        "label": "Send extended data",
+        "help": "Do not activate in conjunction with a CerboGX!"
+    },
+    "107": {
+        "label": "Data source (Master)"
+    },
+    "108": {
+        "label": "\\+ Data sources"
+    },
+    "109": {
+        "label": "Valuehandling Multi-BMS"
+    },
+    "110": {
+        "label": "SoC"
+    },
+    "111": {
+        "label": "BMS for SoC"
+    },
+    "112": {
+        "label": "Basic data"
+    },
+    "113": {
+        "label": "Absorption charging voltage",
+        "help": "The absorption charging voltage corresponds to an increased voltage to reach the full state.",
+        "unit": "V"
+    },
+    "114": {
+        "label": "Float charging voltage",
+        "help": "The float voltage is applied after the adjustable cutoff function is reached.",
+        "unit": "V"
+    },
+    "115": {
+        "label": "Float charging voltage SoC",
+        "help": "If the SoC falls below the set value, the floating charging voltage switches to absorption charging voltage.",
+        "unit": "%"
+    },
+    "116": {
+        "label": "Max. charging current",
+        "unit": "A"
+    },
+    "117": {
+        "label": "Max. discharging current",
+        "unit": "A"
+    },
+    "118": {
+        "label": "Charging power to 0"
+    },
+    "119": {
+        "label": "Discharging power to 0"
+    },
+    "120": {
+        "label": "Set SOC to 100"
+    },
+    "121": {
+        "label": "Batterypack settings",
+        "label_entry": "Data device"
+    },
+    "122": {
+        "label": "Charge current per pack",
+        "unit": "A"
+    },
+    "123": {
+        "label": "Discharge current per pack",
+        "unit": "A"
+    },
+    "124": {
+        "label": "Capacity",
+        "unit": "Ah"
+    },
+    "125": {
+        "label": "Dynamic charge voltage offset",
+        "help": "With this function, the charging voltage can be dynamically adjusted according to the charging current.\\nThe offset is linearly dependent on the charging current. The smallest charging current of the battery pack is used as the current for the calculation."
+    },
+    "126": {
+        "label": "Current",
+        "help": "0=deactivated\\nThe current at which the maximum offset is added.",
+        "unit": "A"
+    },
+    "127": {
+        "label": "Min. Offset",
+        "unit": "mV"
+    },
+    "128": {
+        "label": "Max. Offset",
+        "unit": "mV"
+    },
+    "129": {
+        "label": "Alarms (Inverter)"
+    },
+    "130": {
+        "label": "High battery voltage"
+    },
+    "131": {
+        "label": "Low battery voltage"
+    },
+    "132": {
+        "label": "High Temperature"
+    },
+    "133": {
+        "label": "Low Temperature"
+    },
+    "134": {
+        "label": "Batterie temperature"
+    },
+    "135": {
+        "label": "Source for temperature"
+    },
+    "136": {
+        "label": "Sensor number",
+        "help": "Possible values:\\nBMS:0-5\\nOnewire:0-63"
+    },
+    "137": {
+        "label": "Trigger on SoC",
+        "help": "Trigger when a certain SoC is exceeded or fallen below."
+    },
+    "138": {
+        "label_entry": "Rule"
+    },
+    "139": {
+        "label": "Trigger"
+    },
+    "140": {
+        "label": "SoC - Trigger high",
+        "unit": "%"
+    },
+    "141": {
+        "label": "SoC - Trigger low",
+        "unit": "%"
+    },
+    "142": {
+        "label": "Save"
+    },
+    "143": {
+        "label": "Charging current per pack too high",
+        "help": "Throttle charging current if the charging current of a pack is exceeded"
+    },
+    "144": {
+        "label": "On/Off"
+    },
+    "145": {
+        "label": "Throttle the charging current depending on the cell voltage"
+    },
+    "146": {
+        "label": "On/Off"
+    },
+    "147": {
+        "label": "Start cell voltage",
+        "help": "As soon as the highest cell voltage exceeds this value, throttling becomes active.",
+        "unit": "mV"
+    },
+    "148": {
+        "label": "Maximum cell voltage",
+        "help": "As soon as the highest cell voltage exceeds this value, charging is only carried out with the minimum charging current.\\nNote: The value must be greater than the cell starting voltage.\\nAttention: When autobalancing is active, this voltage is replaced by the balance cell voltage!",
+        "unit": "mV"
+    },
+    "149": {
+        "label": "Minimum charging current",
+        "unit": "A"
+    },
+    "150": {
+        "label": "Reduce charging current in case of cell drift"
+    },
+    "151": {
+        "label": "On/Off"
+    },
+    "152": {
+        "label": "Start cell voltage",
+        "unit": "mV"
+    },
+    "153": {
+        "label": "Start at cell drift higher than",
+        "unit": "mV"
+    },
+    "154": {
+        "label": "Reduction per additional mV deviation",
+        "help": "The reduction refers to the set maximum current",
+        "unit": "A"
+    },
+    "155": {
+        "label": "Reduce charging current - SoC"
+    },
+    "156": {
+        "label": "On/Off"
+    },
+    "157": {
+        "label": "Start Reduction from SoC",
+        "unit": "%"
+    },
+    "158": {
+        "label": "Reduce by x A per 1%",
+        "help": "The reduction refers to the set maximum current",
+        "unit": "A"
+    },
+    "159": {
+        "label": "Minimum charging current",
+        "unit": "A"
+    },
+    "160": {
+        "label": "Dynamic charging voltage limitation (Beta!)",
+        "help": "Once the voltage of a cell and the delta between the lowest and highest cell voltage are set greater than,\\nthe charging voltage is dynamically adjusted to achieve the maximum charging power without the cells drifting further apart."
+    },
+    "161": {
+        "label": "On/Off"
+    },
+    "162": {
+        "label": "Start cell voltage",
+        "unit": "mV"
+    },
+    "163": {
+        "label": "Voltage delta min/max",
+        "unit": "mV"
+    },
+    "164": {
+        "label": "Autobalance"
+    },
+    "165": {
+        "label": "On/Off"
+    },
+    "166": {
+        "label": "Balance interval",
+        "help": "Specifies the days after which balancing should be started again.\\nNote: If the autobalancer is active, the charge current cut-off is deactivated during the balance time!\\nThe correct number of cells must be set in the serial settings!",
+        "unit": "T"
+    },
+    "167": {
+        "label": "Start cell voltgae",
+        "help": "Cell voltage to start autobalancing.",
+        "unit": "mV"
+    },
+    "168": {
+        "label": "Balance minimum time",
+        "help": "The balancing will run for at least that long",
+        "unit": "Min"
+    },
+    "169": {
+        "label": "Balance charging voltage",
+        "help": "The maximum charging voltage is increased to this voltage during autobalancing.",
+        "unit": "V"
+    },
+    "170": {
+        "label": "Balance start cell voltage",
+        "unit": "mV"
+    },
+    "171": {
+        "label": "Target cell voltage difference",
+        "help": "Balancing is finished when the set cell difference is reached.",
+        "unit": "mV"
+    },
+    "172": {
+        "label": "Timeout",
+        "help": "Maximum balancing time, if target cell voltage difference is not reached.",
+        "unit": "Min"
+    },
+    "173": {
+        "label": "Charging current Cut-Off",
+        "help": "If the charging current is below the cut-off current for the set time (cut-off time), the charging current is set to 0 A until the \\\"Float charging voltage SoC\\\" is undercut."
+    },
+    "174": {
+        "label": "On/Off"
+    },
+    "175": {
+        "label": "Cut-Off time",
+        "unit": "s"
+    },
+    "176": {
+        "label": "Cut-Off current",
+        "unit": "A"
+    },
+    "177": {
+        "label": "Start cell voltage",
+        "help": "The control only becomes active when the cell voltage is reached.\\n0 = Start voltage deactivated",
+        "unit": "mV"
+    },
+    "178": {
+        "label": "Set SoC when the cell voltage falls below (wintermode)",
+        "help": "If the cell voltage falls below the set cell voltage for the start of charging, recharging can be initiated by sending any SoC to the inverter.\\nRecharging continues until the cell voltage reaches the stop cell voltage."
+    },
+    "179": {
+        "label": "On/Off"
+    },
+    "180": {
+        "label": "Start cell voltage",
+        "unit": "mV"
+    },
+    "181": {
+        "label": "Stop cell voltage",
+        "help": "If the cell voltage at the end of charging is 0, then charging continues until the start cell voltage is exceeded again.",
+        "unit": "mV"
+    },
+    "182": {
+        "label": "SoC to send",
+        "unit": "%"
+    },
+    "183": {
+        "label": "Lockout time between two reloads",
+        "unit": "s"
+    },
+    "184": {
+        "label": "Save"
+    },
+    "185": {
+        "label": "Throttling the discharge current depending on the cell voltage"
+    },
+    "186": {
+        "label": "On/Off"
+    },
+    "187": {
+        "label": "Start at cell voltage lower than",
+        "help": "As soon as the lowest cell voltage falls below this value, throttling becomes active.",
+        "unit": "mV"
+    },
+    "188": {
+        "label": "End cell voltage",
+        "help": "As soon as the lowest cell voltage falls below this value, only the minimum discharge current is discharged.\\nNote: The value must be smaller than the cell starting voltage.",
+        "unit": "mV"
+    },
+    "189": {
+        "label": "Minimum discharge current",
+        "unit": "A"
+    },
+    "190": {
+        "label": "Save"
+    },
+    "191": {
+        "label": "Data device mapping"
+    },
+    "192": {
+        "label": "Data device mapping",
+        "label_entry": "Data device",
+        "help": "The name cannot contain # and \\+ characters!"
+    },
+    "193": {
+        "label": "Interface"
+    },
+    "194": {
+        "label": "Adress"
+    },
+    "195": {
+        "label": "Name"
+    },
+    "196": {
+        "label": "Save"
+    },
+    "197": {
+        "label": "NEEY Active Balancer",
+        "label_entry": "NEEY"
+    },
+    "198": {
+        "label": "Balancer On"
+    },
+    "199": {
+        "label": "Number of cells"
+    },
+    "200": {
+        "label": "Differenz Voltage",
+        "unit": "V"
+    },
+    "201": {
+        "label": "Max. Balance Current",
+        "unit": "A"
+    },
+    "202": {
+        "label": "Sleep Voltage",
+        "unit": "V"
+    },
+    "203": {
+        "label": "Equalization Voltage",
+        "unit": "V"
+    },
+    "204": {
+        "label": "Bat. Capacity",
+        "unit": "Ah"
+    },
+    "205": {
+        "label": "BatType"
+    },
+    "206": {
+        "label": "Save"
+    },
+    "207": {
+        "label": "Read from NEEY"
+    },
+    "208": {
+        "label": "Write to NEEY"
+    },
+    "209": {
+        "label": "JBD BMS",
+        "label_entry": "Serial"
+    },
+    "210": {
+        "label": "Cellvoltage 100%",
+        "unit": "mV"
+    },
+    "211": {
+        "label": "Save"
+    },
+    "212": {
+        "label": "General"
+    },
+    "213": {
+        "label": "Number of cells"
+    },
+    "214": {
+        "label": "Shunt"
+    },
+    "215": {
+        "label": "Nominal Capacity",
+        "unit": "Ah"
+    },
+    "216": {
+        "label": "Exits"
+    },
+    "217": {
+        "label": "Relay 1"
+    },
+    "218": {
+        "label": "Relay 2"
+    },
+    "219": {
+        "label": "Alarm - Cell voltage"
+    },
+    "220": {
+        "label": "Low Cell Voltage",
+        "unit": "mV"
+    },
+    "221": {
+        "label": "High Cell Voltage",
+        "unit": "mV"
+    },
+    "222": {
+        "label": "Alarm Delay - Cell Voltage",
+        "unit": "s"
+    },
+    "223": {
+        "label": "Exit"
+    },
+    "224": {
+        "label": "Alarm - Battery voltage"
+    },
+    "225": {
+        "label": "Low Battery Voltage",
+        "unit": "V"
+    },
+    "226": {
+        "label": "High Battery Voltage",
+        "unit": "V"
+    },
+    "227": {
+        "label": "Alarm Delay - Battery Voltage",
+        "unit": "s"
+    },
+    "228": {
+        "label": "Exit"
+    },
+    "229": {
+        "label": "Alarm - Charge current"
+    },
+    "230": {
+        "label": "Max Charge Current",
+        "unit": "A"
+    },
+    "231": {
+        "label": "Alarm Delay - Charge Current",
+        "unit": "s"
+    },
+    "232": {
+        "label": "Exit"
+    },
+    "233": {
+        "label": "Alarm - Discharge current"
+    },
+    "234": {
+        "label": "Max Discharge Current",
+        "unit": "A"
+    },
+    "235": {
+        "label": "Alarm Delay - Discharge Current",
+        "unit": "s"
+    },
+    "236": {
+        "label": "Exit"
+    },
+    "237": {
+        "label": "Write to BPN"
+    },
+    "238": {
+        "label": "Read from BPN"
+    },
+    "239": {
+        "label": "Data device 0"
+    },
+    "240": {
+        "label": "Data device 1"
+    },
+    "241": {
+        "label": "Data device 2"
+    },
+    "242": {
+        "label": "Data device 3"
+    },
+    "243": {
+        "label": "Data device 4"
+    },
+    "244": {
+        "label": "Data device 5"
+    },
+    "245": {
+        "label": "Data device 6"
+    },
+    "246": {
+        "label": "Data device 7"
+    },
+    "247": {
+        "label": "Data device 8"
+    },
+    "248": {
+        "label": "Data device 9"
+    },
+    "249": {
+        "label": "Data device 10"
+    },
+    "250": {
+        "label": "Data device 11"
+    },
+    "251": {
+        "label": "Data device 12"
+    },
+    "252": {
+        "label": "Data device 13"
+    },
+    "253": {
+        "label": "Data device 14"
+    },
+    "254": {
+        "label": "Data device 15"
+    },
+    "255": {
+        "label": "Data device 16"
+    },
+    "256": {
+        "label": "Data device 17"
+    },
+    "257": {
+        "label": "Off"
+    },
+    "258": {
+        "label": "24h"
+    },
+    "259": {
+        "label": "BMS"
+    },
+    "260": {
+        "label": "Onewire"
+    },
+    "261": {
+        "label": "Permanent"
+    },
+    "262": {
+        "label": "Impuls"
+    },
+    "263": {
+        "label": "not in use"
+    },
+    "264": {
+        "label": "Master source"
+    },
+    "265": {
+        "label": "SoC mean"
+    },
+    "266": {
+        "label": "SoC minimal"
+    },
+    "267": {
+        "label": "SoC maximal"
+    },
+    "268": {
+        "label": "BMS"
+    },
+    "269": {
+        "label": "Maximum value exceeded"
+    },
+    "270": {
+        "label": "Minimum value undershot"
+    },
+    "271": {
+        "label": "Maximum value exceeded (reference)"
+    },
+    "272": {
+        "label": "Difference value monitoring"
+    }
+  }
+}

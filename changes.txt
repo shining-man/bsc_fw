@@ -1,24 +1,105 @@
-v0.6.0
-Neue Funktionen/Verbesserungen bei der Laderegelung:
-- Absorbtion/Float Ladespannung
-- Autobalancing
-- CutOff (Überarbeitet)
-- Funktion "Ladesstrom reduzieren - SoC" erweitert um "Mindest Ladestrom in A" (#101)
+<h1>Version 0.7.0</h1>
+Look forward to a major development milestone!
+With this new version, we present more than just minor bug fixes or marginal additions. 
+Behind the scenes, extensive development work has been carried out, which may not be immediately apparent at first glance.
 
-Weitere neue Features/Verbesserungen:
-- Neues BMS: Seplos V3 (#81)
-- Neues Wechselrichter CAN-Protokoll: BYD Protocol (SolarEdge RWS)
-- Passwortschutz für das WebUI (#93)
-    Username: bsc
-    Passwort: admin
+<h2>Multilanguage</h2>
+A milestone is the introduction of the firmware in additional languages. The first available languages are English and Dutch.
+The current release version includes the corresponding firmware files in the available language options.
 
-- Problem beim Runden des SoC behoben (Fix 100% SOC bei Seplos) (#113)
-- Kleinere Änderungen/Verbesserungen in den Menüs des WebUI (z.B. Invertermenü aufgeteilt zu bessern Übersichtlichkeit)
-- Größere Änderungen im Unterbau des BSC
+<h2>Datamapping</h2>
+Another important innovation involves the fundamental overhaul of data handling for connected BMS.<br>
+<br>
+<b>What has changed?</b><br>
+Previously, the configuration defined which BMS was connected to which serial interface. This port number was then used for all further processes – whether for alarm rules, MQTT, the REST API, or internal allocation in the BMS data array.<br>
+<br>
+However, this led to some limitations:
+<ul>
+<li>The first seven storage slots were reserved for Bluetooth devices. Unused slots remained unused if no Bluetooth devices were employed.</li>
+<li>The daisy-chain function was limited to Serial 2, as dictated by internal memory management.</li>
+</ul>
+<br>
+To address these limitations, I have introduced a new mapping system:
+<ol>
+<li>The configuration still specifies which device is connected to which serial interface. However, for daisy-chain systems, the number of devices is no longer defined, only the assignment of, for example, which device is connected to Serial 1.</li>
+<li>In a second step, one of the virtual data devices (currently there are 18) is assigned a serial interface. For daisy-chain systems, the BMS address must also be defined.</li>
+</ol>
+This new mapping allows the 18 storage slots to be used flexibly and efficiently.<br>
+<br>
+<b>Why is this important?</b><br>
+Although these changes may sound simple at first, they are extremely complex in the background and affect almost all areas of the system.<br>
+<br>
+Moreover, this restructuring is a crucial step in preparing our system for the future.<ul>
+<li>With the new flexibility in data handling, we create a foundation for the easier integration of new device types and communication protocols in the future.</li>
+<li>The changes eliminate existing limitations and make our system more scalable.</li>
+<li>Last but not least, we enable more efficient use of resources, which is essential for growing requirements and future developments.</li>
+</ul>
 
+<b>After the update</b>
+Due to these changes, the following steps must be taken after the update to ensure the system functions properly:<br>
+<ul>
+<li><b>Configure data mapping</b><br>
+The data device mapping must be correctly set initially.</li>
+<br>
+<li><b>Make adjustments</b><br>
+Inverters, charge control, alarm rules, ...: These must be adapted to the new data devices.</li>
+<br>
+<li><b>Changes to MQTT data points</b><br>
+The data points have been moved from /bsc/bms/serial to /bsc/DataDevice/ID or /bsc/DataDevice/Name.</li>
+</ul>
+Please take these points into account to ensure smooth operation.
 
-Wichtiger Hinweis!
-Folgende Werte müssen nach dem Update kontrolliert und ggf. angepasst werden:
-- Absorption Ladespannung
-- Ladestrom reduzieren - SoC; Pro 1% um x A reduzieren
-- Cut-Off Strom
+<h2>Additional new features</h2>
+<ul>
+<li>New BMS: JK Inverter BMS (#118)</li>
+<li>Transmission of battery capacity to the inverter (Victron) (#129)</li>
+<li>Log entry expanded to include the trigger reason (#133)</li>
+<li>Configurable relay logic: Permanently activated or active on trigger (#152)</li>
+<li>Autobalance states are now output in the REST API (#154)</li>
+<li>Victron SmartShunt on any serial interface (#161)</li>
+<li>Selectable BMS for inclusion in SoC calculation (#163)</li>
+<li>New option: Send minimal SoC to inverter (#168)</li>
+<li>Hysteresis for BMS alarm rules in voltage monitoring (#171)</li>
+<li>Remanent vTrigger (#186)</li>
+<li>Limit charge current when exceeding charge current per pack (#201)</li>
+</ul>
+<br>
+<b>Fixes</b>
+<ul>
+<li>Seplos warnings are no longer reported as errors (#123)</li>
+<li>Issues with loss of connection to the MQTT broker (#155)</li>
+</ul>
+
+<h2>Note on Bluetooth usage</h2>
+Please note that in this version, <b>Bluetooth support has been removed</b>. This step was taken to improve both the <b>stability</b> and <b>performance</b> of the system.<br>
+A new solution for Bluetooth is in development. It is expected to be available in the medium term and will address previous issues, enabling more stable usage.
+
+<h1>Version 0.6.0</h1>
+New functions/improvements in charge control:
+<ul>
+<li>Absorption/Float charging voltage</li>
+<li>Auto-balancing</li>
+<li>CutOff (revised)</li>
+<li>Function "Reduce charging current - SoC" extended with "Minimum charging current in A" (#101)</li>
+</ul>
+<br>
+Additional new features/improvements:
+<ul>
+<li>New BMS: Seplos V3 (#81)</li>
+<li>New inverter CAN protocol: BYD Protocol (SolarEdge RWS)</li>
+<li>Password protection for WebUI (#93)
+<br>Username: bsc
+<br>Password: admin</li>
+<br>
+<li>Issue with rounding SoC fixed (Fix 100% SOC for Seplos) (#113)</li>
+<li>Minor changes/improvements in WebUI menus (e.g., inverter menu divided for better clarity)</li>
+<li>Major changes in BSC's underlying structure</li>
+</ul>
+<br>
+Important note!
+The following values must be checked and adjusted after the update:
+<ul>
+<li>Absorption charging voltage</li>
+<li>Reduce charging current - SoC; Reduce by x A per 1%</li>
+<li>Cut-off current</li>
+</ul>

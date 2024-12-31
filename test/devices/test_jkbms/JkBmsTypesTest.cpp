@@ -74,8 +74,8 @@ TEST_F(JkBmsTypesTest, VerifyCellUndervoltageFlag)
 
 TEST_F(JkBmsTypesTest, VerifyChargeOvertempFlag)
 {
-  JkBmsWarnMsg batWarnMsg = JkBmsWarnMsg::from_int(JKBMS_WARN_MSG_CHG_OVERTEMP);
-  ASSERT_EQ(BatWarnMsgBits::CHG_OVERTEMP, batWarnMsg);
+  JkBmsWarnMsg batWarnMsg = JkBmsWarnMsg::from_int(JKBMS_WARN_MSG_CHG_OVERCURRENT);
+  ASSERT_EQ(BatWarnMsgBits::CHG_OVERCURRENT, batWarnMsg);
 }
 
 TEST_F(JkBmsTypesTest, VerifyDischargeOvercurrentAlarmFlag)

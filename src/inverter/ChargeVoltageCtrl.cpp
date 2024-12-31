@@ -60,9 +60,9 @@ namespace nsChargeVoltageCtrl
       uint16_t u16_lStartZellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG,0,DT_ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_ZELLSPG);
       uint16_t u16_lDeltaCellVoltage= WebSettings::getInt(ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA,0,DT_ID_PARAM_INVERTER_CHARGE_VOLTAGE_DYNAMIC_REDUCE_DELTA);
 
-      if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd)>u16_lStartZellVoltage)
+      if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd)>u16_lStartZellVoltage)
       {
-        uint16_t u16_lMaxCellDiffVoltage = BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+        uint16_t u16_lMaxCellDiffVoltage = BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
         if(u16_lMaxCellDiffVoltage>u16_lDeltaCellVoltage)
         {
           if (u16_lDynamicChargeVoltage > 0) u16_lDynamicChargeVoltage -= 1; //1=100mV
@@ -88,8 +88,9 @@ namespace nsChargeVoltageCtrl
     uint32_t lTimeout = (uint16_t)WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_TIMEOUT);
     lTimeout = lTimeout * 60 * 1000;
     if(millis() - inverterData.autobalanceStartTime > lTimeout) // if timeout
-    {        
-      inverterData.mStateAutobalance = STATE_AUTOBAL_OFF;
+    {
+      inverterData.lastAutobalanceRun = millis();
+      inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_NEXT_DAY;
       inverterData.floatState = Inverter::e_stateFloat::FLOAT_VOLTAGE;
       return true;
     }
@@ -129,11 +130,21 @@ namespace nsChargeVoltageCtrl
       }
     }
 
+    // Warte auf nächsten Tag; z.B. nach Timeout
+    if(inverterData.mStateAutobalance == STATE_AUTOBAL_WAIT_NEXT_DAY)
+    {
+      if(millis()-inverterData.lastAutobalanceRun > 43200000) // Tage: 12h*60*60*1000
+      {
+        inverterData.autobalanceVoltageErreichtTime = 0;
+        inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_START_VOLTAGE;
+      }
+    }
+
     // Wenn Intervall erreicht, dann auf Start-Cellvoltage warten
     else if(inverterData.mStateAutobalance==STATE_AUTOBAL_WAIT_START_VOLTAGE)
     {
       const uint16_t u16_lStartCellVoltage = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_START_CELLVOLTAGE);
-      if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) >= u16_lStartCellVoltage)
+      if(BmsDataUtils::getMaxCellSpannungFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd) >= u16_lStartCellVoltage)
       {
         inverterData.mStateAutobalance = STATE_AUTOBAL_RUNING;
         inverterData.autobalanceStartTime = millis();
@@ -164,7 +175,7 @@ namespace nsChargeVoltageCtrl
 
       // Finish
       const uint8_t u8_lCelldifFinish = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CELLDIF_FINISH);
-      if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd) <= u8_lCelldifFinish)
+      if(BmsDataUtils::getMaxCellDifferenceFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd) <= u8_lCelldifFinish)
       {
         inverterData.mStateAutobalance = STATE_AUTOBAL_WAIT_CHARGE_VOLTAGE;
       }
@@ -231,7 +242,7 @@ namespace nsChargeVoltageCtrl
       {
         uint16_t u16_lOffsetMin = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MIN);
         uint16_t u16_lOffsetMax = WebSettings::getInt(ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX,0,DT_ID_PARAM_DYNAMIC_CHARGE_VOLTAGE_OFFSET_MAX);
-        int16_t u16_lMinBmsCurrent = (int16_t)BmsDataUtils::getMinCurrentFromBms(inverterData.u8_bmsDatasource, inverterData.u16_bmsDatasourceAdd);
+        int16_t u16_lMinBmsCurrent = (int16_t)BmsDataUtils::getMinCurrentFromBms(inverterData.bmsDatasource, inverterData.bmsDatasourceAdd);
 
         if(u16_lMinBmsCurrent>=u16_lCurrent) u16_lChargeVoltage+=u16_lOffsetMax;
         else if(u16_lMinBmsCurrent>0) u16_lChargeVoltage+=(u16_lOffsetMin+((u16_lOffsetMax-u16_lOffsetMin)/u16_lCurrent*u16_lMinBmsCurrent));

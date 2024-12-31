@@ -193,6 +193,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("current"), inverterCurrent, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("voltage"), inverterVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("soc"), inverterSoc, str_htmlOut, false);
+    genJsonEntryArray(entrySingleNumber, F("cv_state"), (uint8_t)inverter.getChargeVoltageState(), str_htmlOut, false);
 
     genJsonEntryArray(entrySingleNumber, F("setpoint_cv"), inverterChargeVoltage, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("setpoint_cc"), inverterChargeCurrent, str_htmlOut, false);
@@ -203,18 +204,25 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
     genJsonEntryArray(entrySingleNumber, F("cc_cellDrift"), calcChargeCurrentCelldrift, str_htmlOut, false);
     genJsonEntryArray(entrySingleNumber, F("cc_cutOff"), calcChargeCurrentCutOff, str_htmlOut, false);
 
-    genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, true);
+    genJsonEntryArray(entrySingleNumber, F("dcc_cellVoltage"), calcDischargeCurrentCellVoltage, str_htmlOut, false);
+
+    genJsonEntryArray(entrySingleNumber, F("autobal_state"), inverter.getAutobalState(), str_htmlOut, true);
 
     genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
     server.sendContent(str_htmlOut);
     str_htmlOut="";
 
-    // BMS Bluetooth
-    genJsonEntryArray(arrStart, F("bms_bt"), "", str_htmlOut, false);
-    for(uint8_t bmsDevNr=0;bmsDevNr<BT_DEVICES_COUNT;bmsDevNr++)
+    // Data devices
+    uint8_t u8_device;
+
+    genJsonEntryArray(arrStart, F("data_device"), "", str_htmlOut, false);
+    for(uint8_t bmsDevNr=0; bmsDevNr < MUBER_OF_DATA_DEVICES; bmsDevNr++)
     {
-      if(WebSettings::getInt(ID_PARAM_SS_BTDEV,bmsDevNr,DT_ID_PARAM_SS_BTDEV)!=0)
-        genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
+      u8_device = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE, bmsDevNr, DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+
+      genJsonEntryArray(entrySingle, F("name"), WebSettings::getStringFlash(ID_PARAM_DEVICE_MAPPING_NAME, bmsDevNr), str_htmlOut, false);
+
+      if(u8_device < MUBER_OF_DATA_DEVICES) genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
       else genJsonEntryArray(entrySingleNumber, F("en"), 0, str_htmlOut, false);
 
       if((millis()-getBmsLastDataMillis(bmsDevNr)<5000)) u8_val=1;
@@ -227,7 +235,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingleNumber, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
+      genJsonEntryArray(entrySingleNumber, F("maxCellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
@@ -236,69 +244,7 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingleNumber, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
       genJsonEntryArray(entrySingleNumber, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
 
-      genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
-      for(uint8_t i=0;i<(u8_nrOfCells-1);i++)
-      {
-        genJsonEntryArray(entrySingle2, "", getBmsCellVoltage(bmsDevNr,i), str_htmlOut, false);
-      }
-      genJsonEntryArray(entrySingle2, "", getBmsCellVoltage(bmsDevNr,u8_nrOfCells-1), str_htmlOut, true);
-      genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-
-      genJsonEntryArray(arrStart2, F("temperature"), "", str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,0), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,1), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,2), str_htmlOut, true);
-      genJsonEntryArray(arrEnd2, "", "", str_htmlOut, true);
-
-      if(bmsDevNr<BT_DEVICES_COUNT-1)
-      {
-        genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
-        genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);
-      }
-      else genJsonEntryArray(arrEnd, "", "", str_htmlOut, true);
-
-      server.sendContent(str_htmlOut);
-      str_htmlOut="";
-    }
-    genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
-    server.sendContent(str_htmlOut);
-    str_htmlOut="";
-
-
-    // BMS serial
-    uint8_t u8_device, u8_deviceSerial2, u8_deviceSerial2NrOfBms;
-    u8_deviceSerial2=WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-    u8_deviceSerial2NrOfBms=WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
-
-    genJsonEntryArray(arrStart, F("bms_serial"), "", str_htmlOut, false);
-    for(uint8_t bmsDevNr=BT_DEVICES_COUNT;bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;bmsDevNr++)
-    {
-      u8_device = WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,bmsDevNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-      //BSC_LOGI(TAG,"Restapi: u8_device=%i, u8_deviceSerial2=%i, bmsDevNr=%i, u8_deviceSerial2NrOfBms=%i",u8_device, u8_deviceSerial2, bmsDevNr, u8_deviceSerial2NrOfBms);
-      if(u8_device!=0) genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
-      else if(isMultiple485bms(u8_deviceSerial2) && bmsDevNr>BT_DEVICES_COUNT+2 && bmsDevNr<BT_DEVICES_COUNT+2+u8_deviceSerial2NrOfBms)
-        genJsonEntryArray(entrySingleNumber, F("en"), 1, str_htmlOut, false);
-      else genJsonEntryArray(entrySingleNumber, F("en"), 0, str_htmlOut, false);
-
-      if((millis()-getBmsLastDataMillis(bmsDevNr)<5000)) u8_val=1;
-      else u8_val=0;
-      genJsonEntryArray(entrySingleNumber, F("valid"), u8_val, str_htmlOut, false);
-
-      genJsonEntryArray(entrySingleNumber, F("nr"), bmsDevNr-BT_DEVICES_COUNT, str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("cells"), u8_nrOfCells, str_htmlOut, false);
-
-      genJsonEntryArray(entrySingleNumber, F("totalVolt"), String(getBmsTotalVoltage(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("totalCurr"), String(getBmsTotalCurrent(bmsDevNr)), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("soc"), getBmsChargePercentage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("maxZellDiff"), getBmsMaxCellDifferenceVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("maxCellVolt"), getBmsMaxCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("minCellVolt"), getBmsMinCellVoltage(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("maxCellVoltNr"), getBmsMaxVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("minCellVoltNr"), getBmsMinVoltageCellNumber(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("balOn"), getBmsIsBalancingActive(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("FetState"), getBmsStateFETs(bmsDevNr), str_htmlOut, false);
-      genJsonEntryArray(entrySingleNumber, F("bmsErr"), getBmsErrors(bmsDevNr), str_htmlOut, false);
-
+      // Cellvoltage
       genJsonEntryArray(arrStart2, F("cell_voltage"), "", str_htmlOut, false);
       uint16_t u16_lZellVoltage=0;
       for(uint8_t i=0;i<(u8_nrOfCells-1);i++)
@@ -312,13 +258,18 @@ void buildJsonRest(Inverter &inverter, WebServer &server, WebSettings &ws)
       genJsonEntryArray(entrySingle2, "", u16_lZellVoltage, str_htmlOut, true);
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, false);
 
+      // Temperatur
       genJsonEntryArray(arrStart2, F("temperature"), "", str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,0), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,1), str_htmlOut, false);
-      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr,2), str_htmlOut, true);
+      #if NR_OF_BMS_TEMP_SENSORS > 1 
+      for(uint8_t i=0; i < (NR_OF_BMS_TEMP_SENSORS-1); i++)
+        genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, i), str_htmlOut, false);
+      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, NR_OF_BMS_TEMP_SENSORS-1), str_htmlOut, true);
+      #else
+      genJsonEntryArray(entrySingle2, "", getBmsTempature(bmsDevNr, 0), str_htmlOut, true);
+      #endif
       genJsonEntryArray(arrEnd2, "", "", str_htmlOut, true);
 
-      if(bmsDevNr<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT-1)
+      if(bmsDevNr < MUBER_OF_DATA_DEVICES-1)
       {
         genJsonEntryArray(arrEnd, "", "", str_htmlOut, false);
         genJsonEntryArray(arrStart3, "", "", str_htmlOut, true);

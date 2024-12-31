@@ -7,12 +7,13 @@
 #define GOBELBMS_H
 
 #include "Arduino.h"
+#include "BscSerial.h"
 #include "defines.h"
 #include "devices/serialDevData.h"
 
 #define GOBELBMS_MAX_ANSWER_LEN   0x200
 
 
-bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
+bool GobelBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData);
 
 #endif

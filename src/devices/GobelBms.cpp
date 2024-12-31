@@ -148,94 +148,76 @@ enum SM_readData
   SEARCH_END
 };
 
-static uint8_t getDataMsg[] = {0x11, 0x01, 0x46, 0xB0, 0x00, 0x00};
-static uint8_t getWarnMsg[] = {0x11, 0x01, 0x46, 0xB1, 0x00, 0x00};
-static void sendMessage(uint8_t *sendMsg, size_t len);
+static uint8_t getDataMsg[] = {0x37, 0x45, 0x11, 0x01, 0x46, 0xB0, 0x00, 0x00, 0xFF, 0xFF, 0x0d}; //Cheksum nur über die Bytes 2 bis 7 berechnen
+static uint8_t getWarnMsg[] = {0x37, 0x45, 0x11, 0x01, 0x46, 0xB1, 0x00, 0x00, 0xFF, 0xFF, 0x0d};
+static void sendMessage(BscSerial *bscSerial, uint8_t *sendMsg, size_t len);
 static bool recvAnswer(uint8_t *t_outMessage);
-static void parseData(uint8_t *t_message, uint8_t address);
-static void parseWarnData(uint8_t *t_message, uint8_t address);
+static void parseData(uint8_t *t_message, uint8_t dataMappingNr);
+static void parseWarnData(uint8_t *t_message, uint8_t dataMappingNr);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
-bool GobelBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool GobelBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_lRet = true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
-  u8_mCountOfPacks = devData->u8_NumberOfDevices;
-  uint8_t u8_addr = 0;
+    uint8_t u8_addr = 0;
   uint8_t i;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
-  uint8_t u8_packAdr = 0;
-  if (u8_mCountOfPacks > 1)
-  {
-    u8_packAdr = 1;
-  }
+  uint8_t u8_packAdr = devData->bmsAdresse;
+  uint8_t dataMappingNr = devData->dataMappingNr;
 
-  for (u8_addr = 0; u8_addr < u8_mCountOfPacks; u8_addr++)
+
+  #ifdef GOBEL_DEBUG
+  BSC_LOGD(TAG, "Serial %i send, addr: %i", u8_mDevNr, u8_packAdr);
+  #endif
+
+  getDataMsg[1] = u8_packAdr;
+  sendMessage(bscSerial, getDataMsg, ARRAY_SIZE(getDataMsg));
+  if (recvAnswer(response))
   {
-#ifdef GOBEL_DEBUG
-    BSC_LOGD(TAG, "Serial %i send, addr: %i", u8_mDevNr, u8_packAdr);
-#endif
-    getDataMsg[1] = u8_packAdr;
-    sendMessage(getDataMsg, ARRAY_SIZE(getDataMsg));
+    parseData(response, dataMappingNr);
+
+    // mqtt
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
+
+    getWarnMsg[1] = u8_packAdr;
+    sendMessage(bscSerial, getWarnMsg, ARRAY_SIZE(getWarnMsg));
     if (recvAnswer(response))
     {
-      parseData(response, u8_addr);
-
-      // mqtt
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + u8_addr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr + u8_addr));
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + u8_addr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr + u8_addr));
-
-      getWarnMsg[1] = u8_packAdr;
-      sendMessage(getWarnMsg, ARRAY_SIZE(getWarnMsg));
-      if (recvAnswer(response))
-      {
-        parseWarnData(response, u8_addr);
-      }
-
-      setBmsLastDataMillis(BT_DEVICES_COUNT + u8_mDevNr + u8_addr, millis());
-    }
-    else
-    {
-      BSC_LOGD(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
-      bo_lRet = false;
+      parseWarnData(response, dataMappingNr);
     }
 
-    u8_packAdr++;
-    if (bo_lRet == false)
-      return bo_lRet;
-
-    vTaskDelay(pdMS_TO_TICKS(25));
+    setBmsLastDataMillis(dataMappingNr, millis());
   }
-  if (devNr >= 2)
-    callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxTxDisable);
+  else
+  {
+    BSC_LOGD(TAG, "bmsData checksum wrong; Serial(%i)", u8_mDevNr);
+    bo_lRet = false;
+  }
+
+  if (bo_lRet == false) return bo_lRet;
+
+  vTaskDelay(pdMS_TO_TICKS(25));
   return bo_lRet;
 }
 
-static void sendMessage(uint8_t *sendMsg, size_t len)
+static void sendMessage(BscSerial *bscSerial, uint8_t *sendMsg, size_t len)
 {
+  //Cheksum nur über die Bytes 2 bis 7 berechnen
   uint16_t chksum = 0;
-  size_t i = 0;
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(0x37);
-  mPort->write(0x45);
-  mPort->write(sendMsg, len);
-  for (i = 0; i < len; i++)
-    chksum += sendMsg[i];
+  for (uint8_t i = 2; i < (len + 2); i++) chksum += sendMsg[i];
 
   chksum = 1 + ~chksum;
-  mPort->write(chksum >> 8);
-  mPort->write(chksum & 0xff);
+  sendMsg[8] = (chksum >> 8);
+  sendMsg[9] = (chksum & 0xff);
 
-  mPort->write(0x0d);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, sendMsg, len);
 }
 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
@@ -345,7 +327,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
   return true;
 }
 
-void parseData(uint8_t *t_message, uint8_t address)
+void parseData(uint8_t *t_message, uint8_t dataMappingNr)
 {
   uint16_t u16_lBalanceCapacity = 0;
   uint16_t u16_lFullCapacity = 0;
@@ -380,15 +362,15 @@ void parseData(uint8_t *t_message, uint8_t address)
       if (pack == 1) // TODO: Handle more packs
         break;
       p.getuint8(); // Pack addr
-      setBmsTotalCurrent(BT_DEVICES_COUNT + u8_mDevNr + address, (float)p.getint16() * 0.01);
-      setBmsTotalVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (float)p.getuint32() * 0.001);
+      setBmsTotalCurrent(dataMappingNr, (float)p.getint16() * 0.01);
+      setBmsTotalVoltage(dataMappingNr, (float)p.getuint32() * 0.001);
 
       u16_lBalanceCapacity = p.getuint16();                                         // Remain capacity
       p.getuint8();                                                                 // 05
       u16_lFullCapacity = p.getuint16();                                            // total capacity
       p.getuint16();                                                                // design capacity
       u16_lCycle = p.getuint16();                                                   // cycle number
-      setBmsChargePercentage(BT_DEVICES_COUNT + u8_mDevNr + address, p.getuint8()); // SOC in %
+      setBmsChargePercentage(dataMappingNr, p.getuint8()); // SOC in %
       p.getuint8();                                                                 // SOH
       p.getuint8();                                                                 // parallel number
       p.getuint8();                                                                 // slave addr
@@ -399,7 +381,7 @@ void parseData(uint8_t *t_message, uint8_t address)
       for (uint8_t n = 0; n < u8_lNumOfCells; n++)
       {
         u16_lZellVoltage = (p.getuint16());
-        setBmsCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, n, u16_lZellVoltage);
+        setBmsCellVoltage(dataMappingNr, n, u16_lZellVoltage);
         u16_lCellSum += u16_lZellVoltage;
 
         if (u16_lZellVoltage > u16_lCellHigh)
@@ -422,19 +404,19 @@ void parseData(uint8_t *t_message, uint8_t address)
 #endif
       }
 
-      setBmsMaxCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, u16_lCellHigh);
-      setBmsMinCellVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, u16_lCellLow);
-      setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT + u8_mDevNr + address, u8_lZellNumberMaxVoltage);
-      setBmsMinVoltageCellNumber(BT_DEVICES_COUNT + u8_mDevNr + address, u8_lZellNumberMinVoltage);
-      setBmsAvgVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (float)(u16_lCellSum / u8_lNumOfCells));
-      setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT + u8_mDevNr + address, (u16_lZellDifferenceVoltage));
+      setBmsMaxCellVoltage(dataMappingNr, u16_lCellHigh);
+      setBmsMinCellVoltage(dataMappingNr, u16_lCellLow);
+      setBmsMaxVoltageCellNumber(dataMappingNr, u8_lZellNumberMaxVoltage);
+      setBmsMinVoltageCellNumber(dataMappingNr, u8_lZellNumberMinVoltage);
+      setBmsAvgVoltage(dataMappingNr, (float)(u16_lCellSum / u8_lNumOfCells));
+      setBmsMaxCellDifferenceVoltage(dataMappingNr, (u16_lZellDifferenceVoltage));
 
       u8_lCntTempSensors = p.getuint8(); // cell NTC
       for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
       {
         float temp = p.gettemp();
         if (i < 3)
-          setBmsTempature(BT_DEVICES_COUNT + u8_mDevNr + address, i, temp);
+          setBmsTempature(dataMappingNr, i, temp);
       }
 
       u8_lCntTempSensors = p.getuint8(); // MOS NTC
@@ -459,13 +441,13 @@ void parseData(uint8_t *t_message, uint8_t address)
     if (mDevData->bo_sendMqttMsg)
     {
       // Nachrichten senden
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
 
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-      mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_mDevNr + address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+      mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
     }
   }
   catch (const std::exception &e)
@@ -474,7 +456,7 @@ void parseData(uint8_t *t_message, uint8_t address)
   }
 }
 
-void parseWarnData(uint8_t *t_message, uint8_t address)
+void parseWarnData(uint8_t *t_message, uint8_t dataMappingNr)
 {
 
   uint8_t u8_lNumOfCells = 0;
@@ -567,7 +549,7 @@ void parseWarnData(uint8_t *t_message, uint8_t address)
       p.getuint16(); // Max Discharge current
       p.getuint32(); // CRC32, according to Gobel there is a problem. Ignore for now.
 
-      setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr, u32_alarm);
+      setBmsErrors(dataMappingNr, u32_alarm);
     }
   }
   catch (const std::exception &e)

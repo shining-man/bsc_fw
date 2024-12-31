@@ -8,58 +8,55 @@
 #include "mqtt_t.h"
 #include "log.h"
 #include "ModbusRTU.hpp"
+#include "BmsDataTypes.hpp"
 
 static const char *TAG = "SEPLOS_V3";
 
-static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
-static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
-static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr);
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 
 //static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
 static serialDevData_s *mDevData;
 
-bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   mDevData = devData;
-  uint8_t u8_mCountOfPacks = devData->u8_NumberOfDevices;
   uint8_t response[SEPLOSBMS_MAX_ANSWER_LEN];
 
-  uint8_t u8_lSeplosAdr=devData->u8_deviceNr;
-  uint8_t u8_lSeplosAdrBmsData=devData->u8_BmsDataAdr+BT_DEVICES_COUNT;
-  if(u8_mCountOfPacks>1)
-  {
-    u8_lSeplosAdr+=1;
-  }
+  uint8_t u8_lSeplosAdr = devData->bmsAdresse;
+  uint8_t u8_lSeplosAdrBmsData = devData->dataMappingNr;
+
 
   #ifdef SEPLOS_DEBUG
   BSC_LOGI(TAG,"SeplosBms_readBmsData() devNr=%i, readFromAdr=%i, BmsDataAdr=%i, CountOfPacks=%i",u8_mDevNr,u8_lSeplosAdr,u8_lSeplosAdrBmsData,u8_mCountOfPacks);
   #endif
 
-  modbusrtu::ModbusRTU modbus(port,callback,devNr);
+  modbusrtu::ModbusRTU modbus(port, devNr);
 
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_CMD_04,0x1000,18,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1000, 18, response))
   {
     //message2Log(response, 36, 0);
     parsePackInfoA(&modbus, u8_lSeplosAdrBmsData);
 
     // MQTT
-    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lSeplosAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lSeplosAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lSeplosAdrBmsData));
 
     vTaskDelay(pdMS_TO_TICKS(25));
   }
   else return false;
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_CMD_04,0x1100,26,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1100, 26, response))
   {
     parsePackInfoB(&modbus, u8_lSeplosAdrBmsData);
     vTaskDelay(pdMS_TO_TICKS(25));
   }
   else return false;
 
-  if(modbus.readData(u8_lSeplosAdr,modbusrtu::ModbusRTU::fCode::READ_COIL_01,0x1200,0x90,response))
+  if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_COIL_01, 0x1200, 0x90, response))
   {
     parsePackInfoC(&modbus, u8_lSeplosAdrBmsData);
   }
@@ -69,22 +66,22 @@ bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8
 }
 
 
-static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
-  setBmsTotalVoltage_int(devNr,modbus->getU16Value(SEPLOS3_TOTAL_VOLTAGE)); // 10mV
-  setBmsTotalCurrent_int(devNr,modbus->getU16Value(SEPLOS3_TOTAL_CURRENT)); // 10mA
-  setBmsAvgVoltage(devNr,modbus->getU16Value(SEPLOS3_AVG_CELL_VOLTAGE)); // 1mV
-  setBmsChargePercentage(devNr, ROUND(modbus->getU16Value(SEPLOS3_SEPLOSV3_SOC), 10)); // 0.1%
+  setBmsTotalVoltage_int(dataMappingNr,modbus->getU16Value(SEPLOS3_TOTAL_VOLTAGE)); // 10mV
+  setBmsTotalCurrent_int(dataMappingNr,modbus->getU16Value(SEPLOS3_TOTAL_CURRENT)); // 10mA
+  setBmsAvgVoltage(dataMappingNr,modbus->getU16Value(SEPLOS3_AVG_CELL_VOLTAGE)); // 1mV
+  setBmsChargePercentage(dataMappingNr, ROUND(modbus->getU16Value(SEPLOS3_SEPLOSV3_SOC), 10)); // 0.1%
 
   uint16_t maxCellVoltage = modbus->getU16Value(SEPLOS3_MAX_CELL_VOLTAGE); // 1mV
   uint16_t minCellVoltage = modbus->getU16Value(SEPLOS3_MIN_CELL_VOLTAGE); // 1mV
-  setBmsMaxCellVoltage(devNr,maxCellVoltage);
-  setBmsMinCellVoltage(devNr,minCellVoltage);
-  setBmsMaxCellDifferenceVoltage(devNr,maxCellVoltage-minCellVoltage);
+  setBmsMaxCellVoltage(dataMappingNr,maxCellVoltage);
+  setBmsMinCellVoltage(dataMappingNr,minCellVoltage);
+  setBmsMaxCellDifferenceVoltage(dataMappingNr,maxCellVoltage-minCellVoltage);
 }
 
 
-static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
   // Cellvoltage
   uint16_t cellVoltage;
@@ -96,7 +93,7 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
   {
     cellVoltage = modbus->getU16Value(SEPLOS3_CELLVOLTAGE_1+i);
     //BSC_LOGI(TAG,"%i, cellVoltage=%i",i,cellVoltage);
-    setBmsCellVoltage(devNr,i,cellVoltage);
+    setBmsCellVoltage(dataMappingNr,i,cellVoltage);
 
     if(cellVoltage>maxCellVoltage)
     {
@@ -109,40 +106,44 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
       minCellVoltageNr=i;
     }
   }
-  setBmsMaxVoltageCellNumber(devNr,maxCellVoltageNr);
-  setBmsMinVoltageCellNumber(devNr,minCellVoltageNr);
+  setBmsMaxVoltageCellNumber(dataMappingNr,maxCellVoltageNr);
+  setBmsMinVoltageCellNumber(dataMappingNr,minCellVoltageNr);
 
-  // Temperature
-  for(uint8_t i=0;i<3;i++) setBmsTempatureI16(devNr, i, (int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_1+i));
+  // Temperature 1-4
+  for(uint8_t i=0; i < 4; i++) 
+  {
+    if(i >= NR_OF_BMS_TEMP_SENSORS) break;
+    setBmsTempatureI16(dataMappingNr, i, ((int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_1 + i) - 0xAAB) * 10);
+  }
+
+  // Temperature 5-6
+  for(uint8_t i=0; i < 2; i++) 
+  {
+    if(i >= (NR_OF_BMS_TEMP_SENSORS - 4)) break;
+    setBmsTempatureI16(dataMappingNr, i + 4, ((int16_t)modbus->getU16Value(SEPLOS3_TEMPERATURE_5 + i) - 0xAAB) * 10);
+  }
 }
 
-#include "BmsDataTypes.hpp"
-static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t devNr)
+
+static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
   uint32_t errors = 0;
 
-  /* ToDo:
-  * bmsIsBalancingActive
-  * bmsErrors
+  /*
+  BMS_ERR_STATUS_CELL_OVP       // x     1 - bit0 single cell overvoltage protection
+  BMS_ERR_STATUS_CELL_UVP       // x     2 - bit1 single cell undervoltage protection
+  BMS_ERR_STATUS_BATTERY_OVP    // x     4 - bit2  whole pack overvoltage protection
+  BMS_ERR_STATUS_BATTERY_UVP    // x     8 - bit3  Whole pack undervoltage protection
+  BMS_ERR_STATUS_CHG_OTP        // x    16 - bit4  charging over temperature protection
+  BMS_ERR_STATUS_CHG_UTP        // x    32 - bit5  charging low temperature protection
+  BMS_ERR_STATUS_DSG_OTP        // x    64 - bit6  Discharge over temperature protection
+  BMS_ERR_STATUS_DSG_UTP        // x   128 - bit7  discharge low temperature protection
+  BMS_ERR_STATUS_CHG_OCP        // x   256 - bit8  charging overcurrent protection
+  BMS_ERR_STATUS_DSG_OCP        // x   512 - bit9  Discharge overcurrent protection
+  BMS_ERR_STATUS_SHORT_CIRCUIT  // x  1024 - bit10 short circuit protection
+  BMS_ERR_STATUS_AFE_ERROR      //   2048 - bit11 Front-end detection IC error
+  BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
   */
-
-
-
-/*
-BMS_ERR_STATUS_CELL_OVP       // x     1 - bit0 single cell overvoltage protection
-BMS_ERR_STATUS_CELL_UVP       // x     2 - bit1 single cell undervoltage protection
-BMS_ERR_STATUS_BATTERY_OVP    // x     4 - bit2  whole pack overvoltage protection
-BMS_ERR_STATUS_BATTERY_UVP    // x     8 - bit3  Whole pack undervoltage protection
-BMS_ERR_STATUS_CHG_OTP        // x    16 - bit4  charging over temperature protection
-BMS_ERR_STATUS_CHG_UTP        // x    32 - bit5  charging low temperature protection
-BMS_ERR_STATUS_DSG_OTP        // x    64 - bit6  Discharge over temperature protection
-BMS_ERR_STATUS_DSG_UTP        // x   128 - bit7  discharge low temperature protection
-BMS_ERR_STATUS_CHG_OCP        // x   256 - bit8  charging overcurrent protection
-BMS_ERR_STATUS_DSG_OCP        // x   512 - bit9  Discharge overcurrent protection
-BMS_ERR_STATUS_SHORT_CIRCUIT  // x  1024 - bit10 short circuit protection
-BMS_ERR_STATUS_AFE_ERROR      //   2048 - bit11 Front-end detection IC error
-BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
-*/
 
  /*
  #define SEPLOS3_EQUALIZATION_08_01    0x1230
@@ -151,8 +152,8 @@ BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
  0x1230 Cell 08-01 equalization event code 08-01
  0x1238 Cell 16-09 equalization event code 16-09 */
 if(modbus->getU8Value(SEPLOS3_EQUALIZATION_08_01) > 0 
-  || modbus->getU8Value(SEPLOS3_EQUALIZATION_16_09) > 0) setBmsIsBalancingActive(devNr, 1); 
-else setBmsIsBalancingActive(devNr, 0);
+  || modbus->getU8Value(SEPLOS3_EQUALIZATION_16_09) > 0) setBmsIsBalancingActive(dataMappingNr, 1); 
+else setBmsIsBalancingActive(dataMappingNr, 0);
 
 
 
@@ -262,21 +263,14 @@ else setBmsIsBalancingActive(devNr, 0);
   Bit5  Reservation
   Bit6  Reservation
   Bit7  Reservation*/
-  setBmsStateFETsDischarge(devNr,modbus->getBitValue(SEPLOS3_FET_EVENT,0));
-  setBmsStateFETsCharge(devNr,modbus->getBitValue(SEPLOS3_FET_EVENT,1));
+  setBmsStateFETsDischarge(dataMappingNr, modbus->getBitValue(SEPLOS3_FET_EVENT, 0));
+  setBmsStateFETsCharge(dataMappingNr, modbus->getBitValue(SEPLOS3_FET_EVENT, 1));
 
 
-  /* 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION, TB08)
-  INDEX Definition
-  Bit0  low Soc alarm
-  Bit1  Intermittent charge
-  Bit2  External switch control
-  Bit3  Static standby and sleep mode
-  Bit4  History data recording
-  Bit5  Under Soc protect
-  Bit6  Acktive-Limited Current
-  Bit7  Passive-Limited Current*/
-  
+  // 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION)
+  if(modbus->getU8Value(SEPLOS3_BATTERY_EQUALIZATION) > 0) setBmsIsBalancingActive(dataMappingNr, 1);
+  else setBmsIsBalancingActive(dataMappingNr, 0);
+
 
   /* 0x1240 System state code (SEPLOS3_SYSTEM_STATE, TB09)
   INDEX Definition
@@ -304,7 +298,7 @@ else setBmsIsBalancingActive(devNr, 0);
     if(modbus->getBitValue(SEPLOS3_FARD_FAULT,i)) errors |= BMS_ERR_STATUS_AFE_ERROR;
 
 
-  setBmsErrors(devNr , errors);
+  setBmsErrors(dataMappingNr , errors);
 }
 
 

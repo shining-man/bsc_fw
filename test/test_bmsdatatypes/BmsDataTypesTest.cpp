@@ -203,9 +203,9 @@ TEST_F(BmsDataTypesTest, VerifyMethod_bmsErrorFromMessage_JkBmsWarnMsg)
   }
 
   {
-    const jkbms::JkBmsWarnMsg jkBmsMsg = jkbms::JkBmsWarnMsg::from_int(jkbms::test::JKBMS_WARN_MSG_CHG_OVERTEMP);
+    const jkbms::JkBmsWarnMsg jkBmsMsg = jkbms::JkBmsWarnMsg::from_int(jkbms::test::JKBMS_WARN_MSG_CHG_OVERCURRENT);
     BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
-    ASSERT_EQ(BMS_ERR_STATUS_CHG_OTP, bmsErrors.to_int<uint16_t>());
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_OCP, bmsErrors.to_int<uint16_t>());
   }
 
   {
@@ -226,11 +226,10 @@ TEST_F(BmsDataTypesTest, VerifyMethod_bmsErrorFromMessage_JkBmsWarnMsg)
     ASSERT_EQ(BMS_ERR_STATUS_CHG_OTP, bmsErrors.to_int<uint16_t>());
   }
 
-  { // TODO: Same question as in BmsDataTypes.hpp:
-    //       Is it correct, that BATTERY_LOW_TEMPERATURE is mapped to CHG_OCP (was Bit 9:  Battery low temperature to BMS_ERR_STATUS_CHG_OCP)
+  { 
     const jkbms::JkBmsWarnMsg jkBmsMsg = jkbms::JkBmsWarnMsg::from_int(jkbms::test::JKBMS_WARN_MSG_BATTERY_LOW_TEMPERATURE);
     BmsErrorStatus bmsErrors = bmsErrorFromMessage(jkBmsMsg);
-    ASSERT_EQ(BMS_ERR_STATUS_CHG_OCP, bmsErrors.to_int<uint16_t>());
+    ASSERT_EQ(BMS_ERR_STATUS_CHG_UTP, bmsErrors.to_int<uint16_t>());
   }
 
   {

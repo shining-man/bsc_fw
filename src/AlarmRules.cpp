@@ -26,6 +26,7 @@ static SemaphoreHandle_t alarmSettingsChangeMutex = NULL;
 bool bo_Alarm[CNT_ALARMS];
 bool bo_Alarm_old[CNT_ALARMS];
 uint16_t alarmCauseAktiv[CNT_ALARMS];
+uint16_t* pAlarmCauseAktivLast = NULL;
 
 #ifndef LILYGO_TCAN485
 uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
@@ -45,9 +46,10 @@ uint8_t u8_mTachoChannel;
 uint16_t vTrigger;
 
 //Hysterese
-uint32_t u32_hystereseTotalVoltageMin=0;
-uint32_t u32_hystereseTotalVoltageMax=0;
-uint8_t u8_merkerHysterese_TriggerAtSoc=0;
+uint32_t u32_hystereseTotalVoltageMin = 0;
+uint32_t u32_hystereseTotalVoltageMax = 0;
+uint8_t u8_merkerHysterese_TriggerAtSoc = 0;
+uint32_t mHystereseCellVoltage = 0;
 
 #ifndef LILYGO_TCAN485
 void runDigitalAusgaenge();
@@ -61,9 +63,9 @@ void tachoSetMux(uint8_t channel);
 
 void rules_Bms();
 void rules_Temperatur();
-void rules_CanInverter(Inverter &inverter);
 void rules_Tacho();
 bool temperatur_maxWertUeberwachung(uint8_t);
+bool temperatur_minWertUeberwachung(uint8_t);
 bool temperatur_maxWertUeberwachungReferenz(uint8_t);
 bool temperatur_DifferenzUeberwachung(uint8_t);
 void temperatur_senorsErrors();
@@ -71,15 +73,18 @@ void setAlarmToBtDevices(uint8_t u8_AlarmNr, boolean bo_Alarm);
 void rules_PlausibilityCeck();
 void rules_soc(Inverter &inverter);
 void rules_vTrigger();
+void loadVirtualTrigger();
 
 
 void initAlarmRules(Inverter &inverter)
 {
   u8_mDoByte = 0;
   bo_timerPulseOffIsRunning = false;
-  bo_mChangeAlarmSettings=false;
-  u8_merkerHysterese_TriggerAtSoc=false;
-  vTrigger=0;
+  bo_mChangeAlarmSettings = false;
+  u8_merkerHysterese_TriggerAtSoc = false;
+  vTrigger = 0;
+
+  loadVirtualTrigger();
 
   for(uint8_t i=0;i<CNT_ALARMS;i++)
   {
@@ -159,54 +164,52 @@ bool getAlarm(uint8_t alarmNr)
 
 uint16_t getAlarm()
 {
-  uint16_t u16_lAlm=0;
-  for(uint8_t i=0; i<10;i++)
+  uint16_t u16_lAlm = 0;
+  for(uint8_t i = 0; i < 10; i++)
   {
     u16_lAlm |= (bo_Alarm[i] << i);
   }
   return u16_lAlm;
 }
 
-void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
+/* Wenn sich die Triggergründe geändert haben, dann Meldung ins Log */
+void handleLogTriggerHIGH(uint8_t triggerNr, uint8_t cause, String value)
 {
-  if(alarmNr==0)return;
+  String causeText = ALARM_CAUSE_TEXT[cause];
 
-  alarmNr--;
-  if(bo_lAlarm)
+  if(pAlarmCauseAktivLast == NULL)
   {
-    //BSC_LOGD(TAG,"setAlarm: alarmNr=%i TRUE",alarmNr);
-    bo_Alarm[alarmNr]=true;
-    bitSet(alarmCauseAktiv[alarmNr],cause);
-    bo_alarmActivate[alarmNr]=true;
+    BSC_LOGE(TAG, "Fehler beim erstellen des Logeintrags für den Trigger");
+    return;
   }
-  else if(bo_alarmActivate[alarmNr]!=true)
+
+  if(isBitSet(pAlarmCauseAktivLast[triggerNr], cause) == 0 &&
+    isBitSet(alarmCauseAktiv[triggerNr], cause) == 1)
   {
-    //BSC_LOGD(TAG,"setAlarm: alarmNr=%i FALSE",alarmNr);
-    bo_Alarm[alarmNr]=bo_lAlarm;
-    if(bo_lAlarm)
-    {
-      bo_alarmActivate[alarmNr]=true;
-    }
+    if(value.length() > 0) BSC_LOGI(TAG,"Trigger %i HIGH -> %s, value %s", triggerNr + 1, causeText, value.c_str());
+    else BSC_LOGI(TAG,"Trigger %i HIGH -> %s", triggerNr + 1, causeText.c_str());
+    logTrigger(triggerNr, cause, true);
   }
 }
 
-/* Wenn sich die Triggergründe geändert haben, dann Meldung ins Log */
-void handleLogTrigger(uint16_t (&alarmCauseAktivLast)[CNT_ALARMS])
+void handleLogTriggerLOW()
 {
+  if(pAlarmCauseAktivLast == NULL)
+  {
+    BSC_LOGE(TAG, "Fehler beim erstellen des Logeintrags für den Trigger");
+    return;
+  }
+
   for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++)
   {
     for(uint8_t cause=0; cause < 16; cause++)
     {
-      if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==0 &&
-        isBitSet(alarmCauseAktiv[triggerNr], cause)==1)
-      {
-        BSC_LOGI(TAG,"Trigger %i high, cause %i",triggerNr+1,cause);
-        logTrigger(triggerNr, cause, true);
-      }
-      else if(isBitSet(alarmCauseAktivLast[triggerNr], cause)==1 &&
+      if(isBitSet(pAlarmCauseAktivLast[triggerNr], cause)==1 &&
         isBitSet(alarmCauseAktiv[triggerNr], cause)==0)
       {
-        BSC_LOGI(TAG,"Trigger %i low, cause %i",triggerNr+1,cause);
+        String causeText = ALARM_CAUSE_TEXT[cause];
+        
+        BSC_LOGI(TAG,"Trigger %i LOW -> %s",triggerNr+1,causeText.c_str());
         logTrigger(triggerNr, cause, false);
         bitClear(alarmCauseAktiv[triggerNr],cause);
       }
@@ -214,14 +217,64 @@ void handleLogTrigger(uint16_t (&alarmCauseAktivLast)[CNT_ALARMS])
   }
 }
 
+void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause, String value)
+{
+  if(alarmNr == 0)return;
+
+  alarmNr--;
+  if(bo_lAlarm)
+  {
+    bo_Alarm[alarmNr] = true;
+    bitSet(alarmCauseAktiv[alarmNr], cause);
+    bo_alarmActivate[alarmNr] = true;
+  }
+  else if(bo_alarmActivate[alarmNr] != true)
+  {
+    bo_Alarm[alarmNr] = bo_lAlarm;
+    if(bo_lAlarm)
+    {
+      bo_alarmActivate[alarmNr] = true;
+    }
+  }
+
+  handleLogTriggerHIGH(alarmNr, cause, value);
+}
+
+void setAlarm(uint8_t alarmNr, bool bo_lAlarm, uint8_t cause)
+{
+  setAlarm(alarmNr, bo_lAlarm, cause, "");
+}
+
+
 bool setVirtualTrigger(uint8_t triggerNr, bool val)
 {
-  if(triggerNr==0 || triggerNr>10) return false;
+  if(triggerNr == 0 || triggerNr > 10) return false;
   triggerNr--;
 
-  if(val)bitSet(vTrigger,triggerNr);
-  else bitClear(vTrigger,triggerNr);
+  // Gibt es eine Änderung an dem Trigger
+  if((val && !isBitSet(vTrigger, triggerNr)) || (!val && isBitSet(vTrigger, triggerNr)))
+  {
+    if(val)bitSet(vTrigger, triggerNr);
+    else bitClear(vTrigger, triggerNr);
+
+    // Wenn der Trigger gespeichert werden soll
+    if(isBitSet((uint16_t)WebSettings::getInt(ID_PARAM_MQTT_VTRIGGER_REMANENT, 0, DT_ID_PARAM_MQTT_VTRIGGER_REMANENT), triggerNr))
+    {
+      WebSettings::setPreferencesU32("vtrigger", (uint32_t)vTrigger);
+    }
+  } 
+
   return true;
+}
+
+void loadVirtualTrigger()
+{
+  uint16_t vTriggerSave = (uint16_t)WebSettings::getPreferencesU32("vtrigger", 0);
+  uint16_t vTriggerRemanent = (uint16_t)WebSettings::getInt(ID_PARAM_MQTT_VTRIGGER_REMANENT, 0, DT_ID_PARAM_MQTT_VTRIGGER_REMANENT);
+
+  vTrigger = (vTriggerSave&vTriggerRemanent);
+
+  BSC_LOGE(TAG, "vTrigger geladen: %i", vTrigger);
 }
 
 
@@ -233,7 +286,9 @@ void runAlarmRules(Inverter &inverter)
 
   // Merker für die letzten Alarm Gründe
   uint16_t alarmCauseAktivLast[CNT_ALARMS];
+  pAlarmCauseAktivLast = alarmCauseAktivLast;
   memcpy(alarmCauseAktivLast, alarmCauseAktiv, sizeof(uint16_t)*CNT_ALARMS);
+  
   // Lösche den letzten Triggergrund; Der Grund wird in dem Durchgang neu gesetzt
   for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++) alarmCauseAktiv[triggerNr]=0;
 
@@ -259,9 +314,6 @@ void runAlarmRules(Inverter &inverter)
 
   //Plausibility ceck (Zellvoltage)
   rules_PlausibilityCeck();
-
-  //Inverter (CAN)
-  rules_CanInverter(inverter);
 
   //Digitaleingänge
   #ifndef LILYGO_TCAN485
@@ -298,7 +350,7 @@ void runAlarmRules(Inverter &inverter)
 
     if(bo_Alarm[i]!=bo_Alarm_old[i]) //Flankenwechsel
     {
-      BSC_LOGI(TAG, "Trigger %i, value %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
+      BSC_LOGD(TAG, "Trigger %i, value %i - %s",i+1,bo_Alarm[i],WebSettings::getStringFlash(ID_PARAM_TRIGGER_NAMES,i).c_str());
       bo_Alarm_old[i] = bo_Alarm[i];
 
       //Bei Statusänderung mqqt msg absetzen
@@ -344,7 +396,8 @@ void runAlarmRules(Inverter &inverter)
   #ifndef LILYGO_TCAN485
   setDOs();
   #endif
-  handleLogTrigger(alarmCauseAktivLast);
+  //handleLogTrigger(alarmCauseAktivLast);
+  handleLogTriggerLOW();
 }
 
 
@@ -468,29 +521,13 @@ void getDIs()
 
     if((u8_lDiData & (1<<i)) == (1<<i))
     {
-      if(!bo_lDiInvert)
-      {
-        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
-        //BSC_LOGD(TAG,"Alarm (a) DI TRUE; Alarm %i", u8_lAlarmNr);
-      }
-      else
-      {
-        setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
-        //BSC_LOGD(TAG,"Alarm (b) DI FALSE; Alarm %i", u8_lAlarmNr);
-      }
+      if(!bo_lDiInvert) setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
+      else setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
     }
     else
     {
-      if(!bo_lDiInvert)
-      {
-        setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
-        //BSC_LOGD(TAG,"Alarm (c) DI FALSE; Alarm %i", u8_lAlarmNr);
-      }
-      else
-      {
-        setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
-        //BSC_LOGD(TAG,"Alarm (d) DI TRUE; Alarm %i", u8_lAlarmNr);
-      }
+      if(!bo_lDiInvert) setAlarm(u8_lAlarmNr,false,ALARM_CAUSE_DI);
+      else setAlarm(u8_lAlarmNr,true,ALARM_CAUSE_DI);
     }
   }
 }
@@ -605,124 +642,166 @@ void rules_Tacho()
 
 void rules_Bms()
 {
-  uint8_t i,tmp,u8_lAlarmruleBmsNr;
-  uint8_t u8_bmsSerial2=(uint8_t)WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,2,DT_ID_PARAM_SERIAL_CONNECT_DEVICE);
-  uint8_t u8_numberOfBmsOnSerial2=(uint8_t)WebSettings::getInt(ID_PARAM_SERIAL2_CONNECT_TO_ID,0,DT_ID_PARAM_SERIAL2_CONNECT_TO_ID);
+  uint8_t i, tmp, lAlarmruleDataDevice, dataDevice;
 
   for(i=0; i<CNT_BT_ALARMS_RULES; i++)
   {
-    u8_lAlarmruleBmsNr=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,i,DT_ID_PARAM_ALARM_BTDEV_BMS_SELECT);
-    if(u8_lAlarmruleBmsNr==127) continue; //'AUS'
-    //BSC_LOGE(TAG,"u8_lAlarmruleBmsNr=%i, u8_numberOfBmsOnSerial2=%i, u8_bmsSerial2=%i",u8_lAlarmruleBmsNr,u8_numberOfBmsOnSerial2,u8_bmsSerial2);
-    //Ist überhaupt ein Device parametriert?
-    if((u8_lAlarmruleBmsNr<BT_DEVICES_COUNT 
-        && WebSettings::getInt(ID_PARAM_SS_BTDEV,u8_lAlarmruleBmsNr,DT_ID_PARAM_SS_BTDEV)>0 
-        && !WebSettings::getString(ID_PARAM_SS_BTDEVMAC,u8_lAlarmruleBmsNr).equals("")) 
-      ||(u8_lAlarmruleBmsNr>=BT_DEVICES_COUNT 
-        && WebSettings::getInt(ID_PARAM_SERIAL_CONNECT_DEVICE,u8_lAlarmruleBmsNr-BT_DEVICES_COUNT,DT_ID_PARAM_SERIAL_CONNECT_DEVICE)!=0 )
-      || (u8_lAlarmruleBmsNr>(BT_DEVICES_COUNT+2) 
-        && u8_lAlarmruleBmsNr<(u8_numberOfBmsOnSerial2+BT_DEVICES_COUNT+2) 
-        && isMultiple485bms(u8_bmsSerial2)) )
+    lAlarmruleDataDevice = (uint8_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_BMS_SELECT,i,DT_ID_PARAM_ALARM_BTDEV_BMS_SELECT);
+    if(lAlarmruleDataDevice >= MUBER_OF_DATA_DEVICES) continue; //'AUS'
+
+    dataDevice = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE, lAlarmruleDataDevice, DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
+    if(dataDevice >= MUBER_OF_DATA_DEVICES)
     {
-      //Wenn Alram für das Device aktiv ist
-      if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0)
+      BSC_LOGE(TAG,"Aralrmregel %i wird nicht ausgefuehrt! Kein Device im Mapping festgelegt!", lAlarmruleDataDevice);
+      continue; // nicht Belegt
+    }
+
+    //BSC_LOGE(TAG,"lAlarmruleDataDevice=%i, u8_numberOfBmsOnSerial2=%i, u8_bmsSerial2=%i",lAlarmruleDataDevice,u8_numberOfBmsOnSerial2,u8_bmsSerial2);
+
+    //Wenn Alram für das Device aktiv ist
+    if(WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION)>0)
+    {
+      //Alarm wenn keine Daten mehr vom BT-Device kommen
+      uint32_t lastDataTime = getBmsLastDataMillis(lAlarmruleDataDevice);
+      if((millis() - lastDataTime) > 
+        ((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
       {
-        //Alarm wenn keine Daten mehr vom BT-Device kommen
-        if((millis()-getBmsLastDataMillis(u8_lAlarmruleBmsNr))>((uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000))
+        //Alarm
+        //debugPrintf("BT Alarm (%i)",lAlarmruleDataDevice);
+        tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
+        setAlarm(tmp,true,ALARM_CAUSE_BMS_NO_DATA);
+
+        /*BSC_LOGI(TAG,"No data B: %i, dd=%i, m=%i, l=%i, t=%i", 
+          tmp, lAlarmruleDataDevice, lMillis, lastDataTime, 
+          (uint32_t)WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_TIME_OUT)*1000);*/
+      }
+      else
+      {
+        tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
+        setAlarm(tmp,false,ALARM_CAUSE_BMS_NO_DATA);
+        //BSC_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
+      }
+    }
+
+    //Überwachung Zellspannung
+    if(WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION)>0)
+    {
+      bool cellVoltAlarm = false;
+      bool CellVoltHyst = false;
+
+      uint16_t highestCellVoltage = 0;
+      uint8_t  highestCellVoltageNr = 0xFF;
+      uint16_t lowestCellVoltage = 0xFFFF;
+      uint8_t  lowestCellVoltageNr = 0xFF;
+
+      // Höchste und niedrigste Cellvoltage der überwachten Zellen ermitteln
+      for(uint8_t cc = 0; cc < WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
+      {
+        if(getBmsCellVoltage(lAlarmruleDataDevice, cc) > highestCellVoltage)
         {
-          //Alarm
-          //debugPrintf("BT Alarm (%i)",u8_lAlarmruleBmsNr);
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
-          setAlarm(tmp,true,ALARM_CAUSE_BMS_NO_DATA);
-          //BSC_LOGD(TAG,"Alarm BMS no data - TRUE; Alarm %i", tmp);
+          highestCellVoltage = getBmsCellVoltage(lAlarmruleDataDevice,cc);
+          highestCellVoltageNr = cc;
         }
-        else
+
+        if(getBmsCellVoltage(lAlarmruleDataDevice, cc) < lowestCellVoltage)
         {
-          tmp=WebSettings::getInt(ID_PARAM_ALARM_BTDEV_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BTDEV_ALARM_AKTION);
-          setAlarm(tmp,false,ALARM_CAUSE_BMS_NO_DATA);
-          //BSC_LOGD(TAG,"Alarm BMS no data - FALSE; Alarm %i", tmp);
+          lowestCellVoltage = getBmsCellVoltage(lAlarmruleDataDevice,cc);
+          lowestCellVoltageNr = cc;
         }
       }
 
-      //Überwachung Zellspannung
-      //BSC_LOGD(TAG, "(i=%i) Zell Spg. Outside, enable=%i",i, WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION));
-      if(WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION)>0)
-      {
-      //debugPrintf("Zell Spg. Outside cellCnt=%i",WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,0,i,0));
-        for(uint8_t cc=0; cc<WebSettings::getInt(ID_PARAM_ALARM_BT_CNT_CELL_CTRL,i,DT_ID_PARAM_ALARM_BT_CNT_CELL_CTRL); cc++)
-        {
-          //debugPrintf("i=%i, cc=%i, cellspg=%i, min=%i, max=%i",i,cc,getBmsCellVoltage(i,cc),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,0,i,0),WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,0,i,0));
-          if(getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN)
-            || getBmsCellVoltage(u8_lAlarmruleBmsNr,cc) > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
-          {
-            //Alarm
-            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-            setAlarm(tmp,true,ALARM_CAUSE_BMS_CELL_VOLTAGE);
-            //BSC_LOGD(TAG, "Zell Spg. Outside (%i) alarmNr=%i", i,tmp);
-            break; //Sobald eine Zelle Alarm meldet kann abgebrochen werden
-          }
-          else
-          {
-            tmp=WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
-            setAlarm(tmp,false,ALARM_CAUSE_BMS_CELL_VOLTAGE);
-            //BSC_LOGD(TAG,"Alarm BMS Zell Spg. - FALSE; Alarm %i", tmp);
-          }
-        }
-      }
+      // Hysterese
+      uint16_t hystVoltage = (uint16_t)WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX_HYSTERESE); 
 
-      //Überwachung Gesamtspannung
-      uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION);
-      if(u8_lAlarm>0)
+      // Min. Cellvoltage
+      if(lowestCellVoltage < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN))
       {
-        //Total voltage Min
-        if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i))
+        bitSet(mHystereseCellVoltage, i);
+        cellVoltAlarm = true;
+      }
+      else if(isBitSet(mHystereseCellVoltage, i) && 
+        lowestCellVoltage < WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MIN,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MIN) + hystVoltage)
+      {
+        CellVoltHyst = true;
+      }
+      
+      // Max. Cellvoltage
+      if(highestCellVoltage > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX))
+      {
+        bitSet(mHystereseCellVoltage, i);
+        cellVoltAlarm = true;
+      }
+      else if(isBitSet(mHystereseCellVoltage, i) && 
+        highestCellVoltage > WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_MAX,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_MAX) - hystVoltage)
+      {
+        CellVoltHyst = true;
+      }
+      
+      // Alarm auswerten
+      if(cellVoltAlarm || CellVoltHyst)
+      {
+        tmp = WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
+        setAlarm(tmp, true, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + 
+          String(lowestCellVoltageNr) + String(F("/")) + String(highestCellVoltageNr) + String(F(", ")) +
+          String(lowestCellVoltage) + String(F("/")) + String(highestCellVoltage) + F(" mV"));
+      }
+      else
+      {
+        bitClear(mHystereseCellVoltage, i);
+
+        tmp = WebSettings::getInt(ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_CELL_SPG_ALARM_AKTION);
+        setAlarm(tmp, false, ALARM_CAUSE_BMS_CELL_VOLTAGE, String(F("C")) + 
+          String(lowestCellVoltageNr) + String(F("/")) + String(highestCellVoltageNr) + String(F(", ")) +
+          String(lowestCellVoltage) + String(F("/")) + String(highestCellVoltage) + F(" mV"));
+      }
+    }
+
+    //Überwachung Gesamtspannung
+    uint8_t u8_lAlarm = WebSettings::getInt(ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION,i,DT_ID_PARAM_ALARM_BT_GESAMT_SPG_ALARM_AKTION);
+    if(u8_lAlarm>0)
+    {
+      //Total voltage Min
+      if(getBmsTotalVoltage(lAlarmruleDataDevice) < WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i))
+      {
+        //Alarm
+        bitSet(u32_hystereseTotalVoltageMin,i);
+        bitClear(u32_hystereseTotalVoltageMax,i);
+        setAlarm(u8_lAlarm, true, ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
+      }
+      //Total voltage Max
+      else if(getBmsTotalVoltage(lAlarmruleDataDevice) > WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i))
+      {
+        //Alarm
+        bitSet(u32_hystereseTotalVoltageMax,i);
+        bitClear(u32_hystereseTotalVoltageMin,i);
+        setAlarm(u8_lAlarm, true, ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
+      }
+      else
+      {
+        float fl_totalVoltageHysterese = WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_HYSTERESE,i);
+        if(isBitSet(u32_hystereseTotalVoltageMin,i))
         {
-          //Alarm
-          bitSet(u32_hystereseTotalVoltageMin,i);
-          bitClear(u32_hystereseTotalVoltageMax,i);
-          setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
-          //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
-        }
-        //Total voltage Max
-        else if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) > WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i))
-        {
-          //Alarm
-          bitSet(u32_hystereseTotalVoltageMax,i);
-          bitClear(u32_hystereseTotalVoltageMin,i);
-          setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
-          //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - TRUE; Alarm %i", u8_lAlarm);
-        }
-        else
-        {
-          float fl_totalVoltageHysterese = WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_HYSTERESE,i);
-          if(isBitSet(u32_hystereseTotalVoltageMin,i))
+          if(getBmsTotalVoltage(lAlarmruleDataDevice) > (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i)+fl_totalVoltageHysterese))
           {
-            if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) > (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MIN,i)+fl_totalVoltageHysterese))
-            {
-              bitClear(u32_hystereseTotalVoltageMin,i);
-              setAlarm(u8_lAlarm,false,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
-            }
-            else setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX);
+            bitClear(u32_hystereseTotalVoltageMin,i);
+            setAlarm(u8_lAlarm, false, ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
           }
-          else if(isBitSet(u32_hystereseTotalVoltageMax,i))
+          else setAlarm(u8_lAlarm, true, ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MAX, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
+        }
+        else if(isBitSet(u32_hystereseTotalVoltageMax,i))
+        {
+          if(getBmsTotalVoltage(lAlarmruleDataDevice) < (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i)-fl_totalVoltageHysterese))
           {
-            if(getBmsTotalVoltage(u8_lAlarmruleBmsNr) < (WebSettings::getFloat(ID_PARAM_ALARM_BT_GESAMT_SPG_MAX,i)-fl_totalVoltageHysterese))
-            {
-              bitClear(u32_hystereseTotalVoltageMax,i);
-              setAlarm(u8_lAlarm,false,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
-            }
-            else setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN);
+            bitClear(u32_hystereseTotalVoltageMax,i);
+            setAlarm(u8_lAlarm,false,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
           }
-          /*else
-          {
-            setAlarm(u8_lAlarm,false);
-            //BSC_LOGD(TAG,"Alarm BMS Gesamtspannung - FALSE; Alarm %i", u8_lAlarm);
-          }*/
+          else setAlarm(u8_lAlarm,true,ALARM_CAUSE_BMS_TOTAL_VOLTAGE_MIN, String(getBmsTotalVoltage(lAlarmruleDataDevice)) + F(" V"));
         }
       }
     }
   }
 }
+
 
 
 void rules_Temperatur()
@@ -755,43 +834,30 @@ void rules_Temperatur()
           if(temperatur_DifferenzUeberwachung(i)){bo_lAlarm=true;}
           break;
 
+        case ID_TEMP_ALARM_FUNKTION_MINWERT:
+          if(temperatur_minWertUeberwachung(i)){bo_lAlarm=true;}
+          break;
+
         default:
           break;
       }
 
       alarmNr=WebSettings::getInt(ID_PARAM_TEMP_ALARM_AKTION,i,DT_ID_PARAM_TEMP_ALARM_AKTION);
       setAlarm(alarmNr,bo_lAlarm,ALARM_CAUSE_TEMPERATUR);
-      //BSC_LOGD(TAG,"Alarm BMS Temperatur - %i; Alarm %i",bo_lAlarm,alarmNr);
     }
   }
 
   temperatur_senorsErrors();
 }
 
-
-void rules_CanInverter(Inverter &inverter)
-{
-  //Ladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_LADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_LADELEISTUNG_AUF_NULL)) inverter.setChargeCurrentToZero(true);
-  else inverter.setChargeCurrentToZero(false);
-
-  //Entladeleistung bei Alarm auf 0 Regeln
-  if(isTriggerActive(ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL,0,DT_ID_PARAM_BMS_ENTLADELEISTUNG_AUF_NULL)) inverter.setDischargeCurrentToZero(true);
-  else inverter.setDischargeCurrentToZero(false);
-
-  //SOC bei Alarm auf 100 stellen
-  if(isTriggerActive(ID_PARAM_BMS_SOC_AUF_FULL,0,DT_ID_PARAM_BMS_SOC_AUF_FULL)) inverter.setSocToFull(true);
-  else inverter.setSocToFull(false);
-}
-
-uint16_t u16_mMerkerTemperaturTrigger=0;
-void setMerker(uint8_t merkerNr, bool val)
+uint16_t u16_mMerkerTemperaturTrigger = 0;
+void setTemperaturMerker(uint8_t merkerNr, bool val)
 {
   if(val) u16_mMerkerTemperaturTrigger |= (1<<merkerNr);
   else u16_mMerkerTemperaturTrigger &= ~(1<<merkerNr); //bit loeschen
 }
 
-bool isMerker(uint8_t merkerNr)
+bool isTemperaturMerker(uint8_t merkerNr)
 {
   if((u16_mMerkerTemperaturTrigger>>merkerNr)&0x01) return true;
   else return false;
@@ -806,7 +872,7 @@ float getTemp_TempAlarmrule(uint8_t u8_ruleNr, uint8_t u8_sensorNr)
 
   if(u8_lRuleTempQuelle==1) //BMS
   {
-    uint8_t u8_lRuleBmsQuelle=WebSettings::getInt(ID_PARAM_TEMP_ALARM_BMS_QUELLE,u8_ruleNr,DT_ID_PARAM_TEMP_ALARM_BMS_QUELLE);
+    uint8_t u8_lRuleBmsQuelle = (uint8_t)WebSettings::getInt(ID_PARAM_TEMP_ALARM_BMS_QUELLE,u8_ruleNr,DT_ID_PARAM_TEMP_ALARM_BMS_QUELLE);
     return getBmsTempature(u8_lRuleBmsQuelle,u8_sensorNr);
   }
   else if(u8_lRuleTempQuelle==2) //Onewire
@@ -830,10 +896,10 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
   {
     if(getTemp_TempAlarmrule(i,n)>maxTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
-      setMerker(i,true);
+      setTemperaturMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>maxTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i,n)>maxTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -841,7 +907,38 @@ bool temperatur_maxWertUeberwachung(uint8_t i)
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    return false;
+  }
+  else return true;
+}
+
+
+bool temperatur_minWertUeberwachung(uint8_t i)
+{
+  bool bo_lHystMerker = true;
+  float lTemp = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT1,i);
+  float hysterese = WebSettings::getFloat(ID_PARAM_TEMP_ALARM_WERT2,i);
+
+  if(lTemp <= 0) return false; //Wenn keine Max.Temp. angegeben ist
+
+  for(uint8_t n = WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_VON,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_VON);
+    n < WebSettings::getInt(ID_PARAM_TEMP_ALARM_SENSOR_BIS,i,DT_ID_PARAM_TEMP_ALARM_SENSOR_BIS) + 1; n++)
+  {
+    if(getTemp_TempAlarmrule(i, n) < lTemp && getTemp_TempAlarmrule(i,n) != TEMP_IF_SENSOR_READ_ERROR)
+    {
+      setTemperaturMerker(i, true);
+      return true;
+    }
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i, n) < lTemp + hysterese && getTemp_TempAlarmrule(i,n) != TEMP_IF_SENSOR_READ_ERROR)
+    {
+      bo_lHystMerker = false;
+    }
+  }
+
+  if(bo_lHystMerker)
+  {
+    setTemperaturMerker(i, false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
@@ -860,10 +957,10 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
   {
     if(getTemp_TempAlarmrule(i,n)>aktTemp && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
-      setMerker(i,true);
+      setTemperaturMerker(i,true);
       return true;
     }
-    else if(isMerker(i) && getTemp_TempAlarmrule(i,n)>aktTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
+    else if(isTemperaturMerker(i) && getTemp_TempAlarmrule(i,n)>aktTemp-hysterese && getTemp_TempAlarmrule(i,n)!=TEMP_IF_SENSOR_READ_ERROR)
     {
       bo_lHystMerker=false;
     }
@@ -871,7 +968,7 @@ bool temperatur_maxWertUeberwachungReferenz(uint8_t i)
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
@@ -895,17 +992,17 @@ bool temperatur_DifferenzUeberwachung(uint8_t i)
 
   if(f_lTempMax-f_lTempMin>=f_lMaxTempDiff)
   {
-    setMerker(i,true);
+    setTemperaturMerker(i,true);
     return true;
   }
-  else if(isMerker(i) && f_lTempMax-f_lTempMin>=f_lMaxTempDiff-hysterese)
+  else if(isTemperaturMerker(i) && f_lTempMax-f_lTempMin>=f_lMaxTempDiff-hysterese)
   {
     bo_lHystMerker=false;
   }
 
   if(bo_lHystMerker)
   {
-    setMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
+    setTemperaturMerker(i,false); //Merker löschen, wenn alle Werte kleiner der Hysterese Waren
     return false;
   }
   else return true;
@@ -944,10 +1041,10 @@ void rules_PlausibilityCeck()
   uint8_t u8_lTriggerPlausibilityCeckCellVoltage = WebSettings::getInt(ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE,0,DT_ID_PARAM_BMS_PLAUSIBILITY_CHECK_CELLVOLTAGE);
   if(u8_lTriggerPlausibilityCeckCellVoltage>0)
   {
-    for(uint8_t i=BT_DEVICES_COUNT;i<BT_DEVICES_COUNT+SERIAL_BMS_DEVICES_COUNT;i++)
+    for(uint8_t i=0; i < MUBER_OF_DATA_DEVICES; i++)
     {
       uint8_t u8_lCrcErrorCounter = getBmsLastChangeCellVoltageCrc(i);
-      if(u8_lCrcErrorCounter>CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) //Wenn sich der Wert x Zyklen nicht mehr geändert hat
+      if(u8_lCrcErrorCounter > CYCLES_BMS_VALUES_PLAUSIBILITY_CHECK) //Wenn sich der Wert x Zyklen nicht mehr geändert hat
       {
         setAlarm(u8_lTriggerPlausibilityCeckCellVoltage,true,ALARM_CAUSE_CELL_VOLTAGE_PLAUSIBILITY); //Trigger setzen
       }
@@ -980,12 +1077,10 @@ void rules_soc(Inverter &inverter)
   for(uint8_t ruleNr=0;ruleNr<ANZAHL_RULES_TRIGGER_SOC;ruleNr++)
   {
     u8_lTriggerAtSocTriggerNr = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC);
-    //BSC_LOGI(TAG,"ruleNr=%i, trigger=%i",ruleNr,u8_lTriggerAtSocTriggerNr);
     if(u8_lTriggerAtSocTriggerNr>0)
     {
       u8_lTriggerAtSoc_SocOn = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_ON,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_ON);
       u8_lTriggerAtSoc_SocOff = WebSettings::getInt(ID_PARAM_TRIGGER_AT_SOC_OFF,ruleNr,DT_ID_PARAM_TRIGGER_AT_SOC_OFF);
-      //BSC_LOGI(TAG,"ruleNr=%i, soc=%i, socOn=%i, socOff=%i, hyst=%i", ruleNr, inverterData->inverterSoc, u8_lTriggerAtSoc_SocOn,u8_lTriggerAtSoc_SocOff,u8_merkerHysterese_TriggerAtSoc);
 
       if(u8_lTriggerAtSoc_SocOn>u8_lTriggerAtSoc_SocOff)
       {

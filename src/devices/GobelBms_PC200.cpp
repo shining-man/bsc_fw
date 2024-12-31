@@ -91,7 +91,7 @@ static Stream *mPort;
 static uint8_t u8_mDevNr, u8_mTxEnRS485pin, u8_mCountOfPacks;
 
 //
-static void getDataFromBms(uint8_t address, uint8_t function);
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool recvAnswer(uint8_t *t_outMessage);
 static void parseMessage(uint8_t *t_message, uint8_t address);
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address);
@@ -104,7 +104,7 @@ static uint16_t lCrc(const uint16_t len);
 static bool checkCrc(uint8_t *recvMsg, uint8_t u8_lRecvBytesCnt);
 static uint16_t calcCrc(uint8_t *data, const uint16_t i16_lLen);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
 static void BSC_Dump_MSGD(const char * tag, const char * txt, const uint8_t* ptr, const size_t len)
@@ -127,42 +127,40 @@ static void BSC_Dump_MSGD(const char * tag, const char * txt, const uint8_t* ptr
   BSC_LOGD(tag, "%s%i: %s", txt, len, recvBytes.c_str());
 }
 
-bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool GobelBmsPC200_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool ret = true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn = callback;
-  u8_mCountOfPacks = devData->u8_NumberOfDevices;
   uint8_t response[GOBELBMS_MAX_ANSWER_LEN];
 
-  uint8_t u8_lGobelAdr = devData->u8_deviceNr;
-  uint8_t u8_lGobelAdrBmsData = devData->u8_BmsDataAdr;
-  if(u8_mCountOfPacks > 1) u8_lGobelAdr += 1;
-  
+  uint8_t u8_lGobelAdr = devData->bmsAdresse;
+  uint8_t u8_lGobelAdrBmsData = devData->dataMappingNr;
+
+
   #ifdef GOBELPC200_DEBUG
-  BSC_LOGI(TAG, "GobelBms_readBmsData() devNr=%i, firstAdr=%i, CountOfPacks=%i, Packs=%i", devNr, u8_lGobelAdr, u8_mCountOfPacks, devData->u8_NumberOfDevices);
+  BSC_LOGI(TAG, "GobelBms_readBmsData() devNr=%i, firstAdr=%i, CountOfPacks=%i", devNr, u8_lGobelAdr, u8_mCountOfPacks);
   #endif
 
   #ifdef GOBELPC200_DEBUG
   BSC_LOGI(TAG, "read data from pack %i", u8_lGobelAdr);
   #endif
-  getDataFromBms(u8_lGobelAdr, 0x42);
+  getDataFromBms(bscSerial, u8_lGobelAdr, 0x42);
   if (recvAnswer(response))
   {
     parseMessage(response, u8_lGobelAdrBmsData);
 
     // mqtt
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT + u8_lGobelAdrBmsData));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT + u8_lGobelAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(u8_lGobelAdrBmsData));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, u8_lGobelAdrBmsData, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(u8_lGobelAdrBmsData));
   }
   else ret = false;
   
   if (ret == true)
   {
     vTaskDelay(pdMS_TO_TICKS(25));
-    getDataFromBms(u8_lGobelAdr, 0x44); // Alarms
+    getDataFromBms(bscSerial, u8_lGobelAdr, 0x44); // Alarms
     if (recvAnswer(response))
     {
       parseMessage_Alarms(response, u8_lGobelAdrBmsData);
@@ -170,13 +168,12 @@ bool GobelBmsPC200_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uin
     else ret = false;
   }
 
-  if(devNr >= 2) callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxTxDisable);
   vTaskDelay(pdMS_TO_TICKS(25));
   return ret;
 }
 
 
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   uint16_t lenid = lCrc(2);
 
@@ -190,13 +187,13 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   u8_lData[3] = function;     // CID2 (0x42)
   u8_lData[4] = (lenid >> 8); // LCHKSUM (0xE0)
   u8_lData[5] = (lenid >> 0); // LENGTH (0x02)
-  u8_lData[6] = address + 1;      // INFO
+  u8_lData[6] = address + 1; //0xFF;         // INFO
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
   uint16_t crc = calcCrc(&u8_lSendData[1], frame_len * 2);
 #ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "crc=%i", crc);
+  BSC_LOGD(TAG, "adr=%i, crc=%i", address, crc);
 #endif
   u8_lData[7] = (crc >> 8); // CHKSUM (0xFD)
   u8_lData[8] = (crc >> 0); // CHKSUM (0x37)
@@ -211,11 +208,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
 #endif
 
   // TX
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(u8_lSendData, 20);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr, serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, u8_lSendData, 20);
 }
 
 
@@ -234,10 +227,10 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
     // Timeout
     if ((millis() - u32_lStartTime) > 500)
     {
-      BSC_LOGE(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
-#ifdef GOBELPC200_DEBUG
-  BSC_Dump_MSGD(TAG, "Timeout: RecvBytes=", p_lRecvBytes, u8_lRecvBytesCnt);
-#endif
+      BSC_LOGE2(TAG, "Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
+      #ifdef GOBELPC200_DEBUG
+        BSC_Dump_MSGD(TAG, "Timeout: RecvBytes=", p_lRecvBytes, u8_lRecvBytesCnt);
+      #endif
       return false;
     }
 
@@ -378,7 +371,7 @@ Byte | Data
   for (uint8_t i = 0; i < u8_lNumOfCells; i++)
   {
     u16_lZellVoltage = get16bitFromMsg(u8_lMsgoffset);
-    setBmsCellVoltage(BT_DEVICES_COUNT + address, i, (float)(u16_lZellVoltage));
+    setBmsCellVoltage(address, i, (float)(u16_lZellVoltage));
     u8_lMsgoffset += 2;
 
     u16_lCellSum += u16_lZellVoltage;
@@ -399,12 +392,12 @@ Byte | Data
     u16_lZellDifferenceVoltage = u16_lCellHigh - u16_lCellLow;
   }
 
-  setBmsMaxCellVoltage(BT_DEVICES_COUNT + address, u16_lCellHigh);
-  setBmsMinCellVoltage(BT_DEVICES_COUNT + address, u16_lCellLow);
-  setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT + address, u8_lZellNumberMaxVoltage);
-  setBmsMinVoltageCellNumber(BT_DEVICES_COUNT + address, u8_lZellNumberMinVoltage);
-  setBmsAvgVoltage(BT_DEVICES_COUNT + address, (float)(u16_lCellSum / u8_lNumOfCells));
-  setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT + address, (float)(u16_lZellDifferenceVoltage));
+  setBmsMaxCellVoltage(address, u16_lCellHigh);
+  setBmsMinCellVoltage(address, u16_lCellLow);
+  setBmsMaxVoltageCellNumber(address, u8_lZellNumberMaxVoltage);
+  setBmsMinVoltageCellNumber(address, u8_lZellNumberMinVoltage);
+  setBmsAvgVoltage(address, (float)(u16_lCellSum / u8_lNumOfCells));
+  setBmsMaxCellDifferenceVoltage(address, (float)(u16_lZellDifferenceVoltage));
 
   // 41 | 30 36（temperature number N，06H，has 6 temperatures
   uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
@@ -418,26 +411,24 @@ Byte | Data
   // 48 | 30 42 42 36（forth temperature: 0BB6H，that’s 2998，26.8℃）
   // 50 | 30 42 42 33（fifth temperature （MOS）: 0BB3H，that’s 2995，26.5℃）
   // 52 | 30 42 42 44（sixth temperature（environment）: 0BBDH，that’s 2994，27.5℃）
-  float fl_lBmsTemps[3]; // Hier werden die ketzten drei Temperaturen zwischengespeichert
+  float fl_lBmsTemps[3]; // Hier werden die letzten drei Temperaturen zwischengespeichert
   for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
   {
     fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset) - 0xAAB) * 0.1;
     u8_lMsgoffset += 2;
     if (i < 3)
-      setBmsTempature(BT_DEVICES_COUNT + address, i, fl_lBmsTemps[2]);
+      setBmsTempature(address, i, fl_lBmsTemps[2]);
     else if (i >= 3 && i < 5)
       fl_lBmsTemps[i - 3] = fl_lBmsTemps[2];
   }
 
   // 54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-  //float f_lTotalCurrent = (float)((int16_t)get16bitFromMsg(u8_lMsgoffset)) * 0.01f;
-  //setBmsTotalCurrent(BT_DEVICES_COUNT + address, f_lTotalCurrent);
-  setBmsTotalCurrent_int(BT_DEVICES_COUNT + address, (int16_t)get16bitFromMsg(u8_lMsgoffset));
+  setBmsTotalCurrent_int(address, ((int16_t)get16bitFromMsg(u8_lMsgoffset)*10));
   u8_lMsgoffset += 2;
 
   // 56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
   float f_lTotalVoltage = (float)get16bitFromMsg(u8_lMsgoffset) * 0.001f;
-  setBmsTotalVoltage(BT_DEVICES_COUNT + address, f_lTotalVoltage);
+  setBmsTotalVoltage(address, f_lTotalVoltage);
   u8_lMsgoffset += 2;
 
   // 58 | 31 32 38 45（PACK remain capacity，128EH, that’s 47.50AH）
@@ -449,7 +440,10 @@ Byte | Data
   uint16_t u16_lFullCapacity = get16bitFromMsg(u8_lMsgoffset);
   u8_lMsgoffset += 2;
 
-  setBmsChargePercentage(BT_DEVICES_COUNT + address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  setBmsChargePercentage(address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  #ifdef GOBELPC200_DEBUG
+  BSC_LOGD(TAG, "Capacity: %i %i, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(address));
+  #endif
   u16_lBalanceCapacity /= 100;
   u16_lFullCapacity /= 100;
 
@@ -462,233 +456,98 @@ Byte | Data
   if (mDevData->bo_sendMqttMsg)
   {
     // Nachrichten senden
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT + address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
   }
 }
 
+
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address)
 {
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGI(TAG, "parseMessage: serialDev=%i", address);
-#endif
-/*
+  #ifdef GOBELPC200_DEBUG
+    BSC_LOGI(TAG, "parseMessage_Alarms: serialDev=%i", address);
+  #endif
 
-item content DATAI bytes Remark
-1 * PACKnumber M / COMMAND value 1
-2 PACK 1warn information See at chart A.18
-3 …… ……
-M + 1 PACK Mwarn information See at chart A.18
-
-Char A.18 One pack warn information and transmittion order
-1 Cell number M 1
-2 Cell voltage 1 warn 1
-3 Cell voltage 2 warn 1
-4 …… ……
-M + 1 Cell voltage M warn 1
-M + 2 Temperature number N 1
-M + 3 Temperature 1 warn 1
-M + 4 Temperature 2 warn 1
-M + 5 …… ……
-M + N + 2 Temperature N warn 1
-M + N + 3 PACK charge current warn 1
-M + N + 4 PACK total voltage warn 1
-M + N + 5 PACK discharge current warn 1
-M + N + 6 Protect state 1 1 See at chart A.19
-M + N + 7 Protect state 2 1 See at chart A.20
-M + N + 8 Instructions state 1 See at chart A.21
-M + N + 9 Control state 1 See at chart A.22
-M + N + 10 Fault state 1 See at chart A.23
-M + N + 11 Balance state1 1 Balance state for 1-8
-M + N + 12 Balance state2 1 Balance state for 9-16
-M + N + 13 Warn state1 1 See at chart A.24
-M + N + 14 Warn state2 1 See at chart A.25
-description:
-10
-—— 00H: normal
-—— 01H: below lower limit
-—— 02H: above upper limit
-—— 80H~EFH: user define
-—— F0H: other fault。
-
-Char A.19 Protect state1 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | Short circuit                       | 1: Short circuit protect 0: normal
-| 5 | Discharge current protect           | 1: Discharge current protect 0: normal
-| 4 | charge current protect              | 1: charge current protect 0: normal
-| 3 | Lower total voltage protect         | 1: Lower total voltage protect 0: normal
-| 2 | Above total voltage protect         | 1: Above total voltage protect 0: normal
-| 1 | Lower cell voltage protect          | 1: Above total voltage protect 0: normal
-| 0 | Above cell voltage protect          | 1: Above cell voltage protect 0: normal
-
-Char A.20 Protect state 2 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Fully                               | 1: Fully 0: normal
-| 6 | Lower Env temperature protect       | 1: Lower Env temperature protect 0:  normal
-| 5 | above Env temperature protect       | 1: above Env temperature protect 0:  normal
-| 4 | Above MOS temperature protect       | 1: Above MOS temperature protect 0:  normal
-| 3 | Lower discharge temperature protect | 1: Lower discharge temperature protect 0: normal
-| 2 | Lower charge temperature protect    | 1: Lower charge temperature protect 0:  normal
-| 1 | above discharge temperature protect | 1: above discharge temperature protect 0: normal
-| 0 | above charge temperature protect    | 1: above charge temperature protect 0:  normal
-
-Char A.21 Instructions state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Heart indicate                      | 1: ON 0: OFF
-| 6 | undefine                            |
-| 5 | ACin                                | 1: ON 0: normal
-| 4 | Reverse indicate                    | 1: ON 0: normal
-| 3 | Pack indicate                       | 1: Pack indicate 0: unuse
-| 2 | DFET indicate                       | 1: ON 0: OFF
-| 1 | * CFET indicate                     | 1: ON 0: OFF
-| 0 | Current limit indicate              | 1: ON 0: OFF
-
-Char A.22 Control state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Undefined                           |
-| 6 | Undefined                           |
-| 5 | LED warn functiuon                  | 1: unenable 0: enable
-| 4 | Current limit function              | 1: unenable 0: enable
-| 3 | Current limit gear                  | 1: low gear 0: high gear
-| 2 | undefine                            |
-| 1 | undefine                            |
-| 0 | Buzzer warn function                | 1: enable 0: unenable
-
-Char A.23 Fault state explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | undefine                            |
-| 5 | Sample fault                        | 1: fault 0: normal
-| 4 | Cell fault                          | 1: fault 0: normal
-| 3 | Undefined
-| 2 | NTC fault (NTC)                     | 1: fault 0: normal
-| 1 | Discharge MOS fault                 | 1: fault 0: normal
-| 0 | Charge MOS fault                    | 1: fault 0: normal
-
-Char A.24 Warn state1 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | undefine                            |
-| 6 | undefine                            |
-| 5 | Discharge current warn              | 1: warn 0: normal
-| 4 | charge current warn                 | 1: warn 0: normal
-| 3 | Lower tatal voltage warn            | 1: warn 0: normal
-| 2 | above tatal voltage warn            | 1: warn 0: normal
-| 1 | Lower cell voltage warn             | 1: warn 0: normal
-| 0 | above cell voltage warn             | 1: warn 0: normal
-
-Char A.25 Warn state2 explanation
-|BIT| content                             | Remark
-----------------------------------------------------------------------------------
-| 7 | Low power warn                      | 1: warn 0: normal
-| 6 | High MOS temperature warn           | 1: warn 0: normal
-| 5 | low env temperature warn            | 1: warn 0: normal
-| 4 | high env temperature warn           | 1: warn 0: normal
-| 3 | low discharge temperature warn      | 1: warn 0: normal
-| 2 | low charge temperature warn         | 1: warn 0: normal
-| 1 | above discharge temperature warn    | 1: warn 0: normal
-| 0 | above charge temperature warn       | 1: warn 0: normal
-*/
-
-  uint8_t u8_lMsgoffset = 0;
   uint32_t u32_alarm = 0;
-  boolean bo_lValue = false;
 
-  uint8_t u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
-#endif
+  // FET state
+  uint8_t FETstate = convertAsciiHexToByte(t_message, 37);
+  if(isBitSet(FETstate,1)) setBmsStateFETsCharge(address, true);
+  else setBmsStateFETsCharge(address, false); 
+  
+  if(isBitSet(FETstate,2)) setBmsStateFETsDischarge(address, true);
+  else setBmsStateFETsDischarge(address, false); 
 
-  u8_lMsgoffset = 9;
-  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
+
+  // BMS_ERR_STATUS_OK            
+  // BMS_ERR_STATUS_CELL_OVP       // x      1 - bit0 single cell overvoltage protection
+  // BMS_ERR_STATUS_CELL_UVP       // x      2 - bit1 single cell undervoltage protection
+  // BMS_ERR_STATUS_BATTERY_OVP    // x      4 - bit2  whole pack overvoltage protection
+  // BMS_ERR_STATUS_BATTERY_UVP    //        8 - bit3  Whole pack undervoltage protection
+  // BMS_ERR_STATUS_CHG_OTP        // x     16 - bit4  charging over temperature protection
+  // BMS_ERR_STATUS_CHG_UTP        // x     32 - bit5  charging low temperature protection
+  // BMS_ERR_STATUS_DSG_OTP        // x     64 - bit6  Discharge over temperature protection
+  // BMS_ERR_STATUS_DSG_UTP        // x    128 - bit7  discharge low temperature protection
+  // BMS_ERR_STATUS_CHG_OCP        //      256 - bit8  charging overcurrent protection
+  // BMS_ERR_STATUS_DSG_OCP        //      512 - bit9  Discharge overcurrent protection
+  // BMS_ERR_STATUS_SHORT_CIRCUIT  //     1024 - bit10 short circuit protection
+  // BMS_ERR_STATUS_AFE_ERROR      //     2048 - bit11 Front-end detection IC error
+  // BMS_ERR_STATUS_SOFT_LOCK      //     4096 - bit12 software lock MOS
+  // BMS_ERR_STATUS_RESERVED1      //     8192 - bit13 Reserved
+  // BMS_ERR_STATUS_RESERVED2      //    16384 - bit14 Reserved
+  // BMS_ERR_STATUS_RESERVED3      //    32768 - bit15 Reserved
+
+  // Cell OVP
+  for(uint16_t c = 0; c < 16; c++)
   {
-    uint8_t cellwarn = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-    if (cellwarn == 0x01)
-      u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
-    else if (cellwarn == 0x02)
-      u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
   }
 
-  uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-#ifdef GOBELPC200_DEBUG
-  BSC_LOGD(TAG, "Number of temp sensors: %d", u8_lCntTempSensors);
-#endif
-  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
+  // Cell UVP
+  for(uint16_t c = 0; c < 16; c++)
   {
-    uint8_t tempwarn = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-    // TODO
+    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 1)) u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
   }
 
-  u8_lMsgoffset+=10;
-  // M + N + 13 Warn state1 1 See at chart A.24
-  uint8_t warnstate1 = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-  /*Char A.24 Warn state1 explanation
-  |BIT| content                             | Remark
-  ----------------------------------------------------------------------------------
-  | 7 | undefine                            |
-  | 6 | undefine                            |
-  | 5 | Discharge current warn              | 1: warn 0: normal
-  | 4 | charge current warn                 | 1: warn 0: normal
-  | 3 | Lower tatal voltage warn            | 1: warn 0: normal
-  | 2 | above tatal voltage warn            | 1: warn 0: normal
-  | 1 | Lower cell voltage warn             | 1: warn 0: normal
-  | 0 | above cell voltage warn             | 1: warn 0: normal
-  */
-  if (warnstate1 & (1<<0))
-      u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+  // Pack OVP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 1)) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
 
-  if (warnstate1 & (1<<1))
-      u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
+  // Pack OVP
+  // ToDo
 
-  if (warnstate1 & (1<<2))
-      u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+  // ChgOTP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 6))
+  {
+    for(uint16_t c = 0; c < 4; c++)
+    {
+      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
+    }
+  }
 
-  if (warnstate1 & (1<<3))
-      u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
-
-  if (warnstate1 & (1<<4))
-      u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
-
-  if (warnstate1 & (1<<5))
-      u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
-
-  // M + N + 14 Warn state2 1 See at chart A.25
-  uint8_t warnstate2 = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
-  /*
-  Char A.25 Warn state2 explanation
-  |BIT| content                             | Remark
-  ----------------------------------------------------------------------------------
-  | 7 | Low power warn                      | 1: warn 0: normal
-  | 6 | High MOS temperature warn           | 1: warn 0: normal
-  | 5 | low env temperature warn            | 1: warn 0: normal
-  | 4 | high env temperature warn           | 1: warn 0: normal
-  | 3 | low discharge temperature warn      | 1: warn 0: normal
-  | 2 | low charge temperature warn         | 1: warn 0: normal
-  | 1 | above discharge temperature warn    | 1: warn 0: normal
-  | 0 | above charge temperature warn       | 1: warn 0: normal
-  */
-  if (warnstate2 & (1<<0))
-      u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
-
-  if (warnstate2 & (1<<1))
-      u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
-
-  if (warnstate2 & (1<<2))
+  // ChgUTP + DsgUTP
+  for(uint16_t c = 0; c < 4; c++)
+  {
+    if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 1)) 
+    {
       u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
-
-  if (warnstate2 & (1<<3))
       u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
+    }
+  }
+
+  // DsgOTP
+  if(isBitSet(convertAsciiHexToByte(t_message, 36), 5))
+  {
+    for(uint16_t c = 0; c < 4; c++)
+    {
+      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+    }
+  }
+
 
   setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
 }

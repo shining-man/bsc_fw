@@ -1,0 +1,1089 @@
+{
+  "texts-menu": {
+    "1": {
+      "label":"Dashboard"
+    },
+    "2": {
+      "label":"Live-gegevens"
+    },
+    "3": {
+      "label":"Systeem"
+    },
+    "4": {
+      "label":"Omvormers"
+    },
+    "5": {
+      "label":"Algemeen"
+    },
+    "6": {
+      "label":"Laden"
+    },
+    "7": {
+      "label":"Ontladen"
+    },
+    "8": {
+      "label":"Interfaces"
+    },
+    "9": {
+      "label":"Bluetooth"
+    },
+    "10": {
+      "label":"Serial"
+    },
+    "11": {
+      "label":"Relais"
+    },
+    "12": {
+      "label":"Digitalinputs"
+    },
+    "13": {
+      "label":"Onewire"
+    },
+    "14": {
+      "label":"Onewire 2"
+    },
+    "15": {
+      "label":"Alarmregels"
+    },
+    "16": {
+      "label":"BMS"
+    },
+    "17": {
+      "label":"Temperatuur"
+    },
+    "18": {
+      "label":"Devices"
+    },
+    "19": {
+      "label":"NEEY"
+    },
+    "20": {
+      "label":"System"
+    },
+    "21": {
+      "label":"Log"
+    },
+    "22": {
+      "label":"Settings export"
+    },
+    "23": {
+      "label":"Settings import"
+    },
+    "24": {
+      "label":"Update"
+    },
+    "25": {
+      "label":"Reboot"
+    },
+    "26": {
+      "label":"Github"
+    },
+    "27": {
+      "label":"Support"
+    },
+    "28": {
+      "label":"Vind je het project leuk? Toon uw waardering met een donatie! Verdere informatie op"
+    },
+    "29": {
+      "label":"Import"
+    },
+    "31": {
+      "label":"Instellingen"
+    },
+    "32": {
+      "label":"WiFi"
+    },
+    "33": {
+      "label":"BSC on GitHub"
+    },
+    "34": {
+      "label":"Opstarttijd"
+    },
+    "35": {
+      "label":"Omvormer laadcontrole"
+    },
+    "36": {
+      "label":"Instellingen - Omvormer"
+    },
+    "37": {
+      "label":"Instellingen - Interfaces"
+    },
+    "38": {
+      "label":"Instellinge - Apparaten"
+    },
+    "39": {
+      "label":"Instellinge - Alarmregels"
+    },
+    "40": {
+      "label":"Toewijzing van gegevensapparaten"
+    },
+    "41": {
+      "label":"OW Temperatuur"
+    },
+    "42": {
+      "label":"BMS"
+    },
+    "43": {
+      "label":"Gegevens"
+    },
+    "44": {
+      "label":"<p>Have you ever thought about how many hours of passion and caffeine go into developing open source projects? Well, I can tell you, it's a lot!</p><p>But here's the thing: I love what I do. I love developing innovative solutions and I love making these solutions freely available to the world.</p><p>But I could use a little support to keep doing great work. If Battery Safety Controller helped you, I would like to ask you to consider making a donation.</p><p>Your generous support allows me to continue developing new features and fighting bugs. This is the only way the project can be successful in the future.</p><p>Thank you in advance for your generosity and support!</p><p>With electrical greetings,<br>shiningman</p>"
+    },
+    "45": {
+        "label":"Hartelijk dank aan iedereen die het project steunt!<br>Iedereen die het project maandelijks steunt via<a href='https://github.com/sponsors/shining-man' target=_blank>GitHub Sponsor</a> wordt hier vermeld."
+    },
+    "46": {
+      "label":""
+    }
+  },
+  "texts-settings": {
+    "1": {
+        "label": "Master/Slave"
+    },
+    "2": {
+        "label": "Master/Slave"
+    },
+    "3": {
+        "label": "WebUI v2 aactiveren",
+        "help": "Wilt u het project steunen? Meer informatie vindt u <a href=\\\"../../support/\\\">hier<a/>."
+    },
+    "4": {
+        "label": "BSC gebruikersnaam"
+    },
+    "5": {
+        "label": "BSC wachtwoord"
+    },
+    "6": {
+        "label": "Apparaatnaam",
+        "help": "Wordt ook gebruikt als MQTT-apparaatnaam!"
+    },
+    "7": {
+        "label": "Time-out weergeven",
+        "unit": "min"
+    },
+    "8": {
+        "label": "WiFi"
+    },
+    "9": {
+        "label": "WiFI SSID"
+    },
+    "10": {
+        "label": "WiFI Passwort"
+    },
+    "11": {
+        "label": "WiFI connect Timeout",
+        "help": "De time-out geeft de tijd aan waarna een verbindingspoging wordt afgebroken en een toegangspunt wordt aangemaakt.\\n0 schakelt de time-out uit.",
+        "unit": "s"
+    },
+    "12": {
+        "label": "Static IP"
+    },
+    "13": {
+        "label": "IP-Adres",
+        "help": "Als het IP-adres leeg is, is DHCP actief."
+    },
+    "14": {
+        "label": "Gateway"
+    },
+    "15": {
+        "label": "Subnet"
+    },
+    "16": {
+        "label": "DNS",
+        "help": "Optioneel"
+    },
+    "17": {
+        "label": "MQTT",
+        "help": "Om de instellingen toe te passen, moet de BSC opnieuw worden opgestart!"
+    },
+    "18": {
+        "label": "MQTT enable"
+    },
+    "19": {
+        "label": "MQTT Server IP"
+    },
+    "20": {
+        "label": "MQTT Server Port"
+    },
+    "21": {
+        "label": "MQTT gebruikersnaam"
+    },
+    "22": {
+        "label": "MQTT wachtwword"
+    },
+    "23": {
+        "label": "MQTT Topic Name"
+    },
+    "24": {
+        "label": "MQTT Verzendinterval",
+        "unit": "s"
+    },
+    "25": {
+        "label": "Remanentie vTrigger",
+        "help": "Dit betekent dat V-triggers hun status behouden, zelfs als de spanning wordt onderbroken."
+    },
+    "26": {
+        "label": "NTP",
+        "help": "Om de instellingen toe te passen, moet de BSC opnieuw worden opgestart!"
+    },
+    "27": {
+        "label": "Server Name/IP"
+    },
+    "28": {
+        "label": "Server Port"
+    },
+    "29": {
+        "label": "Opname"
+    },
+    "30": {
+        "label": "Opnameperiode"
+    },
+    "31": {
+        "label": "Triggernaam"
+    },
+    "32": {
+        "label": "Triggerbeschrijving",
+        "label_entry": "Trigger"
+    },
+    "33": {
+        "label": "Trigger"
+    },
+    "34": {
+        "label": "Opslaan"
+    },
+    "35": {
+        "label": "Bluetooth",
+        "label_entry": "BT Apparaat",
+        "help": "Het MAC-adres moet in kleine letters worden geschreven!"
+    },
+    "36": {
+        "label": "Bluetooth"
+    },
+    "37": {
+        "label": "MAC-Adresse"
+    },
+    "38": {
+        "label": "Deactiveren"
+    },
+    "39": {
+        "label": "Opslaan"
+    },
+    "40": {
+        "label": "Seriële interfaces",
+        "label_entry": "Serieel",
+        "help": "<b>Om serieel 3-11 te gebruiken is de seriële extensie vereist!</b>"
+    },
+    "41": {
+        "label": "Serieel"
+    },
+    "42": {
+        "label": "Algemeen"
+    },
+    "43": {
+        "label": "Aantal cellen"
+    },
+    "44": {
+        "label": "Filter"
+    },
+    "45": {
+        "label": "Aantal RX-fouten",
+        "help": "Specificeert na hoeveel foutieve pakketten het als een fout wordt beschouwd."
+    },
+    "46": {
+        "label": "Afwijking van de celspanning",
+        "help": "0=Filter uitgeschakeld",
+        "unit": "%"
+    },
+    "47": {
+        "label": "Plausibiliteitscontrole"
+    },
+    "48": {
+        "label": "Plausibiliteitscontrole van de celspanning"
+    },
+    "49": {
+        "label": "Waardeaanpassingen"
+    },
+    "50": {
+        "label": "Data-apparaten",
+        "label_entry": "Apparaten"
+    },
+    "51": {
+        "label": "Celspanning voor SoC 100%"
+    },
+    "52": {
+        "label": "Celspanning voor SoC 0%",
+        "help": "0=uitgeschakeld",
+        "unit": "mV"
+    },
+    "53": {
+        "label": "Opslaan"
+    },
+    "54": {
+        "label": "BMS Alarmregels",
+        "label_entry": "Alarmregel"
+    },
+    "55": {
+        "label": "BMS om te monitoren"
+    },
+    "56": {
+        "label": "Geen gegevens van BMS"
+    },
+    "57": {
+        "label": "Actie bij trigger"
+    },
+    "58": {
+        "label": "Triggerselectie Geen gegevens",
+        "unit": "s"
+    },
+    "59": {
+        "label": "Spanningsbewakingscel min/max"
+    },
+    "60": {
+        "label": "Actie bij trigger"
+    },
+    "61": {
+        "label": "Aantal cellen monitoring"
+    },
+    "62": {
+        "label": "Celspanning min",
+        "unit": "mV"
+    },
+    "63": {
+        "label": "Celspanning max",
+        "unit": "mV"
+    },
+    "64": {
+        "label": "Hysterese min/max",
+        "unit": "mV"
+    },
+    "65": {
+        "label": "Spanningsbewaking totaal min/max"
+    },
+    "66": {
+        "label": "Actie bij trigger"
+    },
+    "67": {
+        "label": "Spanning min",
+        "unit": "V"
+    },
+    "68": {
+        "label": "Spanning max",
+        "unit": "V"
+    },
+    "69": {
+        "label": "Hysteresis min/max",
+        "unit": "V"
+    },
+    "70": {
+        "label": "Opslaan"
+    },
+    "71": {
+        "label": "Alarm voor sensorfout"
+    },
+    "72": {
+        "label": "Triggerselectie"
+    },
+    "73": {
+        "label": "Time-out",
+        "unit": "s"
+    },
+    "74": {
+        "label": "Temperatuurbewaking"
+    },
+    "75": {
+        "label": "Temperatuurbewaking",
+        "label_entry": "Bewaking"
+    },
+    "76": {
+        "label": "bron"
+    },
+    "77": {
+        "label": "Te monitoren BMS (alleen als bron BMS)"
+    },
+    "78": {
+        "label": "Sensornummer vanaf",
+        "help": "Mogelijke waarden::\\nBMS:0-5\\nOnewire:0-63"
+    },
+    "79": {
+        "label": "Sensornummer tot",
+        "help": "Mogelijke waarden::\\nBMS:0-5\\nOnewire:0-63"
+    },
+    "80": {
+        "label": "Bewaking",
+        "help": "Maximale waarde overschreden: Waarde 1=Maximale temperatuur\\nMaximale waarde overschreden (referentie): Waarde 1=Temperatuuroffset\\nVerschilwaardebewaking: Waarde 1=Maximaal toegestaan ​​verschil"
+    },
+    "81": {
+        "label": "Referentiesensor"
+    },
+    "82": {
+        "label": "Waarde 1"
+    },
+    "83": {
+        "label": "Hysteresis"
+    },
+    "84": {
+        "label": "Triggerselectie"
+    },
+    "85": {
+        "label": "Opslaan"
+    },
+    "86": {
+        "label": "Relaisuitgangen",
+        "label_entry": "Relaisuitgang"
+    },
+    "87": {
+        "label": "Trigger gedrag"
+    },
+    "88": {
+        "label": "Pulsduur",
+        "unit": "ms"
+    },
+    "89": {
+        "label": "Vertraging",
+        "unit": "s"
+    },
+    "90": {
+        "label": "Omkeren"
+    },
+    "91": {
+        "label": "Triggerselectie"
+    },
+    "92": {
+        "label": "Opslaan"
+    },
+    "93": {
+        "label": "Digitale ingangen",
+        "label_entry": "Digitale ingang"
+    },
+    "94": {
+        "label": "Ingang omkeren"
+    },
+    "95": {
+        "label": "Doorsturen naar"
+    },
+    "96": {
+        "label": "Opslaan"
+    },
+    "97": {
+        "label": "Onewire inschakelen"
+    },
+    "98": {
+        "label": "OW Adressen",
+        "label_entry": "OW Adr."
+    },
+    "99": {
+        "label": "OW Adr."
+    },
+    "100": {
+        "label": "Opslaan"
+    },
+    "101": {
+        "label": "Onewire Sensoren",
+        "label_entry": "Sensor"
+    },
+    "102": {
+        "label": "Compensatie",
+        "unit": "&deg;C"
+    },
+    "103": {
+        "label": "Opslaan"
+    },
+    "104": {
+        "label": "BMS Canbus inschakelen"
+    },
+    "105": {
+        "label": "Canbus protocol"
+    },
+    "106": {
+        "label": "Uitgebreide gegevens verzenden",
+        "help": "Niet activeren in combinatie met een CerboGX!"
+    },
+    "107": {
+        "label": "Gegevensbronle (Master)"
+    },
+    "108": {
+        "label": "\\+ Gegevensbron"
+    },
+    "109": {
+        "label": "Waardeafhandeling Multi-BMS"
+    },
+    "110": {
+        "label": "SoC"
+    },
+    "111": {
+        "label": "BMS voor SoC"
+    },
+    "112": {
+        "label": "Basisgegevens"
+    },
+    "113": {
+        "label": "Absorptie laadspanning",
+        "help": "De absorptielaadspanning komt overeen met een verhoogde spanning om de volledige toestand te bereiken.",
+        "unit": "V"
+    },
+    "114": {
+        "label": "Float laadspanning",
+        "help": "De float-spanning wordt toegepast nadat de instelbare Cut-Off functie is bereikt.",
+        "unit": "V"
+    },
+    "115": {
+        "label": "Float laadspanning SoC",
+        "help": "Als de SoC onder de ingestelde waarde komt, schakelt de float laadspanning over naar absorptielaadspanning.",
+        "unit": "%"
+    },
+    "116": {
+        "label": "Max. laadstroom",
+        "unit": "A"
+    },
+    "117": {
+        "label": "Max. ontlaadstroom",
+        "unit": "A"
+    },
+    "118": {
+        "label": "Laadvermogen naar 0 bij"
+    },
+    "119": {
+        "label": "Ontlaadvermogen naar 0 bij"
+    },
+    "120": {
+        "label": "SOC naar 100 bij"
+    },
+    "121": {
+        "label": "Instellingen batterijpakket",
+        "label_entry": "Gegevensapparaat"
+    },
+    "122": {
+        "label": "Max. laadstroom per pakket",
+        "unit": "A"
+    },
+    "123": {
+        "label": "Max. ontlaadstroom per pakket",
+        "unit": "A"
+    },
+    "124": {
+        "label": "Capaciteit",
+        "unit": "Ah"
+    },
+    "125": {
+        "label": "Dynamische laadspanningsoffset",
+        "help": "De functie kan dynamisch worden geladen nadat de laadstroom is voltooid.\\nDe offset is lineair vervormd door de laadstroom. Als stroom voor de berechnung is de kleinste laadstroom van de accupacks verkrijgbaar."
+    },
+
+    "126": {
+        "label": "laadstroom",
+        "help": "0=uitgeschakeld\\nDe laadstroom waarbij de maximale offset wordt toegevoegd.",
+        "unit": "A"
+    },
+    "127": {
+        "label": "Min. offset",
+        "unit": "mV"
+    },
+    "128": {
+        "label": "Max. offset",
+        "unit": "mV"
+    },
+    "129": {
+        "label": "Alarmen (Inverter)"
+    },
+    "130": {
+        "label": "Hoge accuspanning"
+    },
+    "131": {
+        "label": "Lage accuspanning"
+    },
+    "132": {
+        "label": "Hoge temperatuur"
+    },
+    "133": {
+        "label": "Lage temperatuur"
+    },
+    "134": {
+        "label": "Batterij temperatuurr"
+    },
+    "135": {
+        "label": "Bron"
+    },
+    "136": {
+        "label": "Sensornummer",
+        "help": "Mogelijke waarden:\\nBMS:0-2\\nOnewire:0-63"
+    },
+    "137": {
+        "label": "Trigger op SoC",
+        "help": "Het triggeren van een trigger wanneer een bepaalde SoC wordt overschreden of onderschreden."
+    },
+    "138": {
+        "label_entry": "Regel"
+    },
+    "139": {
+        "label": "Trigger"
+    },
+    "140": {
+        "label": "SoC-trigger inschakel punt",
+        "unit": "%"
+    },
+    "141": {
+        "label": "SoC-trigger uitschakel punt",
+        "unit": "%"
+    },
+    "142": {
+        "label": "Opslaan"
+    },
+    "143": {
+        "label": "Laadstroom per pakket te hoog",
+        "help": "Smoor de laadstroom als de laadstroom van een accupakket wordt overschreden"
+    },
+    "144": {
+        "label": "Aan/Uit"
+    },
+    "145": {
+        "label": "Smoor de laadstroom afhankelijk van de celspanning"
+    },
+    "146": {
+        "label": "Aan/Uit"
+    },
+    "147": {
+        "label": "Begin bij de celspanning groter",
+        "help": "Zodra de hoogste celspanning deze waarde overschrijdt, wordt de throttling actief.",
+        "unit": "mV"
+    },
+    "148": {
+        "label": "Maximale celspanning",
+        "help": "Zodra de hoogste celspanning deze waarde overschrijdt, wordt er alleen met de minimale laadstroom geladen.\\nLet op: De waarde moet groter zijn dan de celstartspanning.\\nLet op: Wanneer autobalancing actief is, wordt deze spanning geladen de balanscelspanning vervangen!",
+        "unit": "mV"
+    },
+    "149": {
+        "label": "Minimale laadstroom",
+        "unit": "A"
+    },
+    "150": {
+        "label": "Verminder de laadstroom in geval van celdrift"
+    },
+    "151": {
+        "label": "Aan/Uit"
+    },
+    "152": {
+        "label": "Begin bij celspanning groter",
+        "unit": "mV"
+    },
+    "153": {
+        "label": "Begin bij drift van meer dan",
+        "unit": "mV"
+    },
+    "154": {
+        "label": "Reductie per extra mV-afwijking",
+        "help": "De reductie heeft betrekking op de ingestelde maximale stroom",
+        "unit": "A"
+    },
+    "155": {
+        "label": "Laadstroom verminderen - SoC"
+    },
+    "156": {
+        "label": "Aan/Uit"
+    },
+    "157": {
+        "label": "Reductie van SoC",
+        "unit": "%"
+    },
+    "158": {
+        "label": "Reduceren met x A per 1%",
+        "help": "De reductie heeft betrekking op de ingestelde maximale laadstroom",
+        "unit": "A"
+    },
+    "159": {
+        "label": "Minimale laadstroom",
+        "unit": "A"
+    },
+    "160": {
+        "label": "Dynamische laadspanningsbeperking (beta!)",
+        "help": "Zodra de spanning van een cel en de delta tussen de laagste en de hoogste celspanning groter zijn dan ,\\nwordt de laadspanning dynamisch aangepast om het maximale laadvermogen te bereiken zonder dat de cellen verder uit elkaar gaan drijven."
+    },
+    "161": {
+        "label": "Aan/Uit"
+    },
+    "162": {
+        "label": "Startcelspanning",
+        "unit": "mV"
+    },
+    "163": {
+        "label": "Spanningsdelta min/max",
+        "unit": "mV"
+    },
+    "164": {
+        "label": "Automatische balans"
+    },
+    "165": {
+        "label": "Aan/Uit"
+    },
+    "166": {
+        "label": "Balansinterval",
+        "help": "Specificeert de dagen waarna het balanceren opnieuw moet worden gestart.\\nLet op: Als de autobalancer actief is, wordt de laadstroomuitschakeling gedeactiveerd tijdens de balanceringstijd!\\nHet juiste aantal cellen moet in de seriële instellingen staan. worden ingesteld!",
+        "unit": "T"
+    },
+    "167": {
+        "label": "Start celspanning",
+        "help": "Celspanning die moet worden bereikt voordat het balanceren kan beginnen.",
+        "unit": "mV"
+    },
+    "168": {
+        "label": "Balanceren minimale tijd",
+        "help": "De balancering zal minstens zo lang duren",
+        "unit": "Min"
+    },
+    "169": {
+        "label": "Balans laadspanning",
+        "help": "Tijdens het automatisch inregelen wordt de maximale laadspanning tot deze spanning verhoogd.",
+        "unit": "V"
+    },
+    "170": {
+        "label": "Balans cellspanning",
+        "unit": "mV"
+    },
+    "171": {
+        "label": "Celdif. compleet",
+        "help": "Het balanceren is voltooid als het ingestelde celverschil is bereikt.",
+        "unit": "mV"
+    },
+    "172": {
+        "label": "Time-out",
+        "help": "Als de balancering binnen deze tijd niet is voltooid, wordt het proces afgebroken.",
+        "unit": "Min"
+    },
+    "173": {
+        "label": "Laadstroomuitschakeling",
+        "help": "Als de laadstroom gedurende de ingestelde tijd (cut-off time) onder de uitschakelstroom ligt, wordt de laadstroom op 0 A ingesteld totdat de \\\"Floatlaadspanning SoC\\\" wordt onderschreden."
+    },
+    "174": {
+        "label": "Aan/Uit"
+    },
+    "175": {
+        "label": "Afsluittijd",
+        "unit": "s"
+    },
+    "176": {
+        "label": "Afsluitlaadstroom",
+        "unit": "A"
+    },
+    "177": {
+        "label": "Start celspanning",
+        "help": "De regeling wordt pas actief als de celspanning bereikt is.\\n0 = Startspanning gedeactiveerd",
+        "unit": "mV"
+    },
+    "178": {
+        "label": "Stel SoC in wanneer de celspanning onderschrijdt(winter)",
+        "help": "Als de ingestelde celspanning voor het begin van het opladen niet wordt bereikt, kan het opladen worden gestart door een SoC naar de omvormer te sturen.\\nHet opladen gaat door totdat de celspanning aan het einde van het opladen wordt overschreden."
+    },
+    "179": {
+        "label": "Aan/Uit"
+    },
+    "180": {
+        "label": "Celspanning om het opladen te starten",
+        "unit": "mV"
+    },
+    "181": {
+        "label": "Celspanning aan het einde van het opladen",
+        "help": "Als de celspanning aan het einde van het opladen 0 is, gaat het opladen door totdat de celspanning aan het begin van het opladen weer wordt overschreden.",
+        "unit": "mV"
+    },
+    "182": {
+        "label": "SoC",
+        "unit": "%"
+    },
+    "183": {
+        "label": "Lockout-tijd tussen twee herlaadbeurten",
+        "unit": "s"
+    },
+    "184": {
+        "label": "Opslaan"
+    },
+    "185": {
+        "label": "Het smoren van de ontlaadstroom afhankelijk van de celspanning"
+    },
+    "186": {
+        "label": "Aan/Uit"
+    },
+    "187": {
+        "label": "Begin bij de celspanning kleiner",
+        "help": "Zodra de laagste celspanning onder deze waarde komt, wordt de throttling actief.",
+        "unit": "mV"
+    },
+    "188": {
+        "label": "Eindcelspanning",
+        "help": "Zodra de laagste celspanning onder deze waarde komt, ligt de ontlaadstroom nog steeds op de minimale ontlaadstroom.\\nLet op: De waarde moet kleiner zijn dan de celstartspanning.",
+        "unit": "mV"
+    },
+    "189": {
+        "label": "Minimale ontlaadstroom",
+        "unit": "A"
+    },
+    "190": {
+        "label": "Opslaan"
+    },
+    "191": {
+        "label": "Data device mapping"
+    },
+    "192": {
+        "label": "Toewijzing van gegevensapparaten",
+        "label_entry": "gegevensapparate",
+        "help": "De naam mag geen # en \\+ tekens bevatten!"
+    },
+    "193": {
+        "label": "Interfaces"
+    },
+    "194": {
+        "label": "adres"
+    },
+    "195": {
+        "label": "Naam"
+    },
+    "196": {
+        "label": "Opslaan"
+    },
+    "197": {
+        "label": "NEEY Active Balancer",
+        "label_entry": "NEEY"
+    },
+    "198": {
+        "label": "Balancer On"
+    },
+    "199": {
+        "label": "Cells"
+    },
+    "200": {
+        "label": "Differenz Voltage",
+        "unit": "V"
+    },
+    "201": {
+        "label": "Max. Balance Current",
+        "unit": "A"
+    },
+    "202": {
+        "label": "Sleep Voltage",
+        "unit": "V"
+    },
+    "203": {
+        "label": "Equalization Voltage",
+        "unit": "V"
+    },
+    "204": {
+        "label": "Bat. Capacity",
+        "unit": "Ah"
+    },
+    "205": {
+        "label": "BatType"
+    },
+    "206": {
+        "label": "Opslaan"
+    },
+    "207": {
+        "label": "Lees van NEEY"
+    },
+    "208": {
+        "label": "Schrijf naar NEEY"
+    },
+    "209": {
+        "label": "JBD BMS",
+        "label_entry": "Serial"
+    },
+    "210": {
+        "label": "Celspanning 100%",
+        "unit": "mV"
+    },
+    "211": {
+        "label": "Opslaan"
+    },
+    "212": {
+        "label": "Algemeen"
+    },
+    "213": {
+        "label": "Aantal cellen"
+    },
+    "214": {
+        "label": "Shunt"
+    },
+    "215": {
+        "label": "Nominale capaciteit",
+        "unit": "Ah"
+    },
+    "216": {
+        "label": "Uitgangen"
+    },
+    "217": {
+        "label": "Relais 1"
+    },
+    "218": {
+        "label": "Relais 2"
+    },
+    "219": {
+        "label": "Alarm - Celspanning"
+    },
+    "220": {
+        "label": "Lage celspanning",
+        "unit": "mV"
+    },
+    "221": {
+        "label": "Hoge celspanning",
+        "unit": "mV"
+    },
+    "222": {
+        "label": "Alarmvertraging - Celspanning",
+        "unit": "s"
+    },
+    "223": {
+        "label": "Uitgang"
+    },
+    "224": {
+        "label": "Alarm - Batterijspanning"
+    },
+    "225": {
+        "label": "Lage accuspanning",
+        "unit": "V"
+    },
+    "226": {
+        "label": "Hoge accuspanning",
+        "unit": "V"
+    },
+    "227": {
+        "label": "Alarmvertraging - Batterijspanning",
+        "unit": "s"
+    },
+    "228": {
+        "label": "Uitgang"
+    },
+    "229": {
+        "label": "Alarm - Laadstroom"
+    },
+    "230": {
+        "label": "Maximale laadstroom",
+        "unit": "A"
+    },
+    "231": {
+        "label": "Alarmvertraging - Laadstroom",
+        "unit": "s"
+    },
+    "232": {
+        "label": "Uitgang"
+    },
+    "233": {
+        "label": "Alarm - Ontlaadstroom"
+    },
+    "234": {
+        "label": "Maximale ontlaadstroom",
+        "unit": "A"
+    },
+    "235": {
+        "label": "larmvertraging - Ontlaadstroom",
+        "unit": "s"
+    },
+    "236": {
+        "label": "Uitgang"
+    },
+    "237": {
+        "label": "Schrijf naar BPN"
+    },
+    "238": {
+        "label": "Lees van BPN"
+    },
+    "239": {
+        "label": "Data device 0"
+    },
+    "240": {
+        "label": "Data device 1"
+    },
+    "241": {
+        "label": "Data device 2"
+    },
+    "242": {
+        "label": "Data device 3"
+    },
+    "243": {
+        "label": "Data device 4"
+    },
+    "244": {
+        "label": "Data device 5"
+    },
+    "245": {
+        "label": "Data device 6"
+    },
+    "246": {
+        "label": "Data device 7"
+    },
+    "247": {
+        "label": "Data device 8"
+    },
+    "248": {
+        "label": "Data device 9"
+    },
+    "249": {
+        "label": "Data device 10"
+    },
+    "250": {
+        "label": "Data device 11"
+    },
+    "251": {
+        "label": "Data device 12"
+    },
+    "252": {
+        "label": "Data device 13"
+    },
+    "253": {
+        "label": "Data device 14"
+    },
+    "254": {
+        "label": "Data device 15"
+    },
+    "255": {
+        "label": "Data device 16"
+    },
+    "256": {
+        "label": "Data device 17"
+    },
+    "257": {
+        "label": "Uit"
+    },
+    "258": {
+        "label": "24h"
+    },
+    "259": {
+        "label": "BMS"
+    },
+    "260": {
+        "label": "Onewire"
+    },
+    "261": {
+        "label": "Permanent"
+    },
+    "262": {
+        "label": "Pols"
+    },
+    "263": {
+        "label": "niet verbonden"
+    },
+    "264": {
+        "label": "Hoofdbron"
+    },
+    "265": {
+        "label": "SoC-gemiddelde"
+    },
+    "266": {
+        "label": "SoC-minimumwaarde"
+    },
+    "267": {
+        "label": "Maximale SoC-waarde"
+    },
+    "268": {
+        "label": "BMS"
+    },
+    "269": {
+        "label": "Maximale waarde overschreden"
+    },
+    "270": {
+        "label": "Minimumwaarde onderschreden"
+    },
+    "271": {
+        "label": "Maximale waarde overschreden (referentie)"
+    },
+    "272": {
+        "label": "Verschilwaardebewaking"
+    }
+  }
+}

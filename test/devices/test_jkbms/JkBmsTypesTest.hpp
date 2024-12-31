@@ -25,7 +25,7 @@ namespace test
   static constexpr uint16_t JKBMS_WARN_MSG_CHG_OVERVOLTAGE_ALARM      = {utils::bitIdxToValue<uint16_t>( 2)}; // Bit 2:  Charge over voltage alarm                       -> ?
   static constexpr uint16_t JKBMS_WARN_MSG_CELL_OVERVOLTAGE           = {utils::bitIdxToValue<uint16_t>( 3)}; // Bit 3:  cell over voltage                               -> x
   static constexpr uint16_t JKBMS_WARN_MSG_CELL_UNDERVOLTAGE          = {utils::bitIdxToValue<uint16_t>( 4)}; // Bit 4:  cell under voltage                              -> x
-  static constexpr uint16_t JKBMS_WARN_MSG_CHG_OVERTEMP               = {utils::bitIdxToValue<uint16_t>( 5)}; // Bit 5:  Charge over temperature                         -> x
+  static constexpr uint16_t JKBMS_WARN_MSG_CHG_OVERCURRENT            = {utils::bitIdxToValue<uint16_t>( 5)}; // Bit 5:  Charge over current                             -> x
   static constexpr uint16_t JKBMS_WARN_MSG_DCHG_OVERCURRENT_ALARM     = {utils::bitIdxToValue<uint16_t>( 6)}; // Bit 6:  discharge over current alarm                    -> ?
   static constexpr uint16_t JKBMS_WARN_MSG_DCHG_OVERCURRENT           = {utils::bitIdxToValue<uint16_t>( 7)}; // Bit 7:  discharge overcurent                            -> x
   static constexpr uint16_t JKBMS_WARN_MSG_BATTERY_BOX_OVERTEMP_ALARM = {utils::bitIdxToValue<uint16_t>( 8)}; // Bit 8:  over temperature alarm in the battery box       -> ?

@@ -7,6 +7,7 @@
 #define SEPLOSBMSV3_H
 
 #include "Arduino.h"
+#include "BscSerial.h"
 #include "defines.h"
 #include "devices/serialDevData.h"
 
@@ -22,6 +23,7 @@
 
 #define SEPLOS3_CELLVOLTAGE_1         0x1100
 #define SEPLOS3_TEMPERATURE_1         0x1110
+#define SEPLOS3_TEMPERATURE_5         0x1118
 
 #define SEPLOS3_EQUALIZATION_08_01    0x1230
 #define SEPLOS3_EQUALIZATION_16_09    0x1238
@@ -37,6 +39,6 @@
 #define SEPLOS3_FARD_FAULT            0x1288 // Hard fault event code (TB15)
 
 
-bool SeplosBmsV3_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData);
+bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData);
 
 #endif

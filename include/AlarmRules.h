@@ -26,6 +26,20 @@ class Inverter;
 #define ALARM_CAUSE_FAN 9
 #define ALARM_VIRTUAL_TRIGGER 10
 
+static const char* ALARM_CAUSE_TEXT[] = {
+  "DigitalInput",               //  0
+  "BMS_No_Data",                //  1
+  "CellVoltage",                //  2
+  "TotalVoltage_Min",           //  3
+  "TotalVoltage_Max",           //  4
+  "Temperature",                //  5
+  "OneWire_Sense_Err",          //  6
+  "CellVoltage_Plausibility",   //  7
+  "SoC",                        //  8
+  "Fan",                        //  9
+  "vTrigger"                    // 10
+};
+
 void initAlarmRules(Inverter &inverter);
 void runAlarmRules(Inverter &inverter);
 void changeAlarmSettings();

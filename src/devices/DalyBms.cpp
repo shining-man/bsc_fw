@@ -25,39 +25,40 @@ static float    f_mTotalVoltageOld=0xFFFF;
 //static uint32_t mqttSendeTimer=0;
 
 //
-static void      getDataFromBms(uint8_t address, uint8_t function);
+static void      getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function);
 static bool      recvAnswer(uint8_t * t_outMessage, uint8_t packets);
-static void      parseMessage(uint8_t * t_message);
+static void      parseMessage(uint8_t * t_message, uint8_t dataMappingNr);
 
-static void (*callbackSetTxRxEn)(uint8_t, uint8_t) = NULL;
+
 static serialDevData_s *mDevData;
 
-bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, uint8_t), serialDevData_s *devData)
+bool DalyBms_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, serialDevData_s *devData)
 {
   bool bo_ret=true;
   mDevData=devData;
   mPort = port;
   u8_mDevNr = devNr;
-  callbackSetTxRxEn=callback;
-  uint8_t response[DALY_FRAME_SIZE*16];
+    uint8_t response[DALY_FRAME_SIZE*16];
+
+  uint8_t dataMappingNr = devData->dataMappingNr;
 
   #ifdef DALY_DEBUG
   BSC_LOGI(TAG,"DalyBms_readBmsData()");
   #endif
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_BATTERY_SOC);
   if(recvAnswer(response, 1))
   {
-    parseMessage(response);
+    parseMessage(response, dataMappingNr);
 
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr));
-    mqttPublish(MQTT_TOPIC_BMS_BT, BT_DEVICES_COUNT+u8_mDevNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_VOLTAGE, -1, getBmsTotalVoltage(dataMappingNr));
+    mqttPublish(MQTT_TOPIC_DATA_DEVICE, dataMappingNr, MQTT_TOPIC2_TOTAL_CURRENT, -1, getBmsTotalCurrent(dataMappingNr));
   }
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE);
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_MIN_MAX_VOLTAGE);
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
@@ -66,41 +67,40 @@ bool DalyBms_readBmsData(Stream *port, uint8_t devNr, void (*callback)(uint8_t, 
   //else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_MOS);
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_MOS);
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); //Cellnumbers
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_STATUS); //Cellnumbers
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE);
-  if(recvAnswer(response,u8_mNumberOfCells/3+u8_mNumberOfCells%3)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_CELL_VOLTAGE);
+  if(recvAnswer(response,u8_mNumberOfCells/3+u8_mNumberOfCells%3)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE);
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_TEMPERATURE);
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER);
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_BALLANCER);
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  getDataFromBms(DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE);
-  if(recvAnswer(response,1)) parseMessage(response);
+  getDataFromBms(bscSerial, DALAY_BMS_ADRESS, DALY_REQUEST_FAILURE);
+  if(recvAnswer(response,1)) parseMessage(response, dataMappingNr);
   else bo_ret=false;
   //vTaskDelay(pdMS_TO_TICKS(DALAY_SEND_DELAY));
 
-  if(devNr>=2) callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxTxDisable);
   return bo_ret;
 }
 
-static void getDataFromBms(uint8_t address, uint8_t function)
+static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t function)
 {
   uint8_t u8_lData[DALY_FRAME_SIZE];
   u8_lData[0] = DALAY_START_BYTE;   // Start
@@ -134,11 +134,7 @@ static void getDataFromBms(uint8_t address, uint8_t function)
   }
 
   //TX
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_TxEn);
-  usleep(20);
-  mPort->write(u8_lData, DALY_FRAME_SIZE);
-  mPort->flush();
-  callbackSetTxRxEn(u8_mDevNr,serialRxTx_RxEn);
+  bscSerial->sendSerialData(mPort, u8_mDevNr, u8_lData, DALY_FRAME_SIZE);
 }
 
 
@@ -157,7 +153,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     //Timeout
     if((millis()-u32_lStartTime)>200)
     {
-      BSC_LOGE(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
+      BSC_LOGE2(TAG,"Timeout: Serial=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvBytesCnt);
       #ifdef DALY_DEBUG
       String recvBytes="";
       for(uint8_t x=0;x<u8_lRecvBytesCnt;x++)
@@ -173,6 +169,8 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
     //Überprüfen ob Zeichen verfügbar
     if(mPort->available() > 0)
     {
+      u32_lStartTime = millis(); // Timer zurücksetzen
+
       u8_lRecvByte = mPort->read();
 
       switch (SMrecvState)
@@ -244,7 +242,7 @@ static bool recvAnswer(uint8_t *p_lRecvBytes, uint8_t packets)
 }
 
 
-static void parseMessage(uint8_t * t_message)
+static void parseMessage(uint8_t * t_message, uint8_t dataMappingNr)
 {
   bool     bo_value=false;
   uint8_t  u8_lValue = 0;
@@ -254,19 +252,19 @@ static void parseMessage(uint8_t * t_message)
   switch (t_message[2])
   {
     case DALY_REQUEST_BATTERY_SOC:
-      setBmsTotalVoltage(BT_DEVICES_COUNT+u8_mDevNr, ((float)((t_message[4]<<8) | t_message[5]) / 10.0f));
-      setBmsTotalCurrent(BT_DEVICES_COUNT+u8_mDevNr, ((float)(((t_message[8]<<8) | t_message[9]) - DALY_CURRENT_OFFSET) / 10.0f));
-      setBmsChargePercentage(BT_DEVICES_COUNT+u8_mDevNr, ROUND( ((t_message[10]<<8) | t_message[11]), 10 ) );
+      setBmsTotalVoltage(dataMappingNr, ((float)((t_message[4]<<8) | t_message[5]) / 10.0f));
+      setBmsTotalCurrent(dataMappingNr, ((float)(((t_message[8]<<8) | t_message[9]) - DALY_CURRENT_OFFSET) / 10.0f));
+      setBmsChargePercentage(dataMappingNr, ROUND( ((t_message[10]<<8) | t_message[11]), 10 ) );
       break;
 
     case DALY_REQUEST_MIN_MAX_VOLTAGE:
       u16_lValue1 = ((t_message[4]<<8) | t_message[5]);
       u16_lValue2 = ((t_message[7]<<8) | t_message[8]);
-      setBmsMaxCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lValue1);
-      setBmsMaxVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, t_message[6]);
-      setBmsMinCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lValue2);
-      setBmsMinVoltageCellNumber(BT_DEVICES_COUNT+u8_mDevNr, t_message[9]);
-      setBmsMaxCellDifferenceVoltage(BT_DEVICES_COUNT+u8_mDevNr, u16_lValue1 - u16_lValue2);
+      setBmsMaxCellVoltage(dataMappingNr, u16_lValue1);
+      setBmsMaxVoltageCellNumber(dataMappingNr, t_message[6]);
+      setBmsMinCellVoltage(dataMappingNr, u16_lValue2);
+      setBmsMinVoltageCellNumber(dataMappingNr, t_message[9]);
+      setBmsMaxCellDifferenceVoltage(dataMappingNr, u16_lValue1 - u16_lValue2);
       break;
 
     case DALY_REQUEST_MIN_MAX_TEMPERATURE:
@@ -277,12 +275,12 @@ static void parseMessage(uint8_t * t_message)
 
     case DALY_REQUEST_MOS:
       //Charge FET
-      if(t_message[5]==1) setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,true);
-      else setBmsStateFETsCharge(BT_DEVICES_COUNT+u8_mDevNr,false);
+      if(t_message[5]==1) setBmsStateFETsCharge(dataMappingNr,true);
+      else setBmsStateFETsCharge(dataMappingNr,false);
 
       //Discharge FET
-      if(t_message[6]==1) setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,true);
-      else setBmsStateFETsDischarge(BT_DEVICES_COUNT+u8_mDevNr,false);
+      if(t_message[6]==1) setBmsStateFETsDischarge(dataMappingNr,true);
+      else setBmsStateFETsDischarge(dataMappingNr,false);
 
       //Remain capacity (mAH)
       //ToDo: only MQTT
@@ -307,11 +305,11 @@ static void parseMessage(uint8_t * t_message)
         {
           u16_lValue1 = (t_message[(n*DALY_FRAME_SIZE)+5+(i*2)]<<8) | t_message[(n*DALY_FRAME_SIZE)+6+(i*2)];
           u32_lValue+=u16_lValue1;
-          setBmsCellVoltage(BT_DEVICES_COUNT+u8_mDevNr, u8_lValue, u16_lValue1);
+          setBmsCellVoltage(dataMappingNr, u8_lValue, u16_lValue1);
           u8_lValue++;
           if (u8_lValue == u8_mNumberOfCells)
           {
-            setBmsAvgVoltage(BT_DEVICES_COUNT+u8_mDevNr, u32_lValue/u8_mNumberOfCells);
+            setBmsAvgVoltage(dataMappingNr, u32_lValue/u8_mNumberOfCells);
             return;
           }
         }
@@ -322,7 +320,7 @@ static void parseMessage(uint8_t * t_message)
       u8_lValue = 0;
       for (uint8_t i=0; i<7; i++)
       {
-        setBmsTempature(BT_DEVICES_COUNT+u8_mDevNr, u8_lValue, (t_message[5+i]-40));
+        setBmsTempature(dataMappingNr, u8_lValue, (t_message[5+i]-40));
         u8_lValue++;
         if (u8_lValue == u8_mNumOfTempSensors) break;
       }
@@ -340,7 +338,7 @@ static void parseMessage(uint8_t * t_message)
           }
         }
       }
-      setBmsIsBalancingActive(BT_DEVICES_COUNT+u8_mDevNr, bo_value);
+      setBmsIsBalancingActive(dataMappingNr, bo_value);
       break;
 
 
@@ -427,7 +425,7 @@ static void parseMessage(uint8_t * t_message)
 
       //Byte7: Fault code
 
-      setBmsErrors(BT_DEVICES_COUNT+u8_mDevNr,u16_lValue2);
+      setBmsErrors(dataMappingNr,u16_lValue2);
       break;
 
 
