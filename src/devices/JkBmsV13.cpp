@@ -134,10 +134,7 @@ bool JkBmsV13_recvAnswer(uint8_t *p_lRecvBytes)
   BSC_LOGD(TAG_V13,"recv cnt: %i",u16_mLastRecvBytesCntJkV13);
 #endif
   //Überprüfe Cheksum
-  //debugPrintf("crc=%i %i\n", crcB3, crcB4);
-  if(p_lRecvBytes[u16_mLastRecvBytesCntJkV13-1]!=crc) return false;
-
-  return true;
+  return (p_lRecvBytes[u16_mLastRecvBytesCntJkV13-1]==crc);
 }
 
 
@@ -183,12 +180,6 @@ void JkBmsV13_parseData(uint8_t * t_message, uint8_t dataMappingNr)
   BSC_LOGD(TAG_V13,"BMSerror=%i", u8_error);
   #endif
 
-  u16_lZellDifferenceVoltage = ((t_message[6-headerLen]<<8) | t_message[7-headerLen]);
-  setBmsMaxCellDifferenceVoltage(dataMappingNr, u16_lZellDifferenceVoltage/100.0);
-  #ifdef JKV13_DEBUG
-  BSC_LOGD(TAG_V13,"Vcdiff=%i", u16_lZellDifferenceVoltage);
-  #endif
-
   u32_lBalanceCurrent = ((t_message[15-headerLen]<<8) | t_message[16-headerLen]);
   setBmsBalancingCurrent(dataMappingNr, u32_lBalanceCurrent*0.001f);
   #ifdef JKV13_DEBUG
@@ -225,6 +216,12 @@ void JkBmsV13_parseData(uint8_t * t_message, uint8_t dataMappingNr)
     }
 
   }
+
+  u16_lZellDifferenceVoltage = u16_lZellMaxVoltage - u16_lZellMinVoltage;
+  setBmsMaxCellDifferenceVoltage(dataMappingNr, u16_lZellDifferenceVoltage);
+  #ifdef JKV13_DEBUG
+  BSC_LOGD(TAG_V13,"Vcdiff=%i", u16_lZellDifferenceVoltage);
+  #endif
 
   setBmsTotalVoltage(dataMappingNr, sum/1000.0);
   setBmsMaxCellVoltage(dataMappingNr, u16_lZellMaxVoltage);
