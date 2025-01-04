@@ -311,7 +311,7 @@ const String paramSystem PROGMEM = "{'page':["
   "{"
     "'name':"+String(ID_PARAM_MQTT_VTRIGGER_REMANENT)+","
     "'lid':25,"
-    "'label':'Remanenz vTrigger',"
+    "'label':'Zustand erhaltend',"
     "'type':"+String(HTML_INPUTMULTICHECK_COLLAPSIBLE)+","
     "'options':["
       +comboVTrigger+
