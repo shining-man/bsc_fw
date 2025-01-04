@@ -353,10 +353,11 @@ void mqttPublish(int8_t t1, int8_t t2, int8_t t3, int8_t t4, const char* val)
   strncpy(mqttMessage.value, val, sizeof(mqttMessage.value) - 1); // Kopiere val
   mqttMessage.value[sizeof(mqttMessage.value) - 1] = '\0'; // Null-Terminierung
 
-  if(xQueueSend(mqttQueue, &mqttMessage, 0) == errQUEUE_FULL) //pdMS_TO_TICKS(1)
+  xQueueSend(mqttQueue, &mqttMessage, 0);
+  /*if(xQueueSend(mqttQueue, &mqttMessage, 0) == errQUEUE_FULL) //pdMS_TO_TICKS(1)
   {
     BSC_LOGE(TAG, "MQTT Queue ist voll!"); // Nur fuer Debug
-  }
+  }*/
 }
 
 

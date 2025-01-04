@@ -414,6 +414,9 @@ void BscSerial::cyclicRun()
     bool    bo_lBmsReadOk = false;
     uint8_t u8_lReason = 1;
 
+    // Abbrechen wenn keine Serial Extension angeschlossen ist
+    if(serialDeviceNr > 2 && mExtManager->getSerial(0).isEnabled() == false) continue;
+
     if(serialDeviceNr >= 2 && mExtManager->getSerial(0).isEnabled()) 
     {
       //Workaround: Notwendig damit der Transceiver nicht in einen komischen Zustand geht, indem er den RX "flattern" lässt.
@@ -424,6 +427,7 @@ void BscSerial::cyclicRun()
         usleep(50);
         setRxTxEnable(2, serialRxTx_RxTxDisable);
       }
+      //Workaround ENDE
 
       setSerialBaudrate(serialDeviceNr); //Baudrate wechseln
     }
