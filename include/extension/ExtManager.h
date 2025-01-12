@@ -27,12 +27,13 @@ class ExtManager {
     ExtBluetooth &getBt(); 
 
   private:
+    SemaphoreHandle_t mutexI2cRx;
+
     const std::vector<uint8_t> serialAdresses = {I2C_DEV_ADDR_SERIAL_EXTENSION};
 
     std::vector<std::unique_ptr<ExtSerial>> extSerials;
     ExtDisplay extDisplay;
     ExtBluetooth extBluetooth;
-    
 };
 
 #endif

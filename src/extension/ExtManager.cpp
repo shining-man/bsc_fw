@@ -7,13 +7,16 @@
 #include "extension/ExtManager.h"
 
 ExtManager::ExtManager()
-  : extDisplay(I2C_DEV_ADDR_DISPLAY),
-    extBluetooth(I2C_DEV_ADDR_BT_EXTENSION_1)
+  : extDisplay(I2C_DEV_ADDR_DISPLAY, mutexI2cRx),
+    extBluetooth(I2C_DEV_ADDR_BT_EXTENSION_1, mutexI2cRx),
+    mutexI2cRx(NULL)
 { 
+  mutexI2cRx = xSemaphoreCreateMutex();
+
   // Füge SerialExtensions hinzu
   for (uint8_t address : serialAdresses)
   {
-    extSerials.push_back(std::make_unique<ExtSerial>(address));
+    extSerials.push_back(std::make_unique<ExtSerial>(address, mutexI2cRx));
   }
 }
 

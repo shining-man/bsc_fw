@@ -13,7 +13,7 @@
 
 class ExtDisplay : public ExtInterface_I2C {
   public:
-    ExtDisplay(uint8_t address);
+    ExtDisplay(uint8_t address, SemaphoreHandle_t &lMutexI2cRx);
     ~ExtDisplay();
 
     void initialize() override;

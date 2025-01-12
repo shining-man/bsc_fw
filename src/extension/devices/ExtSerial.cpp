@@ -9,7 +9,7 @@
 
 static const char *TAG = "EXT_SERIAL";
 
-ExtSerial::ExtSerial(uint8_t address) : ExtInterface_I2C(address) { }
+ExtSerial::ExtSerial(uint8_t address, SemaphoreHandle_t &lMutexI2cRx) : ExtInterface_I2C(address, lMutexI2cRx) { }
 
 ExtSerial::~ExtSerial() {}
 
@@ -90,23 +90,8 @@ void ExtSerial::extSerialSetEnable(uint8_t u8_serialDevNr, serialRxTxEn_e serial
     semaphoreState = true;
   }
 
-
-  if(serialRxTxEn == serialRxTx_TxEn)
-  {
-    i2cWriteRegister(deviceAddress, MCP23017_IODIRA, 0x0);
-    i2cWriteRegister(deviceAddress, MCP23017_IODIRB, 0x0);
-  }
-
-  if(u8_serialDevNr < 4)
-  {
-    i2cWriteRegister(deviceAddress, MCP23017_GPIOA, valueA);
-    if(serialRxTxEn != serialRxTx_RxEn) i2cWriteRegister(deviceAddress, MCP23017_GPIOB, 0xAA);
-  }
-  else
-  {
-    i2cWriteRegister(deviceAddress, MCP23017_GPIOB, valueB);
-    if(serialRxTxEn != serialRxTx_RxEn) i2cWriteRegister(deviceAddress, MCP23017_GPIOA, 0xAA);
-  }
+  if(u8_serialDevNr < 4) i2cWriteRegister(deviceAddress, MCP23017_GPIOA, valueA);
+  else i2cWriteRegister(deviceAddress, MCP23017_GPIOB, valueB);
 
   if(serialRxTxEn != serialRxTx_TxEn)
   {

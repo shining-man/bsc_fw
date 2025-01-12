@@ -12,10 +12,10 @@ static const char *TAG = "EXT_DEV_I2C";
 ExtInterface_I2C* ExtInterface_I2C::instance = nullptr;
 
 
-ExtInterface_I2C::ExtInterface_I2C(uint8_t address) 
-  : deviceAddress(address) 
+ExtInterface_I2C::ExtInterface_I2C(uint8_t address, SemaphoreHandle_t & lMutexI2cRx) 
+  : deviceAddress(address),
+    mutexI2cRx(lMutexI2cRx) 
   {  
-    mutexI2cRx = xSemaphoreCreateMutex();
     instance = this;
 
     Wire.onReceive(onReceiveWrapper);
@@ -27,15 +27,15 @@ ExtInterface_I2C::ExtInterface_I2C(uint8_t address)
 
 
 void ExtInterface_I2C::onReceiveWrapper(int len) {
-    if (instance) {
-        instance->onReceiveCb(len); 
-    }
+  if (instance) {
+    instance->onReceiveCb(len); 
+  }
 }
 
 void ExtInterface_I2C::onRequestWrapper() {
-    if (instance) {
-        instance->onRequestCb(); 
-    }
+  if (instance) {
+    instance->onRequestCb(); 
+  }
 }
 
 void ExtInterface_I2C::onRequestCb()

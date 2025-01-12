@@ -13,7 +13,7 @@
 
 class ExtSerial : public ExtInterface_I2C {
   public:
-    ExtSerial(uint8_t address);
+    ExtSerial(uint8_t address, SemaphoreHandle_t &lMutexI2cRx);
     ~ExtSerial();
 
     void initialize() override;

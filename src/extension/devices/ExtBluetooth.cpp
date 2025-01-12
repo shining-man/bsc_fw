@@ -11,7 +11,7 @@
 
 static const char *TAG = "EXT_BT";
 
-ExtBluetooth::ExtBluetooth(uint8_t address) : ExtInterface_I2C(address) { }
+ExtBluetooth::ExtBluetooth(uint8_t address, SemaphoreHandle_t &lMutexI2cRx) : ExtInterface_I2C(address, lMutexI2cRx) { }
 
 ExtBluetooth::~ExtBluetooth() {}
 

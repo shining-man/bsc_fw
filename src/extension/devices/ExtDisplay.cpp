@@ -9,7 +9,7 @@
 
 static const char *TAG = "EXT_DISPLAY";
 
-ExtDisplay::ExtDisplay(uint8_t address) : ExtInterface_I2C(address) { }
+ExtDisplay::ExtDisplay(uint8_t address, SemaphoreHandle_t &lMutexI2cRx) : ExtInterface_I2C(address, lMutexI2cRx) { }
 
 ExtDisplay::~ExtDisplay() {}
 

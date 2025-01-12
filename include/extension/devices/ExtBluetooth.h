@@ -13,7 +13,7 @@
 
 class ExtBluetooth : public ExtInterface_I2C {
 public:
-  ExtBluetooth(uint8_t address);
+  ExtBluetooth(uint8_t address, SemaphoreHandle_t &lMutexI2cRx);
   ~ExtBluetooth();
 
   void initialize() override;

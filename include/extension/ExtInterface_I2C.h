@@ -15,8 +15,8 @@
 class ExtInterface_I2C : public ExtPeripheral {
   private:
     static ExtInterface_I2C* instance;
+    SemaphoreHandle_t &mutexI2cRx;
 
-    SemaphoreHandle_t mutexI2cRx = NULL;
     uint8_t mI2cRxBuf[256];
 
     static void onReceiveWrapper(int len);
@@ -48,7 +48,7 @@ class ExtInterface_I2C : public ExtPeripheral {
     uint8_t isDeviceAvailable(uint8_t devAdresse);
 
   public:
-    ExtInterface_I2C(uint8_t address);
+    ExtInterface_I2C(uint8_t address, SemaphoreHandle_t & lMutexI2cRx);
 
 
   protected:
