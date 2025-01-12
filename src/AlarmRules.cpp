@@ -652,7 +652,7 @@ void rules_Bms()
     dataDevice = (uint8_t)WebSettings::getInt(ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE, lAlarmruleDataDevice, DT_ID_PARAM_DEVICE_MAPPING_SCHNITTSTELLE);
     if(dataDevice >= MUBER_OF_DATA_DEVICES)
     {
-      BSC_LOGE(TAG,"Aralrmregel %i wird nicht ausgefuehrt! Kein Device im Mapping festgelegt!", lAlarmruleDataDevice);
+      BSC_LOGE(TAG,"Alarmregel %i wird nicht ausgefuehrt! Kein Device im Mapping festgelegt!", lAlarmruleDataDevice);
       continue; // nicht Belegt
     }
 
