@@ -36,6 +36,7 @@
   <a href="https://github.com/Vitalic66" target=_blank><img src="https://avatars.githubusercontent.com/u/26961054?v=4" height="58"/></a>
   <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
   <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
+  <a href="https://github.com/JoergWie" target=_blank><img src="https://avatars.githubusercontent.com/u/20060594?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
