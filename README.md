@@ -27,7 +27,6 @@
 </p>
 
 <p align="center"><strong>Koffein-Komplize</strong></p><p align="center">
-  <a href="https://github.com/Ingog79" target=_blank><img src="https://avatars.githubusercontent.com/u/128917948?v=4" height="58"/></a>
   <a href="https://github.com/Rindi66" target=_blank><img src="https://avatars.githubusercontent.com/u/106440831?v=4" height="58"/></a>
   <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?v=4" height="58"/></a>
   <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?v=4" height="58"/></a>
@@ -37,6 +36,7 @@
   <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
   <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
   <a href="https://github.com/JoergWie" target=_blank><img src="https://avatars.githubusercontent.com/u/20060594?v=4" height="58"/></a>
+  <a href="https://github.com/pepe-el-pepe" target=_blank><img src="https://avatars.githubusercontent.com/u/61097309?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
