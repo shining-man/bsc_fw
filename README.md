@@ -38,6 +38,7 @@
   <a href="https://github.com/JoergWie" target=_blank><img src="https://avatars.githubusercontent.com/u/20060594?v=4" height="58"/></a>
   <a href="https://github.com/pepe-el-pepe" target=_blank><img src="https://avatars.githubusercontent.com/u/61097309?v=4" height="58"/></a>
   <a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?v=4" height="58"/></a>
+  <a href="https://github.com/Timon321" target=_blank><img src="https://avatars.githubusercontent.com/u/7792233?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
