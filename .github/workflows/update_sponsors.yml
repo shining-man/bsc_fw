@@ -26,10 +26,9 @@ jobs:
           BSC_FW_UPDATE_SPONSORS_TOKEN: ${{ secrets.BSC_FW_UPDATE_SPONSORS_TOKEN }}
         run: python scripts/update_sponsors.py  
 
-#      - name: Commit and Push Changes
-#        run: |
-#          git config --global user.name "github-actions[bot]"
-#          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-#          git add README.md spons
-#          git diff --quiet && git diff --staged --quiet || (git commit -m "Update sponsors list" && git push)
-
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add README.md spons
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update sponsors list" && git push)
