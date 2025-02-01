@@ -1,0 +1,32 @@
+name: Update sponsors
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Täglich um 00:00 UTC
+  workflow_dispatch:  # Ermöglicht manuelles Triggern
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Run Sponsor Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: python scripts/update_sponsors.py  
+
+#      - name: Commit and Push Changes
+#        run: |
+#          git config --global user.name "github-actions[bot]"
+#          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+#          git add README.md spons
+#          git diff --quiet && git diff --staged --quiet || (git commit -m "Update sponsors list" && git push)
+

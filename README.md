@@ -1,12 +1,12 @@
 <H1 align="center">Battery safety controller (BSC)</H1>
 
-<!-- SPONSORS_START -->
 <p align="center">Herzlichen Dank an alle <b>Sponsoren</b>, die das Projekt unterstützen. Zum Sponsoring geht es <a href="https://github.com/sponsors/shining-man" target=_blank>hier</a> :smiley:</p>
 
 <p align="center">
   <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/user-attachments/assets/2a044a67-b0f3-4285-8d8b-3e64ffd7539f" height="68"/></a>
 </p>
 
+<!-- SPONSORS_START -->
 <p align="center"><strong>Energie-Pionier</strong></p><p align="center">
   <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?v=4" height="58"/></a>
 </p>
