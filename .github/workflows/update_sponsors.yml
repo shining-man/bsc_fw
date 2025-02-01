@@ -23,7 +23,7 @@ jobs:
 
       - name: Run Sponsor Script
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          BSC_FW_UPDATE_SPONSORS_TOKEN: ${{ secrets.BSC_FW_UPDATE_SPONSORS_TOKEN }}
         run: python scripts/update_sponsors.py  
 
 #      - name: Commit and Push Changes
