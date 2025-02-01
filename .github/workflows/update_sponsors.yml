@@ -18,6 +18,9 @@ jobs:
         with:
           python-version: '3.x'
 
+      - name: Install Dependencies 
+        run: pip install requests
+
       - name: Run Sponsor Script
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
