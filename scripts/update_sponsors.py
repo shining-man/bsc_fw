@@ -2,9 +2,9 @@ import os
 import requests
 from collections import defaultdict
 
-github_token = os.environ.get("GH_TOKEN")
+github_token = os.environ.get("GITHUB_TOKEN")
 if not github_token:
-    raise ValueError("Bitte setze den GH_TOKEN als Umgebungsvariable")
+    raise ValueError("Bitte setze den GITHUB_TOKEN als Umgebungsvariable")
 
 
 # GraphQL Query mit Spendengröße
