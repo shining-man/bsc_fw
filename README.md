@@ -8,6 +8,7 @@
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
+<a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Silver</strong></p><p align="center">
@@ -25,7 +26,6 @@
 <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?u=d029b983a51288f7038ef3460a11aba6522c5d12&v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Supporter</strong></p><p align="center">
-<a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/Emilleopold" target=_blank><img src="https://avatars.githubusercontent.com/u/6137560?v=4" height="58"/></a>
 <a href="https://github.com/Timon321" target=_blank><img src="https://avatars.githubusercontent.com/u/7792233?u=5830023fdc7fd4e21aba8246d70f2255d2e50a4b&v=4" height="58"/></a>
 <a href="https://github.com/PatrickGoettsch" target=_blank><img src="https://avatars.githubusercontent.com/u/8688158?u=5a0d7247dfdb3cafd36a49e41a7e68f862e32dd0&v=4" height="58"/></a>
