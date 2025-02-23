@@ -187,7 +187,7 @@ static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t functi
   u8_lData[3] = function;     // CID2 (0x42)
   u8_lData[4] = (lenid >> 8); // LCHKSUM (0xE0)
   u8_lData[5] = (lenid >> 0); // LENGTH (0x02)
-  u8_lData[6] = 0xff; //address; // + 1; //0xFF;         // INFO
+  u8_lData[6] = 0xff;         // INFO (address ?)
 
   convertByteToAsciiHex(&u8_lSendData[1], &u8_lData[0], frame_len);
 
@@ -214,12 +214,11 @@ static void getDataFromBms(BscSerial *bscSerial, uint8_t address, uint8_t functi
 
 static bool recvAnswer(uint8_t *p_lRecvBytes)
 {
-  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen, u8_CyclesWithoutData;
+  uint8_t SMrecvState, u8_lRecvByte, u8_lRecvBytesCnt, u8_lRecvDataLen;
   uint32_t u32_lStartTime = millis();
   SMrecvState = SEARCH_START;
   u8_lRecvBytesCnt = 0;
   u8_lRecvDataLen = 0xFF;
-  u8_CyclesWithoutData = 0;
   bool bo_lDataComplete = false;
 
   for (;;)
@@ -262,17 +261,9 @@ static bool recvAnswer(uint8_t *p_lRecvBytes)
       default:
         break;
       }
-      u8_CyclesWithoutData = 0;
     }
-    else if (u8_lRecvBytesCnt == 0)
-      vTaskDelay(pdMS_TO_TICKS(10)); // Wenn noch keine Daten empfangen wurden, dann setze den Task 10ms aus
-    else if (u8_lRecvBytesCnt > 0 && u8_CyclesWithoutData > 10)
-      vTaskDelay(pdMS_TO_TICKS(10)); // Wenn trotz empfangenen Daten 10ms wieder nichts empfangen wurde, dann setze den Task 10ms aus
-    else                             // Wenn in diesem Zyklus keine Daten Empfangen wurde, dann setze den Task 1ms aus
-    {
-      u8_CyclesWithoutData++;
-      vTaskDelay(pdMS_TO_TICKS(1));
-    }
+    else vTaskDelay(pdMS_TO_TICKS(10));
+    
 
     if (bo_lDataComplete)
       break; // Recv Pakage complete
@@ -296,12 +287,12 @@ static void parseMessage(uint8_t *t_message, uint8_t address)
   auto get16bitFromMsg = [&](size_t i) -> uint16_t
   {
     return (uint16_t(convertAsciiHexToByte(t_message, i) << 8) |
-            (uint16_t(convertAsciiHexToByte(t_message, i + 1) << 0)));
+           (uint16_t(convertAsciiHexToByte(t_message, i + 1) << 0)));
   };
 
-#ifdef GOBELPC200_DEBUG
+  #ifdef GOBELPC200_DEBUG
   BSC_LOGI(TAG, "parseMessage: serialDev=%i", address);
-#endif
+  #endif
 
   uint8_t u8_lNumOfCells = 0;
   uint16_t u16_lZellVoltage = 0;
@@ -318,54 +309,15 @@ static void parseMessage(uint8_t *t_message, uint8_t address)
 
   uint8_t u8_lMsgoffset = 0;
 
-/*
-Byte | Data
-00 | 32 35（VER，that is version 25H，V2.5）
-01 | 30 30（ADR，the battery address is 0）
-02 | 34 36（CID1，46H）
-03 | 30 30（RTN，00H）
-04 | 46 30 37 41（LENGTH，F07A，LENID is 07AH，DATAINFO length is 122 ，LCHKSUM is FH）
-06 | 30 30（INFOFLAG is 00H。other information is DATAI）
-07 | 30 31（PACK number，01H）
-08 | 31 30（battery cell number M，is 10H，that has 16 cell）
-09 | 30 44 34 32（first cell voltage: 0D42H，that’s 3394mV）
-11 | 30 44 31 34（second cell voltage: 0D14H，that’s 3348mV）
-13 | 30 44 31 33（third cell voltage: 0D13H，that’s 3347mV）
-15 | 30 44 31 33（forth cell voltage: 0D13H，that’s 3347mV）
-17 | 30 44 31 33（fifth cell voltage: 0D13H，that’s 3347mV）
-19 | 30 44 31 33（sixth cell voltage: 0D13H，that’s 3347mV）
-21 | 30 44 31 33（seventh cell voltage: 0D13H，that’s 3347mV）
-23 | 30 44 31 33（eighth cell voltage: 0D13H，that’s 3347mV）
-25 | 30 44 31 31（ninth cell voltage : 0D11H，that’s 3345mV）
-27 | 30 44 31 32（tenth cell voltage: 0D12H，that’s 3346mV）
-29 | 30 44 31 33（eleventh cell voltage: 0D13H，that’s 3347mV）
-31 | 30 44 31 31（twelfth cell voltage: 0D11H，that’s 3345mV）
-33 | 30 44 31 31（thirteenth cell voltage: 0D11H，that’s 3345mV）
-35 | 30 44 31 32（fourteenth cell voltage: 0D12H，that’s 3346mV）
-37 | 30 44 31 30（fifteenth cell voltage: 0D10H，that’s 3344mV）
-39 | 30 44 31 33（sixteenth cell voltage: 0D13H，that’s 3347mV）
-41 | 30 36（temperature number N，06H，has 6 temperatures）
-42 | 30 42 42 37（first temperature: 0BB7H，that’s 2999，26.9℃）
-44 | 30 42 42 37（second temperature: 0BB7H，that’s 2999，26.9℃）
-46 | 30 42 42 38（third temperature: 0BB8H，that’s 3000，27.0℃）
-48 | 30 42 42 36（forth temperature: 0BB6H，that’s 2998，26.8℃）
-50 | 30 42 42 33（fifth temperature （MOS）: 0BB3H，that’s 2995，26.5℃）
-52 | 30 42 42 44（sixth temperature（environment）: 0BBDH，that’s 2994，27.5℃）
-54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
-58 | 31 32 38 45（PACK remain capacity，128EH, that’s 47.50AH）
-60 | 30 33（user define number P，03H）
-61 | 31 33 38 38（PACK full capacity ，1388H , that’s 50.00AH）
-63 | 30 30 30 30（cycle times，0000H）
-65 | 31 33 38 38（PACK design capacity，1388H , that’s 50.00AH）
-67 | 45 33 41 43（CHKSUM，E3ACH）
-*/
-
   //  08 | 31 30（battery cell number M，is 10H，that has 16 cell）
   u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
-#ifdef GOBELPC200_DEBUG
+  if(u8_lNumOfCells == 0) {
+    BSC_LOGE(TAG, "Number of cells is 0!");
+    return;
+  }
+  #ifdef GOBELPC200_DEBUG
   BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
-#endif
+  #endif
 
   u8_lMsgoffset = 9;
   for (uint8_t i = 0; i < u8_lNumOfCells; i++)
@@ -411,19 +363,15 @@ Byte | Data
   // 48 | 30 42 42 36（forth temperature: 0BB6H，that’s 2998，26.8℃）
   // 50 | 30 42 42 33（fifth temperature （MOS）: 0BB3H，that’s 2995，26.5℃）
   // 52 | 30 42 42 44（sixth temperature（environment）: 0BBDH，that’s 2994，27.5℃）
-  float fl_lBmsTemps[3]; // Hier werden die letzten drei Temperaturen zwischengespeichert
+  
   for (uint8_t i = 0; i < u8_lCntTempSensors; i++)
   {
-    fl_lBmsTemps[2] = (float)(get16bitFromMsg(u8_lMsgoffset) - 0xAAB) * 0.1;
+    if(i < 6) setBmsTempatureI16(address, i, (get16bitFromMsg(u8_lMsgoffset) - 0xAAB) * 10);
     u8_lMsgoffset += 2;
-    if (i < 3)
-      setBmsTempature(address, i, fl_lBmsTemps[2]);
-    else if (i >= 3 && i < 5)
-      fl_lBmsTemps[i - 3] = fl_lBmsTemps[2];
   }
 
   // 54 | 30 30 30 30（PACK current，0000H，unit:10mA，range: -327.68A-+327.67A）
-  setBmsTotalCurrent_int(address, ((int16_t)get16bitFromMsg(u8_lMsgoffset)*10));
+  setBmsTotalCurrent_int(address, (int16_t)get16bitFromMsg(u8_lMsgoffset));
   u8_lMsgoffset += 2;
 
   // 56 | 44 31 35 35（PACK total voltage，D155H , that’s 53.589V）
@@ -441,6 +389,10 @@ Byte | Data
   u8_lMsgoffset += 2;
 
   setBmsChargePercentage(address, (float)((float)u16_lBalanceCapacity / (float)u16_lFullCapacity * 100.0f));
+  if(u16_lFullCapacity == 0) {
+    BSC_LOGE(TAG, "Full Capacity is 0!");
+    return;
+  }
   #ifdef GOBELPC200_DEBUG
   BSC_LOGD(TAG, "Capacity: %i %i, soc=%i", u16_lBalanceCapacity, u16_lFullCapacity, getBmsChargePercentage(address));
   #endif
@@ -453,13 +405,9 @@ Byte | Data
 
   // 65 | 31 33 38 38（PACK design capacity，1388H , that’s 50.00AH）
 
+  // Nachrichten senden
   if (mDevData->bo_sendMqttMsg)
   {
-    // Nachrichten senden
-    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 3, fl_lBmsTemps[0]);
-    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 4, fl_lBmsTemps[1]);
-    mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_TEMPERATURE, 5, fl_lBmsTemps[2]);
-
     mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_BALANCE_CAPACITY, -1, u16_lBalanceCapacity);
     mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_FULL_CAPACITY, -1, u16_lFullCapacity);
     mqttPublish(MQTT_TOPIC_DATA_DEVICE, address, MQTT_TOPIC2_CYCLE, -1, u16_lCycle);
@@ -470,87 +418,126 @@ Byte | Data
 static void parseMessage_Alarms(uint8_t *t_message, uint8_t address)
 {
   #ifdef GOBELPC200_DEBUG
-    BSC_LOGI(TAG, "parseMessage_Alarms: serialDev=%i", address);
+  BSC_LOGI(TAG, "parseMessage: serialDev=%i", u8_mDevNr + address);
   #endif
 
+  uint8_t warnstate = 0;
+  uint8_t u8_lMsgoffset = 0;
   uint32_t u32_alarm = 0;
-
-  // FET state
-  uint8_t FETstate = convertAsciiHexToByte(t_message, 37);
-  if(isBitSet(FETstate,1)) setBmsStateFETsCharge(address, true);
-  else setBmsStateFETsCharge(address, false); 
-  
-  if(isBitSet(FETstate,2)) setBmsStateFETsDischarge(address, true);
-  else setBmsStateFETsDischarge(address, false); 
+  uint32_t u32_warnings = 0;
+  boolean bo_lValue = false;
 
 
-  // BMS_ERR_STATUS_OK            
-  // BMS_ERR_STATUS_CELL_OVP       // x      1 - bit0 single cell overvoltage protection
-  // BMS_ERR_STATUS_CELL_UVP       // x      2 - bit1 single cell undervoltage protection
-  // BMS_ERR_STATUS_BATTERY_OVP    // x      4 - bit2  whole pack overvoltage protection
-  // BMS_ERR_STATUS_BATTERY_UVP    //        8 - bit3  Whole pack undervoltage protection
-  // BMS_ERR_STATUS_CHG_OTP        // x     16 - bit4  charging over temperature protection
-  // BMS_ERR_STATUS_CHG_UTP        // x     32 - bit5  charging low temperature protection
-  // BMS_ERR_STATUS_DSG_OTP        // x     64 - bit6  Discharge over temperature protection
-  // BMS_ERR_STATUS_DSG_UTP        // x    128 - bit7  discharge low temperature protection
-  // BMS_ERR_STATUS_CHG_OCP        //      256 - bit8  charging overcurrent protection
-  // BMS_ERR_STATUS_DSG_OCP        //      512 - bit9  Discharge overcurrent protection
-  // BMS_ERR_STATUS_SHORT_CIRCUIT  //     1024 - bit10 short circuit protection
-  // BMS_ERR_STATUS_AFE_ERROR      //     2048 - bit11 Front-end detection IC error
-  // BMS_ERR_STATUS_SOFT_LOCK      //     4096 - bit12 software lock MOS
-  // BMS_ERR_STATUS_RESERVED1      //     8192 - bit13 Reserved
-  // BMS_ERR_STATUS_RESERVED2      //    16384 - bit14 Reserved
-  // BMS_ERR_STATUS_RESERVED3      //    32768 - bit15 Reserved
+  uint8_t u8_lNumOfCells = convertAsciiHexToByte(t_message, 8); // Number of cells
+  #ifdef GOBELPC200_DEBUG
+  BSC_LOGD(TAG, "Number of cells: %d", u8_lNumOfCells);
+  #endif
 
-  // Cell OVP
-  for(uint16_t c = 0; c < 16; c++)
+  u8_lMsgoffset = 9;
+  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
   {
-    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
+    warnstate = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
+    if (warnstate == 0x01)
+      u32_warnings |= BMS_ERR_STATUS_CELL_UVP;
+    else if (warnstate == 0x02)
+      u32_warnings |= BMS_ERR_STATUS_CELL_OVP;
   }
 
-  // Cell UVP
-  for(uint16_t c = 0; c < 16; c++)
+
+  /*uint8_t u8_lCntTempSensors = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
+  #ifdef GOBELPC200_DEBUG
+  BSC_LOGD(TAG, "Number of temp sensors: %d", u8_lCntTempSensors);
+  #endif
+  for (uint8_t i = 0; i < u8_lNumOfCells; i++)
   {
-    if(isBitSet(convertAsciiHexToByte(t_message, 9 + c), 1)) u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
-  }
+    //warnstate = convertAsciiHexToByte(t_message, u8_lMsgoffset++);
+    // TODO
+  }*/
 
-  // Pack OVP
-  if(isBitSet(convertAsciiHexToByte(t_message, 36), 1)) u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
 
-  // Pack OVP
-  // ToDo
+  /*7 undefine 
+    6 Short circuit 
+    5 Discharge current protect 
+    4 charge current protect 
+    3 Lower total voltage protect 
+    2 Above total voltage protect 
+    1 Lower cell voltage protect 
+    0 Above cell voltage protect*/
+  warnstate = convertAsciiHexToByte(t_message, 35);
+  if (isBitSet(warnstate, 0))
+      u32_alarm |= BMS_ERR_STATUS_CELL_OVP;
 
-  // ChgOTP
-  if(isBitSet(convertAsciiHexToByte(t_message, 36), 6))
-  {
-    for(uint16_t c = 0; c < 4; c++)
-    {
-      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
-    }
-  }
+  if (isBitSet(warnstate, 1))
+      u32_alarm |= BMS_ERR_STATUS_CELL_UVP;
 
-  // ChgUTP + DsgUTP
-  for(uint16_t c = 0; c < 4; c++)
-  {
-    if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 1)) 
-    {
+  if (isBitSet(warnstate, 2))
+      u32_alarm |= BMS_ERR_STATUS_BATTERY_OVP;
+
+  if (isBitSet(warnstate, 3))
+      u32_alarm |= BMS_ERR_STATUS_BATTERY_UVP;
+
+  if (isBitSet(warnstate, 4))
+      u32_alarm |= BMS_ERR_STATUS_CHG_OCP;
+
+  if (isBitSet(warnstate, 5))
+      u32_alarm |= BMS_ERR_STATUS_DSG_OCP;
+
+  if (isBitSet(warnstate, 6))
+      u32_alarm |= BMS_ERR_STATUS_SHORT_CIRCUIT;
+
+
+  /*7 Fully 
+    6 Lower Env temperature protect 
+    5 above Env temperature protect 
+    4 Above MOS temperature protect 
+    3 Lower discharge temperature protect
+    2 Lower charge temperature protect 
+    1 above discharge temperature protect
+    0 above charge temperature protect */
+  warnstate = convertAsciiHexToByte(t_message, 36);
+  if (isBitSet(warnstate, 0))
+      u32_alarm |= BMS_ERR_STATUS_CHG_OTP;
+
+  if (isBitSet(warnstate, 1))
+      u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
+
+  if (isBitSet(warnstate, 2))
       u32_alarm |= BMS_ERR_STATUS_CHG_UTP;
+
+  if (isBitSet(warnstate, 3))
       u32_alarm |= BMS_ERR_STATUS_DSG_UTP;
-    }
-  }
-
-  // DsgOTP
-  if(isBitSet(convertAsciiHexToByte(t_message, 36), 5))
-  {
-    for(uint16_t c = 0; c < 4; c++)
-    {
-      if(isBitSet(convertAsciiHexToByte(t_message, 27 + c), 2)) u32_alarm |= BMS_ERR_STATUS_DSG_OTP;
-    }
-  }
 
 
-  setBmsErrors(BT_DEVICES_COUNT + address, u32_alarm);
+  /*7 Heart indicate 
+    6 undefine 
+    5 ACin 
+    4 Reverse indicate 
+    3 Pack indicate 
+    2 DFET indicate 
+    1 CFET indicate 
+    0 Current limit indicate */
+  warnstate = convertAsciiHexToByte(t_message, 37);
+  if (isBitSet(warnstate, 1)) setBmsStateFETsCharge(address, true);
+  else setBmsStateFETsCharge(address, false);
+      
+  if (isBitSet(warnstate, 1)) setBmsStateFETsDischarge(address, true);
+  else setBmsStateFETsDischarge(address, false);
+      
+
+/*1 Discharge MOS fault
+  0 Charge MOS fault */
+  warnstate = convertAsciiHexToByte(t_message, 39);
+  if (isBitSet(warnstate, 0))
+      u32_alarm |= BMS_ERR_STATUS_SHORT_CIRCUIT;
+
+  if (isBitSet(warnstate, 1))
+      u32_alarm |= BMS_ERR_STATUS_SHORT_CIRCUIT;
+
+
+  setBmsWarnings(address, u32_warnings);
+  setBmsErrors(address, u32_alarm);
 }
+
 
 uint8_t convertAsciiHexToByte(char a, char b)
 {
