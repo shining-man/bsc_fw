@@ -1,3 +1,2 @@
-<h1>Version 0.7.2</h1>
-- Fixed a bug in the communication with the serial extension
-- Display error with an alarm log entry fixed 
+<h1>Version 0.7.3</h1>
+- PACE PC200 protocol updated
