@@ -470,7 +470,7 @@ uint32_t getBmsWarnings(uint8_t devNr)
 void setBmsWarnings(uint8_t devNr, uint32_t value)
 {
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
-  if(bmsData.bmsErrors[devNr] != value) 
+  if(bmsData.bmsWarnings[devNr] != value) 
   {
     bmsData.bmsWarnings[devNr] = value;
     xSemaphoreGive(mBmsDataMutex);

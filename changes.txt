@@ -1,2 +1,2 @@
-<h1>Version 0.7.3</h1>
-- PACE PC200 protocol updated
+<h1>Version 0.7.4</h1>
+- Frequent BMS warning log entry removed
