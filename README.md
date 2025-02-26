@@ -11,9 +11,6 @@
 <a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
 </p>
-<p align="center"><strong>Silver</strong></p><p align="center">
-<a href="https://github.com/sticilface" target=_blank><img src="https://avatars.githubusercontent.com/u/10061736?v=4" height="58"/></a>
-</p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
 <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?u=7e4d945122ebbe34a31bb917a7735c666b62040d&v=4" height="58"/></a>
 <a href="https://github.com/SlapJackNpNp" target=_blank><img src="https://avatars.githubusercontent.com/u/26175386?v=4" height="58"/></a>
