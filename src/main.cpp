@@ -1241,7 +1241,7 @@ void setup()
   webSettingsSerial.initWebSettings(paramSerial, "Serial", "/WebSettings.conf");
   webSettingsAlarmBt.initWebSettings(paramAlarmBms, "Alarm BMS (BT + Serial)", "/WebSettings.conf");
   webSettingsAlarmTemp.initWebSettings(paramAlarmTemp, "Alarm Temperatur", "/WebSettings.conf");
-  webSettingsDitialOut.initWebSettings(paramDigitalOut, "Digitalausg&auml;nge", "/WebSettings.conf");
+  webSettingsDitialOut.initWebSettings(paramDigitalOut, "Relaisausg&auml;nge", "/WebSettings.conf");
   webSettingsDitialIn.initWebSettings(paramDigitalIn, "Digitaleing&auml;nge", "/WebSettings.conf");
   webSettingsOnewire.initWebSettings(paramOnewireAdr, "Onewire", "/WebSettings.conf");
   webSettingsOnewire.setTimerHandlerName("getOwDevices",2000);
