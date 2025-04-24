@@ -43,6 +43,7 @@
 <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?u=d1952cbd2fa94be247696e69ddd230cd9e950731&v=4" height="58"/></a>
 <a href="https://github.com/martinarva" target=_blank><img src="https://avatars.githubusercontent.com/u/77044330?v=4" height="58"/></a>
 <a href="https://github.com/HSGithi" target=_blank><img src="https://avatars.githubusercontent.com/u/95976129?v=4" height="58"/></a>
+<a href="https://github.com/Hitman79" target=_blank><img src="https://avatars.githubusercontent.com/u/101149246?u=ce5e049664fd4234c017239ce3ac5d1e0e7c8309&v=4" height="58"/></a>
 <a href="https://github.com/SHendrik123" target=_blank><img src="https://avatars.githubusercontent.com/u/103681547?v=4" height="58"/></a>
 <a href="https://github.com/gartenjoe" target=_blank><img src="https://avatars.githubusercontent.com/u/113258562?u=9a17d545201068adae93ae632985056122975fad&v=4" height="58"/></a>
 <a href="https://github.com/KrawallOPA" target=_blank><img src="https://avatars.githubusercontent.com/u/115902005?v=4" height="58"/></a>
