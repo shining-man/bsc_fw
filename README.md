@@ -22,7 +22,6 @@
 <a href="https://github.com/SladeTheLeveller" target=_blank><img src="https://avatars.githubusercontent.com/u/127076644?u=96cfedf0bba5aa3e61fc6741d73fceba56563eb6&v=4" height="58"/></a>
 <a href="https://github.com/Metaworld82" target=_blank><img src="https://avatars.githubusercontent.com/u/156550945?u=0f06f37bcaa23d70651a913adb6d277d34eaeaaa&v=4" height="58"/></a>
 <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?u=d029b983a51288f7038ef3460a11aba6522c5d12&v=4" height="58"/></a>
-<a href="https://github.com/kilowatt-man" target=_blank><img src="https://avatars.githubusercontent.com/u/205640079?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Supporter</strong></p><p align="center">
 <a href="https://github.com/Emilleopold" target=_blank><img src="https://avatars.githubusercontent.com/u/6137560?v=4" height="58"/></a>
