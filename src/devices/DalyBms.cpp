@@ -343,6 +343,13 @@ static void parseMessage(uint8_t * t_message, uint8_t dataMappingNr)
 
 
     case DALY_REQUEST_FAILURE:
+      /* Fehler werden in zwei Stufen eingeteilt. Das BMS behandelt die verschiedenen Fehlerstufen unterschiedlich:
+       *   Level 1: Geringfügige Fehler, das BMS gibt lediglich einen Alarm aus.
+       *   Level 2: Schwerwiegende Fehler, das BMS gibt einen Alarm aus und schaltet den MOS-Schalter ab.
+       *
+       * Bei folgenden Fehlern der Stufe 2 wird der MOS-Schalter nicht abgeschaltet: Alarm bei zu hoher Spannungsdifferenz, 
+       * Alarm bei zu hoher Temperaturdifferenz, Alarm bei hohem Ladezustand und Alarm bei niedrigem Ladezustand. */
+
       /*bmsErrors
       #define BMS_ERR_STATUS_OK                0
       #define BMS_ERR_STATUS_CELL_OVP          1   //bit0  single cell overvoltage protection
@@ -384,9 +391,9 @@ static void parseMessage(uint8_t * t_message, uint8_t dataMappingNr)
       if((u16_lValue1>>1)&0x1) u16_lValue2|=256;   //Bit 1: Chg overcurrent level 2
       if((u16_lValue1>>2)&0x1) u16_lValue2|=512;   //Bit 2: Dischg overcurrent level 1
       if((u16_lValue1>>3)&0x1) u16_lValue2|=512;   //Bit 3: Dischg overcurrent level 2
-      if((u16_lValue1>>4)&0x1) u16_lValue2|=4096;  //Bit 4: SOC high level 1
+      //if((u16_lValue1>>4)&0x1) u16_lValue2|=4096;  //Bit 4: SOC high level 1
       if((u16_lValue1>>5)&0x1) u16_lValue2|=4096;  //Bit 5: SOC high level 2
-      if((u16_lValue1>>6)&0x1) u16_lValue2|=4096;  //Bit 6: SOC Low level 1
+      //if((u16_lValue1>>6)&0x1) u16_lValue2|=4096;  //Bit 6: SOC Low level 1
       if((u16_lValue1>>7)&0x1) u16_lValue2|=4096;  //Bit 7: SOC Low level 2
 
       u16_lValue1 = t_message[7];
