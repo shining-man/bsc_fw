@@ -9,14 +9,13 @@
 #include "log.h"
 #include "ModbusRTU.hpp"
 #include "BmsDataTypes.hpp"
+//#include "Utility.h"
 
 static const char *TAG = "SEPLOS_V3";
 
 static void parsePackInfoA(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
 static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr);
-
-//static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address);
 
 static serialDevData_s *mDevData;
 
@@ -38,7 +37,8 @@ bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, 
 
   if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1000, 18, response))
   {
-    //message2Log(response, 36, 0);
+    //BSC_LOGI(TAG, "PackInfoA");
+    //buffer2Log(response, 18);
     parsePackInfoA(&modbus, u8_lSeplosAdrBmsData);
 
     // MQTT
@@ -51,6 +51,8 @@ bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, 
 
   if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_CMD_04, 0x1100, 26, response))
   {
+    //BSC_LOGI(TAG, "PackInfoB");
+    //buffer2Log(response, 26);
     parsePackInfoB(&modbus, u8_lSeplosAdrBmsData);
     vTaskDelay(pdMS_TO_TICKS(25));
   }
@@ -58,6 +60,8 @@ bool SeplosBmsV3_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, 
 
   if(modbus.readData(bscSerial, u8_lSeplosAdr, modbusrtu::ModbusRTU::fCode::READ_COIL_01, 0x1200, 0x90, response))
   {
+    //BSC_LOGI(TAG, "PackInfoC");
+    //buffer2Log(response, 24);
     parsePackInfoC(&modbus, u8_lSeplosAdrBmsData);
   }
   else return false;
@@ -128,6 +132,7 @@ static void parsePackInfoB(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
 {
   uint32_t errors = 0;
+  uint32_t warnings = 0;
 
   /*
   BMS_ERR_STATUS_CELL_OVP       // x     1 - bit0 single cell overvoltage protection
@@ -145,17 +150,11 @@ static void parsePackInfoC(modbusrtu::ModbusRTU *modbus, uint8_t dataMappingNr)
   BMS_ERR_STATUS_SOFT_LOCK      //   4096 - bit12 software lock MOS
   */
 
- /*
- #define SEPLOS3_EQUALIZATION_08_01    0x1230
- #define SEPLOS3_EQUALIZATION_16_09    0x1238
-
- 0x1230 Cell 08-01 equalization event code 08-01
+ /* 0x1230 Cell 08-01 equalization event code 08-01
  0x1238 Cell 16-09 equalization event code 16-09 */
 if(modbus->getU8Value(SEPLOS3_EQUALIZATION_08_01) > 0 
   || modbus->getU8Value(SEPLOS3_EQUALIZATION_16_09) > 0) setBmsIsBalancingActive(dataMappingNr, 1); 
 else setBmsIsBalancingActive(dataMappingNr, 0);
-
-
 
 
   /* 0x1248 Voltage event code (SEPLOS3_VOLATGE_EVENT, TB02)
@@ -168,13 +167,13 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Pack over voltage protection
   Bit6  Pack low voltage alarm
   Bit7  Pack under voltage protection*/
-  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,0)) errors |= BMS_ERR_STATUS_CELL_OVP;
+  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,0)) warnings |= BMS_ERR_STATUS_CELL_OVP;
   if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,1)) errors |= BMS_ERR_STATUS_CELL_OVP;
-  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,2)) errors |= BMS_ERR_STATUS_CELL_UVP;
+  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,2)) warnings |= BMS_ERR_STATUS_CELL_UVP;
   if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,3)) errors |= BMS_ERR_STATUS_CELL_UVP;
-  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,4)) errors |= BMS_ERR_STATUS_BATTERY_OVP;
+  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,4)) warnings |= BMS_ERR_STATUS_BATTERY_OVP;
   if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,5)) errors |= BMS_ERR_STATUS_BATTERY_OVP;
-  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,6)) errors |= BMS_ERR_STATUS_BATTERY_UVP;
+  if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,6)) warnings |= BMS_ERR_STATUS_BATTERY_UVP;
   if(modbus->getBitValue(SEPLOS3_VOLATGE_EVENT,7)) errors |= BMS_ERR_STATUS_BATTERY_UVP;
 
   
@@ -188,13 +187,13 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Discharge over temperature protection
   Bit6  Discharge low temperature alarm
   Bit7  Discharge under temperature protection*/
-  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,0)) errors |= BMS_ERR_STATUS_CHG_OTP;
+  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,0)) warnings |= BMS_ERR_STATUS_CHG_OTP;
   if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,1)) errors |= BMS_ERR_STATUS_CHG_OTP;
-  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,2)) errors |= BMS_ERR_STATUS_CHG_UTP;
+  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,2)) warnings |= BMS_ERR_STATUS_CHG_UTP;
   if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,3)) errors |= BMS_ERR_STATUS_CHG_UTP;
-  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,4)) errors |= BMS_ERR_STATUS_DSG_OTP;
+  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,4)) warnings |= BMS_ERR_STATUS_DSG_OTP;
   if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,5)) errors |= BMS_ERR_STATUS_DSG_OTP;
-  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,6)) errors |= BMS_ERR_STATUS_DSG_UTP;
+  if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,6)) warnings |= BMS_ERR_STATUS_DSG_UTP;
   if(modbus->getBitValue(SEPLOS3_CELLS_TEMPERATURE,7)) errors |= BMS_ERR_STATUS_DSG_UTP;
 
 
@@ -206,8 +205,15 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit3  Under environment temperature protection
   Bit4  High Power temperature alarm
   Bit5  Over Power temperature protection
-  Bit6  Cell temperature low heating
+  Bit6  Cell temperature low heating           Warning wenn die Heizung des BMS angeht. 
+      Da es dann in der Venus zu einer Warning kommt, soll diese hier nicht gesetzt werden.
   Bit7  Reservation*/
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,0)) warnings |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,1)) errors |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,2)) warnings |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,3)) errors |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,4)) warnings |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_ENVIRONMENT_TEMP,5)) errors |= BMS_ERR_STATUS_AFE_ERROR;
 
 
   /* 0x1260 Current event code1 (SEPLOS3_CURRENT_EVENT_1, TB05)
@@ -220,10 +226,10 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Discharge second level over current protection
   Bit6  Output short circuit protection
   Bit7  Reservation*/
-  if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,0)) errors |= BMS_ERR_STATUS_CHG_OCP;
+  if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,0)) warnings |= BMS_ERR_STATUS_CHG_OCP;
   if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,1)) errors |= BMS_ERR_STATUS_CHG_OCP;
   if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,2)) errors |= BMS_ERR_STATUS_CHG_OCP;
-  if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,3)) errors |= BMS_ERR_STATUS_DSG_OCP;
+  if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,3)) warnings |= BMS_ERR_STATUS_DSG_OCP;
   if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,4)) errors |= BMS_ERR_STATUS_DSG_OCP;
   if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,5)) errors |= BMS_ERR_STATUS_DSG_OCP;
   if(modbus->getBitValue(SEPLOS3_CURRENT_EVENT_1,6)) errors |= BMS_ERR_STATUS_SHORT_CIRCUIT;
@@ -251,6 +257,9 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Reservation
   Bit6  Reservation
   Bit7  Reservation*/
+  if(modbus->getBitValue(SEPLOS3_RESIDUAL_CAPACITY,2)) warnings |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_RESIDUAL_CAPACITY,3)) errors |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getBitValue(SEPLOS3_RESIDUAL_CAPACITY,4)) warnings |= BMS_ERR_STATUS_AFE_ERROR;
 
 
   /* 0x1278 The FET event code (SEPLOS3_FET_EVENT, TB07)
@@ -268,8 +277,8 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
 
 
   // 0x1280 battery equalization state code (SEPLOS3_BATTERY_EQUALIZATION)
-  if(modbus->getU8Value(SEPLOS3_BATTERY_EQUALIZATION) > 0) setBmsIsBalancingActive(dataMappingNr, 1);
-  else setBmsIsBalancingActive(dataMappingNr, 0);
+  //if(modbus->getU8Value(SEPLOS3_BATTERY_EQUALIZATION) > 0) setBmsIsBalancingActive(dataMappingNr, 1);
+  //else setBmsIsBalancingActive(dataMappingNr, 0);
 
 
   /* 0x1240 System state code (SEPLOS3_SYSTEM_STATE, TB09)
@@ -294,32 +303,9 @@ else setBmsIsBalancingActive(dataMappingNr, 0);
   Bit5  Break Line Fault
   Bit6  Key Fault
   Bit7  Aerosol Alarm*/
-  for(uint8_t i = 0; i<8;i++) 
-    if(modbus->getBitValue(SEPLOS3_FARD_FAULT,i)) errors |= BMS_ERR_STATUS_AFE_ERROR;
+  if(modbus->getU8Value(SEPLOS3_FARD_FAULT) > 0) warnings |= BMS_ERR_STATUS_AFE_ERROR;
 
 
-  setBmsErrors(dataMappingNr , errors);
+  setBmsErrors(dataMappingNr, errors);
+  setBmsWarnings(dataMappingNr, warnings);
 }
-
-
-/*static void message2Log(uint8_t * t_message, uint8_t len, uint8_t address)
-{
-  String recvBytes="";
-  uint8_t u8_logByteCount=0;
-  BSC_LOGI(TAG,"Dev=%i, RecvBytes=%i",address, len);
-  for(uint8_t x=0;x<len;x++)
-  {
-    u8_logByteCount++;
-    recvBytes+="0x";
-    recvBytes+=String(t_message[x],16);
-    recvBytes+=" ";
-    if(u8_logByteCount==20)
-    {
-      BSC_LOGI(TAG,"%s",recvBytes.c_str());
-      recvBytes="";
-      u8_logByteCount=0;
-    }
-  }
-  BSC_LOGI(TAG,"%s",recvBytes.c_str());
-  //log_print_buf(p_lRecvBytes, u8_lRecvBytesCnt);
-}*/
