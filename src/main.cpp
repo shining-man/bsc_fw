@@ -420,14 +420,28 @@ boolean connectWiFi()
     uint8_t cnt=0;
     while ((WiFi.status() != WL_CONNECTED))
     {
-      #ifdef WLAN_DEBUG
-      BSC_LOGI(TAG, "wlanConnectTimer=%i",wlanConnectTimer);
-      #endif
       if(!bo_lWlanNeverAp && millis()>wlanConnectTimer) break;
 
       if(cnt>15)
       {
         cnt=0;
+        #ifdef WLAN_DEBUG
+        BSC_LOGI(TAG, "WiFi disconnect");
+        #endif
+        WiFi.disconnect(true);
+
+        // delay 5000ms
+        for(uint8_t u=0; u < 5; u++){
+          delay(1000);
+          if (xSemaphoreTake(mutexTaskRunTime_wifiConn, 100)) {
+            lastTaskRun_wifiConn = millis();
+            xSemaphoreGive(mutexTaskRunTime_wifiConn);
+          }
+        }
+
+        #ifdef WLAN_DEBUG
+        BSC_LOGI(TAG, "WiFi beginn");
+        #endif
         WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
       }
       cnt++;
@@ -440,6 +454,10 @@ boolean connectWiFi()
         lastTaskRun_wifiConn=millis();
         xSemaphoreGive(mutexTaskRunTime_wifiConn);
       }
+
+      #ifdef WLAN_DEBUG
+      BSC_LOGI(TAG, "WiFi status=%i", WiFi.status());
+      #endif
     }
 
     if (WiFi.status() == WL_CONNECTED)
@@ -619,6 +637,9 @@ void task_ConnectWiFi(void *param)
     if(mConnectStateEnums!=mConnectStateEnumsOld)
     {
       BSC_LOGD(TAG, "mConnectState=%i", mConnectStateEnums);
+      #ifdef WLAN_DEBUG
+      BSC_LOGI(TAG, "mConnectState=%i", mConnectStateEnums);
+      #endif
       mConnectStateEnumsOld=mConnectStateEnums;
     }
 
