@@ -1,2 +1,2 @@
-<h1>Version 0.7.4</h1>
-- Frequent BMS warning log entry removed
+<h1>Version 0.7.5</h1>
+- Fixed Wi-Fi reconnect issue (#236)
