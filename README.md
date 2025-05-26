@@ -143,7 +143,7 @@ Up to 64 OneWire temperature sensors (DS18B20) can be connected and monitored. T
 All settings can be freely parameterized via a web interface.
 
 ## Supported BMS
-For more information see the documentation in the section [Supported external Shunts](https://bsc-org.github.io/bsc/devices/bms/).
+For more information see the documentation in the section [Supported BMS](https://bsc-org.github.io/bsc/devices/bms/).
 - JBD (Jiabaida)
 - JK
 - JK Inverter [1]
@@ -161,7 +161,7 @@ For more information see the documentation in the section [Supported external Sh
 - Victron SmartShunt
 
 ## Supported Inverter
-For more information see the documentation in the section [Supported external Shunts](https://bsc-org.github.io/bsc/devices/wechselrichter/).
+For more information see the documentation in the section [Supported Inverter](https://bsc-org.github.io/bsc/devices/wechselrichter/).
 - Victron
 - Pylontech protocol (Solis, DEYE, ...)
 - BYD protocol (only tested with SolarEdge RWS)
