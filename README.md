@@ -57,7 +57,6 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
-<a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/dfarin" target=_blank><img src="https://avatars.githubusercontent.com/u/9096265?v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
 </p>
@@ -74,6 +73,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/golfer-fossy" target=_blank><img src="https://avatars.githubusercontent.com/u/175492267?u=d029b983a51288f7038ef3460a11aba6522c5d12&v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Supporter</strong></p><p align="center">
+<a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/Emilleopold" target=_blank><img src="https://avatars.githubusercontent.com/u/6137560?v=4" height="58"/></a>
 <a href="https://github.com/BjoernKellermann" target=_blank><img src="https://avatars.githubusercontent.com/u/6324993?u=3f31c6576e32d16fa2667da502677d0e4936e67a&v=4" height="58"/></a>
 <a href="https://github.com/Timon321" target=_blank><img src="https://avatars.githubusercontent.com/u/7792233?u=5830023fdc7fd4e21aba8246d70f2255d2e50a4b&v=4" height="58"/></a>
@@ -94,6 +94,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?u=d1952cbd2fa94be247696e69ddd230cd9e950731&v=4" height="58"/></a>
 <a href="https://github.com/martinarva" target=_blank><img src="https://avatars.githubusercontent.com/u/77044330?v=4" height="58"/></a>
 <a href="https://github.com/2SK135" target=_blank><img src="https://avatars.githubusercontent.com/u/82417004?v=4" height="58"/></a>
+<a href="https://github.com/StefanM60" target=_blank><img src="https://avatars.githubusercontent.com/u/91480362?v=4" height="58"/></a>
 <a href="https://github.com/HSGithi" target=_blank><img src="https://avatars.githubusercontent.com/u/95976129?v=4" height="58"/></a>
 <a href="https://github.com/Hitman79" target=_blank><img src="https://avatars.githubusercontent.com/u/101149246?u=ce5e049664fd4234c017239ce3ac5d1e0e7c8309&v=4" height="58"/></a>
 <a href="https://github.com/SHendrik123" target=_blank><img src="https://avatars.githubusercontent.com/u/103681547?v=4" height="58"/></a>
