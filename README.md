@@ -113,6 +113,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
 <a href="https://github.com/Knofn" target=_blank><img src="https://avatars.githubusercontent.com/u/191380062?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
+<a href="https://github.com/lukas2245" target=_blank><img src="https://avatars.githubusercontent.com/u/201381006?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
