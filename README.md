@@ -62,7 +62,6 @@ We are also happy to welcome members from other countries.
 <p align="center"><strong>Bronze</strong></p><p align="center">
 <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?u=7e4d945122ebbe34a31bb917a7735c666b62040d&v=4" height="58"/></a>
 <a href="https://github.com/SlapJackNpNp" target=_blank><img src="https://avatars.githubusercontent.com/u/26175386?v=4" height="58"/></a>
-<a href="https://github.com/tanelvakker" target=_blank><img src="https://avatars.githubusercontent.com/u/26738629?u=ba2c63272337da5fa8a5eda7472995d0b15795d6&v=4" height="58"/></a>
 <a href="https://github.com/D3R-ST3FAN" target=_blank><img src="https://avatars.githubusercontent.com/u/30196271?v=4" height="58"/></a>
 <a href="https://github.com/stxShadow" target=_blank><img src="https://avatars.githubusercontent.com/u/48672214?u=3a9f9e495c4bc28faf9f7486348216a592550433&v=4" height="58"/></a>
 <a href="https://github.com/steirerman" target=_blank><img src="https://avatars.githubusercontent.com/u/49448230?u=1cfb45fd834c8cd939d3ac4d3fb3c07ffb9c2a8c&v=4" height="58"/></a>
