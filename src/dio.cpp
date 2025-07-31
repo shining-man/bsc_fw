@@ -11,7 +11,7 @@
 RTC_DATA_ATTR uint8_t doOutData;
 static uint8_t u8_mHwVersion;
 
-#if !defined(DEBUG_JTAG) && !defined(LILYGO_TCAN485)
+#if !defined(DEBUG_JTAG) && !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 SPIClass * hspi = NULL;
 
 void initDio(bool restore)

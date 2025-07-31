@@ -108,18 +108,26 @@ extern TaskHandle_t task_handle_bscSerial;
 #define ANZAHL_RULES_TRIGGER_SOC      4
 
 //DI/DO
-#ifndef LILYGO_TCAN485
+#if !defined(LILYGO_TCAN485)
+#define CNT_DIGITALOUT                6
+#define CNT_DIGITALIN                 4
+#endif
+
+#if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 #define H_CLK                        14
 #define H_MOSI                       13
 #define H_MISO                       12
 #define IO_DO_PL                     26
-#define CNT_DIGITALOUT                6
-#define CNT_DIGITALIN                 4
 #define GPIO_LED1_HW1                 0
 #endif
 
+#if defined(TCONNECT)
+const uint8_t GPIO_IN[] = {47, 21, 45, 48};        // 0..3
+const uint8_t GPIO_OUT[] = {40, 39, 42, 41, 1, 2}; // 0..5
+#endif
+
 //Tacho
-#ifndef LILYGO_TCAN485
+#if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 #define TACHO_ADDR0                   6
 #define TACHO_ADDR1                   7
 #define TACHO_ADDR2                  15
@@ -138,10 +146,16 @@ extern TaskHandle_t task_handle_bscSerial;
 
 //Serial
 #define SERIAL_BMS_DEVICES_COUNT      11
-//#define SERIAL_BMS_SEPLOS_COUNT       2
-//#define SERIAL_BMS_SYLCIN_COUNT       2
 enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 
+#ifdef TCONNECT
+#define SERIAL1_PIN_RX                5
+#define SERIAL1_PIN_TX                4
+#define SERIAL2_PIN_RX                7
+#define SERIAL2_PIN_TX                6
+#define SERIAL3_PIN_RX               18
+#define SERIAL3_PIN_TX               17
+#else
 #define SERIAL1_PIN_RX               16
 #define SERIAL1_PIN_TX               17
 #define SERIAL1_PIN_TX_EN            18
@@ -152,19 +166,25 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define SERIAL3_PIN_TX               33
 #define SERIAL3_PIN_TX_EN             3
 #define SERIAL3_PIN_RX_EN            32
+#endif
 
 //CAN
-#ifdef LILYGO_TCAN485
+#if defined(LILYGO_TCAN485)
   #define CAN_TX_PIN GPIO_NUM_27
   #define CAN_RX_PIN GPIO_NUM_26
+#elif defined(TCONNECT)
+  #define CAN_TX_PIN GPIO_NUM_9
+  #define CAN_RX_PIN GPIO_NUM_10
 #else
   #define CAN_TX_PIN GPIO_NUM_4
   #define CAN_RX_PIN GPIO_NUM_5
 #endif
 
 //Onewire (Temperatur)
-#ifdef LILYGO_TCAN485
+#if defined(LILYGO_TCAN485)
   #define OW_PIN                     25
+#elif defined(TCONNECT)
+  #define OW_PIN                     21
 #else
   #define OW_PIN                     19
 #endif
@@ -180,9 +200,12 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_FREQUENCY           1000000U
 #define I2C_CNT_SLAVES                2
 
-#ifdef LILYGO_TCAN485
+#if defined(LILYGO_TCAN485)
   #define I2C_SDA_PIN                   32
   #define I2C_SCL_PIN                   33
+#elif defined(TCONNECT)
+  #define I2C_SDA_PIN                   11
+  #define I2C_SCL_PIN                   12
 #else
   #define I2C_SDA_PIN                   21
   #define I2C_SCL_PIN                   22
@@ -765,8 +788,28 @@ extern uint8_t bscLogLevel;
     } while(0)
 
 
-#endif
-
 
 #define isBitSet(byte,bit)   (((byte & (1 << bit)) != 0) ? 1 : 0)
 #define ROUND(a, b) ( (a)/(b) + (((a)%(b) >= (b)/2)?1:0))
+
+/**
+ * @brief Setzt das Bit #bit in flags auf 1.
+ * @param flags Referenz auf die 32‑Bit‑Variable, in der das Bit gesetzt wird.
+ * @param bit   Nummer des Bits [0…31], das gesetzt werden soll.
+ */
+template<typename T>
+inline void setBit(T &flags, uint8_t bit) {
+    flags |= (T(1) << bit);
+}
+
+/**
+ * @brief Löscht das Bit #bit in flags (setzt es auf 0).
+ * @param flags Referenz auf die 32‑Bit‑Variable, in der das Bit gelöscht wird.
+ * @param bit   Nummer des Bits [0…31], das gelöscht werden soll.
+ */
+template<typename T>
+inline void clearBit(T &flags, uint8_t bit) {
+    flags &= ~(T(1) << bit);
+}
+
+#endif

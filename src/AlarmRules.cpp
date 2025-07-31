@@ -28,10 +28,12 @@ bool bo_Alarm_old[CNT_ALARMS];
 uint16_t alarmCauseAktiv[CNT_ALARMS];
 uint16_t* pAlarmCauseAktivLast = NULL;
 
-#ifndef LILYGO_TCAN485
+#if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 uint16_t u16_DoPulsOffCounter[CNT_DIGITALOUT];
 uint8_t u8_DoVerzoegerungTimer[CNT_DIGITALOUT];
-#else
+#endif
+
+#if defined(LILYGO_TCAN485)
 Adafruit_NeoPixel pixels(1, GPIO_NUM_4, NEO_GRB + NEO_KHZ800);
 #endif
 
@@ -51,7 +53,7 @@ uint32_t u32_hystereseTotalVoltageMax = 0;
 uint8_t u8_merkerHysterese_TriggerAtSoc = 0;
 uint32_t mHystereseCellVoltage = 0;
 
-#ifndef LILYGO_TCAN485
+#if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 void runDigitalAusgaenge();
 void doOffPulse(TimerHandle_t xTimer);
 void getDIs();
@@ -103,7 +105,7 @@ void initAlarmRules(Inverter &inverter)
   doMutex = xSemaphoreCreateMutex();
   if(alarmSettingsChangeMutex==NULL) alarmSettingsChangeMutex = xSemaphoreCreateMutex();
 
-  #ifndef LILYGO_TCAN485
+  #if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
   for(uint8_t i=0;i<CNT_DIGITALOUT;i++)
   {
     u16_DoPulsOffCounter[i] = 0;
@@ -117,7 +119,9 @@ void initAlarmRules(Inverter &inverter)
   {
     //tachoInit();
   }
-  #else
+  #endif
+  
+  #if defined(LILYGO_TCAN485)
   pixels.begin();
   pixels.clear();
   pixels.setBrightness(20);
@@ -293,12 +297,12 @@ void runAlarmRules(Inverter &inverter)
   for(uint8_t triggerNr=0; triggerNr<CNT_ALARMS; triggerNr++) alarmCauseAktiv[triggerNr]=0;
 
   //Toggle LED
-  #ifdef LILYGO_TCAN485
+  #if defined(LILYGO_TCAN485)
   if(pixels.getPixelColor(0)>=0x100) pixels.setPixelColor(0, pixels.Color(0, 0, 150));
   else pixels.setPixelColor(0, pixels.Color(0, 150, 0));
   pixels.show();
 
-  #else
+  #elif defined(BSC_HW)
   if(getHwVersion()==0)u8_mDoByte ^= (1 << 7);
   else digitalWrite(GPIO_LED1_HW1, !digitalRead(GPIO_LED1_HW1));
   #endif
@@ -316,7 +320,7 @@ void runAlarmRules(Inverter &inverter)
   rules_PlausibilityCeck();
 
   //Digitaleingänge
-  #ifndef LILYGO_TCAN485
+  #if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
   getDIs();
 
   //Tacho auswerten
@@ -361,7 +365,7 @@ void runAlarmRules(Inverter &inverter)
       }
 
       //Bearbeiten der 6 Relaisausgaenge
-      #ifndef LILYGO_TCAN485
+      #if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
       uint8_t u8_lTriggerNrDo=0;
       for(uint8_t b=0; b<CNT_DIGITALOUT; b++)
       {
@@ -393,7 +397,7 @@ void runAlarmRules(Inverter &inverter)
     }
   }
 
-  #ifndef LILYGO_TCAN485
+  #if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
   setDOs();
   #endif
   //handleLogTrigger(alarmCauseAktivLast);
@@ -414,7 +418,7 @@ void changeAlarmSettings()
 }
 
 
-#ifndef LILYGO_TCAN485
+#if !defined(LILYGO_TCAN485) && !defined(TCONNECT)
 void setDOs()
 {
   //Bearbeiten der 6 Relaisausgaenge + 1 OptoOut

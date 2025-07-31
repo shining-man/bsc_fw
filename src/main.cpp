@@ -42,7 +42,12 @@
 #include "WebSettings.h"
 #include "BleHandler.h"
 #include "params.h"
+#ifdef TCONNECT
+#include "webpages_tconnect.h"
+#include "LEDController.h"
+#else
 #include "webpages.h"
+#endif
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
@@ -707,6 +712,10 @@ void task_alarmRules(void *param)
   for (;;)
   {
     vTaskDelay(pdMS_TO_TICKS(1000));
+    #if defined(TCONNECT)
+    LEDController::toggleStatusLED();
+    #endif
+
     runAlarmRules(inverter);
     xSemaphoreTake(mutexTaskRunTime_alarmrules, portMAX_DELAY);
     lastTaskRun_alarmrules=millis();
@@ -1190,11 +1199,13 @@ uint8_t checkTaskRun()
     xSemaphoreGive(mutexTaskRunTime_serial);
   }
 
+  #if !defined(TCONNECT)
   if(xSemaphoreTake( mutexTaskRunTime_i2c,(TickType_t)10)==pdTRUE)
   {
     if(millis()-lastTaskRun_extensions>4000) ret+=32;
     xSemaphoreGive(mutexTaskRunTime_i2c);
   }
+  #endif
 
   if(xSemaphoreTake( mutexTaskRunTime_wifiConn,(TickType_t)10)==pdTRUE)
   {
@@ -1236,6 +1247,11 @@ void setup()
 
   if(bootCounter!=0xFF) bootCounter++;
   isBoot = true;
+
+  #ifdef TCONNECT
+  LEDController::begin();
+  LEDController::toggleStatusLED();
+  #endif
 
   //Serielle Debugausgabe
   debugInit();
@@ -1427,7 +1443,9 @@ void setup()
   xTaskCreatePinnedToCore(task_bscSerial, "serial", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_bscSerial, 1);
   xTaskCreatePinnedToCore(task_alarmRules, "alarmrules", 3000, nullptr, TASK_PRIORITY_ALARMRULES, &task_handle_alarmrules, 1);
   xTaskCreatePinnedToCore(task_canbusTx, "can", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_canbusTx, 1);
+  #if !defined(TCONNECT)
   xTaskCreatePinnedToCore(task_extensions, "i2c", 3000, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
+  #endif
   #ifdef UTEST_FS
   xTaskCreatePinnedToCore(task_fsTest1, "fstest1", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
   xTaskCreatePinnedToCore(task_fsTest2, "fstest2", 2500, nullptr, TASK_PRIORITY_STD, &task_handle_i2c, 1);
@@ -1471,6 +1489,12 @@ void loop()
     #ifdef MAIN_DEBUG
     BSC_LOGI(TAG,"TaskRunSate=%i",u8_lTaskRunSate);
     #endif
+
+    #ifdef TCONNECT
+    if(u8_lTaskRunSate == 0) LEDController::setStateStatusLED(1);
+    else LEDController::setStateStatusLED(0);
+    #endif
+
     u8_mTaskRunSate=u8_lTaskRunSate;
   }
 

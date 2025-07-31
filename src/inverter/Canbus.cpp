@@ -11,6 +11,10 @@
 #include "WebSettings.h"
 #include "BmsData.h"
 
+#ifdef TCONNECT
+#include "LEDController.h"
+#endif
+
 namespace nsCanbus
 {
   const char *Canbus::TAG = "Canbus";
@@ -52,6 +56,10 @@ namespace nsCanbus
   void Canbus::sendBmsCanMessages(Inverter::inverterData_s &inverterData)
   {
     uint8_t canDevice = (uint8_t)WebSettings::getInt(ID_PARAM_SS_CAN,0,DT_ID_PARAM_SS_CAN);
+
+    #ifdef TCONNECT
+    LEDController::setCanbusLED(true);
+    #endif 
 
     switch (canDevice)
     {
@@ -107,6 +115,10 @@ namespace nsCanbus
         break;
     }
 
+    #ifdef TCONNECT
+    LEDController::setCanbusLED(false);
+    #endif 
+    
     // ID:305 Heartbeat Inverter
   }
 

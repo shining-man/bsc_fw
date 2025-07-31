@@ -80,7 +80,9 @@ void initMqtt()
   if(!WebSettings::getString(ID_PARAM_MQTT_SERVER_IP,0).equals(""))
   {
     wifiClient.setTimeout(1);
+    #if !defined(TCONNECT)
     wifiClient.setClientSelectTimeout(900000, 1);
+    #endif
 
     mqttClient.setKeepAlive(30);
     mqttClient.setSocketTimeout(1);

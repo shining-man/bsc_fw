@@ -38,6 +38,7 @@ jobs:
         run: |
           mkdir -p ./output_fw/bsc
           mkdir -p ./output_fw/bsc_serial_log
+          mkdir -p ./output_fw/tconnect
 
       - name: Prebuild Parameter
         run: python ./scripts/prebuild_parameter.py
@@ -49,7 +50,7 @@ jobs:
         run: platformio test -e native_test
 
       - name: Build firmware
-        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US -e bsc_nl_NL
+        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US -e bsc_nl_NL -e bsc_TCONNECT_de_DE -e bsc_TCONNECT_en_US -e bsc_TCONNECT_nl_NL
 
       - name: Copy output
         run: |
@@ -66,6 +67,14 @@ jobs:
           cp .pio/build/bsc_hw_log/bootloader.bin ./output_fw/bsc_serial_log/
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin ./output_fw/bsc_serial_log/
 
+          cp .pio/build/bsc_TCONNECT_de_DE/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_de_DE.bin
+          cp .pio/build/bsc_TCONNECT_en_US/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_en_US.bin
+          cp .pio/build/bsc_TCONNECT_nl_NL/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_nl_NL.bin
+
+          cp .pio/build/bsc_TCONNECT_de_DE/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_de_DE.bin
+          cp .pio/build/bsc_TCONNECT_en_US/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_en_US.bin
+          cp .pio/build/bsc_TCONNECT_nl_NL/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_nl_NL.bin
+
       - name: ZIP output for release
         run: |
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_de_DE.bin
@@ -74,6 +83,14 @@ jobs:
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/partitions.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/bootloader.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/boot_app0.bin
+
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_de_DE.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_en_US.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_nl_NL.bin
+
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_de_DE.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_en_US.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_nl_NL.bin
 
       - name: Get current date
         id: date
@@ -118,18 +135,6 @@ jobs:
       - name: Upload firmware de_DE
         id: upload-release-bin-file-de_DE
         uses: actions/upload-release-asset@v1
-#        if: github.ref == 'refs/heads/main'
-        env:
-          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./output_fw/bsc/firmware_de_DE.bin
-          asset_name: fw_bsc_ota.bin
-          asset_content_type: application/octet-stream
-
-      - name: Upload firmware de_DE 2
-        id: upload-release-bin-file-de_DE_2
-        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
         with:
@@ -159,3 +164,73 @@ jobs:
           asset_path: ./output_fw/bsc/firmware_nl_NL.bin
           asset_name: firmware_nl_NL.bin
           asset_content_type: application/octet-stream
+
+
+      # T-CONNECT DE
+      - name: Upload ota firmware tconnect de_DE
+        id: upload-tconnect-ota-release-bin-file-de_DE
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_ota_de_DE.bin
+          asset_name: firmware_tconnect_ota_de_DE.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload full firmware tconnect de_DE
+        id: upload-tconnect-full-release-bin-file-de_DE
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_full_de_DE.bin
+          asset_name: firmware_tconnect_full_de_DE.bin
+          asset_content_type: application/octet-stream
+
+      # T-CONNECT EN
+      - name: Upload ota firmware tconnect en_US
+        id: upload-tconnect-ota-release-bin-file-en_US
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_ota_en_US.bin
+          asset_name: firmware_tconnect_ota_en_US.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload full firmware tconnect en_US
+        id: upload-tconnect-full-release-bin-file-en_US
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_full_en_US.bin
+          asset_name: firmware_tconnect_full_en_US.bin
+          asset_content_type: application/octet-stream
+
+      # T-CONNECT NL
+      - name: Upload ota firmware tconnect nl_NL
+        id: upload-tconnect-ota-release-bin-file-nl_NL
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_ota_nl_NL.bin
+          asset_name: firmware_tconnect_ota_nl_NL.bin
+          asset_content_type: application/octet-stream
+
+      - name: Upload full firmware tconnect nl_NL
+        id: upload-tconnect-full-release-bin-file-nl_NL
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./output_fw/tconnect/firmware_tconnect_full_nl_NL.bin
+          asset_name: firmware_tconnect_full_nl_NL.bin
+          asset_content_type: application/octet-stream          

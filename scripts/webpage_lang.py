@@ -55,3 +55,10 @@ json_file = f"./lang/{build_lang}.json"
 #output_file = "./include/webpages_en.h"
 
 replace_lid_texts(header_file, json_file, header_file)
+
+
+# Dateien definieren
+header_file = "./include/webpages_tconnect.h"
+json_file = f"./lang/{build_lang}.json"
+
+replace_lid_texts(header_file, json_file, header_file)

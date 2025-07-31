@@ -26,6 +26,11 @@
 #include "devices/SeplosBmsV3.h"
 #include "devices/NeeySerial.h"
 #include "devices/JkInverterBms.h"
+
+#ifdef TCONNECT
+#include "LEDController.h"
+#endif
+
 #ifdef BPN
 #include "devices/bpnSerial.h"
 #endif
@@ -61,7 +66,7 @@ void BscSerial::initSerial(ExtManager &extManager)
   mSerialMutex = xSemaphoreCreateMutex();
   mExtManager = &extManager;
 
-  #ifdef LILYGO_TCAN485
+  #if defined(LILYGO_TCAN485)
   pinMode(TCAN485_RS485_EN_PIN, OUTPUT);
   digitalWrite(TCAN485_RS485_EN_PIN, HIGH);
   pinMode(TCAN485_RS485_SE_PIN, OUTPUT);
@@ -70,7 +75,7 @@ void BscSerial::initSerial(ExtManager &extManager)
   pinMode(TCAN485_PIN_5V_EN, OUTPUT);
   digitalWrite(TCAN485_PIN_5V_EN, HIGH);
 
-  #else
+  #elif defined(BSC_HW)
 
   pinMode(SERIAL1_PIN_TX_EN, OUTPUT);  //HW serial0
   pinMode(SERIAL2_PIN_TX_EN, OUTPUT);  //HW serial1
@@ -319,7 +324,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
 //serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 void BscSerial::setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw)
 {
-  #ifndef LILYGO_TCAN485
+  #ifdef BSC_HW
   if(u8_devNr==0)
   {
     if(e_rw==serialRxTx_TxEn)
@@ -464,7 +469,13 @@ void BscSerial::cyclicRun()
     //BSC_LOGI(TAG, "cyclicRun dev=%i, u8_BmsDataAdr=%i, u8_NumberOfDevices=%i, u8_deviceNr=%i", serialDeviceNr, devData.u8_BmsDataAdr,devData.u8_NumberOfDevices,devData.u8_deviceNr);
     if(serialDeviceData[serialDeviceNr].readBms != NULL)
     {
+      #ifdef TCONNECT
+      LEDController::setSerialLED(true);
+      #endif 
       bo_lBmsReadOk = serialDeviceData[serialDeviceNr].readBms(this, serialDeviceData[serialDeviceNr].stream_mPort, serialDeviceNr, &devData); //Wenn kein Fehler beim Holen der Daten vom BMS
+      #ifdef TCONNECT
+      LEDController::setSerialLED(false);
+      #endif 
       if(serialDeviceNr >= 2) setRxTxEnable(serialDeviceNr, serialRxTx_RxTxDisable);
     }
     else BSC_LOGE(TAG,"Error readBms nullptr, dev=%i",serialDeviceNr);

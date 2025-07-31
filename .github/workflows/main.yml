@@ -38,6 +38,7 @@ jobs:
         run: |
           mkdir -p ./output_fw/bsc
           mkdir -p ./output_fw/bsc_serial_log
+          mkdir -p ./output_fw/tconnect
 
       - name: Prebuild Parameter
         run: python ./scripts/prebuild_parameter.py
@@ -49,7 +50,7 @@ jobs:
         run: platformio test -e native_test
 
       - name: Build firmware
-        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US -e bsc_nl_NL
+        run: platformio run -e bsc -e bsc_hw_log -e bsc_en_US -e bsc_nl_NL -e bsc_TCONNECT_de_DE -e bsc_TCONNECT_en_US -e bsc_TCONNECT_nl_NL
 
       - name: Copy output
         run: |
@@ -66,6 +67,14 @@ jobs:
           cp .pio/build/bsc_hw_log/bootloader.bin ./output_fw/bsc_serial_log/
           cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin ./output_fw/bsc_serial_log/
 
+          cp .pio/build/bsc_TCONNECT_de_DE/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_de_DE.bin
+          cp .pio/build/bsc_TCONNECT_en_US/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_en_US.bin
+          cp .pio/build/bsc_TCONNECT_nl_NL/firmware.bin ./output_fw/tconnect/firmware_tconnect_ota_nl_NL.bin
+
+          cp .pio/build/bsc_TCONNECT_de_DE/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_de_DE.bin
+          cp .pio/build/bsc_TCONNECT_en_US/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_en_US.bin
+          cp .pio/build/bsc_TCONNECT_nl_NL/firmware_full.bin ./output_fw/tconnect/firmware_tconnect_full_nl_NL.bin
+
       - name: ZIP output for release
         run: |
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/firmware_de_DE.bin
@@ -74,6 +83,14 @@ jobs:
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/partitions.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/bootloader.bin
           zip -j ./output_fw/bsc_release.zip ./output_fw/bsc/boot_app0.bin
+
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_de_DE.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_en_US.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_ota_nl_NL.bin
+
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_de_DE.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_en_US.bin
+          zip -j ./output_fw/bsc_release.zip ./output_fw/tconnect/firmware_tconnect_full_nl_NL.bin
 
       - name: Get current date
         id: date

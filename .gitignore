@@ -4,5 +4,6 @@
 .vscode/launch.json
 .vscode/ipch
 include/webpages.h
+include/webpages_tconnect.h
 include/params.h
 include/params_dt.h
