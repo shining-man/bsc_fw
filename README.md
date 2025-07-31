@@ -45,7 +45,7 @@ We are also happy to welcome members from other countries.
 * [Discussions](https://github.com/shining-man/bsc_fw/discussions)
 * [Layout BSC board](https://github.com/shining-man/bsc_hw), [Circuit diagram](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
 * Sources of supply
-  * [BSC Hardware (LILYGO)](https://de.aliexpress.com/item/1005007096164253.html)
+  * See [First steps](https://bsc-org.github.io/bsc/first_steps/)
   * [BSC Housings and accessories (BSC-Shop.com)](https://bsc-shop.com/)
 
 ## Sponsors
