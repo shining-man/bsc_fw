@@ -1,2 +1,5 @@
-<h1>Version 0.7.5</h1>
-- Fixed Wi-Fi reconnect issue (#236)
+<h1>Version 0.7.6</h1>
+- Fixed a problem evaluating data on Spelos V3
+- Removing the SoC warnings Level 1 from the DALY BMS
+- Minimum balance charging voltage changed
+- Support for LILYGO T-CONNECT added
