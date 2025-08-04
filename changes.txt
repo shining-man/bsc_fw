@@ -1,5 +1,13 @@
-<h1>Version 0.7.6</h1>
+<h1>Version 0.7.7</h1>
+
 - Fixed a problem evaluating data on Spelos V3
 - Removing the SoC warnings Level 1 from the DALY BMS
 - Minimum balance charging voltage changed
 - Support for LILYGO T-CONNECT added
+  
+
+Firmware mapping:
+
+- Original BSC hardware: firmware_xx_xx.bin
+- Lilygo T-CONNECT - Flashing via USB: firmware_tconnect_full_xx_xx.bin
+- Lilygo T-CONNECT - Update via OTA: firmware_tconnect_ota_xx_xx.bin
