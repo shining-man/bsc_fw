@@ -48,7 +48,6 @@ const char uploadFormV1[] PROGMEM = R"!^!(
 	<div><u>FW-Version:</u> <span id='gitFwVersion'></span></div><br>
 	<div><u>Veröffentlicht am:</u> <span id='gitFwPublishedAt'></span></div><br>
 	<div id='fitFwDescLabel'><u>Beschreibung:</u><br><span id='fitFwDesc'></span></div><br>
-	<div><a onclick="window.open('https://github.com/shining-man/bsc_fw/releases/latest/download/fw_bsc_ota.bin','_blank');" href="#">Download from GitHub</a></div>
 	</p>
 	<hr><br>
 
@@ -167,6 +166,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
 </body>
 </html>)!^!";
 
+// 	<div><a onclick="window.open('https://github.com/shining-man/bsc_fw/releases/latest/download/fw_bsc_ota.bin','_blank');" href="#">Download from GitHub</a></div>
 
 bool OTAupdater::init(WebServer *server, WebSettings *webSettings, const char *path, bool enUpdatePage)
 {

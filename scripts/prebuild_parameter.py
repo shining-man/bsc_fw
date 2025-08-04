@@ -98,10 +98,10 @@ for zeile in datei:
                     zeileNeu=zeile
             else:
                 defFoundStart = zeile.find("+")
-                defFoundPlus = zeile.find("\+")
+                defFoundPlus = zeile.find(r"\+")
                 if (defFoundPlus+1) == defFoundStart:
                     defFoundStart=-1
-                    zeile=zeile.replace("\+","+")
+                    zeile=zeile.replace(r"\+","+")
                     
                 if defFoundStart >= 0:
                     varName2 = zeile.split("+")[1]

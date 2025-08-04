@@ -76,7 +76,7 @@ void BscSerial::initSerial(ExtManager &extManager)
   digitalWrite(TCAN485_PIN_5V_EN, HIGH);
 
   #elif defined(BSC_HW)
-
+  #warning "BSC_HW: initSerial()"
   pinMode(SERIAL1_PIN_TX_EN, OUTPUT);  //HW serial0
   pinMode(SERIAL2_PIN_TX_EN, OUTPUT);  //HW serial1
   if(getHwVersion()>=2) pinMode(SERIAL3_PIN_TX_EN, OUTPUT);  //HW serial2
