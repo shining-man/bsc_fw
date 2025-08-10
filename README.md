@@ -41,7 +41,10 @@ We are also happy to welcome members from other countries.
     - [System overview](https://bsc-org.github.io/bsc/system_overview/)
     - [BMS connection examples](https://bsc-org.github.io/bsc/devices/bms/#anbindungs-beispiele)
     - Supported Devices: [BMS](https://bsc-org.github.io/bsc/devices/bms/), [Inverter](https://bsc-org.github.io/bsc/devices/wechselrichter/), [External Shunt](https://bsc-org.github.io/bsc/devices/externer_shunt/)
-    - [First steps](https://bsc-org.github.io/bsc/first_steps/)
+    - First steps: 
+      - [Programming the BSC](https://bsc-org.github.io/bsc/first_steps/)
+      - [Connect hardware](https://bsc-org.github.io/bsc/first_steps_hardware/)
+      - [Settings in the BSC ](https://bsc-org.github.io/bsc/first_steps_settings/)
 * [Discussions](https://github.com/shining-man/bsc_fw/discussions)
 * [Layout BSC board](https://github.com/shining-man/bsc_hw), [Circuit diagram](https://github.com/shining-man/bsc_hw/blob/main/circuit.pdf?raw=true "Stromlaufplan")
 * Sources of supply
