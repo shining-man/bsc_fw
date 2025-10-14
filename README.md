@@ -63,6 +63,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/dfarin" target=_blank><img src="https://avatars.githubusercontent.com/u/9096265?v=4" height="58"/></a>
 <a href="https://github.com/johblack18" target=_blank><img src="https://avatars.githubusercontent.com/u/34717560?v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
+<a href="https://github.com/janCGN" target=_blank><img src="https://avatars.githubusercontent.com/u/129530344?v=4" height="58"/></a>
 <a href="https://github.com/janekg99" target=_blank><img src="https://avatars.githubusercontent.com/u/130148068?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
@@ -99,6 +100,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/michi1984" target=_blank><img src="https://avatars.githubusercontent.com/u/58638770?v=4" height="58"/></a>
 <a href="https://github.com/pepe-el-pepe" target=_blank><img src="https://avatars.githubusercontent.com/u/61097309?u=217ffbae91308f3675269d8bae5ab11ddda7bfa7&v=4" height="58"/></a>
 <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?u=d1952cbd2fa94be247696e69ddd230cd9e950731&v=4" height="58"/></a>
+<a href="https://github.com/comanche3" target=_blank><img src="https://avatars.githubusercontent.com/u/71553753?v=4" height="58"/></a>
 <a href="https://github.com/martinarva" target=_blank><img src="https://avatars.githubusercontent.com/u/77044330?v=4" height="58"/></a>
 <a href="https://github.com/2SK135" target=_blank><img src="https://avatars.githubusercontent.com/u/82417004?v=4" height="58"/></a>
 <a href="https://github.com/StefanM60" target=_blank><img src="https://avatars.githubusercontent.com/u/91480362?v=4" height="58"/></a>
