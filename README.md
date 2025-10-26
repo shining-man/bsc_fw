@@ -122,6 +122,10 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
 <a href="https://github.com/lukas2245" target=_blank><img src="https://avatars.githubusercontent.com/u/201381006?v=4" height="58"/></a>
 </p>
+<p align="center"><strong>Individual</strong></p><p align="center">
+<a href="https://github.com/maxstaHA" target=_blank><img src="https://avatars.githubusercontent.com/u/95127413?v=4" height="58"/></a>
+<a href="https://github.com/Marcx123" target=_blank><img src="https://avatars.githubusercontent.com/u/240205462?v=4" height="58"/></a>
+</p>
 <!-- SPONSORS_ENDE -->
 
 ## Use cases of the BSC
