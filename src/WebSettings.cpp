@@ -5,6 +5,7 @@
 
 
 #include "WebSettings.h"
+#include "webUtility.h"
 #include "web/webSettings_web.h"
 #include "defines.h"
 #include <Arduino.h>
@@ -264,6 +265,8 @@ void WebSettings::sendContentHtml(WebServer *server, const char *buf, bool send)
 //Function to response HTTP request from the form to save data
 void WebSettings::handleHtmlFormRequest(WebServer * server)
 {
+  if(!performAuthentication(server, this)) return;
+  
   uint8_t ui8_optionsCnt;
   std::vector<String> options;
   std::vector<String> optionLabels;
