@@ -32,7 +32,7 @@ namespace nsChargeCurrentCtrl
 
     //ToDo: Ladeströme in der jeweiligen Funktion schon richtig liefern, damit es hier kein x10 mehr braucht
     i16_lMaxChargeCurrentList[0] = calcLadestromZellspanung(inverterData, i16_lMaxChargeCurrent);
-    i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(i16_lMaxChargeCurrent, (uint8_t)inverterData.inverterSoc);
+    i16_lMaxChargeCurrentList[1] = calcLadestromSocAbhaengig(inverterData, i16_lMaxChargeCurrent);
     i16_lMaxChargeCurrentList[2] = calcLadestromBeiZelldrift(inverterData, i16_lMaxChargeCurrent);
     i16_lMaxChargeCurrentList[3] = calcChargeCurrentCutOff(inverterData, i16_lMaxChargeCurrent);
     i16_lMaxChargeCurrentList[4] = calcChargeCurrentAlarm(i16_lMaxChargeCurrent);
@@ -254,19 +254,24 @@ namespace nsChargeCurrentCtrl
 
 
   /* */
-  int16_t ChargeCurrentCtrl::calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc)
+  int16_t ChargeCurrentCtrl::calcLadestromSocAbhaengig(Inverter::inverterData_s &inverterData, int16_t i16_lMaxChargeCurrent)
   {
     if(WebSettings::getBool(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_EN,0)==true) //wenn enabled
     {
+      if(inverterData.mStateAutobalance >= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT_START_VOLTAGE
+        && inverterData.mStateAutobalance <= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH) {
+        return i16_lMaxChargeCurrent;
+      }
+
       uint8_t u8_lReduzierenAbSoc = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_AB_SOC);
-      if(u8_lSoc>=u8_lReduzierenAbSoc)
+      if(inverterData.inverterSoc >= u8_lReduzierenAbSoc)
       {
         uint16_t u8_lReduzierenUmA = WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_A_PRO_PERCENT_SOC);
 
         uint8_t lMindestLadestrom = (uint8_t)WebSettings::getInt(ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_MINDEST_STROM,0,DT_ID_PARAM_INVERTER_LADESTROM_REDUZIEREN_SOC_MINDEST_STROM);
         lMindestLadestrom *= 10;
 
-        int16_t lChargeCurrent = i16_lMaxChargeCurrent - ((u8_lSoc-u8_lReduzierenAbSoc + 1) * u8_lReduzierenUmA);
+        int16_t lChargeCurrent = i16_lMaxChargeCurrent - ((inverterData.inverterSoc - u8_lReduzierenAbSoc + 1) * u8_lReduzierenUmA);
 
         if(lChargeCurrent < lMindestLadestrom) return lMindestLadestrom;
         return lChargeCurrent;

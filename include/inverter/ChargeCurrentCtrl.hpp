@@ -41,7 +41,7 @@ namespace nsChargeCurrentCtrl {
 
         int16_t calcLadestromZellspanung(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
         int16_t calcLadestromBeiZelldrift(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
-        int16_t calcLadestromSocAbhaengig(int16_t i16_lMaxChargeCurrent, uint8_t u8_lSoc);
+        int16_t calcLadestromSocAbhaengig(Inverter::inverterData_s &inverterData, int16_t i16_lMaxChargeCurrent);
         int16_t calcChargecurrent_MaxCurrentPerPackToHigh(Inverter::inverterData_s &inverterData, int16_t i16_pMaxChargeCurrent);
         int16_t calcChargeCurrentAlarm(int16_t lChargeCurrent);
         #endif
