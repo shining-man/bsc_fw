@@ -1,7 +1,7 @@
-Version 0.7.8
+Version 0.7.9
 
-- Fixed error in password querry
-- "Reduce charging current - SoC" is now ignored when the auto-balancer is active (#257)
+- New WebUI Design
+- Fixed a bug with certain characters in passwords (#268)
   
 
 Firmware mapping:
