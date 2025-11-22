@@ -1,7 +1,6 @@
-Version 0.7.9
+Version 0.7.10
 
-- New WebUI Design
-- Fixed a bug with certain characters in passwords (#268)
+- Fixed issue with tilde in settings (#157)
   
 
 Firmware mapping:
