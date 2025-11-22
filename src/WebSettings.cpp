@@ -1548,7 +1548,6 @@ boolean WebSettings::readConfig()
       str_name = str_line.substring(0,ui8_pos).toInt();
       str_dataType = str_line.substring(ui8_pos+1,ui8_pos+1+3).c_str();
       str_value = str_line.substring(ui8_pos+1+3).c_str();
-      str_value.replace("~","\n");
       if(str_dataType.equals("U8_")) setString(str_name, str_value, PARAM_DT_U8);
       else if(str_dataType.equals("I8_")) setString(str_name, str_value, PARAM_DT_I8);
       else if(str_dataType.equals("U16")) setString(str_name, str_value, PARAM_DT_U16);
@@ -1609,7 +1608,7 @@ boolean WebSettings::writeConfig()
       name = n.first;
       std::string val = n.second;
       val2 = String(val.c_str());
-      val2.replace("\n","~");
+      val2.replace("\n",""); // Zeilenumbruch entfernen
       f.printf("%lu=STR%s\n",name,val2.c_str());
     }
 
