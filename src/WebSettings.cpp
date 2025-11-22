@@ -22,6 +22,7 @@
 #include <sparsepp/spp.h>
 #include <Preferences.h>
 #include "crc.h"
+#include "webUtility.h"
 
 using spp::sparse_hash_map;
 
@@ -287,7 +288,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
         {
           String argValue = server->arg(i);
           #ifdef WEBSET_DEBUG
-          BSC_LOGD(TAG, "SAVE: name:%s, val:%s", argName, argValue);
+          BSC_LOGI(TAG, "SAVE A: name:%s, val:%s", argName, argValue.c_str());
           #endif
 
           if(isNumber(argName)) //Wenn keine Zahl, dann Fehler
@@ -296,6 +297,10 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
             uint64_t u64_argName=strtoull(argName.c_str(),&end,10);
             uint32_t u32_argName = (uint32_t)(u64_argName&0xFFFFFFFF);
             uint8_t  u8_datatype = ((u64_argName>>32)&0xff);
+
+            // if(u8_datatype == PARAM_DT_ST) argValue = urlDecode(server->arg(i)); /* Wenn String */
+            // else argValue = server->arg(i);
+            // BSC_LOGI(TAG, "SAVE B: name:%s, val:%s", argName, argValue);
 
             if((u64_argName&((uint64_t)1<<40))==((uint64_t)1<<40)) //Store  in Flash
             {
@@ -784,7 +789,8 @@ void WebSettings::getDefaultValuesFromNewKeys(const char *parameter, uint32_t js
 void WebSettings::createHtmlTextfield(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, const char * type, String value)
 {
   if(value.equals("")){value = getJsonDefault(parameter, idx, startPos);}
-  sprintf(buf,HTML_ENTRY_TEXTFIELD,label->c_str(),type,value.c_str(),String(*nameExt).c_str(),getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
+  String valueNew = htmlEscape(value, true);
+  sprintf(buf,HTML_ENTRY_TEXTFIELD,label->c_str(),type,valueNew.c_str(),String(*nameExt).c_str(),getJson_Key(parameter, "unit", idx, startPos, "").c_str(),String(*name));
 }
 
 void WebSettings::createHtmlTextarea(char * buf, uint16_t *name, uint64_t *nameExt, String *label, const char *parameter, uint8_t idx, uint32_t startPos, String value)
