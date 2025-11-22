@@ -226,3 +226,64 @@ void handleLogout(WebServer &server) {
   server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
   server.send(401);
 }*/
+
+
+// Escaped einen String so, dass er sicher in HTML (insb. Formulare) angezeigt werden kann.
+// Geeignet für Textknoten und Attributwerte.
+// Für Attribute werden zusätzlich Zeilenumbrüche als &#10; kodiert.
+String htmlEscape(const String& in, bool forAttribute) {
+  String out;
+  out.reserve(in.length() + 8); // grob, spart Reallocs
+
+  for (size_t i = 0; i < in.length(); ++i) {
+    char c = in[i];
+    switch (c) {
+      case '&':  out += F("&amp;");  break;
+      case '<':  out += F("&lt;");   break;
+      case '>':  out += F("&gt;");   break;
+      case '"':  out += F("&quot;"); break;
+      case '\'': out += F("&#39;");  break;  // &apos; geht auch, &#39; ist robuster
+      case '\n':
+        if (forAttribute) out += F("&#10;");  // Zeilenumbruch im value=""
+        else out += '\n';
+        break;
+      case '\r':
+        // CR in Attributen weglassen, sonst normal übernehmen
+        if (!forAttribute) out += '\r';
+        break;
+      default:
+        out += c;
+        break;
+    }
+  }
+  return out;
+}
+
+String urlDecode(const String& in) {
+  String out;
+  out.reserve(in.length());
+
+  for (size_t i = 0; i < in.length(); i++) {
+    char c = in[i];
+    if (c == '+') { out += ' '; }
+    else if (c == '%' && i + 2 < in.length()) {
+      char h1 = in[i+1], h2 = in[i+2];
+      auto hex = [](char x)->int {
+        if (x>='0'&&x<='9') return x-'0';
+        if (x>='A'&&x<='F') return x-'A'+10;
+        if (x>='a'&&x<='f') return x-'a'+10;
+        return -1;
+      };
+      int hi = hex(h1), lo = hex(h2);
+      if (hi >= 0 && lo >= 0) {
+        out += char((hi<<4) | lo);
+        i += 2;
+      } else {
+        out += c; // ungültig, roh übernehmen
+      }
+    } else {
+      out += c;
+    }
+  }
+  return out;
+}
