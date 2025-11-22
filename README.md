@@ -60,9 +60,10 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
+<a href="https://github.com/eroovers" target=_blank><img src="https://avatars.githubusercontent.com/u/19819622?u=eeab2c18be1a1e21f132579233025238e283360e&v=4" height="58"/></a>
+<a href="https://github.com/trilobyte303" target=_blank><img src="https://avatars.githubusercontent.com/u/46717379?v=4" height="58"/></a>
+<a href="https://github.com/thenebu" target=_blank><img src="https://avatars.githubusercontent.com/u/74529933?v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
-<a href="https://github.com/janCGN" target=_blank><img src="https://avatars.githubusercontent.com/u/129530344?v=4" height="58"/></a>
-<a href="https://github.com/janekg99" target=_blank><img src="https://avatars.githubusercontent.com/u/130148068?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
 <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?u=7e4d945122ebbe34a31bb917a7735c666b62040d&v=4" height="58"/></a>
@@ -98,7 +99,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/michi1984" target=_blank><img src="https://avatars.githubusercontent.com/u/58638770?v=4" height="58"/></a>
 <a href="https://github.com/pepe-el-pepe" target=_blank><img src="https://avatars.githubusercontent.com/u/61097309?u=217ffbae91308f3675269d8bae5ab11ddda7bfa7&v=4" height="58"/></a>
 <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?u=d1952cbd2fa94be247696e69ddd230cd9e950731&v=4" height="58"/></a>
-<a href="https://github.com/comanche3" target=_blank><img src="https://avatars.githubusercontent.com/u/71553753?v=4" height="58"/></a>
+<a href="https://github.com/comanche3" target=_blank><img src="https://avatars.githubusercontent.com/u/71553753?u=9cdf780f7eab1cd4649413d1672da4f0e80c8ca5&v=4" height="58"/></a>
 <a href="https://github.com/martinarva" target=_blank><img src="https://avatars.githubusercontent.com/u/77044330?v=4" height="58"/></a>
 <a href="https://github.com/2SK135" target=_blank><img src="https://avatars.githubusercontent.com/u/82417004?v=4" height="58"/></a>
 <a href="https://github.com/StefanM60" target=_blank><img src="https://avatars.githubusercontent.com/u/91480362?v=4" height="58"/></a>
@@ -121,6 +122,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/Knofn" target=_blank><img src="https://avatars.githubusercontent.com/u/191380062?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
 <a href="https://github.com/lukas2245" target=_blank><img src="https://avatars.githubusercontent.com/u/201381006?v=4" height="58"/></a>
+<a href="https://github.com/IngMarkusBehrens" target=_blank><img src="https://avatars.githubusercontent.com/u/244674353?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Individual</strong></p><p align="center">
 <a href="https://github.com/maxstaHA" target=_blank><img src="https://avatars.githubusercontent.com/u/95127413?v=4" height="58"/></a>
