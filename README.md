@@ -61,7 +61,6 @@ We are also happy to welcome members from other countries.
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
 <a href="https://github.com/eroovers" target=_blank><img src="https://avatars.githubusercontent.com/u/19819622?u=eeab2c18be1a1e21f132579233025238e283360e&v=4" height="58"/></a>
-<a href="https://github.com/trilobyte303" target=_blank><img src="https://avatars.githubusercontent.com/u/46717379?v=4" height="58"/></a>
 <a href="https://github.com/thenebu" target=_blank><img src="https://avatars.githubusercontent.com/u/74529933?v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
 <a href="https://github.com/TomSenger" target=_blank><img src="https://avatars.githubusercontent.com/u/119881236?v=4" height="58"/></a>
