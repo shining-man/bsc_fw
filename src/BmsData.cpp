@@ -208,6 +208,8 @@ int16_t getBmsTotalCurrentI16(uint8_t devNr)
 }
 void setBmsTotalCurrent(uint8_t devNr, float value)
 {
+  if(value > 320) value = 325;
+  else if(value < -320) value = -325;
   xSemaphoreTake(mBmsDataMutex, portMAX_DELAY);
   bmsData.bmsTotalCurrent[devNr] = (int16_t)(value*100);
   xSemaphoreGive(mBmsDataMutex);
