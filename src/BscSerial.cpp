@@ -399,11 +399,7 @@ void BscSerial::enableRxInterrupt(uint8_t devNr) {
   } else if(devNr == 2) {
     attachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX), onRxEdge, FALLING);
   } else if(devNr > 2 && mExtManager->getSerial(0).isEnabled()) {
-    #if defined(TCONNECT)
-    attachInterrupt(digitalPinToInterrupt(SERIAL3E_PIN_RX), onRxEdge, FALLING);
-    #else
     attachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX), onRxEdge, FALLING);
-    #endif
   }
   #endif
 }
@@ -423,11 +419,7 @@ void BscSerial::disableRxInterrupt(uint8_t devNr) {
   } else if(devNr == 2) {
     detachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX));
   } else if(devNr > 2 && mExtManager->getSerial(0).isEnabled()) {
-    #if defined(TCONNECT)
-    detachInterrupt(digitalPinToInterrupt(SERIAL3E_PIN_RX));
-    #else
     detachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX));
-    #endif
   }
   #endif
 }
