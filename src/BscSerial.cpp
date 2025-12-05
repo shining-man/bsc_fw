@@ -377,6 +377,61 @@ void BscSerial::setRxTxEnable(uint8_t u8_devNr, serialRxTxEn_e e_rw)
   #endif
 }
 
+uint16_t rxEdgeCounter = 0;
+void IRAM_ATTR onRxEdge() {
+  rxEdgeCounter++;
+}
+
+void BscSerial::enableRxInterrupt(uint8_t devNr) {
+  rxEdgeCounter = 0;
+
+  #ifdef LILYGO_TCAN485
+  if(devNr == 2) {
+    attachInterrupt(digitalPinToInterrupt(TCAN485_RS485_RX_PIN), onRxEdge, FALLING);
+  }
+
+  #else
+
+  if(devNr == 0) {
+    attachInterrupt(digitalPinToInterrupt(SERIAL1_PIN_RX), onRxEdge, FALLING);
+  } else if(devNr == 1) {
+    attachInterrupt(digitalPinToInterrupt(SERIAL2_PIN_RX), onRxEdge, FALLING);
+  } else if(devNr == 2) {
+    attachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX), onRxEdge, FALLING);
+  } else if(devNr > 2 && mExtManager->getSerial(0).isEnabled()) {
+    #if defined(TCONNECT)
+    attachInterrupt(digitalPinToInterrupt(SERIAL3E_PIN_RX), onRxEdge, FALLING);
+    #else
+    attachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX), onRxEdge, FALLING);
+    #endif
+  }
+  #endif
+}
+
+void BscSerial::disableRxInterrupt(uint8_t devNr) {
+  #ifdef LILYGO_TCAN485
+  if(devNr == 2) {
+    detachInterrupt(digitalPinToInterrupt(TCAN485_RS485_RX_PIN));
+  }
+
+  #else
+
+  if(devNr == 0) {
+    detachInterrupt(digitalPinToInterrupt(SERIAL1_PIN_RX));
+  } else if(devNr == 1) {
+    detachInterrupt(digitalPinToInterrupt(SERIAL2_PIN_RX));
+  } else if(devNr == 2) {
+    detachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX));
+  } else if(devNr > 2 && mExtManager->getSerial(0).isEnabled()) {
+    #if defined(TCONNECT)
+    detachInterrupt(digitalPinToInterrupt(SERIAL3E_PIN_RX));
+    #else
+    detachInterrupt(digitalPinToInterrupt(SERIAL3_PIN_RX));
+    #endif
+  }
+  #endif
+}
+
 void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, uint8_t txLen)
 {
   setRxTxEnable(devNr,serialRxTx_TxEn);
@@ -389,6 +444,19 @@ void BscSerial::sendSerialData(Stream *port, uint8_t devNr, uint8_t *txBuffer, u
   setRxTxEnable(devNr, serialRxTx_RxEn);
 
   vTaskPrioritySet(task_handle_bscSerial, TASK_PRIORITY_STD);
+}
+
+bool BscSerial::isBusIdle(uint8_t devNr)
+{
+  setRxTxEnable(devNr, serialRxTx_RxEn);
+  vTaskDelay(pdMS_TO_TICKS(1));
+
+  enableRxInterrupt(devNr);
+  vTaskDelay(pdMS_TO_TICKS(10));
+  disableRxInterrupt(devNr);
+
+  if(rxEdgeCounter == 0) return true;
+  return false;
 }
 
 
