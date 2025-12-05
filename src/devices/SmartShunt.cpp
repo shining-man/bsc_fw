@@ -101,7 +101,8 @@ bool SmartShunt_readBmsData(BscSerial *bscSerial, Stream *port, uint8_t devNr, s
 bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, uint16_t ID_Get)
 {
     uint8_t response[SMARTSHUNT_MAX_ANSWER_LEN];
-    uint8_t anzahl_wiederholungen;
+    uint8_t anzahl_wiederholungen = 2;
+    if (ID_Get == SMARTSHUNT_ID_SOC) anzahl_wiederholungen = 3;
 
     // Wenn beim ersten Telegramm (SOC) ein Fehler auftaucht, wird probiert dieses zu wiederholen. 
     // Grund: Der Smartshunt geht nach ca. 1s wieder in den Standartkommunikationsmodus zurück und
@@ -109,31 +110,22 @@ bool getBMSTelegramm(deviceUtils::DeviceUtils &devUtils, BscSerial *bscSerial, u
     // Danach ist der Shunt mit dem Telegram in jedem Fall fertig und ist wieder bereit für das
     // HEX Protokoll.
 
-    if (ID_Get == SMARTSHUNT_ID_SOC)
-    { anzahl_wiederholungen = 2;}
-    else
-    { anzahl_wiederholungen = 1;}
-
-    for(uint8_t i=0;i<anzahl_wiederholungen;i++)
+    for(uint8_t i = 0; i < anzahl_wiederholungen; i++)
     {
+      if (ID_Get == SMARTSHUNT_ID_SOC) {
+        // Wenn auf dem Bus gesendet wird
+        if(!bscSerial->isBusIdle(u8_mDevNr)) {
+          //BSC_LOGE(TAG,"Bus not idle");
+          if(i == 0) vTaskDelay(pdMS_TO_TICKS(120));
+          else vTaskDelay(pdMS_TO_TICKS(70));
+        }
+      } 
+    
       getDataFromBms(devUtils, bscSerial, ID_Get);
       if(recvAnswer(devUtils, response, ID_Get))
       {
         parseMessage(devUtils, response);
         return true;
-      }
-      else
-      {
-        #ifdef SMARTSHUNT_DEBUG
-          BSC_LOGE(TAG,"Antwort nicht OK - ID Get %u - Versuch Nr. :%i",ID_Get,i);
-        #endif
-        if(i>=anzahl_wiederholungen)
-        {
-          #ifdef SMARTSHUNT_DEBUG
-            BSC_LOGE(TAG,"Antwort nicht OK - ID Get %u",ID_Get);
-          #endif
-          return false;
-        }
       }
     }
     return false;
@@ -195,9 +187,9 @@ static bool recvAnswer(deviceUtils::DeviceUtils &devUtils, uint8_t *p_lRecvBytes
 
   for(;;)
   {
-    //Timeout
-    // wenn innerhalb von 50ms das Telegram noch nicht begonnen hat, dann Timeout
-    if( (((millis()-u32_lStartTime)>100) && ID_Get==SMARTSHUNT_ID_SOC) || (((millis()-u32_lStartTime)>50) && !(ID_Get==SMARTSHUNT_ID_SOC)) )
+    //Timeout wenn innerhalb von 50ms das Telegram noch nicht begonnen hat, dann Timeout
+    if( (((millis() - u32_lStartTime) >= 100) && ID_Get == SMARTSHUNT_ID_SOC) || 
+      (((millis() - u32_lStartTime) >= 50) && (ID_Get != SMARTSHUNT_ID_SOC)) )
     {
       #ifdef SMARTSHUNT_DEBUG
         BSC_LOGI(TAG,"Timeout: Serial=%i, u8_lRecvDataLen=%i, u8_lRecvBytesCnt=%i", u8_mDevNr, u8_lRecvDataLen, u8_lRecvBytesCnt);
