@@ -62,7 +62,6 @@ We are also happy to welcome members from other countries.
 <p align="center"><strong>Gold</strong></p><p align="center">
 <a href="https://github.com/MIR0slav" target=_blank><img src="https://avatars.githubusercontent.com/u/2135806?v=4" height="58"/></a>
 <a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
-<a href="https://github.com/TomSenger" target=_blank><img src="https://avatars.githubusercontent.com/u/119881236?v=4" height="58"/></a>
 <a href="https://github.com/Sveni34Schlott" target=_blank><img src="https://avatars.githubusercontent.com/u/199635777?v=4" height="58"/></a>
 <a href="https://github.com/AndreasGreif" target=_blank><img src="https://avatars.githubusercontent.com/u/216915249?v=4" height="58"/></a>
 </p>
