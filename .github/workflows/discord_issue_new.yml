@@ -1,0 +1,132 @@
+on:
+  issues:
+    types: [opened] # you can also add reopened, etc. if you want to
+
+permissions:
+  issues: write
+
+env:
+  DISCORD_GUILD_ID: '1037083515755434005'
+  DISCORD_FORUM_CHANNEL_ID: '1469046334375067708'
+  DISCORD_MAPPING_REPO: 'shining-man/bsc-discord-mapping'
+  DISCORD_MAPPING_DB: 'discord_mapping.sqlite'
+
+jobs:
+  discord:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mapping repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.DISCORD_MAPPING_REPO }}
+          token: ${{ secrets.BSC_DISCORD_MAPPING_SECRET }}
+          path: mapping
+      - name: Sync mapping repo
+        working-directory: mapping
+        run: git pull --rebase
+
+      - id: build_message
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const header = `**[${issue.number}] ${issue.title}**\n`;
+            const url = `<${issue.html_url}>\n`;
+            const max = 2000;
+            const bodyRaw = issue.body || '';
+            const space = max - header.length - url.length;
+            const body =
+              bodyRaw.length > space ? `${bodyRaw.slice(0, Math.max(0, space - 3))}...` : bodyRaw;
+            const message = `${header}${body}\n${url}`.slice(0, max);
+            core.setOutput('message', message);
+      - id: create_thread
+        uses: actions/github-script@v7
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_MESSAGE: ${{ steps.build_message.outputs.message }}
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const name = `[${issue.number}] ${issue.title}`.slice(0, 100);
+            const content = process.env.DISCORD_MESSAGE || '';
+            const url = `https://discord.com/api/v10/channels/${process.env.DISCORD_FORUM_CHANNEL_ID}/threads`;
+            const res = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                name,
+                message: { content }
+              })
+            });
+            if (!res.ok) {
+              const text = await res.text();
+              core.setFailed(`Discord API error ${res.status}: ${text}`);
+              return;
+            }
+            const data = await res.json();
+            if (!data?.id) {
+              core.setFailed('Discord API did not return a thread id.');
+              return;
+            }
+            core.info(`Created forum thread ${data.id}`);
+            core.setOutput('thread_id', data.id);
+
+      - name: Update mapping DB
+        if: steps.create_thread.outputs.thread_id != ''
+        env:
+          MAPPING_DB: ${{ env.DISCORD_MAPPING_DB }}
+          REPO_FULL_NAME: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FORUM_CHANNEL_ID: ${{ env.DISCORD_FORUM_CHANNEL_ID }}
+          THREAD_ID: ${{ steps.create_thread.outputs.thread_id }}
+        working-directory: mapping
+        run: |
+          python - <<'PY'
+          import os, sqlite3, datetime
+          db = os.environ["MAPPING_DB"]
+          db_dir = os.path.dirname(db)
+          if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
+          conn = sqlite3.connect(db)
+          cur = conn.cursor()
+          cur.execute("""
+          CREATE TABLE IF NOT EXISTS mappings(
+            repo_full_name TEXT NOT NULL,
+            issue_number INTEGER NOT NULL,
+            forum_channel TEXT NOT NULL,
+            thread_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY(repo_full_name, issue_number)
+          )
+          """)
+          now = datetime.datetime.utcnow().isoformat() + "Z"
+          cur.execute("""
+          INSERT INTO mappings(repo_full_name, issue_number, forum_channel, thread_id, created_at, updated_at)
+          VALUES(?,?,?,?,?,?)
+          ON CONFLICT(repo_full_name, issue_number)
+          DO UPDATE SET forum_channel=excluded.forum_channel, thread_id=excluded.thread_id, updated_at=excluded.updated_at
+          """, (
+            os.environ["REPO_FULL_NAME"],
+            int(os.environ["ISSUE_NUMBER"]),
+            os.environ["FORUM_CHANNEL_ID"],
+            os.environ["THREAD_ID"],
+            now,
+            now
+          ))
+          conn.commit()
+          conn.close()
+          PY
+
+      - name: Commit mapping DB
+        if: steps.create_thread.outputs.thread_id != ''
+        working-directory: mapping
+        run: |
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "github-actions"
+          git add "${{ env.DISCORD_MAPPING_DB }}"
+          git commit -m "Update Discord mapping" || echo "No changes"
+          git push
