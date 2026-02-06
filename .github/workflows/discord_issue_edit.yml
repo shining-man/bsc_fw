@@ -1,6 +1,6 @@
 on:
-  #issues:
-  #  types: [edited]
+  issues:
+    types: [edited]
   issue_comment:
     types: [created, edited]
 
