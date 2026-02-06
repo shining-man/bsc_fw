@@ -11,7 +11,7 @@ env:
   DISCORD_GUILD_ID: '1037083515755434005'
   DISCORD_FORUM_CHANNEL_ID: '1469046334375067708'
   DISCORD_MAPPING_REPO: 'shining-man/bsc-discord-mapping'
-  DISCORD_MAPPING_DB: 'discord_mapping.sqlite'
+  DISCORD_MAPPING_DIR: 'mappings'
 
 jobs:
   discord:
@@ -29,48 +29,31 @@ jobs:
 
       - id: mapping_lookup
         env:
-          MAPPING_DB: ${{ env.DISCORD_MAPPING_DB }}
+          MAPPING_DIR: ${{ env.DISCORD_MAPPING_DIR }}
           REPO_FULL_NAME: ${{ github.repository }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         working-directory: mapping
         run: |
           python - <<'PY'
-          import os, sqlite3
-          db = os.environ["MAPPING_DB"]
+          import json, os
+          mapping_dir = os.environ["MAPPING_DIR"]
           repo = os.environ["REPO_FULL_NAME"]
           issue = int(os.environ["ISSUE_NUMBER"])
           thread_id = ""
-          print(f"mapping db: {db}")
+          safe_repo = repo.replace("/", "__")
+          path = os.path.join(mapping_dir, f"{safe_repo}.json")
+          print(f"mapping file: {path}")
           print(f"repo: {repo} issue: {issue}")
-          print(f"db exists: {os.path.exists(db)}")
-          if os.path.exists(db):
-            conn = sqlite3.connect(db)
-            cur = conn.cursor()
-            cur.execute("""
-            CREATE TABLE IF NOT EXISTS mappings(
-              repo_full_name TEXT NOT NULL,
-              issue_number INTEGER NOT NULL,
-              forum_channel TEXT NOT NULL,
-              thread_id TEXT NOT NULL,
-              created_at TEXT NOT NULL,
-              updated_at TEXT NOT NULL,
-              PRIMARY KEY(repo_full_name, issue_number)
-            )
-            """)
-            cur.execute("SELECT COUNT(*) FROM mappings")
-            total = cur.fetchone()[0]
-            print(f"total rows: {total}")
-            cur.execute(
-              "SELECT thread_id FROM mappings WHERE repo_full_name=? AND issue_number=?",
-              (repo, issue)
-            )
-            row = cur.fetchone()
-            if row:
-              thread_id = row[0]
+          print(f"file exists: {os.path.exists(path)}")
+          if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+            key = f"{repo}#{issue}"
+            if key in data:
+              thread_id = data[key].get("thread_id", "")
               print(f"found thread_id: {thread_id}")
             else:
-              print("no matching row found")
-            conn.close()
+              print("no matching key found")
           need_create = "false" if thread_id else "true"
           with open(os.environ["GITHUB_OUTPUT"], "a") as f:
             f.write(f"thread_id={thread_id}\n")
@@ -148,10 +131,10 @@ jobs:
             core.info(`Created forum thread ${data.id}`);
             core.setOutput('thread_id', data.id);
 
-      - name: Update mapping DB
+      - name: Update mapping file
         if: steps.create_thread.outputs.thread_id != ''
         env:
-          MAPPING_DB: ${{ env.DISCORD_MAPPING_DB }}
+          MAPPING_DIR: ${{ env.DISCORD_MAPPING_DIR }}
           REPO_FULL_NAME: ${{ github.repository }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           FORUM_CHANNEL_ID: ${{ env.DISCORD_FORUM_CHANNEL_ID }}
@@ -159,49 +142,33 @@ jobs:
         working-directory: mapping
         run: |
           python - <<'PY'
-          import os, sqlite3, datetime
-          db = os.environ["MAPPING_DB"]
-          db_dir = os.path.dirname(db)
-          if db_dir:
-            os.makedirs(db_dir, exist_ok=True)
-          conn = sqlite3.connect(db)
-          cur = conn.cursor()
-          cur.execute("""
-          CREATE TABLE IF NOT EXISTS mappings(
-            repo_full_name TEXT NOT NULL,
-            issue_number INTEGER NOT NULL,
-            forum_channel TEXT NOT NULL,
-            thread_id TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            updated_at TEXT NOT NULL,
-            PRIMARY KEY(repo_full_name, issue_number)
-          )
-          """)
+          import json, os, datetime
+          mapping_dir = os.environ["MAPPING_DIR"]
+          os.makedirs(mapping_dir, exist_ok=True)
+          safe_repo = os.environ["REPO_FULL_NAME"].replace("/", "__")
+          path = os.path.join(mapping_dir, f"{safe_repo}.json")
+          data = {}
+          if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+              data = json.load(f)
+          key = f'{os.environ["REPO_FULL_NAME"]}#{os.environ["ISSUE_NUMBER"]}'
           now = datetime.datetime.utcnow().isoformat() + "Z"
-          cur.execute("""
-          INSERT INTO mappings(repo_full_name, issue_number, forum_channel, thread_id, created_at, updated_at)
-          VALUES(?,?,?,?,?,?)
-          ON CONFLICT(repo_full_name, issue_number)
-          DO UPDATE SET forum_channel=excluded.forum_channel, thread_id=excluded.thread_id, updated_at=excluded.updated_at
-          """, (
-            os.environ["REPO_FULL_NAME"],
-            int(os.environ["ISSUE_NUMBER"]),
-            os.environ["FORUM_CHANNEL_ID"],
-            os.environ["THREAD_ID"],
-            now,
-            now
-          ))
-          conn.commit()
-          conn.close()
+          data[key] = {
+            "forum_channel": os.environ["FORUM_CHANNEL_ID"],
+            "thread_id": os.environ["THREAD_ID"],
+            "updated_at": now
+          }
+          with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, sort_keys=True)
           PY
 
-      - name: Commit mapping DB
+      - name: Commit mapping file
         if: steps.create_thread.outputs.thread_id != ''
         working-directory: mapping
         run: |
           git config user.email "actions@users.noreply.github.com"
           git config user.name "github-actions"
-          git add "${{ env.DISCORD_MAPPING_DB }}"
+          git add "${{ env.DISCORD_MAPPING_DIR }}"
           git commit -m "Update Discord mapping" || echo "No changes"
           git push
 
