@@ -317,7 +317,7 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint32
       tempHighSensor = t;
       tempHighPack = u8_mBmsDatasource;
     }
-    else if(temp < tempLow) 
+    if(temp < tempLow) 
     {
       tempLow = temp;
       tempLowSensor = t;
@@ -341,7 +341,7 @@ void BmsDataUtils::getMinMaxBatteryTemperature(uint8_t u8_mBmsDatasource, uint32
             tempHighSensor = t;
             tempHighPack = i;
           }
-          else if(temp < tempLow) 
+          if(temp < tempLow) 
           {
             tempLow = temp;
             tempLowSensor = t;
