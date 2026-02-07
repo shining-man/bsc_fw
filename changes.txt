@@ -1,6 +1,6 @@
-Version 0.7.11
+Version 0.7.12
 
-- CRC error in SmartShunt fixed
+- Fixed error in Min/Max-Temperature calculation
   
 
 Firmware mapping:
