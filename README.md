@@ -22,15 +22,15 @@ An optional [status display](#status-display) is available as an extension, prov
 The BSC software can also be used independently of the BSC hardware on ESP32 DevKit modules. However, due to stability, it is recommended to use the original BSC hardware.
 
 The firmware is open source and available in German, English, and Dutch. You can download the latest public version [here](https://github.com/shining-man/bsc_fw/releases).  
-In addition to the freely available version, there is an **Insider version** exclusively for sponsors. This version includes the newest features before they are gradually released to the public.  
-You can learn more about sponsorship on the <a href="https://github.com/sponsors/shining-man" target=_blank>Github Sponsor page</a> and in the <a href="https://bsc-org.github.io/bsc/insider/" target=_blank>documentation</a>.  
+In addition to the freely available version, there is an **Supporter version** exclusively for sponsors. This version includes the newest features before they are gradually released to the public.  
+You can learn more about sponsorship on the <a href="https://github.com/sponsors/shining-man" target=_blank>Github Sponsor page</a> and in the <a href="https://bsc-org.github.io/bsc/supporter/" target=_blank>documentation</a>.  
 
 The WebUI dashboard:
 <span align="center">
   <img src="https://github.com/user-attachments/assets/3658c9a1-92b1-4fdf-947f-fa504d6a0532"/>
 </span>
 
-> The new dashboard is only available to [insiders](https://bsc-org.github.io/bsc/insider). All other users have a simple WebUI.
+> The new dashboard is only available to [supporter](https://bsc-org.github.io/bsc/supporter). All other users have a simple WebUI.
 
 ## More information
 * [Discord Forum](https://discord.gg/WRUhegRPQn)  
@@ -52,7 +52,7 @@ We are also happy to welcome members from other countries.
   * [BSC Housings and accessories (BSC-Shop.com)](https://bsc-shop.com/)
 
 ## Sponsors
-<p align="center">Many thanks to all the <b>sponsors</b> who support the project.<br>You can find out more about sponsoring on the <a href="https://github.com/sponsors/shining-man" target=_blank>Github Sponsor</a> page and in the <a href="https://bsc-org.github.io/bsc/insider/" target=_blank>documentation</a>.
+<p align="center">Many thanks to all the <b>sponsors</b> who support the project.<br>You can find out more about sponsoring on the <a href="https://github.com/sponsors/shining-man" target=_blank>Github Sponsor</a> page and in the <a href="https://bsc-org.github.io/bsc/supporter/" target=_blank>documentation</a>.
 
 <p align="center">
   <a href="https://bsc-shop.com" target="_blank"><img src="https://github.com/user-attachments/assets/2a044a67-b0f3-4285-8d8b-3e64ffd7539f" height="68"/></a>

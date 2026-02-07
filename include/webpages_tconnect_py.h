@@ -55,7 +55,7 @@ const char htmlPageRoot[] PROGMEM = "<!DOCTYPE HTML>"
     "<span class='hl'>Battery Safety Controller&nbsp;&nbsp;&nbsp;__BSC_SW_VERSION__</span>"
   "</div>"
   "<div style='background-color: #BFEFFF; padding: 10px; margin-top: 10px;' text-align: center;><span lid='28'>Gefällt dir das Projekt? Zeige deine Wertschätzung doch einfach mit einer Spende! Weitere Infos unter </span>"
-    "<a lid='30' href='./support/'>Unterst&uuml;tzung</a><br><span lid='46'>Für Sponsoren gibt es außerdem eine exklusive Insider-Version mit den neuesten Funktionen.</span></div>"
+    "<a lid='30' href='./support/'>Unterst&uuml;tzung</a><br><span lid='46'>Für Sponsoren gibt es außerdem eine exklusive Supporter-Version mit den neuesten Funktionen.</span></div>"
   "<div class='content'>"
     "<div class='cards'>"
       "<div class='cardDashBtn' onclick=\"location.href='./settings/system/'\"><p><span lid='32'>WiFi</span><br><meter id='meter_wifiRssi' min='0' max='70' value='0'></meter></p></div>" //WiFi RSSI
