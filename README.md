@@ -63,7 +63,6 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/SkyTalker" target=_blank><img src="https://avatars.githubusercontent.com/u/29000869?v=4" height="58"/></a>
 <a href="https://github.com/arneproft" target=_blank><img src="https://avatars.githubusercontent.com/u/39033951?v=4" height="58"/></a>
 <a href="https://github.com/26Zoll" target=_blank><img src="https://avatars.githubusercontent.com/u/58189583?v=4" height="58"/></a>
-<a href="https://github.com/zippeliniot" target=_blank><img src="https://avatars.githubusercontent.com/u/75243184?u=efd3a6a21adc165643f928b79e498191e90ebd43&v=4" height="58"/></a>
 <a href="https://github.com/Flxmue" target=_blank><img src="https://avatars.githubusercontent.com/u/222606877?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
