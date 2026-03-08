@@ -62,7 +62,6 @@ We are also happy to welcome members from other countries.
 <p align="center"><strong>Gold</strong></p><p align="center">
 <a href="https://github.com/SkyTalker" target=_blank><img src="https://avatars.githubusercontent.com/u/29000869?v=4" height="58"/></a>
 <a href="https://github.com/arneproft" target=_blank><img src="https://avatars.githubusercontent.com/u/39033951?v=4" height="58"/></a>
-<a href="https://github.com/Flxmue" target=_blank><img src="https://avatars.githubusercontent.com/u/222606877?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
 <a href="https://github.com/a-wolter" target=_blank><img src="https://avatars.githubusercontent.com/u/13150781?u=7e4d945122ebbe34a31bb917a7735c666b62040d&v=4" height="58"/></a>
@@ -120,6 +119,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
 <a href="https://github.com/R0b3rt-3D" target=_blank><img src="https://avatars.githubusercontent.com/u/207548722?u=2a96a40078e101fc39a515a0cc0440a706a29093&v=4" height="58"/></a>
+<a href="https://github.com/arturk8202" target=_blank><img src="https://avatars.githubusercontent.com/u/266241687?v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
 
