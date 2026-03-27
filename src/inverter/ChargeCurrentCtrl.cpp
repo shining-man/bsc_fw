@@ -182,7 +182,8 @@ namespace nsChargeCurrentCtrl
         i16_lMindestChargeCurrent *= 10; // Anpassung, da der rückgegeben Stromwert x10 ist (Festkomm mit einer Kommastelle)
 
         // Wenn Autobalancing aktiv ist
-        if(inverterData.mStateAutobalance >= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_RUNING
+        // Geändert, dass die Spannung bereits beim warten auf die Start-Cellvoltage angehoben wird
+        if(inverterData.mStateAutobalance >= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_WAIT_START_VOLTAGE
           && inverterData.mStateAutobalance <= nsChargeVoltageCtrl::ChargeVoltageCtrl::e_stateAutobalance::STATE_AUTOBAL_FINISH)
         {
           u16_lEndSpg = WebSettings::getInt(ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE,0,DT_ID_PARAM_INVERTER_AUTOBALANCE_CHARGE_CELLVOLTAGE);
