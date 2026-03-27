@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.7.12"
+#define BSC_SW_VERSION      "V0.7.13"
 
 static const char COMPILE_DATE_TIME[] = "";
 

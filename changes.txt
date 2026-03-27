@@ -1,7 +1,7 @@
-Version 0.7.12
+Version 0.7.13
 
-- Fixed error in Min/Max-Temperature calculation
-  
+- Changed: The auto balancer now already uses the balancer cell voltage for “Reduce charging current depending on cell voltage” while waiting for the start cell voltage.
+
 
 Firmware mapping:
 
