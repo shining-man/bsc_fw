@@ -26,6 +26,7 @@
 #include "devices/SeplosBmsV3.h"
 #include "devices/NeeySerial.h"
 #include "devices/JkInverterBms.h"
+#include "devices/Pylontech.h"
 
 #ifdef TCONNECT
 #include "LEDController.h"
@@ -307,7 +308,7 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
     case ID_SERIAL_DEVICE_PYLONTECH:
       BSC_LOGI(TAG,"Set serial device %i: Pylontech",u8_devNr);
       setSerialBaudrate(u8_devNr, 9600);
-      serialDeviceData[u8_devNr].readBms = &SeplosBms_readBmsData;
+      serialDeviceData[u8_devNr].readBms = &Pylontech_readBmsData;
       break;
 
     default:

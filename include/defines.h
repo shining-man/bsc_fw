@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.7.13"
+#define BSC_SW_VERSION      "V0.7.14"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -491,6 +491,8 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_SERIAL_DEVICE_NEEY_4A             13
 #define ID_SERIAL_DEVICE_JKINVERTERBMS       14
 #define ID_SERIAL_DEVICE_PYLONTECH           15
+#define ID_SERIAL_DEVICE_FELICITY_LUXY       16
+#define ID_SERIAL_DEVICE_JBD_BMS_UP16S       17
 
 //Auswahl CAN Geräte
 #define ID_CAN_DEVICE_NB            0
