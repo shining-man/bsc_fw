@@ -1,6 +1,6 @@
-Version 0.7.14
+Version 0.7.15
 
-- Fixed: Resolved an issue in the BMS Pylontech protocol.
+- Fixed: Total current for the Pylontech BMS was too low by a factor of 10.
 
 
 Firmware mapping:

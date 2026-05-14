@@ -357,7 +357,7 @@ static bool parseMessage(uint8_t * t_message, uint8_t address)
   u8_lMsgoffset=u8_lMsgoffset+1+(u8_lCntTempSensors*2);
 
   //   51     0xFD 0x5C      Charge/discharge current         signed int?                   A
-  setBmsTotalCurrent_int(address, getS16FromMsg(u8_lMsgoffset));
+  setBmsTotalCurrent_int(address, getS16FromMsg(u8_lMsgoffset) * 10);
 
   //   53     0x14 0xA0      Total battery voltage 
   setBmsTotalVoltage_int(address, (int16_t)(getU16FromMsg(u8_lMsgoffset + 2) / 10));
