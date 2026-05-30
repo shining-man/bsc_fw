@@ -60,6 +60,8 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
+<a href="https://github.com/dfarin" target=_blank><img src="https://avatars.githubusercontent.com/u/9096265?v=4" height="58"/></a>
+<a href="https://github.com/iz3man" target=_blank><img src="https://avatars.githubusercontent.com/u/11553674?v=4" height="58"/></a>
 <a href="https://github.com/maxstaHA" target=_blank><img src="https://avatars.githubusercontent.com/u/95127413?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
@@ -91,6 +93,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/Vitalic66" target=_blank><img src="https://avatars.githubusercontent.com/u/26961054?u=a497667f7c97db8684b860299e3223fb0070c919&v=4" height="58"/></a>
 <a href="https://github.com/mhproit" target=_blank><img src="https://avatars.githubusercontent.com/u/29717578?v=4" height="58"/></a>
 <a href="https://github.com/heiko73" target=_blank><img src="https://avatars.githubusercontent.com/u/30208640?v=4" height="58"/></a>
+<a href="https://github.com/elschman" target=_blank><img src="https://avatars.githubusercontent.com/u/32643724?u=6cba4dfccb63cd203b23228693c85d87e47d3df9&v=4" height="58"/></a>
 <a href="https://github.com/dl6dbh" target=_blank><img src="https://avatars.githubusercontent.com/u/35333262?v=4" height="58"/></a>
 <a href="https://github.com/oalbers58" target=_blank><img src="https://avatars.githubusercontent.com/u/45533193?v=4" height="58"/></a>
 <a href="https://github.com/michi1984" target=_blank><img src="https://avatars.githubusercontent.com/u/58638770?v=4" height="58"/></a>
@@ -102,6 +105,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/martinarva" target=_blank><img src="https://avatars.githubusercontent.com/u/77044330?v=4" height="58"/></a>
 <a href="https://github.com/2SK135" target=_blank><img src="https://avatars.githubusercontent.com/u/82417004?v=4" height="58"/></a>
 <a href="https://github.com/HSGithi" target=_blank><img src="https://avatars.githubusercontent.com/u/95976129?v=4" height="58"/></a>
+<a href="https://github.com/feudas" target=_blank><img src="https://avatars.githubusercontent.com/u/97468452?u=eb72ca080dee696e315938d3864fa79a4a237e99&v=4" height="58"/></a>
 <a href="https://github.com/ibuiter" target=_blank><img src="https://avatars.githubusercontent.com/u/103514663?v=4" height="58"/></a>
 <a href="https://github.com/SHendrik123" target=_blank><img src="https://avatars.githubusercontent.com/u/103681547?v=4" height="58"/></a>
 <a href="https://github.com/obiwan20001" target=_blank><img src="https://avatars.githubusercontent.com/u/106148295?v=4" height="58"/></a>
@@ -110,6 +114,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/motorradfeger" target=_blank><img src="https://avatars.githubusercontent.com/u/118117416?v=4" height="58"/></a>
 <a href="https://github.com/papala24" target=_blank><img src="https://avatars.githubusercontent.com/u/127226933?v=4" height="58"/></a>
 <a href="https://github.com/guntec1" target=_blank><img src="https://avatars.githubusercontent.com/u/129986859?v=4" height="58"/></a>
+<a href="https://github.com/azeman69" target=_blank><img src="https://avatars.githubusercontent.com/u/136568290?v=4" height="58"/></a>
 <a href="https://github.com/tritechks" target=_blank><img src="https://avatars.githubusercontent.com/u/140104994?v=4" height="58"/></a>
 <a href="https://github.com/Lederweisz" target=_blank><img src="https://avatars.githubusercontent.com/u/149304049?v=4" height="58"/></a>
 <a href="https://github.com/toptec01" target=_blank><img src="https://avatars.githubusercontent.com/u/156579129?v=4" height="58"/></a>
@@ -118,10 +123,10 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
 <a href="https://github.com/R0b3rt-3D" target=_blank><img src="https://avatars.githubusercontent.com/u/207548722?u=2a96a40078e101fc39a515a0cc0440a706a29093&v=4" height="58"/></a>
+<a href="https://github.com/Nukolar" target=_blank><img src="https://avatars.githubusercontent.com/u/235692859?v=4" height="58"/></a>
 <a href="https://github.com/arturk8202" target=_blank><img src="https://avatars.githubusercontent.com/u/266241687?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Individual</strong></p><p align="center">
-<a href="https://github.com/byPARSE" target=_blank><img src="https://avatars.githubusercontent.com/u/37997657?v=4" height="58"/></a>
 <a href="https://github.com/corsatotti" target=_blank><img src="https://avatars.githubusercontent.com/u/150857548?u=5e2de184f6671b52462009505bf6db0b78312577&v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
