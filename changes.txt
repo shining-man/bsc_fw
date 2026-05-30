@@ -1,7 +1,7 @@
-Version 0.7.15
+Version 0.7.16
 
-- Fixed: Total current for the Pylontech BMS was too low by a factor of 10.
-
+- New: Added support for Felicity Lux BMS
+- Fixed MQTT send timing checks to avoid rare timing issues after long device uptime.
 
 Firmware mapping:
 
