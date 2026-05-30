@@ -9,7 +9,7 @@
 #include "params_dt.h"
 #include "bscTime.h"
 
-#define BSC_SW_VERSION      "V0.7.15"
+#define BSC_SW_VERSION      "V0.7.16"
 
 static const char COMPILE_DATE_TIME[] = "";
 
@@ -197,7 +197,7 @@ enum serialRxTxEn_e {serialRxTx_RxTxDisable, serialRxTx_TxEn, serialRxTx_RxEn};
 #define I2C_DEV_ADDR_SLAVE2           17
 #define I2C_DEV_ADDR_SERIAL_EXTENSION 32
 #define I2C_DEV_ADDR_BT_EXTENSION_1 0x60
-#define I2C_FREQUENCY           1000000U
+#define I2C_FREQUENCY            800000U
 #define I2C_CNT_SLAVES                2
 
 #if defined(LILYGO_TCAN485)
@@ -491,7 +491,7 @@ enum serialDataRwTyp_e {BPN_NO_DATA, BPN_READ_SETTINGS, BPN_WRITE_READ_SETTINGS,
 #define ID_SERIAL_DEVICE_NEEY_4A             13
 #define ID_SERIAL_DEVICE_JKINVERTERBMS       14
 #define ID_SERIAL_DEVICE_PYLONTECH           15
-#define ID_SERIAL_DEVICE_FELICITY_LUXY       16
+#define ID_SERIAL_DEVICE_FELICITY_LUXY       22
 #define ID_SERIAL_DEVICE_JBD_BMS_UP16S       17
 
 //Auswahl CAN Geräte

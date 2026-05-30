@@ -27,6 +27,7 @@
 #include "devices/NeeySerial.h"
 #include "devices/JkInverterBms.h"
 #include "devices/Pylontech.h"
+#include "devices/FelicityLuxYBms.h"
 
 #ifdef TCONNECT
 #include "LEDController.h"
@@ -309,6 +310,12 @@ void BscSerial::setReadBmsFunktion(uint8_t u8_devNr, uint8_t funktionsTyp)
       BSC_LOGI(TAG,"Set serial device %i: Pylontech",u8_devNr);
       setSerialBaudrate(u8_devNr, 9600);
       serialDeviceData[u8_devNr].readBms = &Pylontech_readBmsData;
+      break;
+
+    case ID_SERIAL_DEVICE_FELICITY_LUXY:
+      BSC_LOGI(TAG,"Set serial device %i: Felicity LUX-Y",u8_devNr);
+      setSerialBaudrate(u8_devNr, 9600);
+      serialDeviceData[u8_devNr].readBms = &FelicityLuxYBms_readBmsData;
       break;
 
     default:
