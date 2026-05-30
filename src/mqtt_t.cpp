@@ -290,7 +290,7 @@ void clearQueue()
 
 bool mqttPublishLoopFromTxBuffer()
 {
-  if(millis()>(u32_mMqttPublishLoopTimmer+15))
+  if((millis() - u32_mMqttPublishLoopTimmer) > 15)
   {
     if(smMqttConnectState==SM_MQTT_DISCONNECTED) return false;
 
@@ -420,7 +420,7 @@ void mqttDataToTxBuffer(Inverter &inverter)
 
       if(!bmsDataSendFinsh)
       {
-        if((getBmsLastDataMillis(sendBmsData_mqtt_sendeCounter)+5000)>millis()) //Nur senden wenn die Daten nicht älter als 5 sec. sind
+        if((millis() - getBmsLastDataMillis(sendBmsData_mqtt_sendeCounter) < 5000)) //Nur senden wenn die Daten nicht älter als 5 sec. sind
         {
           mqttPublishBmsData(sendBmsData_mqtt_sendeCounter);
         }

@@ -418,14 +418,15 @@ boolean connectWiFi()
     WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
     WiFi.begin(str_lWlanSsid.c_str(), str_lWlanPwd.c_str());
 
-    wlanConnectTimer=millis()+(u16_lWlanConnTimeout*1000);
+    wlanConnectTimer=millis();
+    const uint32_t wlanConnectTimeoutMs = static_cast<uint32_t>(u16_lWlanConnTimeout) * 1000U;
     #ifdef WLAN_DEBUG
     BSC_LOGI(TAG, "wlanConnectTimer=%i",wlanConnectTimer);
     #endif
     uint8_t cnt=0;
     while ((WiFi.status() != WL_CONNECTED))
     {
-      if(!bo_lWlanNeverAp && millis()>wlanConnectTimer) break;
+      if(!bo_lWlanNeverAp && (millis() - wlanConnectTimer) > wlanConnectTimeoutMs) break;
 
       if(cnt>15)
       {
