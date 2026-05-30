@@ -127,7 +127,6 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/arturk8202" target=_blank><img src="https://avatars.githubusercontent.com/u/266241687?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Individual</strong></p><p align="center">
-<a href="https://github.com/byPARSE" target=_blank><img src="https://avatars.githubusercontent.com/u/37997657?v=4" height="58"/></a>
 <a href="https://github.com/corsatotti" target=_blank><img src="https://avatars.githubusercontent.com/u/150857548?u=5e2de184f6671b52462009505bf6db0b78312577&v=4" height="58"/></a>
 </p>
 <!-- SPONSORS_ENDE -->
