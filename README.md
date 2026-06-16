@@ -61,7 +61,6 @@ We are also happy to welcome members from other countries.
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
 <a href="https://github.com/dfarin" target=_blank><img src="https://avatars.githubusercontent.com/u/9096265?v=4" height="58"/></a>
-<a href="https://github.com/iz3man" target=_blank><img src="https://avatars.githubusercontent.com/u/11553674?v=4" height="58"/></a>
 <a href="https://github.com/OutOfSync1" target=_blank><img src="https://avatars.githubusercontent.com/u/26528901?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
