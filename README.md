@@ -93,6 +93,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/elschman" target=_blank><img src="https://avatars.githubusercontent.com/u/32643724?u=6cba4dfccb63cd203b23228693c85d87e47d3df9&v=4" height="58"/></a>
 <a href="https://github.com/dl6dbh" target=_blank><img src="https://avatars.githubusercontent.com/u/35333262?v=4" height="58"/></a>
 <a href="https://github.com/oalbers58" target=_blank><img src="https://avatars.githubusercontent.com/u/45533193?v=4" height="58"/></a>
+<a href="https://github.com/26Zoll" target=_blank><img src="https://avatars.githubusercontent.com/u/58189583?v=4" height="58"/></a>
 <a href="https://github.com/michi1984" target=_blank><img src="https://avatars.githubusercontent.com/u/58638770?v=4" height="58"/></a>
 <a href="https://github.com/pepe-el-pepe" target=_blank><img src="https://avatars.githubusercontent.com/u/61097309?u=217ffbae91308f3675269d8bae5ab11ddda7bfa7&v=4" height="58"/></a>
 <a href="https://github.com/Ximerox" target=_blank><img src="https://avatars.githubusercontent.com/u/65176158?u=d1952cbd2fa94be247696e69ddd230cd9e950731&v=4" height="58"/></a>
