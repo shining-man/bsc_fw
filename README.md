@@ -78,6 +78,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/irudi" target=_blank><img src="https://avatars.githubusercontent.com/u/756373?v=4" height="58"/></a>
 <a href="https://github.com/stlorenz" target=_blank><img src="https://avatars.githubusercontent.com/u/5159308?u=cebe9493a817115c63c2c23a00fdd0f5f256b225&v=4" height="58"/></a>
 <a href="https://github.com/Emilleopold" target=_blank><img src="https://avatars.githubusercontent.com/u/6137560?v=4" height="58"/></a>
+<a href="https://github.com/BjoernKellermann" target=_blank><img src="https://avatars.githubusercontent.com/u/6324993?u=3f31c6576e32d16fa2667da502677d0e4936e67a&v=4" height="58"/></a>
 <a href="https://github.com/Timon321" target=_blank><img src="https://avatars.githubusercontent.com/u/7792233?u=5830023fdc7fd4e21aba8246d70f2255d2e50a4b&v=4" height="58"/></a>
 <a href="https://github.com/PatrickGoettsch" target=_blank><img src="https://avatars.githubusercontent.com/u/8688158?u=5a0d7247dfdb3cafd36a49e41a7e68f862e32dd0&v=4" height="58"/></a>
 <a href="https://github.com/HJoost" target=_blank><img src="https://avatars.githubusercontent.com/u/13537894?v=4" height="58"/></a>
