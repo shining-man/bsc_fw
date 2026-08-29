@@ -1784,43 +1784,74 @@ void WebSettings::setPreferencesU32(const char* name, uint32_t val)
 
 
 #ifdef INSIDER_V1
-void addJsonElem(char *buf, int id, bool val)
+
+
+void addJsonElem(char *buf, size_t max_len, int id, bool val)
 {
-  uint16_t bufLen = strlen(buf);
-  if (bufLen == 0) sprintf(&buf[bufLen], "[");
-  else sprintf(&buf[bufLen], ",");
-  bufLen++;
-  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%u}",id,val);
+  size_t bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+
+  if (bufLen == 0) snprintf(&buf[bufLen], max_len - bufLen, "[");
+  else snprintf(&buf[bufLen], max_len - bufLen, ",");
+  
+  bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+  
+  snprintf(&buf[bufLen], max_len - bufLen, "{\"id\":%i, \"val\":%u}",id,val);
 }
-void addJsonElem(char *buf, int id, int32_t val)
+
+
+void addJsonElem(char *buf, size_t max_len, int id, int32_t val)
 {
-  uint16_t bufLen = strlen(buf);
-  if (bufLen == 0) sprintf(&buf[bufLen], "[");
-  else sprintf(&buf[bufLen], ",");
-  bufLen++;
-  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%i}",id,val);
+  size_t bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+
+  if (bufLen == 0) snprintf(&buf[bufLen], max_len - bufLen, "[");
+  else snprintf(&buf[bufLen], max_len - bufLen, ",");
+  
+  bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+  
+  snprintf(&buf[bufLen], max_len - bufLen, "{\"id\":%i, \"val\":%i}",id,val);
 }
-void addJsonElem(char *buf, int id, float val)
+
+
+void addJsonElem(char *buf, size_t max_len, int id, float val)
 {
-  uint16_t bufLen = strlen(buf);
-  if (bufLen == 0) sprintf(&buf[bufLen], "[");
-  else sprintf(&buf[bufLen], ",");
-  bufLen++;
-  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":%.3f}",id,val);
+  size_t bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+
+  if (bufLen == 0) snprintf(&buf[bufLen], max_len - bufLen, "[");
+  else snprintf(&buf[bufLen], max_len - bufLen, ",");
+  
+  bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+  
+  snprintf(&buf[bufLen], max_len - bufLen, "{\"id\":%i, \"val\":%.3f}",id,val);
 }
-void addJsonElem(char *buf, int id, String val)
+
+void addJsonElem(char *buf, size_t max_len, int id, String val)
 {
-  uint16_t bufLen = strlen(buf);
-  if (bufLen == 0) sprintf(&buf[bufLen], "[");
-  else sprintf(&buf[bufLen], ",");
-  bufLen++;
-  sprintf(&buf[bufLen], "{\"id\":%i, \"val\":\"%s\"}",id,val.c_str());
+  size_t bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+
+  if (bufLen == 0) {
+	  snprintf(&buf[bufLen], max_len - bufLen, "[");
+  } else {
+	  snprintf(&buf[bufLen], max_len - bufLen, ",");
+  }
+  
+  bufLen = strlen(buf);
+  if (bufLen >= max_len - 1) return;
+  
+  snprintf(&buf[bufLen], max_len - bufLen, "{\"id\":%i, \"val\":\"%s\"}", id, val.c_str());
 }
 
 void WebSettings::handleGetValues(WebServer *server)
 {
   uint32_t argName;
   char data[4096] = { 0 };
+  size_t max_len = sizeof(data);
   //BSC_LOGI(TAG,"handleGetValues: args=%i",server->args());
   for(uint8_t i=0; i<server->args(); i++)
   {
@@ -1835,17 +1866,17 @@ void WebSettings::handleGetValues(WebServer *server)
 
       if(u8_storeInFlash==0)
       {
-        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBool((uint16_t)(argName&0xFFFF)));
-        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloat((uint16_t)(argName&0xFFFF)));
-        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getString((uint16_t)(argName&0xFFFF),false,PARAM_DT_ST));
-        else addJsonElem(data, argName, getInt((uint16_t)(argName&0xFFFF), u8_dataType));
+        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, max_len, argName, getBool((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, max_len, argName, getFloat((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, max_len, argName, getString((uint16_t)(argName&0xFFFF),false,PARAM_DT_ST));
+        else addJsonElem(data, max_len, argName, getInt((uint16_t)(argName&0xFFFF), u8_dataType));
       }
       else if(u8_storeInFlash==1)
       {
-        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, argName, getBoolFlash((uint16_t)(argName&0xFFFF)));
-        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, argName, getFloatFlash((uint16_t)(argName&0xFFFF)));
-        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, argName, getStringFlash((uint16_t)(argName&0xFFFF)));
-        else addJsonElem(data, argName, (int)getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
+        if(u8_dataType==PARAM_DT_BO) addJsonElem(data, max_len, argName, getBoolFlash((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_FL) addJsonElem(data, max_len, argName, getFloatFlash((uint16_t)(argName&0xFFFF)));
+        else if(u8_dataType==PARAM_DT_ST) addJsonElem(data, max_len, argName, getStringFlash((uint16_t)(argName&0xFFFF)));
+        else addJsonElem(data, max_len, argName, (int)getIntFlash((uint16_t)(argName&0xFFFF), u8_dataType));
       }
     }
     else
@@ -1853,7 +1884,10 @@ void WebSettings::handleGetValues(WebServer *server)
       BSC_LOGE(TAG,"handleGetValues: not number");
     }
   }
-  sprintf(&data[strlen(data)], "]");
+  size_t current_len = strlen(data);
+  if (current_len < max_len -2) {
+	  snprintf(&data[current_len], max_len - current_len, "]");
+  }
 
   server->send(200, "application/json", data);
 }
@@ -1944,13 +1978,3 @@ void WebSettings::handleSetValues(WebServer *server)
   server->send(200, "application/json", "{\"state\":1}");
 }
 #endif
-
-
-
-
-
-
-
-
-
-
