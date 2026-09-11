@@ -1318,7 +1318,7 @@ void setup()
   WiFi.onEvent(onWiFiEvent);
   WiFi.setAutoReconnect(false);
   xTaskCreatePinnedToCore(task_ble, "ble", 2500, nullptr, TASK_PRIORITY_SERIAL_MAX, &task_handle_ble, 1);
-  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 2500, nullptr, TASK_PRIORITY_CONNECT_WIFI, &task_handle_wifiConn, 1);
+  xTaskCreatePinnedToCore(task_ConnectWiFi, "wlanConn", 4096, nullptr, TASK_PRIORITY_CONNECT_WIFI, &task_handle_wifiConn, 1);
 
 
   if (MDNS.begin(WebSettings::getString(ID_PARAM_MQTT_DEVICE_NAME,0).c_str()))
