@@ -60,7 +60,6 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
-<a href="https://github.com/MIR0slav" target=_blank><img src="https://avatars.githubusercontent.com/u/2135806?v=4" height="58"/></a>
 <a href="https://github.com/Marcx123" target=_blank><img src="https://avatars.githubusercontent.com/u/240205462?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
