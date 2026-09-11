@@ -31,8 +31,11 @@ static File spiffsTriggerLogFile;
 static File spiffsValueLogFile;
 
 #ifdef DEBUG_ON_FS
+#define LOG_FS_BUFFER_MAX 2048  // Obergrenze pro Print-Buffer, verhindert unbegrenztes Heap-Wachstum
 static File spiffsLogFile;
 static char log_print_buffer[512];
+static String str_mPrintBuffer0="";
+static String str_mPrintBuffer1="";
 int vprintf_into_spiffs(const char* szFormat, va_list args);
 #endif
 
@@ -108,6 +111,10 @@ void debugInit()
     if(SPIFFS.exists("/log.txt")) spiffsLogFile=SPIFFS.open("/log.txt", FILE_APPEND);
     else spiffsLogFile=SPIFFS.open("/log.txt", FILE_WRITE);
   }
+
+  // Buffer einmalig reservieren, um Heap-Fragmentierung durch wiederholtes Reallozieren zu vermeiden
+  str_mPrintBuffer0.reserve(LOG_FS_BUFFER_MAX);
+  str_mPrintBuffer1.reserve(LOG_FS_BUFFER_MAX);
   #endif
 
 
@@ -188,10 +195,9 @@ void debugInit()
 
 #ifdef DEBUG_ON_FS
 bool logEn=true;
-static String str_mPrintBuffer0="";
-static String str_mPrintBuffer1="";
 static uint8_t u8_mAktivPrintBuffer=0;
 static bool bo_mNewDataInBuffer=false;
+static bool bo_mLogBufferOverflow=false;
 int vprintf_into_spiffs(const char* szFormat, va_list args)
 {
   int ret=0;
@@ -213,9 +219,17 @@ int vprintf_into_spiffs(const char* szFormat, va_list args)
 
       xSemaphoreTake(logMutex, portMAX_DELAY);
 
-      if(u8_mAktivPrintBuffer==0)str_mPrintBuffer0+=log_print_buffer;
-      else str_mPrintBuffer1+=log_print_buffer;
-      bo_mNewDataInBuffer=true;
+      String &activePrintBuffer = (u8_mAktivPrintBuffer==0) ? str_mPrintBuffer0 : str_mPrintBuffer1;
+      if(activePrintBuffer.length() < LOG_FS_BUFFER_MAX)
+      {
+        activePrintBuffer += log_print_buffer;
+        bo_mNewDataInBuffer=true;
+      }
+      else
+      {
+        // Bei Überlauf werden weitere Log-Zeilen verworfen, um den Heap zu schützen
+        bo_mLogBufferOverflow=true;
+      }
 
       xSemaphoreGive(logMutex);
   }
@@ -243,11 +257,14 @@ void writeLogToFS()
   }
 
   xSemaphoreTake(logMutex, portMAX_DELAY);
+  bool lo_logBufferOverflow=false;
   if(bo_mNewDataInBuffer)
   {
     if(u8_mAktivPrintBuffer==0)u8_mAktivPrintBuffer=1;
     else u8_mAktivPrintBuffer=0;
     bo_mNewDataInBuffer=false;
+    lo_logBufferOverflow=bo_mLogBufferOverflow;
+    bo_mLogBufferOverflow=false;
     xSemaphoreGive(logMutex);
   }
   else
@@ -268,6 +285,8 @@ void writeLogToFS()
     spiffsLogFile.print(str_mPrintBuffer0);
     str_mPrintBuffer0="";
   }
+
+  if(lo_logBufferOverflow) spiffsLogFile.print("\r\n[LOG] Buffer overflow, Log-Eintraege verloren\r\n");
 
   spiffsLogFile.flush();
   xSemaphoreGive(deleteLogMutex);
