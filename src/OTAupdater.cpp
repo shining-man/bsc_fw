@@ -17,31 +17,23 @@ const char uploadFormV1[] PROGMEM = R"!^!(
 <meta http-equiv='Content-Type' content='text/html' charset='utf-8'/>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BSC</title>
+<link rel="stylesheet" href="/public-ui.css">
+<script src="/public-ui.js"></script>
 <style>
-  html {font-family:Helvetica; display:inline-block; margin:0px auto; text-align:left;}
-  body {margin: 0; background-color: %s;}
-  .content {padding:20px; max-width:600px;}
-  .topnav {overflow: hidden;position:sticky;top:0;background-color:#6E6E6E;color:white;padding:5px;}
-  .topnav span {float: left; padding: 14px 16px; text-decoration: none; font-size:1.7rem;}
-  .btnBack:hover {background-color:#555555;color:white;}
-  .hl {flex:1;font-size:2rem;}
-  .titel {font-weight:bold; text-align:left; padding:5px;}
-
-  progress
-  {
-	border: none;
-	background-size: auto;
-	width: 315px;
-	height: 20px;
-  }
+  .content{max-width:720px}
+  .update-panel{padding:22px;background:var(--card);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow)}
+  .update-panel input{max-width:100%;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--text)}
+  .update-panel input[type=submit]{border:0;background:var(--primary);color:#fff;cursor:pointer}
+  .update-panel input[type=submit]:hover{background:var(--primary-d)}
+  progress{border:0;background-size:auto;width:100%;height:20px}
 </style>
-
+</head>
 <body>
   <div class="topnav">
-    <span class='btnBack' onclick='history.back()'><img src="/back.svg" alt="&#10094;" width="21" height="21"></span>
     <span class='hl'>Web-Update</span>
   </div>
   <div class="content">
+	<div class="update-panel">
 	<div><u>Installierte FW-Version:</u> <span id='FwVersion'></span><br>
   <span id='FwVersionHinweis'></span></div><br>
 	<p><b>Aktuelles verfügbares Release (github)</b>
@@ -59,6 +51,7 @@ const char uploadFormV1[] PROGMEM = R"!^!(
     <progress id='progress' max='100' value="0" ></progress>
     <br><br>
     <div id="status"></div>
+	</div>
   </div>
 
 <script>
