@@ -7,5 +7,6 @@ __pycache__/
 include/webpages.h
 include/webpages_tconnect.h
 include/web/publicWebUi.h
+include/web/webSettingsWebUi.h
 include/params.h
 include/params_dt.h

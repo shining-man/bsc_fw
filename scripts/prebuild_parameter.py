@@ -1,7 +1,8 @@
-from build_public_webui import build_public_webui
+from build_public_webui import build_public_webui, build_web_settings_webui
 
 
 build_public_webui()
+build_web_settings_webui()
 
 defines_dict = dict()
 

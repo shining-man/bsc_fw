@@ -1,0 +1,338 @@
+/* Public-theme overrides for the generated WebSettings forms. */
+
+.topnav span {
+  font-size: inherit;
+}
+
+.content {
+  overflow: visible;
+  max-width: 780px;
+  margin: 18px auto;
+  background: transparent;
+  padding: 12px;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.content form > table,
+.content details > table {
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.Ctr {
+  display: grid;
+  grid-template-columns: 34% minmax(0, 1fr) max-content 46px;
+  align-items: center;
+  background: var(--card);
+  box-shadow: none;
+}
+
+.Ctr > td {
+  grid-row: 1;
+  height: 100%;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.Ctr > td:first-child {
+  grid-column: 1;
+}
+
+.Ctr > td:nth-child(2) {
+  grid-column: 2;
+}
+
+.Ctr > td.t1 {
+  grid-column: 4;
+  width: auto;
+  padding-left: 6px;
+  padding-right: 6px;
+  text-align: center;
+}
+
+.Ctr > td:last-child {
+  grid-column: 3;
+  width: auto;
+  white-space: nowrap;
+  padding-left: 4px;
+}
+
+.Ctr > td[colspan] {
+  grid-column: 1 / -1;
+  width: auto;
+}
+
+.Ctr > td:last-child:empty,
+.Ctr > td:last-child:has(> .secVal:empty) {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.Ctd2,
+.sep {
+  background: var(--primary-soft) !important;
+  color: var(--text) !important;
+  border-radius: 0;
+  padding: 10px 12px !important;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.sep {
+  color: var(--primary-d) !important;
+  text-decoration: none;
+}
+
+.help-row > td {
+  padding: 0 !important;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+
+.Ctr:has(+ .help-row) > td {
+  border-bottom: 0;
+}
+
+.help {
+  margin: -3px 0 0 34%;
+  padding: 0 12px 9px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  font-size: .8rem;
+  line-height: 1.35;
+}
+
+.group-label > td {
+  padding: 13px 12px 7px;
+  border-bottom: 0;
+  color: var(--text);
+}
+
+.group-divider > td {
+  padding: 8px 12px !important;
+  border: 0 !important;
+  background: var(--card);
+}
+
+.group-divider span {
+  display: block;
+  height: 1px;
+  background: var(--line);
+}
+
+.Ctr:has(+ .group-divider) > td,
+.help-row:has(+ .group-divider) > td {
+  border-bottom: 0;
+}
+
+.help-row:last-child > td,
+.Ctr:last-child > td {
+  border-bottom: 0;
+}
+
+details {
+  margin: 12px 0;
+  padding: 8px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+}
+
+details > table {
+  box-shadow: none !important;
+}
+
+summary {
+  padding: 5px;
+  color: var(--primary-d);
+  cursor: pointer;
+}
+
+.content input,
+.content select,
+.content textarea {
+  max-width: 100%;
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.content input:valid {
+  border-color: var(--line) !important;
+}
+
+.content input:invalid {
+  border-color: var(--bad) !important;
+}
+
+.content input:focus,
+.content select:focus,
+.content textarea:focus {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 2px var(--primary-soft);
+}
+
+button {
+  background: #bdbdbd;
+  color: #fff;
+  margin-left: 0;
+  border-radius: 7px;
+}
+
+button:hover {
+  background: var(--primary-d);
+}
+
+.public-nav-toggle,
+.public-nav-action,
+.theme-toggle {
+  background: transparent;
+  color: var(--text);
+}
+
+.sb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  background: var(--primary);
+  font-weight: bold;
+}
+
+.sb:hover {
+  background: var(--primary-d);
+}
+
+.loading-spinner {
+  border-color: var(--primary-soft);
+  border-top-color: var(--primary);
+}
+
+.collapsible-content .content-inner,
+.lbl-toggle {
+  background: var(--primary-soft);
+  color: var(--text);
+}
+
+#data_div {
+  max-width: 780px;
+  margin: auto;
+  padding: 0 12px;
+}
+
+html.dark input:invalid {
+  background: #460000;
+}
+
+.Ctr:has(> .sep) + .help-row .help {
+  margin: 0;
+  padding: 8px 12px 10px;
+}
+
+@media (max-width: 600px) {
+  .content {
+    margin: 6px auto;
+    padding: 8px;
+  }
+
+  .content form > table,
+  .content details > table,
+  .content form > table > tbody,
+  .content details > table > tbody {
+    display: block;
+  }
+
+  .content form > table > tbody > tr:not(.Ctr):not(.help-row),
+  .content details > table > tbody > tr:not(.Ctr):not(.help-row),
+  .content form > table > tbody > tr:not(.Ctr):not(.help-row) > td,
+  .content details > table > tbody > tr:not(.Ctr):not(.help-row) > td {
+    display: block;
+    width: 100%;
+  }
+
+  .Ctr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46px;
+    margin: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .Ctr > td {
+    grid-row: auto;
+    display: block;
+    width: auto !important;
+    padding: 6px 10px;
+    border: 0;
+  }
+
+  .Ctr > td:first-child {
+    grid-column: 1 / -1;
+    padding-top: 10px;
+  }
+
+  .Ctr > td:nth-child(2) {
+    grid-column: 1;
+  }
+
+  .Ctr > td.t1 {
+    grid-column: 2;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .Ctr > td:last-child {
+    grid-column: 1 / -1;
+    padding-top: 0;
+  }
+
+  .Ctr:last-child {
+    border-bottom: 0;
+  }
+
+  .help-row,
+  .help-row > td {
+    display: block;
+    width: 100%;
+  }
+
+  .help-row > td {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .help {
+    margin: -2px 0 0;
+    padding: 0 10px 9px 20px;
+  }
+
+  .group-label > td {
+    padding: 12px 10px 6px;
+  }
+
+  .group-divider > td {
+    padding: 7px 10px !important;
+  }
+
+  .Ctd input:not([type="checkbox"]):not([type="radio"]),
+  .Ctd select,
+  .Ctd textarea {
+    width: 100%;
+  }
+
+  .profile-container {
+    width: 100%;
+  }
+}
