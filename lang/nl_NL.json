@@ -134,6 +134,12 @@
     },
     "46": {
       "label":"Voor sponsors is er bovendien een exclusieve supporter-versie met de nieuwste functies."
+    },
+    "47": {
+      "label":"Alle instellingen zijn bereikbaar via de navigatie aan de linkerkant."
+    },
+    "48": {
+      "label":"De beschikbare live-weergaven zijn bereikbaar via de navigatie aan de linkerkant."
     }
   },
   "texts-settings": {
@@ -308,7 +314,8 @@
         "label_entry": "Apparaten"
     },
     "51": {
-        "label": "Celspanning voor SoC 100%"
+        "label": "Celspanning voor SoC 100%",
+        "help": "0=uitgeschakeld"
     },
     "52": {
         "label": "Celspanning voor SoC 0%",

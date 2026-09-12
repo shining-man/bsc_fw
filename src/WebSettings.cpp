@@ -128,7 +128,7 @@ const char HTML_ENTRY_MULTI_START[] PROGMEM =
 const char HTML_ENTRY_MULTI_OPTION[] PROGMEM =
 "<input type='checkbox' name='%s' value='%i' %s>%s<br>\n";
 const char HTML_ENTRY_MULTI_END[] PROGMEM =
-"</fieldset></td><td class='t1'></td></tr>\n";  //<td class='Ctd'><span class='secVal' id='s%s'></span></td>
+"</fieldset></td><td class='t1'></td><td class='Ctd'></td></tr>\n";  //<span class='secVal' id='s%s'></span>
 
 const char HTML_ENTRY_MULTI_COLLAPSIBLE_START[] PROGMEM =
 "<tr class='Ctr'><td class='Ctd'><b>%s</b></td>\n"
@@ -139,13 +139,14 @@ const char HTML_ENTRY_MULTI_COLLAPSIBLE_START[] PROGMEM =
 "<div class='content-inner'>\n"
 "<fieldset style='text-align:left;'>\n";
 const char HTML_ENTRY_MULTI_COLLAPSIBLE_END[] PROGMEM =
-"</fieldset></div></div></td><td class='t1'></td></tr>\n";
+"</fieldset></div></div></td><td class='t1'></td><td class='Ctd'></td></tr>\n";
 
-const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='3'><b>%s</b></td></tr>\n";
+const char HTML_GROUP_START[] PROGMEM = "<tr><td class='Ctd2' colspan='4'><b>%s</b></td></tr>\n";
 const char HTML_GROUP_START_DETAILS[] PROGMEM = "</table><details><summary><b>%s</b></summary><table>\n"; //<details open>
 const char HTML_GROUP_END_DETAILS[]   PROGMEM = "</table></details><table>\n";
+const char HTML_GROUP_DIVIDER[] PROGMEM = "<tr class='group-divider'><td colspan='4'><span></span></td></tr>\n";
 
-const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='3'><b><u>%s</u></b></td></tr>\n";
+const char HTML_ENTRY_SEPARATION[] PROGMEM = "<tr class='Ctr'><td class='sep' colspan='4'><b>%s</b></td></tr>\n";
 
 const char HTML_BUTTON[] PROGMEM = "<div class='Ctd'><button id='%s' onclick='btnClick(\"%s\")'>%s</button></div>\n";
 
@@ -394,6 +395,7 @@ void WebSettings::handleHtmlFormRequest(WebServer * server)
       server->send(200, "text/html", _buf);
 
       sendContentHtml(server,webSettingsStyle,false);
+      sendContentHtml(server,webSettingsPublicStyle,false);
 
       sprintf(_buf,HTML_START_2,str_mConfName.c_str());
       sendContentHtml(server,_buf,false);
@@ -556,7 +558,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
             if(depOk==false) continue;
           }
 
-          sprintf(_buf,"<tr><td colspan='3'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
+          sprintf(_buf,"<tr class='group-label'><td colspan='4'><b>%s %i</b></td></tr>",st_jsonLabelEntry.c_str(), g+u8_jsonLabelOffset);
           sendContentHtml(server,_buf,false);
 
           String retStr;
@@ -564,7 +566,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
           bool ret = json.getValue(parameter, a, "group", jsonStartPos, retStr, jsonArrayGroupStart);
           buildSendHtml(server, parameter, jsonArrayGroupStart);
 
-          sprintf(_buf,"<tr><td colspan='3'><hr style='border:none; border-top:1px dashed black; height:1px; color:#000000; background:transparent'></td></tr>");
+          strcpy_P(_buf,HTML_GROUP_DIVIDER);
           sendContentHtml(server,_buf,false);
         }
         if(u8_lJsonType==HTML_OPTIONGROUP_COLLAPSIBLE && optionGroupSize>1 && !jsonLabel.equals(""))
@@ -673,7 +675,7 @@ void WebSettings::buildSendHtml(WebServer * server, const char *parameter, uint3
       if(!strlHelp.equals(""))
       {
         strlHelp.replace("\n","<br>");
-        sprintf(_buf,"<tr><td colspan='3' class='td0'><div class='help'>%s</div></td></tr>",strlHelp.c_str());
+        sprintf(_buf,"<tr class='help-row'><td colspan='4' class='td0'><div class='help'>%s</div></td></tr>",strlHelp.c_str());
         sendContentHtml(server,_buf,false);
       }
     }
@@ -1944,9 +1946,6 @@ void WebSettings::handleSetValues(WebServer *server)
   server->send(200, "application/json", "{\"state\":1}");
 }
 #endif
-
-
-
 
 
 

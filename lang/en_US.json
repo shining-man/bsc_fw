@@ -137,6 +137,12 @@
     },
     "46": {
       "label":"For sponsors, there is also an exclusive supporter version with the latest features."
+    },
+    "47": {
+      "label":"All settings are available from the navigation on the left."
+    },
+    "48": {
+      "label":"The available live views are accessible from the navigation on the left."
     }
   },
   "texts-settings": {
@@ -311,7 +317,8 @@
         "label_entry": "Device"
     },
     "51": {
-        "label": "Cellvoltage for SoC 100%"
+        "label": "Cellvoltage for SoC 100%",
+        "help": "0=disabled"
     },
     "52": {
         "label": "Cellvoltage for SoC 0%",

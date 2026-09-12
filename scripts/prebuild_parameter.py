@@ -1,3 +1,8 @@
+from build_public_webui import build_public_webui
+
+
+build_public_webui()
+
 defines_dict = dict()
 
 datei = open('./include/defines.h','r')
@@ -271,4 +276,3 @@ for zeile in datei:
 
 datei.close()
 dateiOut.close()
-
