@@ -48,6 +48,7 @@
 #else
 #include "webpages.h"
 #endif
+#include "web/publicWebUi.h"
 #include "AlarmRules.h"
 #include "dio.h"
 #include "Ow.h"
@@ -853,6 +854,7 @@ void handlePage_alarm(){if(performAuthentication(server, webSettingsSystem)) ser
 void handlePage_schnittstellen(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSchnittstellen);}
 void handle_htmlPageBmsSpg(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBmsSpg);}
 void handlePage_status(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageStatus);}
+void handlePage_logView(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageLog);}
 void handlePage_htmlPageMenuLivedata(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageMenuLivedata);}
 void handlePage_htmlPageOwTempLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageOwTempLive);}
 void handlePage_htmlPageBscDataLive(){if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageBscDataLive);}
@@ -1363,12 +1365,21 @@ void setup()
   server.on("/favicon.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlFavicon);});
   server.on("/home.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlPicHome);});
   server.on("/back.svg", HTTP_GET, []() {server.send(200, "image/svg+xml", htmlPicBack);});
+  server.on("/public-ui.css", HTTP_GET, []() {
+    server.sendHeader("Cache-Control", "no-cache");
+    server.send_P(200, "text/css", publicWebUiCss);
+  });
+  server.on("/public-ui.js", HTTP_GET, []() {
+    server.sendHeader("Cache-Control", "no-cache");
+    server.send_P(200, "application/javascript", publicWebUiJs);
+  });
 
   //server.on("/login", HTTP_GET, []() {handleLogin(server);});
   //server.on("/login", HTTP_POST, []() {handleLogin(server);});
   //server.on("/logout", HTTP_GET, []() {handleLogout(server);});
 
   server.on("/htmlPageStatus/",handlePage_status);
+  server.on("/log/view/",handlePage_logView);
   server.on("/settings/",handlePage_settings);
   server.on("/settings/alarm/",handlePage_alarm);
   server.on("/settings/schnittstellen/",handlePage_schnittstellen);
