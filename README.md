@@ -60,6 +60,7 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
+<a href="https://github.com/Hundefreund02" target=_blank><img src="https://avatars.githubusercontent.com/u/58217257?u=96ff3e85e877f13411228c062a77431e2349a7ac&v=4" height="58"/></a>
 <a href="https://github.com/siggi07" target=_blank><img src="https://avatars.githubusercontent.com/u/120786868?v=4" height="58"/></a>
 </p>
 <p align="center"><strong>Bronze</strong></p><p align="center">
