@@ -60,6 +60,7 @@ We are also happy to welcome members from other countries.
 
 <!-- SPONSORS_START -->
 <p align="center"><strong>Gold</strong></p><p align="center">
+<a href="https://github.com/tonline" target=_blank><img src="https://avatars.githubusercontent.com/u/6333338?u=671a047a7e1eb43e8760d6562285a6df39927d60&v=4" height="58"/></a>
 <a href="https://github.com/Hundefreund02" target=_blank><img src="https://avatars.githubusercontent.com/u/58217257?u=96ff3e85e877f13411228c062a77431e2349a7ac&v=4" height="58"/></a>
 <a href="https://github.com/siggi07" target=_blank><img src="https://avatars.githubusercontent.com/u/120786868?v=4" height="58"/></a>
 </p>
@@ -127,7 +128,6 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?u=72327f606d0cb2d7de9341b208a492090e0a0272&v=4" height="58"/></a>
 <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
-<a href="https://github.com/Windpower-Micon" target=_blank><img src="https://avatars.githubusercontent.com/u/219895236?v=4" height="58"/></a>
 <a href="https://github.com/Nukolar" target=_blank><img src="https://avatars.githubusercontent.com/u/235692859?v=4" height="58"/></a>
 <a href="https://github.com/glomerulus84" target=_blank><img src="https://avatars.githubusercontent.com/u/260076839?v=4" height="58"/></a>
 <a href="https://github.com/arturk8202" target=_blank><img src="https://avatars.githubusercontent.com/u/266241687?v=4" height="58"/></a>
