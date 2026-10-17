@@ -1354,11 +1354,9 @@ void setup()
   else
   {
     server.on("/",handlePage_root);
-    server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   }
   #else
   server.on("/",handlePage_root);
-  server.on("/support/", HTTP_GET, []() {if(performAuthentication(server, webSettingsSystem)) server.send(200, "text/html", htmlPageSupport);});
   #endif
 
   // Bilder
