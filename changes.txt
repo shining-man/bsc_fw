@@ -1,7 +1,14 @@
-Version 0.7.16
+Version 0.7.17
 
-- New: Added support for Felicity Lux BMS
-- Fixed MQTT send timing checks to avoid rare timing issues after long device uptime.
+## Changes
+
+- Revised and optimized the web interface.
+
+## Bug Fixes
+
+- Fixed an issue with PSRAM initialization on T-Connect hardware.
+- Fixed a sporadic WiFi stack crash on T-Connect hardware.
+
 
 Firmware mapping:
 
