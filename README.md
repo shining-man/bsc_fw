@@ -128,6 +128,7 @@ We are also happy to welcome members from other countries.
 <a href="https://github.com/michaelkohrs1998" target=_blank><img src="https://avatars.githubusercontent.com/u/156584099?v=4" height="58"/></a>
 <a href="https://github.com/Diedaa" target=_blank><img src="https://avatars.githubusercontent.com/u/175444581?u=72327f606d0cb2d7de9341b208a492090e0a0272&v=4" height="58"/></a>
 <a href="https://github.com/mmoe-milano" target=_blank><img src="https://avatars.githubusercontent.com/u/177930080?v=4" height="58"/></a>
+<a href="https://github.com/Knofn" target=_blank><img src="https://avatars.githubusercontent.com/u/191380062?v=4" height="58"/></a>
 <a href="https://github.com/erwinh-at" target=_blank><img src="https://avatars.githubusercontent.com/u/195420064?v=4" height="58"/></a>
 <a href="https://github.com/Nukolar" target=_blank><img src="https://avatars.githubusercontent.com/u/235692859?v=4" height="58"/></a>
 <a href="https://github.com/glomerulus84" target=_blank><img src="https://avatars.githubusercontent.com/u/260076839?v=4" height="58"/></a>
